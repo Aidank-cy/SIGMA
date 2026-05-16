@@ -377,3 +377,76 @@ _This file is read at the start of each agent session and updated after each sub
 
 ### Next session should
 1. Start Phase 5: core frontend pages for feed, detail, watchlist, and reports.
+
+### [Phase 5] Sub-feature 5.1: TanStack Query hooks
+- Status: COMPLETE
+- Files created: sigma-frontend/src/lib/types.ts, sigma-frontend/src/hooks/useItems.ts, sigma-frontend/src/hooks/useReports.ts, sigma-frontend/src/hooks/useWatchlists.ts, sigma-frontend/src/hooks/useSettings.ts
+- Files modified: sigma-frontend/package.json, sigma-frontend/package-lock.json, sigma-frontend/src/components/ui/Badge.tsx
+- Tests: PASS
+- Notes: TanStack Query provider already existed from Phase 4; added typed hooks returning data/error/isLoading/mutate shape, infinite item/report/watchlist item queries, and markdown/raw-content dependencies for upcoming pages.
+- Timestamp: 2026-05-16T05:48:50Z
+
+### [Phase 5] Sub-feature 5.2: ItemCard component
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/feed/ItemCard.tsx
+- Files modified: sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Item cards show source, category, linked title, clamped summary, market badge, relative time, hover lift, and framer-motion entrance.
+- Timestamp: 2026-05-16T05:58:35Z
+
+### [Phase 5] Sub-feature 5.3: Home feed views
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Replaced the placeholder dashboard with timeline, category, and market views; timeline supports search, filters, URL query sync, skeletons, empty state, and IntersectionObserver infinite loading.
+- Timestamp: 2026-05-16T05:58:35Z
+
+### [Phase 5] Sub-feature 5.4: Item detail page
+- Status: COMPLETE
+- Files created: sigma-frontend/src/app/[locale]/(main)/items/[id]/page.tsx, sigma-frontend/src/components/feed/RawContent.tsx
+- Files modified: sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Added breadcrumb/meta header, AI summary card, original link, DOMPurify-sanitized raw content disclosure, and related items.
+- Timestamp: 2026-05-16T05:58:35Z
+
+### [Phase 5] Sub-feature 5.5: Watchlist page and API
+- Status: COMPLETE
+- Files created: sigma-backend/app/api/v1/routes/watchlists.py, sigma-backend/app/schemas/watchlist.py, sigma-backend/tests/test_watchlists_api.py, sigma-frontend/src/app/[locale]/(main)/watchlist/page.tsx, sigma-frontend/src/hooks/useSources.ts
+- Files modified: sigma-backend/app/api/v1/router.py, sigma-frontend/src/components/Navbar.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Added authenticated watchlist CRUD, filtered watchlist item feeds, frontend tabbed list management, create/edit modal, keyword/market/source filters, and item pagination.
+- Timestamp: 2026-05-16T05:58:35Z
+
+### [Phase 5] Sub-feature 5.6: Reports pages
+- Status: COMPLETE
+- Files created: sigma-frontend/src/app/[locale]/(main)/reports/page.tsx, sigma-frontend/src/app/[locale]/(main)/reports/[id]/page.tsx
+- Files modified: sigma-frontend/src/app/globals.css, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Added report list filters/cards, markdown report detail with rehype-raw, sticky desktop TOC, mobile collapsible TOC, and print styling.
+- Timestamp: 2026-05-16T05:58:35Z
+
+### [Phase 5] Sub-feature 5.7: TrendLine chart and settings page
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/charts/TrendLine.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx
+- Files modified: sigma-backend/app/api/v1/routes/user_settings.py, sigma-backend/app/schemas/user_settings.py, sigma-backend/tests/test_reports_api.py, sigma-frontend/src/components/ClientProviders.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Added profile, language, retention, report config, theme, and password settings sections; added backend profile/retention/password endpoints and tests.
+- Timestamp: 2026-05-16T05:58:35Z
+
+### [Phase 5] Sub-feature 5.8: Phase 5 finalization
+- Status: COMPLETE
+- Files created: none
+- Files modified: CHANGELOG.md, .harness/progress.md, .harness/session-log.md
+- Tests: PASS
+- Notes: Verified with `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-16T05:58:35Z
+
+### Completed
+- Phase 5 sub-features 5.1 through 5.8.
+
+### In progress
+(none yet)
+
+### Next session should
+1. Start Phase 6: admin panel dashboard, users, sources, and LLM config.

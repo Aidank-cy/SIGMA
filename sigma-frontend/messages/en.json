@@ -39,10 +39,190 @@
   "nav": {
     "home": "Home",
     "feed": "Feed",
+    "watchlist": "Watchlist",
     "reports": "Reports",
     "admin": "Admin",
+    "settings": "Settings",
     "logout": "Sign out",
     "menu": "Menu"
+  },
+  "feed": {
+    "eyebrow": "Live intelligence",
+    "title": "Home feed",
+    "sourceFallback": "Source",
+    "summaryFallback": "Summary is not available yet.",
+    "search": "Search intelligence",
+    "categoryFilter": "Category filter",
+    "marketFilter": "Market filter",
+    "all": "All",
+    "empty": "No intelligence items match this view.",
+    "viewMore": "View more",
+    "views": {
+      "timeline": "Timeline",
+      "category": "Category",
+      "market": "Market"
+    },
+    "categories": {
+      "politics": "Politics",
+      "finance": "Finance",
+      "technology": "Technology",
+      "macro": "Macro",
+      "other": "Other",
+      "tech": "Technology"
+    },
+    "markets": {
+      "us": "United States",
+      "cn": "China",
+      "jp": "Japan",
+      "eu": "Europe",
+      "hk": "Hong Kong",
+      "global": "Global"
+    }
+  },
+  "itemDetail": {
+    "breadcrumbHome": "Home",
+    "breadcrumbCurrent": "Item detail",
+    "summaryTitle": "AI summary",
+    "summaryFallback": "Summary is not available yet.",
+    "original": "View original",
+    "rawTitle": "Raw content",
+    "relatedTitle": "Related intelligence",
+    "relatedEmpty": "No related items yet.",
+    "empty": "This item is unavailable.",
+    "categories": {
+      "politics": "Politics",
+      "finance": "Finance",
+      "technology": "Technology",
+      "macro": "Macro",
+      "other": "Other",
+      "tech": "Technology"
+    },
+    "markets": {
+      "us": "United States",
+      "cn": "China",
+      "jp": "Japan",
+      "eu": "Europe",
+      "hk": "Hong Kong",
+      "global": "Global"
+    }
+  },
+  "watchlist": {
+    "eyebrow": "Focused monitoring",
+    "title": "Watchlist",
+    "create": "New list",
+    "createTitle": "Create watchlist",
+    "editTitle": "Edit watchlist",
+    "name": "List name",
+    "keywords": "Keyword tags",
+    "marketLabel": "Markets",
+    "sourceLabel": "Sources",
+    "sourcesEmpty": "No visible sources.",
+    "empty": "Create a watchlist to monitor filtered intelligence.",
+    "itemsEmpty": "No items match this watchlist yet.",
+    "filterSummary": "{keywords} keywords · {markets} markets · {sources} sources",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "loadMore": "Load more",
+    "markets": {
+      "us": "United States",
+      "cn": "China",
+      "jp": "Japan",
+      "eu": "Europe",
+      "hk": "Hong Kong",
+      "global": "Global"
+    }
+  },
+  "reports": {
+    "eyebrow": "Periodic analysis",
+    "title": "Reports",
+    "empty": "No reports have been generated yet.",
+    "all": "All",
+    "scope": "{markets} markets · {categories} categories",
+    "loadMore": "Load more",
+    "filters": {
+      "all": "All",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    },
+    "types": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    }
+  },
+  "reportDetail": {
+    "breadcrumbReports": "Reports",
+    "breadcrumbCurrent": "Detail",
+    "empty": "This report is unavailable.",
+    "toc": "Contents",
+    "tocEmpty": "No headings in this report.",
+    "print": "Print",
+    "types": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    }
+  },
+  "settings": {
+    "eyebrow": "Workspace preferences",
+    "title": "Settings",
+    "save": "Save",
+    "saved": "Saved.",
+    "profile": {
+      "title": "Profile",
+      "displayName": "Display name",
+      "language": "Language",
+      "zh": "Chinese",
+      "en": "English"
+    },
+    "retention": {
+      "title": "Data retention",
+      "days": "{count} days"
+    },
+    "reports": {
+      "title": "Report configuration",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "markets": "Markets",
+      "categories": "Categories",
+      "active": "Generate scheduled reports"
+    },
+    "theme": {
+      "title": "Appearance",
+      "caption": "Switch the workspace theme on this device.",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "password": {
+      "title": "Change password",
+      "current": "Current password",
+      "next": "New password"
+    },
+    "trend": {
+      "title": "Signal trend",
+      "caption": "Sample seven-day intelligence volume.",
+      "day": "{count}d",
+      "today": "Today"
+    },
+    "categories": {
+      "politics": "Politics",
+      "finance": "Finance",
+      "technology": "Technology",
+      "macro": "Macro"
+    },
+    "markets": {
+      "us": "United States",
+      "cn": "China",
+      "jp": "Japan",
+      "eu": "Europe",
+      "hk": "Hong Kong",
+      "global": "Global"
+    }
   },
   "dashboard": {
     "eyebrow": "Market intelligence hub",

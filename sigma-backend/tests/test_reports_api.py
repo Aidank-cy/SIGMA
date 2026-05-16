@@ -35,6 +35,39 @@ def test_user_report_config_crud(client: TestClient) -> None:
     assert update_response.json()["markets"] == ["us", "global"]
 
 
+def test_user_profile_retention_and_password_updates(client: TestClient) -> None:
+    """Users can update independent settings sections."""
+    token = _token(client, "settings-user@example.com")
+
+    profile_response = client.put(
+        "/api/v1/me/profile",
+        headers=_auth(token),
+        json={"display_name": "Updated User", "locale": "en"},
+    )
+    retention_response = client.put(
+        "/api/v1/me/retention",
+        headers=_auth(token),
+        json={"data_retention_days": 90},
+    )
+    password_response = client.put(
+        "/api/v1/me/password",
+        headers=_auth(token),
+        json={"current_password": "StrongPass1", "new_password": "BetterPass2"},
+    )
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "settings-user@example.com", "password": "BetterPass2"},
+    )
+
+    assert profile_response.status_code == 200
+    assert profile_response.json()["display_name"] == "Updated User"
+    assert profile_response.json()["locale"] == "en"
+    assert retention_response.status_code == 200
+    assert retention_response.json()["data_retention_days"] == 90
+    assert password_response.status_code == 204
+    assert login_response.status_code == 200
+
+
 def test_admin_llm_config_and_usage(client: TestClient) -> None:
     """Admins can update LLM config and read usage rollups."""
     token = _token(client, "llm-admin@example.com")

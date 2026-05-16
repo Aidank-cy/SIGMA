@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, FileText, Home, LogOut, Menu, Newspaper, Settings, UserCircle } from "lucide-react";
+import { BarChart3, FileText, Home, LogOut, Menu, Settings, Star, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
@@ -12,9 +12,9 @@ import { cn } from "@/lib/cn";
 
 const navItems = [
   { href: "", icon: Home, key: "home" },
-  { href: "feed", icon: Newspaper, key: "feed" },
+  { href: "watchlist", icon: Star, key: "watchlist" },
   { href: "reports", icon: FileText, key: "reports" },
-  { href: "admin", icon: Settings, key: "admin" }
+  { href: "settings", icon: Settings, key: "settings" }
 ] as const;
 
 export function Navbar() {

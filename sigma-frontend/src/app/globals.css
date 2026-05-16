@@ -100,3 +100,62 @@ select {
     transition-duration: 1ms !important;
   }
 }
+
+.report-markdown h2 {
+  margin-top: 2rem;
+  scroll-margin-top: 6rem;
+  font-size: 1.5rem;
+  font-weight: 650;
+  line-height: 2rem;
+}
+
+.report-markdown h3 {
+  margin-top: 1.5rem;
+  scroll-margin-top: 6rem;
+  font-size: 1.125rem;
+  font-weight: 650;
+  line-height: 1.75rem;
+}
+
+.report-markdown p,
+.report-markdown li {
+  color: rgb(var(--sigma-muted));
+  font-size: 0.975rem;
+  line-height: 1.8;
+}
+
+.report-markdown ul,
+.report-markdown ol {
+  margin: 1rem 0 1rem 1.25rem;
+}
+
+.report-markdown a {
+  color: rgb(var(--sigma-accent));
+  font-weight: 600;
+}
+
+.report-markdown table {
+  margin: 1.5rem 0;
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 0.5rem;
+}
+
+.report-markdown th,
+.report-markdown td {
+  border: 1px solid rgb(var(--sigma-line));
+  padding: 0.75rem;
+  text-align: left;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .report-markdown p,
+  .report-markdown li {
+    color: #1f2937;
+  }
+}

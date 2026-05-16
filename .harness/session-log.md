@@ -52,3 +52,14 @@
 **Completion:** PHASE COMPLETE
 **Next session should:** Start Phase 5 after rerunning harness integrity and baseline checks. Phase 4 added design tokens, UI primitives, API/auth state with token refresh, zh/en i18n, login/register pages, and the protected app shell.
 **Uncommitted work:** NO — committing in this session as the Phase 4 checkpoint.
+
+---
+## Session 6 — 2026-05-16T05:43:10Z
+**Phase:** Phase 5
+**Resuming from:** core frontend pages
+**Prior status from progress.md:** Phase 4 complete; Phase 5 not started. Harness integrity passed. Baseline backend tests passed with `python3 -m pytest --tb=short -q`; frontend build passed with `npm run build`.
+
+**Ending at:** Phase 5 core frontend pages
+**Completion:** PHASE COMPLETE
+**Next session should:** Start Phase 6 admin panel work after rerunning harness integrity and baseline checks. Phase 5 added query hooks, item cards, home feed views, item detail, watchlists, reports, settings, charting, watchlist APIs, and user settings APIs.
+**Uncommitted work:** NO — committing in this session as the Phase 5 checkpoint.

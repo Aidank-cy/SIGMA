@@ -14,6 +14,11 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add collection engine with API, RSS, and scraper collectors, scheduler jobs, source management APIs, item query APIs, Redis locking, deduplication, and seed sources.
 - Add LLM analysis pipeline with unified Anthropic/OpenAI client, item summarization, report generation, report schedules, LLM config APIs, and token usage tracking.
 - Add frontend foundation with Apple-minimalist design tokens, reusable UI components, token-refreshing API client, auth state, zh/en i18n, login/register pages, and protected application shell.
+- Add frontend query hooks for items, reports, watchlists, and user settings.
+- Add core frontend pages for the home feed, item detail, watchlists, reports, and settings.
+- Add watchlist CRUD APIs with filtered item feeds.
+- Add user profile, retention, and password settings APIs.
+- Add localized trend line chart and markdown report rendering with table of contents.
 
 ### Fixed
 - Fix Docker Compose config parsing without requiring a local `.env` secrets file.

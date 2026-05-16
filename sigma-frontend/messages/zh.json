@@ -39,10 +39,190 @@
   "nav": {
     "home": "首页",
     "feed": "情报流",
+    "watchlist": "关注列表",
     "reports": "报告",
     "admin": "管理",
+    "settings": "设置",
     "logout": "退出",
     "menu": "菜单"
+  },
+  "feed": {
+    "eyebrow": "实时情报",
+    "title": "首页情报流",
+    "sourceFallback": "数据源",
+    "summaryFallback": "摘要尚未生成。",
+    "search": "搜索情报",
+    "categoryFilter": "类别筛选",
+    "marketFilter": "市场筛选",
+    "all": "全部",
+    "empty": "当前视图没有匹配的情报。",
+    "viewMore": "查看更多",
+    "views": {
+      "timeline": "时间线",
+      "category": "按类别",
+      "market": "按市场"
+    },
+    "categories": {
+      "politics": "政治",
+      "finance": "金融",
+      "technology": "科技",
+      "macro": "宏观",
+      "other": "其他",
+      "tech": "科技"
+    },
+    "markets": {
+      "us": "美国",
+      "cn": "中国",
+      "jp": "日本",
+      "eu": "欧洲",
+      "hk": "香港",
+      "global": "全球"
+    }
+  },
+  "itemDetail": {
+    "breadcrumbHome": "首页",
+    "breadcrumbCurrent": "情报详情",
+    "summaryTitle": "AI 摘要",
+    "summaryFallback": "摘要尚未生成。",
+    "original": "查看原文",
+    "rawTitle": "原始内容",
+    "relatedTitle": "相关情报",
+    "relatedEmpty": "暂无相关情报。",
+    "empty": "该情报不可用。",
+    "categories": {
+      "politics": "政治",
+      "finance": "金融",
+      "technology": "科技",
+      "macro": "宏观",
+      "other": "其他",
+      "tech": "科技"
+    },
+    "markets": {
+      "us": "美国",
+      "cn": "中国",
+      "jp": "日本",
+      "eu": "欧洲",
+      "hk": "香港",
+      "global": "全球"
+    }
+  },
+  "watchlist": {
+    "eyebrow": "聚焦监控",
+    "title": "关注列表",
+    "create": "新建列表",
+    "createTitle": "创建关注列表",
+    "editTitle": "编辑关注列表",
+    "name": "列表名称",
+    "keywords": "关键词标签",
+    "marketLabel": "市场",
+    "sourceLabel": "数据源",
+    "sourcesEmpty": "暂无可见数据源。",
+    "empty": "创建关注列表以监控筛选后的情报。",
+    "itemsEmpty": "该关注列表暂无匹配情报。",
+    "filterSummary": "{keywords} 个关键词 · {markets} 个市场 · {sources} 个数据源",
+    "edit": "编辑",
+    "delete": "删除",
+    "cancel": "取消",
+    "save": "保存",
+    "close": "关闭",
+    "loadMore": "加载更多",
+    "markets": {
+      "us": "美国",
+      "cn": "中国",
+      "jp": "日本",
+      "eu": "欧洲",
+      "hk": "香港",
+      "global": "全球"
+    }
+  },
+  "reports": {
+    "eyebrow": "周期分析",
+    "title": "报告",
+    "empty": "尚未生成报告。",
+    "all": "全部",
+    "scope": "{markets} 个市场 · {categories} 个类别",
+    "loadMore": "加载更多",
+    "filters": {
+      "all": "全部",
+      "daily": "日报",
+      "weekly": "周报",
+      "monthly": "月报"
+    },
+    "types": {
+      "daily": "日报",
+      "weekly": "周报",
+      "monthly": "月报"
+    }
+  },
+  "reportDetail": {
+    "breadcrumbReports": "报告",
+    "breadcrumbCurrent": "详情",
+    "empty": "该报告不可用。",
+    "toc": "目录",
+    "tocEmpty": "该报告暂无标题。",
+    "print": "打印",
+    "types": {
+      "daily": "日报",
+      "weekly": "周报",
+      "monthly": "月报"
+    }
+  },
+  "settings": {
+    "eyebrow": "工作区偏好",
+    "title": "设置",
+    "save": "保存",
+    "saved": "已保存。",
+    "profile": {
+      "title": "个人资料",
+      "displayName": "显示名称",
+      "language": "语言",
+      "zh": "中文",
+      "en": "英文"
+    },
+    "retention": {
+      "title": "数据保留",
+      "days": "{count} 天"
+    },
+    "reports": {
+      "title": "报告配置",
+      "daily": "日报",
+      "weekly": "周报",
+      "monthly": "月报",
+      "markets": "市场",
+      "categories": "类别",
+      "active": "生成定时报告"
+    },
+    "theme": {
+      "title": "外观",
+      "caption": "切换此设备上的工作区主题。",
+      "light": "浅色",
+      "dark": "深色"
+    },
+    "password": {
+      "title": "修改密码",
+      "current": "当前密码",
+      "next": "新密码"
+    },
+    "trend": {
+      "title": "信号趋势",
+      "caption": "示例七日情报量。",
+      "day": "{count}天",
+      "today": "今日"
+    },
+    "categories": {
+      "politics": "政治",
+      "finance": "金融",
+      "technology": "科技",
+      "macro": "宏观"
+    },
+    "markets": {
+      "us": "美国",
+      "cn": "中国",
+      "jp": "日本",
+      "eu": "欧洲",
+      "hk": "香港",
+      "global": "全球"
+    }
   },
   "dashboard": {
     "eyebrow": "市场情报中枢",
