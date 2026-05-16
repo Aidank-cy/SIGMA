@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://sigma:sigma@sigma-postgres:5432/sigma"
     redis_url: str = "redis://sigma-redis:6379/0"
     default_locale: str = "zh"
+    jwt_secret_key: str = "change-me-to-random-32-chars-minimum"
+    jwt_access_token_expire_minutes: int = 15
+    jwt_refresh_token_expire_days: int = 7
 
 
 settings = Settings()
