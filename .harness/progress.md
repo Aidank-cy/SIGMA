@@ -450,3 +450,68 @@ _This file is read at the start of each agent session and updated after each sub
 
 ### Next session should
 1. Start Phase 6: admin panel dashboard, users, sources, and LLM config.
+
+### [Phase 6] Sub-feature 6.1: Admin layout and route guard
+- Status: COMPLETE
+- Files created: sigma-frontend/src/app/[locale]/admin/layout.tsx
+- Files modified: sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Added admin-only route guard with toast redirect, collapsible 240px/64px desktop sidebar, mobile drawer, admin avatar, and back-to-app link.
+- Timestamp: 2026-05-16T06:17:10Z
+
+### [Phase 6] Sub-feature 6.2: Dashboard API and page
+- Status: COMPLETE
+- Files created: sigma-backend/app/api/v1/admin/dashboard.py, sigma-backend/app/schemas/admin.py, sigma-backend/tests/test_admin_api.py, sigma-frontend/src/app/[locale]/admin/page.tsx, sigma-frontend/src/hooks/useAdmin.ts
+- Files modified: sigma-backend/app/api/v1/router.py
+- Tests: PASS
+- Notes: Added cached admin dashboard stats, 7-day collection trend, recent activity, source health, and a 30-second auto-refresh dashboard.
+- Timestamp: 2026-05-16T06:17:10Z
+
+### [Phase 6] Sub-feature 6.3: User management API and page
+- Status: COMPLETE
+- Files created: sigma-backend/app/api/v1/admin/users.py, sigma-frontend/src/app/[locale]/admin/users/page.tsx
+- Files modified: sigma-backend/app/api/v1/router.py, sigma-backend/app/schemas/admin.py, sigma-backend/tests/test_admin_api.py
+- Tests: PASS
+- Notes: Added searchable paginated admin user list, role/status updates, self-modification guard, last-admin protection, and email confirmation deletion.
+- Timestamp: 2026-05-16T06:17:10Z
+
+### [Phase 6] Sub-feature 6.4: Source management page
+- Status: COMPLETE
+- Files created: sigma-frontend/src/app/[locale]/admin/sources/page.tsx
+- Files modified: sigma-backend/app/api/v1/admin/sources.py, sigma-backend/app/schemas/admin.py, sigma-backend/tests/test_admin_api.py
+- Tests: PASS
+- Notes: Added source table, multi-step add/edit wizard, source preview before save, admin source delete, and source log drawer.
+- Timestamp: 2026-05-16T06:17:10Z
+
+### [Phase 6] Sub-feature 6.5: LLM config page
+- Status: COMPLETE
+- Files created: sigma-frontend/src/app/[locale]/admin/llm/page.tsx
+- Files modified: sigma-backend/app/api/v1/admin/llm.py, sigma-backend/app/schemas/llm.py, sigma-frontend/src/hooks/useAdmin.ts
+- Tests: PASS
+- Notes: Added provider/model switching, masked key status, today/week/month usage cards, token/cost estimates, trend charts, usage-by-function chart, and cost guard toggle.
+- Timestamp: 2026-05-16T06:17:10Z
+
+### [Phase 6] Sub-feature 6.6: System logs page
+- Status: COMPLETE
+- Files created: sigma-backend/app/api/v1/admin/logs.py, sigma-frontend/src/app/[locale]/admin/logs/page.tsx
+- Files modified: sigma-backend/app/api/v1/router.py, sigma-backend/app/schemas/admin.py
+- Tests: PASS
+- Notes: Added filtered collector logs API, timeline-style admin logs page, default expansion for failed logs, pagination, and success-rate footer.
+- Timestamp: 2026-05-16T06:17:10Z
+
+### [Phase 6] Sub-feature 6.7: Phase 6 finalization
+- Status: COMPLETE
+- Files created: none
+- Files modified: CHANGELOG.md, .harness/progress.md, .harness/session-log.md
+- Tests: PASS
+- Notes: Verified with backend ruff, backend pytest, and frontend build. Ready for Phase 6 commit.
+- Timestamp: 2026-05-16T06:17:10Z
+
+### Completed
+- Phase 6 sub-features 6.1 through 6.7.
+
+### In progress
+(none yet)
+
+### Next session should
+1. Start Phase 7: integration tests, security, deployment, and release hardening.

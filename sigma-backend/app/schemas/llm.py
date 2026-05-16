@@ -11,6 +11,7 @@ class LLMConfigRead(BaseModel):
     provider: str
     model: str
     daily_token_limit: int
+    cost_guard_enabled: bool = True
 
 
 class LLMConfigUpdate(BaseModel):
@@ -21,6 +22,7 @@ class LLMConfigUpdate(BaseModel):
     provider: str = Field(pattern="^(anthropic|openai)$")
     model: str = Field(min_length=1, max_length=160)
     daily_token_limit: int = Field(gt=0)
+    cost_guard_enabled: bool = True
 
 
 class LLMUsageDay(BaseModel):

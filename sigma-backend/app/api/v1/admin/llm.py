@@ -28,6 +28,7 @@ async def get_llm_config(
         daily_token_limit=int(
             await _config_value(db, "sigma.llm.daily_token_limit", settings.daily_token_limit)
         ),
+        cost_guard_enabled=bool(await _config_value(db, "sigma.llm.cost_guard_enabled", True)),
     )
 
 
@@ -41,11 +42,13 @@ async def update_llm_config(
     await _upsert_config(db, "sigma.llm.provider", payload.provider)
     await _upsert_config(db, "sigma.llm.model", payload.model)
     await _upsert_config(db, "sigma.llm.daily_token_limit", payload.daily_token_limit)
+    await _upsert_config(db, "sigma.llm.cost_guard_enabled", payload.cost_guard_enabled)
     await db.commit()
     return LLMConfigRead(
         provider=payload.provider,
         model=payload.model,
         daily_token_limit=payload.daily_token_limit,
+        cost_guard_enabled=payload.cost_guard_enabled,
     )
 
 

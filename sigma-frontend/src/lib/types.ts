@@ -91,5 +91,22 @@ export interface DataSource {
   source_type: "api" | "rss" | "scraper";
   category: Category;
   market: Market;
+  config?: Record<string, unknown>;
+  schedule_cron?: string;
+  max_execution_seconds?: number;
+  is_active: boolean;
+  is_system?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SourcePayload {
+  name: string;
+  source_type: "api" | "rss" | "scraper";
+  category: Category;
+  market: Market;
+  config: Record<string, unknown>;
+  schedule_cron: string;
+  max_execution_seconds: number;
   is_active: boolean;
 }

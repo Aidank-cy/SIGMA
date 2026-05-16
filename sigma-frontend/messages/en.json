@@ -259,5 +259,197 @@
         "caption": "Uses sigma.* namespace"
       }
     }
+  },
+  "admin": {
+    "nav": {
+      "title": "Admin",
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "sources": "Sources",
+      "llm": "LLM",
+      "logs": "Logs",
+      "back": "Back to app",
+      "admin": "Administrator",
+      "collapse": "Collapse",
+      "expand": "Expand",
+      "open": "Open menu",
+      "close": "Close menu",
+      "denied": "Admin access is required."
+    },
+    "status": {
+      "success": "Success",
+      "fail": "Failed",
+      "timeout": "Timeout",
+      "green": "Healthy",
+      "yellow": "Watch",
+      "red": "Down"
+    },
+    "dashboard": {
+      "eyebrow": "Operational control",
+      "title": "Admin dashboard",
+      "refresh": "Refreshes every 30s",
+      "trend": "Collection trend",
+      "activity": "Recent activity",
+      "health": "Source health",
+      "items": "items",
+      "emptyActivity": "No collector activity yet.",
+      "source": "Source",
+      "type": "Type",
+      "lastSuccess": "Last success",
+      "rate": "24h rate",
+      "state": "State",
+      "never": "Never",
+      "stats": {
+        "users": "Users",
+        "sources": "Sources",
+        "items": "Items",
+        "tokens": "Tokens today"
+      }
+    },
+    "users": {
+      "eyebrow": "Access control",
+      "title": "User management",
+      "search": "Search users",
+      "user": "User",
+      "role": "Role",
+      "status": "Status",
+      "created": "Created",
+      "actions": "Actions",
+      "active": "Active",
+      "disabled": "Disabled",
+      "delete": "Delete",
+      "empty": "No users match this search.",
+      "saved": "User updated.",
+      "deleted": "User deleted.",
+      "error": "Unable to update the user.",
+      "deleteTitle": "Delete user",
+      "deleteBody": "Type {email} to confirm deletion.",
+      "confirmEmail": "Confirm email",
+      "cancel": "Cancel",
+      "roles": {
+        "admin": "Admin",
+        "user": "User"
+      }
+    },
+    "sources": {
+      "eyebrow": "Collection control",
+      "title": "Source management",
+      "add": "Add source",
+      "addTitle": "Add source",
+      "editTitle": "Edit source",
+      "name": "Name",
+      "type": "Type",
+      "category": "Category",
+      "market": "Market",
+      "cron": "Cron schedule",
+      "timeout": "Timeout seconds",
+      "status": "Status",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "edit": "Edit",
+      "logs": "Logs",
+      "delete": "Delete",
+      "back": "Back",
+      "next": "Next",
+      "save": "Save",
+      "runTest": "Test collect",
+      "tested": "Collection test passed.",
+      "testOk": "Preview returned {count} items.",
+      "testError": "Collection test failed.",
+      "saved": "Source saved.",
+      "error": "Unable to save source.",
+      "nextRun": "Next run preview: {time}",
+      "logsTitle": "Logs for {name}",
+      "items": "items",
+      "emptyLogs": "No logs for this source.",
+      "types": {
+        "rss": "RSS",
+        "api": "API",
+        "scraper": "Scraper"
+      },
+      "categories": {
+        "politics": "Politics",
+        "finance": "Finance",
+        "technology": "Technology",
+        "macro": "Macro",
+        "other": "Other"
+      },
+      "markets": {
+        "us": "United States",
+        "cn": "China",
+        "jp": "Japan",
+        "eu": "Europe",
+        "hk": "Hong Kong",
+        "global": "Global"
+      },
+      "fields": {
+        "feedUrl": "Feed URL",
+        "endpoint": "Endpoint",
+        "itemsPath": "Items path",
+        "url": "Page URL",
+        "selector": "Item selector"
+      },
+      "presets": {
+        "5m": "Every 5 minutes",
+        "hourly": "Hourly",
+        "daily": "Daily"
+      },
+      "steps": {
+        "1": "Type",
+        "2": "Config",
+        "3": "Schedule",
+        "4": "Test"
+      },
+      "logStatus": {
+        "success": "Success",
+        "fail": "Failed",
+        "timeout": "Timeout"
+      }
+    },
+    "llm": {
+      "eyebrow": "Model operations",
+      "title": "LLM configuration",
+      "current": "Current configuration",
+      "provider": "Provider",
+      "model": "Model",
+      "dailyLimit": "Daily token limit",
+      "costGuard": "Cost guard",
+      "save": "Save config",
+      "saved": "LLM config saved.",
+      "error": "Unable to save LLM config.",
+      "keyMasked": "API key masked",
+      "today": "Today",
+      "week": "This week",
+      "month": "This month",
+      "tokenTrend": "14-day token trend",
+      "usageByFunction": "Usage by function",
+      "providers": {
+        "anthropic": "Anthropic",
+        "openai": "OpenAI"
+      },
+      "functions": {
+        "summary": "Summaries",
+        "report": "Reports"
+      }
+    },
+    "logs": {
+      "eyebrow": "Collector audit",
+      "title": "System logs",
+      "source": "Source",
+      "status": "Status",
+      "from": "From",
+      "to": "To",
+      "allSources": "All sources",
+      "allStatuses": "All statuses",
+      "items": "items",
+      "collapse": "Collapse entry",
+      "expand": "Expand entry",
+      "successDetail": "Completed in {duration} ms.",
+      "empty": "No logs match these filters.",
+      "footer": "{rate}% success rate across {total} logs",
+      "previous": "Previous",
+      "next": "Next"
+    }
   }
 }

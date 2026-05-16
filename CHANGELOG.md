@@ -19,6 +19,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add watchlist CRUD APIs with filtered item feeds.
 - Add user profile, retention, and password settings APIs.
 - Add localized trend line chart and markdown report rendering with table of contents.
+- Add admin panel with guarded sidebar layout, dashboard metrics, user management, source wizard, LLM configuration, and system logs.
+- Add admin APIs for dashboard stats, collection trends, recent activity, source health, user management, source previews, source logs, and collector log filtering.
 
 ### Fixed
 - Fix Docker Compose config parsing without requiring a local `.env` secrets file.
