@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.database import AsyncSessionLocal
 from app.models.data_source import DataSource
-from app.scheduler.jobs import cleanup_expired_items, collect_from_source
+from app.models.enums import ReportType
+from app.scheduler.jobs import cleanup_expired_items, collect_from_source, generate_scheduled_reports
 
 scheduler = AsyncIOScheduler(timezone="UTC")
 
@@ -21,6 +22,7 @@ async def start_scheduler(
         scheduler.start()
     await load_source_jobs(session_factory)
     add_cleanup_job(session_factory)
+    add_report_jobs(session_factory)
 
 
 async def stop_scheduler() -> None:
@@ -72,6 +74,40 @@ def add_cleanup_job(
         trigger=CronTrigger(hour=3, minute=0, timezone="UTC"),
         id="cleanup_expired_items",
         args=[session_factory],
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
+
+def add_report_jobs(
+    session_factory: async_sessionmaker[AsyncSession] = AsyncSessionLocal,
+    job_func: Callable[..., object] = generate_scheduled_reports,
+) -> None:
+    """Register periodic report generation jobs."""
+    scheduler.add_job(
+        job_func,
+        trigger=CronTrigger(hour=22, minute=0, timezone="UTC"),
+        id="reports:daily",
+        args=[ReportType.DAILY, session_factory],
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        job_func,
+        trigger=CronTrigger(day_of_week="sun", hour=22, minute=0, timezone="UTC"),
+        id="reports:weekly",
+        args=[ReportType.WEEKLY, session_factory],
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        job_func,
+        trigger=CronTrigger(day="last", hour=22, minute=0, timezone="UTC"),
+        id="reports:monthly",
+        args=[ReportType.MONTHLY, session_factory],
         replace_existing=True,
         max_instances=1,
         coalesce=True,

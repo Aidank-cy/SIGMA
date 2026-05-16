@@ -12,6 +12,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add async database session wiring and an Alembic initial schema migration.
 - Add JWT registration, login, refresh, and current-user authentication routes.
 - Add collection engine with API, RSS, and scraper collectors, scheduler jobs, source management APIs, item query APIs, Redis locking, deduplication, and seed sources.
+- Add LLM analysis pipeline with unified Anthropic/OpenAI client, item summarization, report generation, report schedules, LLM config APIs, and token usage tracking.
 
 ### Fixed
 - Fix Docker Compose config parsing without requiring a local `.env` secrets file.

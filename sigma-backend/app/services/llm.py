@@ -1,5 +1,7 @@
 from typing import Protocol
 
+from app.analyzers.llm_client import build_prompt as analyzer_build_prompt
+
 
 class LLMClient(Protocol):
     """Runtime-switchable LLM client interface."""
@@ -11,8 +13,4 @@ class LLMClient(Protocol):
 
 def build_prompt(prompt: str, context_docs: list[str] | None = None) -> str:
     """Build a prompt with optional RAG context injection."""
-    if not context_docs:
-        return prompt
-
-    references = "\n\n".join(context_docs)
-    return f"Reference documents:\n{references}\n\nContent:\n{prompt}"
+    return analyzer_build_prompt(prompt, context_docs)

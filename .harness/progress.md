@@ -223,3 +223,76 @@ _This file is read at the start of each agent session and updated after each sub
 
 ### Next session should
 1. Start Phase 3: LLM analysis pipeline with summarizer and reports.
+
+### [Phase 3] Sub-feature 3.1: LLM unified client
+- Status: COMPLETE
+- Files created: sigma-backend/app/analyzers/__init__.py, sigma-backend/app/analyzers/llm_client.py, sigma-backend/tests/test_llm_client.py
+- Files modified: sigma-backend/app/core/config.py, sigma-backend/app/services/llm.py
+- Tests: PASS
+- Notes: Uses httpx directly for Anthropic Messages and OpenAI Chat APIs, supports context_docs injection, retries 429/5xx responses, reads sigma.llm.* SystemConfig overrides, checks the daily token budget, and writes LLMUsageLog rows.
+- Timestamp: 2026-05-16T04:44:59Z
+
+### [Phase 3] Sub-feature 3.2: Prompt templates
+- Status: COMPLETE
+- Files created: sigma-backend/app/analyzers/prompts.py, sigma-backend/tests/test_prompts.py
+- Files modified: none
+- Tests: PASS
+- Notes: Added summary and report prompt renderers with locale insertion, required report sections, and 3000-character source content truncation.
+- Timestamp: 2026-05-16T04:44:59Z
+
+### [Phase 3] Sub-feature 3.3: Summarizer
+- Status: COMPLETE
+- Files created: sigma-backend/app/analyzers/summarizer.py, sigma-backend/tests/test_summarizer.py
+- Files modified: none
+- Tests: PASS
+- Notes: Batch summarizer skips existing summaries, uses a concurrency semaphore, logs individual failures, and caps summary_retry_count metadata at 3.
+- Timestamp: 2026-05-16T04:44:59Z
+
+### [Phase 3] Sub-feature 3.4: Collection summarizer integration
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_scheduler.py
+- Tests: PASS
+- Notes: Successful collection jobs schedule non-blocking batch_summarize after the collection transaction commits.
+- Timestamp: 2026-05-16T04:44:59Z
+
+### [Phase 3] Sub-feature 3.5: Report generator
+- Status: COMPLETE
+- Files created: sigma-backend/app/analyzers/report_generator.py, sigma-backend/tests/test_report_generator.py
+- Files modified: none
+- Tests: PASS
+- Notes: Reports use a single LLM call for up to 30 items and category map-reduce for larger sets, persist Report rows, and call notify_new_report after flush.
+- Timestamp: 2026-05-16T04:44:59Z
+
+### [Phase 3] Sub-feature 3.6: Report scheduling and APIs
+- Status: COMPLETE
+- Files created: sigma-backend/app/api/v1/routes/reports.py, sigma-backend/app/api/v1/routes/user_settings.py, sigma-backend/app/api/v1/admin/llm.py, sigma-backend/app/schemas/report.py, sigma-backend/app/schemas/user_settings.py, sigma-backend/app/schemas/llm.py, sigma-backend/tests/test_reports_api.py
+- Files modified: sigma-backend/app/api/v1/router.py, sigma-backend/app/scheduler/engine.py, sigma-backend/app/scheduler/jobs.py
+- Tests: PASS
+- Notes: Added report list/detail/latest/manual generation endpoints, user report config GET/PUT, admin LLM config/usage endpoints, and daily/weekly/monthly UTC report scheduler jobs.
+- Timestamp: 2026-05-16T04:44:59Z
+
+### [Phase 3] Sub-feature 3.7: Token usage tracking integration
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/analyzers/llm_client.py, sigma-backend/app/api/v1/admin/llm.py
+- Tests: PASS
+- Notes: Existing Phase 1 migration already includes llm_usage_logs, so no new Alembic migration was needed.
+- Timestamp: 2026-05-16T04:44:59Z
+
+### [Phase 3] Sub-feature 3.8: Phase 3 finalization
+- Status: COMPLETE
+- Files created: none
+- Files modified: CHANGELOG.md, .harness/progress.md, .harness/session-log.md
+- Tests: PASS
+- Notes: Verified with hooks/post-file-edit.sh, backend pytest, and frontend build. Ready for Phase 3 commit.
+- Timestamp: 2026-05-16T04:44:59Z
+
+### Completed
+- Phase 3 sub-features 3.1 through 3.8.
+
+### In progress
+(none yet)
+
+### Next session should
+1. Start Phase 4: frontend foundation with design system and auth pages.

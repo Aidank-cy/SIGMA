@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 15
     jwt_refresh_token_expire_days: int = 7
     default_retention_days: int = 30
+    anthropic_api_key: str = ""
+    openai_api_key: str = ""
+    default_llm_provider: str = "anthropic"
+    default_llm_model: str = "claude-sonnet-4-20250514"
+    daily_token_limit: int = 1_000_000
 
 
 settings = Settings()

@@ -1,11 +1,13 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from time import perf_counter
 from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.analyzers.report_generator import generate_report
+from app.analyzers.summarizer import batch_summarize
 from app.collectors.dedup import filter_new_items
 from app.collectors.factory import create_collector
 from app.collectors.normalizer import normalize_items
@@ -13,7 +15,8 @@ from app.database import AsyncSessionLocal
 from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
-from app.models.enums import CollectorStatus, IntelligenceCategory, Market
+from app.models.enums import CollectorStatus, IntelligenceCategory, Market, ReportType
+from app.models.user_report_config import UserReportConfig
 from app.utils.event_hooks import notify_new_items
 from app.utils.redis_lock import acquire_lock, release_lock
 
@@ -29,6 +32,7 @@ async def collect_from_source(
     status = CollectorStatus.FAIL
     items_count = 0
     error_message: str | None = None
+    item_ids: list[UUID] = []
 
     async with session_factory() as db:
         source = await db.scalar(select(DataSource).where(DataSource.id == source_id))
@@ -85,6 +89,8 @@ async def collect_from_source(
             if lock_acquired:
                 await release_lock(lock_key)
             await _write_log(db, source_id, status, items_count, error_message, started)
+    if status == CollectorStatus.SUCCESS and item_ids:
+        asyncio.create_task(batch_summarize(item_ids, session_factory=session_factory))
 
 
 async def cleanup_expired_items(
@@ -94,6 +100,45 @@ async def cleanup_expired_items(
     async with session_factory() as db:
         await db.execute(delete(CollectedItem).where(CollectedItem.expires_at < datetime.now(timezone.utc)))
         await db.commit()
+
+
+async def generate_scheduled_reports(
+    report_type: ReportType,
+    session_factory: async_sessionmaker[AsyncSession] = AsyncSessionLocal,
+) -> None:
+    """Generate deduplicated reports for active user report configurations."""
+    async with session_factory() as db:
+        configs = await db.scalars(
+            select(UserReportConfig).where(
+                UserReportConfig.is_active.is_(True),
+                UserReportConfig.report_frequency == report_type,
+            )
+        )
+        scopes = {
+            (tuple(config.markets), tuple(config.categories))
+            for config in configs
+        }
+        period_start, period_end = _period_for(report_type)
+        for markets, categories in scopes:
+            await generate_report(
+                db,
+                report_type,
+                list(markets),
+                list(categories),
+                period_start,
+                period_end,
+            )
+        await db.commit()
+
+
+def _period_for(report_type: ReportType) -> tuple[date, date]:
+    today = datetime.now(timezone.utc).date()
+    if report_type == ReportType.DAILY:
+        return today, today
+    if report_type == ReportType.WEEKLY:
+        return today - timedelta(days=6), today
+    first_day = today.replace(day=1)
+    return first_day, today
 
 
 async def _write_log(
