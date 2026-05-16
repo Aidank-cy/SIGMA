@@ -1,8 +1,62 @@
 {
+  "auth": {
+    "tagline": "Market Intelligence, Simplified",
+    "email": "Email",
+    "password": "Password",
+    "displayName": "Display name",
+    "confirmPassword": "Confirm password",
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to continue tracking global market intelligence.",
+      "submit": "Sign in",
+      "registerLink": "Create an account",
+      "success": "Signed in.",
+      "invalidEmail": "Enter a valid email address.",
+      "invalidPassword": "Enter your password.",
+      "error": "Unable to sign in with those credentials."
+    },
+    "register": {
+      "title": "Create your SIGMA account",
+      "subtitle": "Start collecting structured intelligence for your watchlist.",
+      "submit": "Create account",
+      "loginLink": "Already have an account",
+      "success": "Account created. Sign in to continue.",
+      "invalidName": "Enter a display name.",
+      "invalidEmail": "Enter a valid email address.",
+      "invalidPassword": "Use at least 8 characters with letters and numbers.",
+      "passwordMismatch": "Passwords do not match.",
+      "error": "Unable to create the account."
+    }
+  },
+  "common": {
+    "close": "Close",
+    "locale": {
+      "label": "Language",
+      "zh": "中文",
+      "en": "English"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "feed": "Feed",
+    "reports": "Reports",
+    "admin": "Admin",
+    "logout": "Sign out",
+    "menu": "Menu"
+  },
   "dashboard": {
     "eyebrow": "Market intelligence hub",
     "title": "SIGMA",
     "subtitle": "Collect political, financial, technology, and macroeconomic signals for traceable global equity intelligence reports.",
+    "welcome": "Welcome to SIGMA, {name}",
+    "intro": "The authenticated workspace is ready for feed, watchlist, report, and admin pages.",
+    "userFallback": "Analyst",
+    "categories": {
+      "politics": "Politics",
+      "finance": "Finance",
+      "tech": "Tech",
+      "macro": "Macro"
+    },
     "metrics": {
       "items": {
         "label": "Items",

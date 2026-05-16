@@ -296,3 +296,84 @@ _This file is read at the start of each agent session and updated after each sub
 
 ### Next session should
 1. Start Phase 4: frontend foundation with design system and auth pages.
+
+### [Phase 4] Sub-feature 4.1: Design tokens and globals
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/tailwind.config.ts, sigma-frontend/src/app/globals.css
+- Tests: PASS
+- Notes: Added sigma.* CSS variable tokens, dark/light color schemes, category colors, Inter/Noto Sans SC stack, scrollbar styling, selection styling, global transitions, and subtle grid animation support.
+- Timestamp: 2026-05-16T05:30:48Z
+
+### [Phase 4] Sub-feature 4.2: Base UI components batch 1
+- Status: COMPLETE
+- Files created: sigma-frontend/src/lib/cn.ts, sigma-frontend/src/components/ui/Button.tsx, sigma-frontend/src/components/ui/Input.tsx, sigma-frontend/src/components/ui/Card.tsx, sigma-frontend/src/components/ui/Badge.tsx
+- Files modified: none
+- Tests: PASS
+- Notes: Added button variants/loading state, floating-label input with errors, hover-lift card, and category/market badge support.
+- Timestamp: 2026-05-16T05:30:48Z
+
+### [Phase 4] Sub-feature 4.3: Base UI components batch 2
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/ui/Skeleton.tsx, sigma-frontend/src/components/ui/Toast.tsx, sigma-frontend/src/components/ui/Modal.tsx, sigma-frontend/src/components/ui/Tabs.tsx, sigma-frontend/src/components/Navbar.tsx
+- Files modified: sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Added skeleton, localized toast provider, modal with Escape close, animated tabs, and responsive navbar with desktop top bar and mobile controls.
+- Timestamp: 2026-05-16T05:30:48Z
+
+### [Phase 4] Sub-feature 4.4: API client and auth state
+- Status: COMPLETE
+- Files created: sigma-frontend/src/lib/api.ts, sigma-frontend/src/lib/auth.ts, sigma-frontend/src/components/AuthProvider.tsx, sigma-frontend/src/components/ProtectedRoute.tsx
+- Files modified: sigma-frontend/src/app/[locale]/layout.tsx
+- Tests: PASS
+- Notes: API client attaches Bearer tokens, refreshes on 401 via /api/v1/auth/refresh, clears auth and redirects on refresh failure, and provides user/login/register/logout state through React context.
+- Timestamp: 2026-05-16T05:30:48Z
+
+### [Phase 4] Sub-feature 4.5: i18n setup
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/LocaleSwitcher.tsx, sigma-frontend/src/middleware.ts
+- Files modified: sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-frontend/src/app/[locale]/layout.tsx, sigma-frontend/src/i18n/request.ts, sigma-frontend/middleware.ts
+- Tests: PASS
+- Notes: Expanded zh/en messages for auth, nav, common, and dashboard text; next-intl middleware now lives under src/ so the src/app routes receive locale context, and request config uses requestLocale.
+- Timestamp: 2026-05-16T05:30:48Z
+
+### [Phase 4] Sub-feature 4.6: Login page
+- Status: COMPLETE
+- Files created: sigma-frontend/src/app/[locale]/login/page.tsx
+- Files modified: sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Added localized dark login screen with SIGMA branding, subtle animated grid background, floating-label validation, loading state, locale switcher, register link, and error toast.
+- Timestamp: 2026-05-16T05:30:48Z
+
+### [Phase 4] Sub-feature 4.7: Register page
+- Status: COMPLETE
+- Files created: sigma-frontend/src/app/[locale]/register/page.tsx
+- Files modified: sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Added localized registration screen with display name, email, password strength, confirm password validation, success toast, and redirect to login.
+- Timestamp: 2026-05-16T05:30:48Z
+
+### [Phase 4] Sub-feature 4.8: Authenticated layout shell
+- Status: COMPLETE
+- Files created: sigma-frontend/src/app/[locale]/(main)/layout.tsx, sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/components/PageTransition.tsx, sigma-frontend/src/components/ClientProviders.tsx
+- Files modified: sigma-frontend/src/app/[locale]/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json
+- Tests: PASS
+- Notes: Replaced the public locale dashboard with a protected route-group shell, Navbar, max-w-7xl content area, framer-motion page transition, and localized welcome placeholder.
+- Timestamp: 2026-05-16T05:30:48Z
+
+### [Phase 4] Sub-feature 4.9: Phase 4 finalization
+- Status: COMPLETE
+- Files created: none
+- Files modified: CHANGELOG.md, .harness/progress.md, .harness/session-log.md
+- Tests: PASS
+- Notes: Verified with `./hooks/post-file-edit.sh`, `python3 -m pytest --tb=short -q`, and live local route checks for /zh/login, /en/register, and /zh.
+- Timestamp: 2026-05-16T05:30:48Z
+
+### Completed
+- Phase 4 sub-features 4.1 through 4.9.
+
+### In progress
+(none yet)
+
+### Next session should
+1. Start Phase 5: core frontend pages for feed, detail, watchlist, and reports.

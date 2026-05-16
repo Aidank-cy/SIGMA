@@ -1,8 +1,62 @@
 {
+  "auth": {
+    "tagline": "让市场情报更清晰",
+    "email": "邮箱",
+    "password": "密码",
+    "displayName": "显示名称",
+    "confirmPassword": "确认密码",
+    "login": {
+      "title": "欢迎回来",
+      "subtitle": "登录后继续追踪全球市场情报。",
+      "submit": "登录",
+      "registerLink": "创建账号",
+      "success": "已登录。",
+      "invalidEmail": "请输入有效邮箱。",
+      "invalidPassword": "请输入密码。",
+      "error": "无法使用这些凭据登录。"
+    },
+    "register": {
+      "title": "创建 SIGMA 账号",
+      "subtitle": "开始为你的关注列表收集结构化情报。",
+      "submit": "创建账号",
+      "loginLink": "已有账号",
+      "success": "账号已创建，请登录继续。",
+      "invalidName": "请输入显示名称。",
+      "invalidEmail": "请输入有效邮箱。",
+      "invalidPassword": "密码至少 8 位，且包含字母和数字。",
+      "passwordMismatch": "两次输入的密码不一致。",
+      "error": "无法创建账号。"
+    }
+  },
+  "common": {
+    "close": "关闭",
+    "locale": {
+      "label": "语言",
+      "zh": "中文",
+      "en": "English"
+    }
+  },
+  "nav": {
+    "home": "首页",
+    "feed": "情报流",
+    "reports": "报告",
+    "admin": "管理",
+    "logout": "退出",
+    "menu": "菜单"
+  },
   "dashboard": {
     "eyebrow": "市场情报中枢",
     "title": "SIGMA",
     "subtitle": "聚合政治、金融、科技和宏观经济信号，为全球股票市场生成可追踪的情报摘要与报告。",
+    "welcome": "欢迎使用 SIGMA，{name}",
+    "intro": "已认证工作区已准备好承载情报流、关注列表、报告和管理页面。",
+    "userFallback": "分析师",
+    "categories": {
+      "politics": "政治",
+      "finance": "金融",
+      "tech": "科技",
+      "macro": "宏观"
+    },
     "metrics": {
       "items": {
         "label": "情报条目",

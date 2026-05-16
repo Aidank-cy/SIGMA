@@ -2,8 +2,11 @@ import { getRequestConfig } from "next-intl/server";
 
 const locales = ["zh", "en"] as const;
 
-export default getRequestConfig(async ({ locale }) => {
-  const activeLocale = locales.includes(locale as (typeof locales)[number]) ? locale : "zh";
+export default getRequestConfig(async ({ requestLocale }) => {
+  const requestedLocale = await requestLocale;
+  const activeLocale = locales.includes(requestedLocale as (typeof locales)[number])
+    ? requestedLocale
+    : "zh";
 
   return {
     locale: activeLocale,

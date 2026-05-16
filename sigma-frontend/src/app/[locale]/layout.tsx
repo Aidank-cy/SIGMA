@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, useMessages } from "next-intl";
 
+import { AuthProvider } from "@/components/AuthProvider";
+import { ClientProviders } from "@/components/ClientProviders";
+
 const locales = ["zh", "en"] as const;
 
 interface LocaleLayoutProps {
@@ -21,7 +24,9 @@ export default function LocaleLayout({ children, params }: LocaleLayoutProps) {
     <html lang={params.locale}>
       <body>
         <NextIntlClientProvider locale={params.locale} messages={messages}>
-          {children}
+          <ClientProviders>
+            <AuthProvider>{children}</AuthProvider>
+          </ClientProviders>
         </NextIntlClientProvider>
       </body>
     </html>
