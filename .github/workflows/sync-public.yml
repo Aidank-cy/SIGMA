@@ -24,16 +24,20 @@ jobs:
             exit 1
           fi
 
+          # Read file into memory BEFORE any deletions
+          FILTER_CONTENT=$(cat .sync-filter)
+
+          # First pass: delete matching files
           while IFS= read -r pattern || [ -n "$pattern" ]; do
             case "$pattern" in
               ""|\#*) continue ;;
               !*) continue ;;
             esac
-
             echo "Filtering: $pattern"
             rm -rf -- $pattern
-          done < .sync-filter
+          done <<< "$FILTER_CONTENT"
 
+          # Second pass: restore negated patterns
           while IFS= read -r pattern || [ -n "$pattern" ]; do
             case "$pattern" in
               !*)
@@ -41,7 +45,7 @@ jobs:
                 git checkout -- "$keep" 2>/dev/null || true
                 ;;
             esac
-          done < .sync-filter
+          done <<< "$FILTER_CONTENT"
 
       - name: Push to public repo
         env:
