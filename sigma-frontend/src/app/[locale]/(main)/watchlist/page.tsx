@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Tabs } from "@/components/ui/Tabs";
+import { SegmentControl } from "@/components/ui/SegmentControl";
 import { useSources } from "@/hooks/useSources";
 import { useWatchlistItems, useWatchlistMutations, useWatchlists } from "@/hooks/useWatchlists";
 import type { Market, Watchlist, WatchlistPayload } from "@/lib/types";
@@ -63,7 +63,7 @@ export default function WatchlistPage() {
         </div>
       ) : null}
       {watchlists.length > 0 ? (
-        <Tabs
+        <SegmentControl
           activeId={active?.id ?? ""}
           items={watchlists.map((item) => ({ id: item.id, label: item.name }))}
           onChange={setActiveId}

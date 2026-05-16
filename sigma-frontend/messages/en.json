@@ -172,6 +172,9 @@
     "title": "Settings",
     "save": "Save",
     "saved": "Saved.",
+    "saveError": "Unable to save: {sections}.",
+    "unsaved": "Unsaved changes",
+    "noChanges": "No changes",
     "profile": {
       "title": "Profile",
       "displayName": "Display name",
@@ -200,8 +203,28 @@
     },
     "password": {
       "title": "Change password",
-      "current": "Current password",
-      "next": "New password"
+      "caption": "Use an email verification code before setting a new password.",
+      "open": "Change password",
+      "close": "Close password modal",
+      "email": "Email",
+      "sendCode": "Send code",
+      "code": "Verification code",
+      "verify": "Verify",
+      "next": "New password",
+      "confirm": "Confirm password",
+      "save": "Save password",
+      "devHint": "Check backend logs for verification code during development: docker compose logs sigma-backend",
+      "codeSent": "Verification code sent.",
+      "codeVerified": "Code verified.",
+      "updated": "Password updated.",
+      "invalidCode": "Invalid verification code.",
+      "mismatch": "Passwords do not match.",
+      "error": "Unable to update password.",
+      "steps": {
+        "send": "Send",
+        "verify": "Verify",
+        "reset": "Reset"
+      }
     },
     "trend": {
       "title": "Signal trend",

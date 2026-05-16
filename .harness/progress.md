@@ -580,3 +580,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Replaced the old sync-to-public workflow with the sync-filter credential-helper pattern, SIGMA_PAT authentication, Aidank-cy/sigma target, and public PR auto-close workflow. Classified source, docs, examples, Compose files, and app configs as public; agent governance, harness internals, private CI, sync implementation, env files, local data, and generated caches as private.
 - Timestamp: 2026-05-16T09:54:31Z
+
+### [Maintenance] Sub-feature M.2: Frontend UI polish and password reset
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/ui/SegmentControl.tsx
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/app/[locale]/(main)/reports/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/app/[locale]/(main)/watchlist/page.tsx, sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/api/v1/routes/auth.py, sigma-backend/app/schemas/auth.py, sigma-backend/app/services/auth_service.py, sigma-backend/tests/test_auth.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added one animated segment control, replaced settings section save buttons with a single dirty-state save action, and moved password changes to Redis-backed email verification code endpoints plus a three-step modal. Verified with backend ruff, backend pytest, frontend build, and local frontend route smoke check on port 3001.
+- Timestamp: 2026-05-16T10:56:22Z

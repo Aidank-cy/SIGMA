@@ -6,7 +6,12 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ## [Unreleased]
 
+### Added
+- Add email-verified password reset endpoints and a three-step settings modal for password changes.
+
 ### Changed
+- Add sliding animated segment controls across feed, reports, watchlist, and settings views.
+- Consolidate settings saves into one bottom action that submits only changed sections.
 - Configure the dev-to-public sync pipeline with `.sync-filter`, SIGMA_PAT-based
   mirroring, and public-repo PR auto-close protection.
 

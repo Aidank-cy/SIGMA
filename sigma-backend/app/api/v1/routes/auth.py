@@ -1,3 +1,6 @@
+import hmac
+import logging
+import secrets
 from uuid import UUID
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
@@ -9,16 +12,32 @@ from app.database import get_db
 from app.middleware.auth import get_current_user
 from app.models.enums import UserRole
 from app.models.user import User
-from app.schemas.auth import TokenResponse, UserCreate, UserLogin, UserResponse
+from app.schemas.auth import (
+    MessageResponse,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    PasswordResetTokenResponse,
+    PasswordResetVerify,
+    TokenResponse,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+)
 from app.services.auth_service import (
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
     decode_token,
     hash_password,
     verify_password,
 )
+from app.utils.redis_lock import create_redis_client
 
 router = APIRouter(prefix="/auth")
+logger = logging.getLogger(__name__)
+
+PASSWORD_RESET_TTL_SECONDS = 10 * 60
+PASSWORD_RESET_TOKEN_SECONDS = 5 * 60
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -100,7 +119,85 @@ async def refresh_token(
     )
 
 
+@router.post("/request-password-reset", response_model=MessageResponse)
+async def request_password_reset(
+    payload: PasswordResetRequest,
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    """Generate a password reset verification code without exposing account existence."""
+    email = str(payload.email).lower()
+    user = await db.scalar(select(User).where(User.email == email))
+    if user is not None and user.is_active:
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        client = create_redis_client()
+        try:
+            await client.set(_password_reset_key(email), code, ex=PASSWORD_RESET_TTL_SECONDS)
+        finally:
+            await client.aclose()
+        # TODO: integrate email service like SendGrid or Resend
+        logger.info("Password reset code for %s: %s", email, code)
+    return MessageResponse(message="verification code sent")
+
+
+@router.post("/verify-reset-code", response_model=PasswordResetTokenResponse)
+async def verify_reset_code(
+    payload: PasswordResetVerify,
+    db: AsyncSession = Depends(get_db),
+) -> PasswordResetTokenResponse:
+    """Verify a reset code and return a temporary reset token."""
+    email = str(payload.email).lower()
+    client = create_redis_client()
+    try:
+        stored_code = await client.get(_password_reset_key(email))
+    finally:
+        await client.aclose()
+    if stored_code is None or not hmac.compare_digest(str(stored_code), payload.code):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code")
+
+    user = await db.scalar(select(User).where(User.email == email))
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code")
+
+    return PasswordResetTokenResponse(
+        reset_token=create_password_reset_token(user.id, user.email),
+        expires_in=PASSWORD_RESET_TOKEN_SECONDS,
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    payload: PasswordResetConfirm,
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    """Reset a password with a verified temporary reset token."""
+    try:
+        token_payload = decode_token(payload.reset_token)
+        if token_payload.get("type") != "password_reset":
+            raise JWTError("Unexpected token type")
+        user_id = UUID(str(token_payload["sub"]))
+        email = str(token_payload["email"]).lower()
+    except (KeyError, ValueError, JWTError) as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid reset token") from exc
+
+    user = await db.scalar(select(User).where(User.id == user_id, User.email == email))
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid reset token")
+
+    user.hashed_password = hash_password(payload.new_password)
+    client = create_redis_client()
+    try:
+        await client.delete(_password_reset_key(email))
+    finally:
+        await client.aclose()
+    await db.commit()
+    return MessageResponse(message="password reset")
+
+
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)) -> User:
     """Return the authenticated user."""
     return current_user
+
+
+def _password_reset_key(email: str) -> str:
+    return f"pwd_reset:{email}"

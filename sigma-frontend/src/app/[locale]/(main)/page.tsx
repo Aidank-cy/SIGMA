@@ -10,7 +10,7 @@ import { ItemCard } from "@/components/feed/ItemCard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Tabs } from "@/components/ui/Tabs";
+import { SegmentControl } from "@/components/ui/SegmentControl";
 import { useItems } from "@/hooks/useItems";
 import type { Category, ItemFilters, Market } from "@/lib/types";
 
@@ -55,7 +55,7 @@ export default function HomePage() {
           <p className="text-sm font-medium uppercase text-sigma-accent">{t("eyebrow")}</p>
           <h1 className="mt-2 text-3xl font-semibold text-sigma-text sm:text-4xl">{t("title")}</h1>
         </div>
-        <Tabs
+        <SegmentControl
           activeId={view}
           items={views.map((item) => ({ id: item, label: t(`views.${item}`) }))}
           onChange={(nextView) => setView(nextView as HomeView)}

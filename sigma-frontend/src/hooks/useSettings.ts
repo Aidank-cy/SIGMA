@@ -24,9 +24,19 @@ export function useSettingsMutations() {
   const queryClient = useQueryClient();
 
   return {
-    updatePassword: useMutation({
-      mutationFn: (payload: { current_password: string; new_password: string }) =>
-        apiFetch<void>("/me/password", { body: JSON.stringify(payload), method: "PUT" })
+    requestPasswordReset: useMutation({
+      mutationFn: (payload: { email: string }) =>
+        apiFetch<{ message: string }>("/auth/request-password-reset", {
+          body: JSON.stringify(payload),
+          method: "POST"
+        })
+    }),
+    resetPassword: useMutation({
+      mutationFn: (payload: { new_password: string; reset_token: string }) =>
+        apiFetch<{ message: string }>("/auth/reset-password", {
+          body: JSON.stringify(payload),
+          method: "POST"
+        })
     }),
     updateProfile: useMutation({
       mutationFn: (payload: { display_name: string; locale: Locale }) =>
@@ -45,6 +55,13 @@ export function useSettingsMutations() {
       mutationFn: (payload: { data_retention_days: number }) =>
         apiFetch<User>("/me/retention", { body: JSON.stringify(payload), method: "PUT" }),
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth-user"] })
+    }),
+    verifyResetCode: useMutation({
+      mutationFn: (payload: { code: string; email: string }) =>
+        apiFetch<{ expires_in: number; reset_token: string; token_type: string }>("/auth/verify-reset-code", {
+          body: JSON.stringify(payload),
+          method: "POST"
+        })
     })
   };
 }

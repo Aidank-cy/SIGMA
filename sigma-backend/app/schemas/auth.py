@@ -35,6 +35,60 @@ class UserLogin(BaseModel):
     password: str
 
 
+class PasswordResetRequest(BaseModel):
+    """Password reset code request payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+
+
+class PasswordResetVerify(BaseModel):
+    """Password reset code verification payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class PasswordResetConfirm(BaseModel):
+    """Password reset confirmation payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    reset_token: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_strength(cls, value: str) -> str:
+        """Require at least one letter and one digit."""
+        has_letter = any(character.isalpha() for character in value)
+        has_digit = any(character.isdigit() for character in value)
+        if not has_letter or not has_digit:
+            raise ValueError("Password must include at least one letter and one digit")
+        return value
+
+
+class MessageResponse(BaseModel):
+    """Simple message response."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    message: str
+
+
+class PasswordResetTokenResponse(BaseModel):
+    """Temporary password reset token payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    reset_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+
 class UserResponse(BaseModel):
     """Public user payload."""
 
