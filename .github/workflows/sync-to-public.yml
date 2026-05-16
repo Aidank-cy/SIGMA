@@ -1,0 +1,57 @@
+name: Sync to Public Repo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Filter sensitive files
+        run: |
+          # Remove files that should NOT be in the public repo
+          # Environment and secrets
+          rm -f .env .env.prod .env.local .env.*.local
+          
+          # Agent and harness internals
+          rm -rf AGENTS.md CLAUDE.md .cursor .harness hooks skills agents
+          rm -f CHANGELOG.md
+          rm -f .github/workflows/ai-quality-gate.yml
+          rm -f .github/workflows/sync-to-public.yml
+          
+          # Backup scripts with local paths
+          # (keep the template but remove any hardcoded paths)
+          
+          # GitHub Actions secrets (this workflow itself references the token)
+          # The workflow file is fine to keep — the secret is in GitHub, not in the file
+          
+          # Any files listed in .sync-filter (if it exists)
+          if [ -f .sync-filter ]; then
+            while IFS= read -r pattern || [ -n "$pattern" ]; do
+              # Skip comments and empty lines
+              [[ "$pattern" =~ ^#.*$ || -z "$pattern" ]] && continue
+              echo "Filtering: $pattern"
+              rm -rf $pattern
+            done < .sync-filter
+          fi
+          
+          echo "✅ Filtering complete"
+
+      - name: Push to public repo
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.SYNC_PUBLIC_TOKEN }}
+        with:
+          source-directory: '.'
+          destination-github-username: ${{ github.repository_owner }}
+          destination-repository-name: 'sigma'
+          target-branch: 'main'
+          commit-message: 'sync: mirror from private repo'
+          user-email: ${{ github.actor }}@users.noreply.github.com

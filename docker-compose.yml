@@ -1,0 +1,59 @@
+services:
+  sigma-postgres:
+    image: postgres:16
+    container_name: sigma-postgres
+    environment:
+      POSTGRES_DB: sigma
+      POSTGRES_USER: sigma
+      POSTGRES_PASSWORD: sigma
+    ports:
+      - "5432:5432"
+    volumes:
+      - ${SIGMA_DATA_DIR:-~/sigma-data}/postgres:/var/lib/postgresql/data
+    networks:
+      - sigma-network
+
+  sigma-redis:
+    image: redis:7-alpine
+    container_name: sigma-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ${SIGMA_DATA_DIR:-~/sigma-data}/redis:/data
+    networks:
+      - sigma-network
+
+  sigma-backend:
+    build:
+      context: ./sigma-backend
+    container_name: sigma-backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sigma:sigma@sigma-postgres:5432/sigma
+      REDIS_URL: redis://sigma-redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      - sigma-postgres
+      - sigma-redis
+    networks:
+      - sigma-network
+
+  sigma-frontend:
+    build:
+      context: ./sigma-frontend
+    container_name: sigma-frontend
+    environment:
+      BACKEND_URL: http://sigma-backend:8000
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - sigma-backend
+    networks:
+      - sigma-network
+
+networks:
+  sigma-network:
+    name: sigma-network

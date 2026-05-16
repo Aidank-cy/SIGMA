@@ -1,0 +1,29 @@
+{
+  "dashboard": {
+    "eyebrow": "Market intelligence hub",
+    "title": "SIGMA",
+    "subtitle": "Collect political, financial, technology, and macroeconomic signals for traceable global equity intelligence reports.",
+    "metrics": {
+      "items": {
+        "label": "Items",
+        "value": "0",
+        "caption": "Collection pipeline pending"
+      },
+      "reports": {
+        "label": "Reports",
+        "value": "0",
+        "caption": "Report generator not yet running"
+      },
+      "sources": {
+        "label": "Sources",
+        "value": "0",
+        "caption": "Configured in later phases"
+      },
+      "config": {
+        "label": "System config",
+        "value": "0",
+        "caption": "Uses sigma.* namespace"
+      }
+    }
+  }
+}

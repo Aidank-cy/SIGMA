@@ -1,0 +1,29 @@
+{
+  "dashboard": {
+    "eyebrow": "市场情报中枢",
+    "title": "SIGMA",
+    "subtitle": "聚合政治、金融、科技和宏观经济信号，为全球股票市场生成可追踪的情报摘要与报告。",
+    "metrics": {
+      "items": {
+        "label": "情报条目",
+        "value": "0",
+        "caption": "等待采集管线接入"
+      },
+      "reports": {
+        "label": "周期报告",
+        "value": "0",
+        "caption": "报告生成器尚未运行"
+      },
+      "sources": {
+        "label": "数据源",
+        "value": "0",
+        "caption": "将在后续阶段配置"
+      },
+      "config": {
+        "label": "系统配置",
+        "value": "0",
+        "caption": "使用 sigma.* 命名空间"
+      }
+    }
+  }
+}
