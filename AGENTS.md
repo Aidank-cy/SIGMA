@@ -22,12 +22,16 @@ next-intl, Tailwind CSS, TanStack Query, framer-motion, and recharts.
 - Use `/api/v1/` for backend routes and keep list endpoints machine-consumable.
 - Namespace system config keys as `sigma.*`.
 - Preserve explicit Docker service names and the `sigma-network` network.
+- Keep private dev-to-public sync exclusions in `.sync-filter` and strip the sync
+  workflow itself before mirroring to `Aidank-cy/sigma`.
 
 ## Never
 - Commit secrets, `.env`, local data, generated caches, or credential-bearing logs.
 - Implement trading or knowledge-base product features inside SIGMA.
 - Hardcode user-facing frontend strings outside the i18n message files.
 - Add print statements, `console.log`, commented-out code, or TODO/FIXME comments.
+- Let `.harness/`, `hooks/`, `skills/`, `AGENTS.md`, `CHANGELOG.md`, private CI,
+  or local/generated artifacts reach the public mirror.
 
 ## Architecture
 - `sigma-backend/app/` contains FastAPI application code, split by API, core, models,

@@ -572,3 +572,11 @@ _This file is read at the start of each agent session and updated after each sub
 
 ### Next session should
 1. Treat SIGMA v1.0.0 as complete unless the user requests post-release fixes or remote publishing.
+
+### [Maintenance] Sub-feature M.1: Dev-to-public sync pipeline
+- Status: COMPLETE
+- Files created: .sync-filter, .github/workflows/sync-public.yml, .github/workflows/auto-close-pr.yml
+- Files modified: AGENTS.md, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Replaced the old sync-to-public workflow with the sync-filter credential-helper pattern, SIGMA_PAT authentication, Aidank-cy/sigma target, and public PR auto-close workflow. Classified source, docs, examples, Compose files, and app configs as public; agent governance, harness internals, private CI, sync implementation, env files, local data, and generated caches as private.
+- Timestamp: 2026-05-16T09:54:31Z

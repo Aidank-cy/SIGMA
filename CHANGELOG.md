@@ -6,6 +6,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ## [Unreleased]
 
+### Changed
+- Configure the dev-to-public sync pipeline with `.sync-filter`, SIGMA_PAT-based
+  mirroring, and public-repo PR auto-close protection.
+
 ## [1.0.0] - 2026-05-16
 
 ### Added
