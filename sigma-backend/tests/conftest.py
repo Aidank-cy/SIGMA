@@ -11,6 +11,24 @@ from app.models import Base
 
 
 @pytest.fixture
+async def db_session() -> AsyncIterator[AsyncSession]:
+    """Create an isolated async database session."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    async with session_factory() as session:
+        yield session
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
+
+
+@pytest.fixture
 def client() -> Iterator[TestClient]:
     """Create a test client with an isolated in-memory database."""
     engine = create_async_engine(
@@ -24,8 +42,10 @@ def client() -> Iterator[TestClient]:
         async with session_factory() as session:
             yield session
 
-    app = create_app()
+    app = create_app(enable_scheduler=False)
     app.dependency_overrides[get_db] = override_get_db
+
+    import asyncio
 
     async def create_tables() -> None:
         async with engine.begin() as connection:
@@ -35,8 +55,6 @@ def client() -> Iterator[TestClient]:
         async with engine.begin() as connection:
             await connection.run_sync(Base.metadata.drop_all)
         await engine.dispose()
-
-    import asyncio
 
     asyncio.run(create_tables())
     with TestClient(app) as test_client:

@@ -11,6 +11,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add PostgreSQL ORM models for users, sources, collected items, watchlists, reports, collector logs, system config, and LLM usage.
 - Add async database session wiring and an Alembic initial schema migration.
 - Add JWT registration, login, refresh, and current-user authentication routes.
+- Add collection engine with API, RSS, and scraper collectors, scheduler jobs, source management APIs, item query APIs, Redis locking, deduplication, and seed sources.
 
 ### Fixed
 - Fix Docker Compose config parsing without requiring a local `.env` secrets file.
+- Fix the post-edit hook to use the verified `python3` backend toolchain.

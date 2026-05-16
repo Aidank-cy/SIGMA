@@ -126,3 +126,100 @@ _This file is read at the start of each agent session and updated after each sub
 
 ### Next session should
 1. Start Phase 2: collection engine with scheduler and source management.
+
+### [Phase 2] Sub-feature 2.1: BaseCollector and CollectedItemCreate schema
+- Status: COMPLETE
+- Files created: sigma-backend/app/collectors/base.py, sigma-backend/app/schemas/item.py
+- Files modified: sigma-backend/app/schemas/items.py
+- Tests: PASS
+- Notes: Added collector ABC, standardized raw item output, and normalized collected item create schema.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.2: APICollector
+- Status: COMPLETE
+- Files created: sigma-backend/app/collectors/api_collector.py
+- Files modified: none
+- Tests: PASS
+- Notes: Supports JSON response path drilling, field mapping, env resolution for headers and params, and page-param pagination.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.3: RSSCollector
+- Status: COMPLETE
+- Files created: sigma-backend/app/collectors/rss_collector.py
+- Files modified: none
+- Tests: PASS
+- Notes: Parses RSS/Atom responses with feedparser and maps title, summary, link, and published date.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.4: ScraperCollector
+- Status: COMPLETE
+- Files created: sigma-backend/app/collectors/scraper_collector.py
+- Files modified: none
+- Tests: PASS
+- Notes: Uses httpx and BeautifulSoup selectors only; Playwright remains out of scope.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.5: Factory, normalizer, and dedup
+- Status: COMPLETE
+- Files created: sigma-backend/app/collectors/factory.py, sigma-backend/app/collectors/normalizer.py, sigma-backend/app/collectors/dedup.py
+- Files modified: sigma-backend/app/core/config.py
+- Tests: PASS
+- Notes: Normalizer computes retention-based expires_at and dedup filters URL and source/title/published duplicates.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.6: Redis lock manager
+- Status: COMPLETE
+- Files created: sigma-backend/app/utils/redis_lock.py
+- Files modified: none
+- Tests: PASS
+- Notes: Lock TTL is passed by scheduler as source max_execution_seconds plus 60 seconds.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.7: Scheduler engine and jobs
+- Status: COMPLETE
+- Files created: sigma-backend/app/scheduler/engine.py, sigma-backend/app/utils/event_hooks.py
+- Files modified: sigma-backend/app/scheduler/jobs.py, sigma-backend/app/scheduler/hooks.py, sigma-backend/app/main.py
+- Tests: PASS
+- Notes: FastAPI lifespan seeds sources, starts APScheduler, registers active source jobs, wraps collection in asyncio.wait_for, logs timeout/failure/success, and calls no-op event hooks after inserts.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.8: Source CRUD API and schemas
+- Status: COMPLETE
+- Files created: sigma-backend/app/schemas/source.py, sigma-backend/app/api/v1/routes/sources.py, sigma-backend/app/api/v1/admin/sources.py, sigma-backend/app/api/v1/admin/__init__.py
+- Files modified: sigma-backend/app/api/v1/router.py
+- Tests: PASS
+- Notes: User routes enforce system/owner/admin visibility, validate collector configs, manage scheduler jobs, and provide preview/status endpoints.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.9: Items query API
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/api/v1/routes/items.py, sigma-backend/app/schemas/item.py
+- Tests: PASS
+- Notes: Added pagination, filters, since polling, minimal format, Redis cache with graceful fallback, detail view, and related items.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.10: Seed data sources
+- Status: COMPLETE
+- Files created: sigma-backend/app/collectors/seeds.py
+- Files modified: sigma-backend/app/main.py
+- Tests: PASS
+- Notes: Empty databases receive 8 MVP system sources for Yahoo Finance, Alpha Vantage, FRED, NewsAPI, Finnhub, Reuters RSS, TechCrunch RSS, and Fed announcements.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### [Phase 2] Sub-feature 2.11: Phase 2 finalization
+- Status: COMPLETE
+- Files created: sigma-backend/tests/test_collectors.py, sigma-backend/tests/test_redis_lock.py, sigma-backend/tests/test_scheduler.py, sigma-backend/tests/test_sources_api.py, sigma-backend/tests/test_items_api.py, sigma-backend/tests/test_seeds.py
+- Files modified: CHANGELOG.md, .harness/progress.md, .harness/session-log.md, hooks/post-file-edit.sh, sigma-backend/tests/conftest.py
+- Tests: PASS
+- Notes: Verified with `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-16T04:20:30Z
+
+### Completed
+- Phase 2 sub-features 2.1 through 2.11.
+
+### In progress
+(none yet)
+
+### Next session should
+1. Start Phase 3: LLM analysis pipeline with summarizer and reports.

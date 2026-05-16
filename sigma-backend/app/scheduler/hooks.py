@@ -1,8 +1,3 @@
-async def notify_new_items(item_ids: list[str]) -> None:
-    """Notify external systems about new item ids."""
-    pass
+from app.utils.event_hooks import notify_new_items, notify_new_report
 
-
-async def notify_new_report(report_id: str) -> None:
-    """Notify external systems about a new report id."""
-    pass
+__all__ = ["notify_new_items", "notify_new_report"]
