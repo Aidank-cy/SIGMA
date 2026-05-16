@@ -1,12 +1,11 @@
 "use client";
 
 import { ChevronDown, Printer } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import rehypeRaw from "rehype-raw";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +17,11 @@ interface TocItem {
   level: number;
   text: string;
 }
+
+const ReportMarkdown = dynamic(() => import("@/components/reports/ReportMarkdown"), {
+  loading: () => <Skeleton className="h-96 w-full rounded-2xl" />,
+  ssr: false
+});
 
 function slugify(value: string): string {
   return value
@@ -102,21 +106,7 @@ export default function ReportDetailPage() {
         </header>
 
         <div className="report-markdown text-sigma-text">
-          <ReactMarkdown
-            rehypePlugins={[rehypeRaw]}
-            components={{
-              h2: ({ children }) => {
-                const text = String(children);
-                return <h2 id={slugify(text)}>{children}</h2>;
-              },
-              h3: ({ children }) => {
-                const text = String(children);
-                return <h3 id={slugify(text)}>{children}</h3>;
-              }
-            }}
-          >
-            {report.content}
-          </ReactMarkdown>
+          <ReportMarkdown content={report.content} slugify={slugify} />
         </div>
       </div>
     </article>

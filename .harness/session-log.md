@@ -74,3 +74,14 @@
 **Completion:** PHASE COMPLETE
 **Next session should:** Start Phase 7 after rerunning harness integrity and baseline checks. Phase 6 added admin dashboard/user/source/LLM/log APIs, guarded admin layout, dashboard, users, source wizard, LLM config, and system logs pages.
 **Uncommitted work:** NO — committing in this session as the Phase 6 checkpoint.
+
+---
+## Session 8 — 2026-05-16T06:28:04Z
+**Phase:** Phase 7
+**Resuming from:** integration, security, deployment, and v1.0.0 release
+**Prior status from progress.md:** Phase 6 complete; Phase 7 not started. Harness integrity passed. Baseline backend tests passed with `python3 -m pytest --tb=short -q`; frontend build passed with `npm run build`.
+
+**Ending at:** SIGMA v1.0.0 release finalization
+**Completion:** PHASE COMPLETE
+**Next session should:** Handle remote-only release steps if requested: create/fill `.env.prod`, configure Cloudflare Tunnel, set up backup cron, and push `main` plus tags to the user's remote.
+**Uncommitted work:** NO — release commit and tag are created in this session after final verification.

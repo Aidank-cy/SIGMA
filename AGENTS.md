@@ -16,7 +16,7 @@ next-intl, Tailwind CSS, TanStack Query, framer-motion, and recharts.
 
 ## Always
 - Read `.harness/progress.md`, `.harness/session-log.md`, this file, and `CHANGELOG.md`
-  before choosing a resume point. [INITIAL]
+  before choosing a resume point.
 - Update `CHANGELOG.md` under `[Unreleased]` and `.harness/progress.md` after each
   completed sub-feature.
 - Use `/api/v1/` for backend routes and keep list endpoints machine-consumable.

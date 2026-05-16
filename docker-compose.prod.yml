@@ -1,0 +1,93 @@
+services:
+  sigma-postgres:
+    image: postgres:16
+    container_name: sigma-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sigma
+      POSTGRES_USER: sigma
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sigma}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sigma -d sigma"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ${SIGMA_DATA_DIR:-~/sigma-data}/postgres:/var/lib/postgresql/data
+    networks:
+      - sigma-network
+
+  sigma-redis:
+    image: redis:7-alpine
+    container_name: sigma-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ${SIGMA_DATA_DIR:-~/sigma-data}/redis:/data
+    networks:
+      - sigma-network
+
+  sigma-backend:
+    build:
+      context: ./sigma-backend
+      dockerfile: Dockerfile.prod
+    container_name: sigma-backend
+    restart: unless-stopped
+    env_file:
+      - .env.example
+      - path: .env.prod
+        required: false
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sigma:${POSTGRES_PASSWORD:-sigma}@sigma-postgres:5432/sigma
+      REDIS_URL: redis://sigma-redis:6379/0
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "8000:8000"
+    depends_on:
+      sigma-postgres:
+        condition: service_healthy
+      sigma-redis:
+        condition: service_healthy
+    networks:
+      - sigma-network
+
+  sigma-frontend:
+    build:
+      context: ./sigma-frontend
+      dockerfile: Dockerfile.prod
+    container_name: sigma-frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://sigma-backend:8000
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "3000:3000"
+    depends_on:
+      sigma-backend:
+        condition: service_healthy
+    networks:
+      - sigma-network
+
+networks:
+  sigma-network:
+    name: sigma-network

@@ -1,9 +1,9 @@
 "use client";
 
 import { Activity, Database, RadioTower, Users } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 
-import { TrendLine } from "@/components/charts/TrendLine";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAdminDashboard } from "@/hooks/useAdmin";
@@ -15,6 +15,11 @@ const statIcons = {
   items: Database,
   tokens: Activity
 } as const;
+
+const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((module) => module.TrendLine), {
+  loading: () => <Skeleton className="h-56 w-full" />,
+  ssr: false
+});
 
 export default function AdminDashboardPage() {
   const t = useTranslations("admin.dashboard");

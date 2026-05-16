@@ -6,7 +6,14 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-16
+
 ### Added
+- Add polished FastAPI OpenAPI tags, route metadata, and schema examples for interactive API docs.
+- Add deployment, backup, and README documentation with a dry-run-capable PostgreSQL backup script.
+- Add production Dockerfiles, production Compose wiring, performance EXPLAIN checks, gzip, and dynamic chart/markdown loading for smaller frontend bundles.
+- Add security hardening with restricted CORS, security headers, gzip, rate limits, JWT secret validation, and source config sanitization.
+- Add end-to-end integration coverage for the complete SIGMA intelligence flow.
 - Add Phase 0 harness and project bootstrap scaffold.
 - Add PostgreSQL ORM models for users, sources, collected items, watchlists, reports, collector logs, system config, and LLM usage.
 - Add async database session wiring and an Alembic initial schema migration.
@@ -23,5 +30,6 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add admin APIs for dashboard stats, collection trends, recent activity, source health, user management, source previews, source logs, and collector log filtering.
 
 ### Fixed
+- Fix scheduler collection for user-owned sources by avoiding async lazy-loading during normalization.
 - Fix Docker Compose config parsing without requiring a local `.env` secrets file.
 - Fix the post-edit hook to use the verified `python3` backend toolchain.

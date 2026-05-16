@@ -1,7 +1,9 @@
 from datetime import datetime
+import re
+from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.enums import IntelligenceCategory, Market, SourceType
 
@@ -17,6 +19,12 @@ class DataSourceBase(BaseModel):
     schedule_cron: str = Field(min_length=9, max_length=120)
     max_execution_seconds: int = Field(default=300, ge=1, le=3600)
     is_active: bool = True
+
+    @field_validator("config")
+    @classmethod
+    def sanitize_config(cls, value: dict[str, object]) -> dict[str, object]:
+        """Strip script tags from source configuration values."""
+        return _sanitize_config(value)
 
 
 class DataSourceCreate(DataSourceBase):
@@ -39,6 +47,12 @@ class DataSourceUpdate(BaseModel):
     schedule_cron: str | None = Field(default=None, min_length=9, max_length=120)
     max_execution_seconds: int | None = Field(default=None, ge=1, le=3600)
     is_active: bool | None = None
+
+    @field_validator("config")
+    @classmethod
+    def sanitize_config(cls, value: dict[str, object] | None) -> dict[str, object] | None:
+        """Strip script tags from source configuration values."""
+        return _sanitize_config(value) if value is not None else None
 
 
 class DataSourceRead(DataSourceBase):
@@ -84,3 +98,23 @@ class SourceStatsResponse(BaseModel):
     total: int
     active: int
     system: int
+
+
+SCRIPT_PATTERN = re.compile(
+    r"<\s*script\b[^>]*>.*?<\s*/\s*script\s*>|<\s*/?\s*script\b[^>]*>",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _sanitize_config(value: dict[str, object]) -> dict[str, object]:
+    return {str(key): _sanitize_value(item) for key, item in value.items()}
+
+
+def _sanitize_value(value: Any) -> object:
+    if isinstance(value, str):
+        return SCRIPT_PATTERN.sub("", value)
+    if isinstance(value, dict):
+        return _sanitize_config(value)
+    if isinstance(value, list):
+        return [_sanitize_value(item) for item in value]
+    return value

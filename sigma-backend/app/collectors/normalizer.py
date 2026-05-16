@@ -10,7 +10,8 @@ from app.schemas.item import CollectedItemCreate
 def normalize_items(source: DataSource, raw_items: list[RawCollectedItem]) -> list[CollectedItemCreate]:
     """Normalize collector output for database insertion."""
     normalized: list[CollectedItemCreate] = []
-    retention_days = getattr(source.creator, "data_retention_days", None) or settings.default_retention_days
+    creator = source.__dict__.get("creator")
+    retention_days = getattr(creator, "data_retention_days", None) or settings.default_retention_days
     expires_at = datetime.now(timezone.utc) + timedelta(days=retention_days)
     for raw in raw_items:
         title = str(raw.get("title") or "").strip()

@@ -515,3 +515,60 @@ _This file is read at the start of each agent session and updated after each sub
 
 ### Next session should
 1. Start Phase 7: integration tests, security, deployment, and release hardening.
+
+### [Phase 7] Sub-feature 7.1: E2E integration test
+- Status: COMPLETE
+- Files created: sigma-backend/tests/e2e/test_full_flow.py
+- Files modified: sigma-backend/app/collectors/normalizer.py
+- Tests: PASS
+- Notes: Added a full admin/user intelligence flow test using real API boundaries with mocked external collector and LLM I/O. The test exposed and fixed async lazy-loading of source creator during scheduler normalization.
+- Timestamp: 2026-05-16T06:31:44Z
+
+### [Phase 7] Sub-feature 7.2: Security hardening
+- Status: COMPLETE
+- Files created: sigma-backend/app/middleware/security.py, sigma-backend/tests/test_security.py
+- Files modified: sigma-backend/app/core/config.py, sigma-backend/app/main.py, sigma-backend/app/schemas/source.py
+- Tests: PASS
+- Notes: Added frontend-origin CORS, gzip, security headers, startup JWT secret length enforcement, in-process login/general rate limiting, and recursive source config script-tag sanitization.
+- Timestamp: 2026-05-16T06:33:51Z
+
+### [Phase 7] Sub-feature 7.3: Performance and production Docker
+- Status: COMPLETE
+- Files created: sigma-backend/Dockerfile.prod, sigma-frontend/Dockerfile.prod, docker-compose.prod.yml, scripts/performance_check.sql, sigma-frontend/src/components/reports/ReportMarkdown.tsx, sigma-frontend/src/components/charts/LLMUsageCharts.tsx
+- Files modified: sigma-backend/pyproject.toml, sigma-frontend/next.config.mjs, sigma-frontend/src/app/[locale]/admin/page.tsx, sigma-frontend/src/app/[locale]/admin/llm/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/app/[locale]/(main)/reports/[id]/page.tsx
+- Tests: PASS
+- Notes: Production Compose parses; frontend build shows all app routes at or below 170 kB first-load JS after dynamic chart and markdown loading. Items cache remains 5 minutes and admin dashboard cache remains 1 minute.
+- Timestamp: 2026-05-16T06:38:22Z
+
+### [Phase 7] Sub-feature 7.4: Deployment, backup, and README docs
+- Status: COMPLETE
+- Files created: docs/deployment.md, docs/backup.md, scripts/backup.sh
+- Files modified: README.md
+- Tests: PASS
+- Notes: Backup dry-run verified with `./scripts/backup.sh --dry-run`; docs cover Mac local Docker, Cloudflare Tunnel, backup/restore, quick start, env vars, API docs, and cost estimates.
+- Timestamp: 2026-05-16T06:40:28Z
+
+### [Phase 7] Sub-feature 7.5: FastAPI docs polish
+- Status: COMPLETE
+- Files created: sigma-backend/app/api/docs.py
+- Files modified: sigma-backend/app/main.py, sigma-backend/app/api/v1/router.py, sigma-backend/tests/test_health.py
+- Tests: PASS
+- Notes: OpenAPI docs now use stable tag groups, route summaries/descriptions, and schema component descriptions/examples. Verified `/docs` and `/openapi.json` with a focused backend test.
+- Timestamp: 2026-05-16T06:42:49Z
+
+### [Phase 7] Sub-feature 7.6: Harness finalization and v1.0.0 release
+- Status: COMPLETE
+- Files created: none
+- Files modified: AGENTS.md, CHANGELOG.md, .harness/progress.md, sigma-backend/app/core/config.py, sigma-backend/pyproject.toml, sigma-frontend/package.json, sigma-frontend/package-lock.json
+- Tests: PASS
+- Notes: Final AGENTS.md is 40 lines with bootstrap tags removed. CHANGELOG.md has a dated [1.0.0] section and versions are aligned to 1.0.0. Full verification passed with backend ruff, backend pytest, frontend build, and production Compose config.
+- Timestamp: 2026-05-16T06:44:34Z
+
+### Completed
+- Phase 7 sub-features 7.1 through 7.6.
+
+### In progress
+(none)
+
+### Next session should
+1. Treat SIGMA v1.0.0 as complete unless the user requests post-release fixes or remote publishing.

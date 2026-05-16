@@ -1,11 +1,11 @@
 "use client";
 
 import { Moon, Save, Sun } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { FormEvent, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
-import { TrendLine } from "@/components/charts/TrendLine";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -18,6 +18,11 @@ const retentionOptions = [7, 30, 60, 90, 180, 365] as const;
 const categories: Category[] = ["politics", "finance", "technology", "macro"];
 const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "global"];
 const reportTypes: ReportType[] = ["daily", "weekly", "monthly"];
+
+const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((module) => module.TrendLine), {
+  loading: () => <Skeleton className="h-56 w-full" />,
+  ssr: false
+});
 
 export default function SettingsPage() {
   const t = useTranslations("settings");

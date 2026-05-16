@@ -1,25 +1,15 @@
 "use client";
 
 import { Bot, DollarSign, ShieldCheck } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
-import type { ReactElement, ReactNode } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from "recharts";
+import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { useAdminLLM } from "@/hooks/useAdmin";
 import type { LLMConfig } from "@/hooks/useAdmin";
@@ -30,6 +20,21 @@ const models = {
 } as const;
 
 const tokenCost = 0.000003;
+
+const TokenTrendChart = dynamic(
+  () => import("@/components/charts/LLMUsageCharts").then((module) => module.TokenTrendChart),
+  {
+    loading: () => <Skeleton className="h-72 w-full" />,
+    ssr: false
+  }
+);
+const FunctionUsageChart = dynamic(
+  () => import("@/components/charts/LLMUsageCharts").then((module) => module.FunctionUsageChart),
+  {
+    loading: () => <Skeleton className="h-72 w-full" />,
+    ssr: false
+  }
+);
 
 export default function AdminLLMPage() {
   const t = useTranslations("admin.llm");
@@ -196,29 +201,11 @@ export default function AdminLLMPage() {
       <section className="grid gap-4 xl:grid-cols-2">
         <Card className="p-5">
           <h2 className="mb-4 text-lg font-semibold">{t("tokenTrend")}</h2>
-          <ChartFrame>
-            <LineChart data={trendData}>
-              <CartesianGrid stroke="rgb(var(--sigma-line))" vertical={false} />
-              <XAxis dataKey="day" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
-              <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
-              <Tooltip />
-              <Legend />
-              <Line dataKey="input" dot={false} stroke="rgb(var(--sigma-accent))" />
-              <Line dataKey="output" dot={false} stroke="rgb(var(--sigma-success))" />
-            </LineChart>
-          </ChartFrame>
+          <TokenTrendChart data={trendData} />
         </Card>
         <Card className="p-5">
           <h2 className="mb-4 text-lg font-semibold">{t("usageByFunction")}</h2>
-          <ChartFrame>
-            <BarChart data={functionData}>
-              <CartesianGrid stroke="rgb(var(--sigma-line))" vertical={false} />
-              <XAxis dataKey="name" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
-              <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="tokens" fill="rgb(var(--sigma-accent))" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ChartFrame>
+          <FunctionUsageChart data={functionData} />
         </Card>
       </section>
     </div>
@@ -237,16 +224,6 @@ function UsageCard({ label, tokens }: { label: string; tokens: number }) {
         <DollarSign className="h-5 w-5 text-sigma-muted" aria-hidden />
       </div>
     </Card>
-  );
-}
-
-function ChartFrame({ children }: { children: ReactElement }) {
-  return (
-    <div className="h-72">
-      <ResponsiveContainer height="100%" width="100%">
-        {children}
-      </ResponsiveContainer>
-    </div>
   );
 }
 
