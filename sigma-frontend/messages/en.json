@@ -130,6 +130,12 @@
     "relatedTitle": "Related intelligence",
     "relatedEmpty": "No related items yet.",
     "empty": "This item is unavailable.",
+    "sidebar": {
+      "sentiment": "Sentiment",
+      "keywords": "Keywords",
+      "moreFromSource": "More from this source",
+      "empty": "No data yet."
+    },
     "categories": {
       "politics": "Politics",
       "finance": "Finance",

@@ -86,6 +86,8 @@ async def get_item(item_id: UUID, db: AsyncSession = Depends(get_db)) -> ItemDet
         **_summary(item, source_name).model_dump(),
         content_raw=item.content_raw,
         metadata_extra=item.metadata_extra,
+        sentiment=_sentiment_for_item(item),
+        keywords=_keywords_for_item(item),
         related=[_minimal(related) for related in related_rows],
     )
     return detail
@@ -139,6 +141,60 @@ def _summary(item: CollectedItem, source_name: str) -> ItemSummary:
         source_id=item.source_id,
         source_name=source_name,
     )
+
+
+def _sentiment_for_item(item: CollectedItem) -> str:
+    metadata = item.metadata_extra or {}
+    metadata_sentiment = metadata.get("sentiment")
+    if metadata_sentiment in {"bullish", "bearish", "neutral"}:
+        return str(metadata_sentiment)
+
+    text = f"{item.title} {item.summary or ''}".lower()
+    positive_terms = ("bullish", "beat", "gain", "growth", "rally", "strong", "上涨", "利好", "增长")
+    negative_terms = ("bearish", "decline", "fall", "loss", "risk", "weak", "下跌", "利空", "风险")
+    positive = sum(1 for term in positive_terms if term in text)
+    negative = sum(1 for term in negative_terms if term in text)
+    if positive > negative:
+        return "bullish"
+    if negative > positive:
+        return "bearish"
+    return "neutral"
+
+
+def _keywords_for_item(item: CollectedItem) -> list[str]:
+    metadata = item.metadata_extra or {}
+    metadata_keywords = metadata.get("keywords")
+    if isinstance(metadata_keywords, list):
+        return [
+            str(keyword).strip()
+            for keyword in metadata_keywords
+            if isinstance(keyword, str) and len(keyword.strip()) >= 2
+        ][:12]
+
+    text = f"{item.title} {item.summary or ''}"
+    stop_words = {
+        "about",
+        "after",
+        "and",
+        "from",
+        "market",
+        "markets",
+        "said",
+        "stock",
+        "stocks",
+        "that",
+        "the",
+        "with",
+    }
+    seen: set[str] = set()
+    keywords: list[str] = []
+    for token in text.replace("/", " ").replace("-", " ").split():
+        normalized = token.strip(".,:;!?()[]{}\"'").lower()
+        if len(normalized) < 4 or normalized in stop_words or normalized.isnumeric() or normalized in seen:
+            continue
+        seen.add(normalized)
+        keywords.append(normalized)
+    return keywords[:8]
 
 
 def _cache_key(*parts: object) -> str:

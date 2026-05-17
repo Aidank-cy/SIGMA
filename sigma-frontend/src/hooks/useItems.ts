@@ -25,6 +25,9 @@ function buildItemQuery(filters: ItemFilters, page: number): string {
   if (filters.keyword) {
     params.set("keyword", filters.keyword);
   }
+  if (filters.source_id) {
+    params.set("source_id", filters.source_id);
+  }
   return params.toString();
 }
 

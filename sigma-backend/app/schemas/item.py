@@ -49,6 +49,8 @@ class ItemDetail(ItemSummary):
 
     content_raw: str
     metadata_extra: dict[str, object] | None = None
+    sentiment: str = "neutral"
+    keywords: list[str] = Field(default_factory=list)
     related: list[MinimalItem] = Field(default_factory=list)
 
 

@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add Phase 4 item detail sidebar with sentiment, keywords, more-from-source links, and horizontal related stories.
 - Add Phase 3 report page refinements with reading time, sentiment bars, persisted report sentiment scores, and active table-of-contents highlighting.
 - Add Phase 2 watchlist dashboard stats with match counts, sentiment, keyword trend sparklines, and keyword highlighting.
 - Add Phase 1 homepage redesign with an interactive market index chart, metrics row, featured story, two-column feed, sidebar summaries, sentiment stats, and trending keyword stats.

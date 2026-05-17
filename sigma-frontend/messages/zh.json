@@ -130,6 +130,12 @@
     "relatedTitle": "相关情报",
     "relatedEmpty": "暂无相关情报。",
     "empty": "该情报不可用。",
+    "sidebar": {
+      "sentiment": "情绪",
+      "keywords": "关键词",
+      "moreFromSource": "同源更多情报",
+      "empty": "暂无数据。"
+    },
     "categories": {
       "politics": "政治",
       "finance": "金融",

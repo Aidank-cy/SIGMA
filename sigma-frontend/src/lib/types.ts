@@ -71,6 +71,8 @@ export interface ItemSummary extends MinimalItem {
 export interface ItemDetail extends ItemSummary {
   content_raw: string;
   metadata_extra: Record<string, unknown> | null;
+  sentiment: Sentiment;
+  keywords: string[];
   related: MinimalItem[];
 }
 
@@ -81,6 +83,7 @@ export interface ItemFilters {
   market?: Market;
   keyword?: string;
   page_size?: number;
+  source_id?: string;
 }
 
 export interface ReportSummary {

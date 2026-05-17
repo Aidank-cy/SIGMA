@@ -46,7 +46,24 @@ async def test_items_detail_includes_related_items(db_session: AsyncSession) -> 
     detail = await get_item(target.id, db_session)
 
     assert detail.title == "Target"
+    assert detail.sentiment == "neutral"
     assert [item.title for item in detail.related] == ["Related"]
+
+
+@pytest.mark.asyncio
+async def test_items_detail_includes_sentiment_and_keywords(db_session: AsyncSession) -> None:
+    """Item detail exposes structured sentiment and keyword metadata."""
+    source = _source()
+    target = _item(source, "Chip rally", IntelligenceCategory.FINANCE)
+    target.metadata_extra = {"sentiment": "bullish", "keywords": ["chips", "AI demand"]}
+    db_session.add_all([source, target])
+    await db_session.commit()
+    await db_session.refresh(target)
+
+    detail = await get_item(target.id, db_session)
+
+    assert detail.sentiment == "bullish"
+    assert detail.keywords == ["chips", "AI demand"]
 
 
 def _source() -> DataSource:

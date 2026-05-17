@@ -628,3 +628,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added persisted report sentiment scores, exposed report content and sentiment in list summaries, rendered report-card reading time and sentiment mini-bars, and added active TOC highlighting for report detail headings.
 - Timestamp: 2026-05-17T05:16:27Z
+
+### [UI Redesign] Sub-feature 4: Item detail page
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/feed/ItemSidebar.tsx
+- Files modified: sigma-backend/app/api/v1/routes/items.py, sigma-backend/app/schemas/item.py, sigma-backend/tests/test_items_api.py, sigma-frontend/src/app/[locale]/(main)/items/[id]/page.tsx, sigma-frontend/src/hooks/useItems.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added item detail sentiment and keyword serialization, source filtering support in the frontend item hook, a sticky item sidebar with sentiment/keywords/more-from-source cards, and horizontal related-story cards.
+- Timestamp: 2026-05-17T05:21:09Z
