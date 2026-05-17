@@ -18,6 +18,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add email-verified password reset endpoints and a three-step settings modal for password changes.
 
 ### Changed
+- Refine market chart tooltip placement, compact styling, break-aware intraday axes, and vertical ticker pagination dots.
 - Stabilize market chart intraday axes around fixed Beijing-time trading sessions and move ticker carousel dots inline.
 - Move the market ticker from the global layout to the homepage and convert it into a pausing vertical carousel below the stats row.
 - Redesign the homepage market index chart into a Google Finance-style market summary with major-index sidebar selection and currency-aware quotes.

@@ -25,6 +25,12 @@ const ranges = ["1d", "5d", "1m", "6m", "1y", "all"] as const;
 const chartTimeZone = "Asia/Shanghai";
 const axisReference = { day: 15, month: 5, year: 2026 };
 
+const marketBreaks: Record<string, Array<{ start: string; end: string }>> = {
+  HSI: [{ start: "12:00", end: "13:00" }],
+  N225: [{ start: "11:30", end: "12:30" }],
+  SSE: [{ start: "11:30", end: "13:00" }]
+};
+
 const localeOrder = {
   zh: ["SSE", "HSI", "N225", "SPX", "IXIC", "FTSE", "DAX", "DJI"],
   en: ["SPX", "IXIC", "FTSE", "DAX", "N225", "SSE", "HSI", "DJI"]
@@ -175,7 +181,7 @@ export function MarketIndexChart() {
 
               <div className="mt-5 h-[220px] md:h-[340px]">
                 <ResponsiveContainer height="100%" width="100%">
-                  <AreaChart data={chartData} margin={{ bottom: 8, left: 0, right: 8, top: 12 }}>
+                  <AreaChart data={chartData} margin={{ bottom: 2, left: 0, right: 10, top: 12 }}>
                     <defs>
                       <linearGradient id={`index-fill-${activeIndex.symbol}`} x1="0" x2="0" y1="0" y2="1">
                         <stop offset="0%" stopColor={lineColor} stopOpacity={0.16} />
@@ -190,6 +196,7 @@ export function MarketIndexChart() {
                       minTickGap={18}
                       tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
                       tickLine={false}
+                      tickMargin={2}
                     />
                     <YAxis
                       axisLine={false}
@@ -201,8 +208,10 @@ export function MarketIndexChart() {
                       width={64}
                     />
                     <Tooltip
+                      animationDuration={0}
                       content={<CustomTooltip lineColor={lineColor} locale={locale} />}
                       cursor={<CustomCursor />}
+                      isAnimationActive={false}
                       wrapperStyle={{ pointerEvents: "none" }}
                     />
                     <Area
@@ -575,7 +584,7 @@ function formatChange(change: number) {
 
 function buildChartData(index: MarketIndex, range: RangeId): ChartPoint[] {
   if (range === "1d") {
-    const labels = generateTradingAxis(index.trading_hours);
+    const labels = generateTradingAxis(index.trading_hours, index.symbol);
     const values = resampleValues(index.sparkline_24h, labels.length);
     return labels.map((point, pointIndex) => ({
       label: point.label,
@@ -694,9 +703,10 @@ function timezoneCity(timeZone: string) {
   return timeZone.split("/").pop()?.replaceAll("_", " ") ?? timeZone;
 }
 
-function generateTradingAxis(tradingHours: MarketIndex["trading_hours"]): Array<{ label: string; timestamp: Date }> {
+function generateTradingAxis(tradingHours: MarketIndex["trading_hours"], symbol: string): Array<{ label: string; timestamp: Date }> {
   const open = timeParts(tradingHours.open);
   const close = timeParts(tradingHours.close);
+  const breaks = marketBreaks[symbol] ?? [];
   const openDate = zonedTimeToDate(axisReference, open, tradingHours.timezone);
   let closeDate = zonedTimeToDate(axisReference, close, tradingHours.timezone);
   if (closeDate <= openDate) {
@@ -707,19 +717,38 @@ function generateTradingAxis(tradingHours: MarketIndex["trading_hours"]): Array<
   let cursor = openDate;
   let previousDay = beijingParts(cursor).day;
   while (cursor <= closeDate) {
-    const parts = beijingParts(cursor);
-    if (parts.day !== previousDay) {
-      points.push({ label: String(parts.day), timestamp: new Date(cursor) });
-      previousDay = parts.day;
-    } else {
-      points.push({
-        label: `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`,
-        timestamp: new Date(cursor)
-      });
+    if (!isInsideTradingBreak(cursor, tradingHours.timezone, breaks)) {
+      const parts = beijingParts(cursor);
+      if (parts.day !== previousDay) {
+        points.push({ label: String(parts.day), timestamp: new Date(cursor) });
+        previousDay = parts.day;
+      } else {
+        points.push({
+          label: `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`,
+          timestamp: new Date(cursor)
+        });
+      }
     }
     cursor = new Date(cursor.getTime() + 30 * 60 * 1000);
   }
   return points;
+}
+
+function isInsideTradingBreak(
+  date: Date,
+  timeZone: string,
+  breaks: Array<{ start: string; end: string }>
+) {
+  if (breaks.length === 0) {
+    return false;
+  }
+  const parts = zonedParts(date, timeZone);
+  const currentMinutes = parts.hour * 60 + parts.minute;
+  return breaks.some((item) => {
+    const start = timeToMinutes(item.start);
+    const end = timeToMinutes(item.end);
+    return currentMinutes > start && currentMinutes < end;
+  });
 }
 
 function resampleValues(values: number[], targetLength: number): number[] {
@@ -799,22 +828,24 @@ function CustomTooltip({
   coordinate,
   lineColor,
   locale,
-  payload
-}: TooltipProps<number, string> & { lineColor: string; locale: string }) {
+  payload,
+  viewBox
+}: TooltipProps<number, string> & { lineColor: string; locale: string; viewBox?: { width?: number } }) {
   const point = payload?.[0]?.payload as ChartPoint | undefined;
   if (!active || !point) {
     return null;
   }
   const date = new Date(point.timestamp);
   const offset = timezoneOffset(date, chartTimeZone);
-  const tooltipWidth = 140;
-  const gap = 14;
+  const tooltipWidth = 120;
+  const gap = 12;
   const x = coordinate?.x ?? 0;
-  const translateX = x < tooltipWidth + gap + 20 ? gap : -(tooltipWidth + gap);
+  const chartWidth = typeof viewBox?.width === "number" ? viewBox.width : 640;
+  const translateX = x > chartWidth - tooltipWidth - gap - 20 ? -(tooltipWidth + gap) : gap;
 
   return (
     <div
-      className="min-w-[130px] rounded-lg px-3.5 py-2 text-center shadow-apple-soft"
+      className="min-w-[100px] rounded-md px-2 py-1.5 text-center shadow-lg"
       style={{
         background: "rgb(10, 10, 10)",
         borderTop: `2px solid ${lineColor}`,
@@ -823,11 +854,11 @@ function CustomTooltip({
         width: tooltipWidth
       }}
     >
-      <p className="text-[15px] font-medium text-white">{formatValue(point.value, locale)}</p>
-      <p className="mt-1 text-[11px] text-[#aaaaaa]">
+      <p className="text-[12px] font-medium leading-tight text-white">{formatValue(point.value, locale)}</p>
+      <p className="mt-0.5 text-[10px] leading-tight text-[#aaaaaa]">
         {new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: chartTimeZone, year: "2-digit" }).format(date)}
       </p>
-      <p className="text-[11px] text-[#aaaaaa]">
+      <p className="text-[10px] leading-tight text-[#aaaaaa]">
         {new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: chartTimeZone }).format(date)} {offset}
       </p>
     </div>

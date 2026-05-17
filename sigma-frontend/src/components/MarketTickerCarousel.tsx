@@ -87,7 +87,7 @@ export function MarketTickerCarousel() {
         </div>
       </div>
       {pages.length > 1 ? (
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 flex-col items-center justify-center gap-1">
           {pages.map((_, pageIndex) => (
             <button
               aria-label={t("page", { page: pageIndex + 1 })}

@@ -676,3 +676,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Re-anchored dash-button popovers to their own controls with mousedown outside-close, set chart auto-rotate off by default, forced chart tooltips to prefer the left side of the cursor, moved ticker dots inline on the right, and generated fixed Beijing-time 30-minute intraday axes from exchange trading hours.
 - Timestamp: 2026-05-17T08:27:37Z
+
+### [UI Redesign] Sub-feature 10: Tooltip side, ticker dots, and market-break axes
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/charts/MarketIndexChart.tsx, sigma-frontend/src/components/MarketTickerCarousel.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Switched chart tooltips to right-side instant tracking with compact styling and right-edge fallback, stacked ticker pagination dots vertically, tightened X-axis bottom spacing, and skipped SSE/HSI/N225 midday break interiors in the fixed Beijing-time intraday axis.
+- Timestamp: 2026-05-17T08:49:24Z

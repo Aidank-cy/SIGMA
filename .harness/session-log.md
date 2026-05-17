@@ -206,3 +206,14 @@
 **Completion:** SUB-FEATURE COMPLETE
 **Next session should:** Perform remote handoff for `feat/homepage-market-summary-chart` or run browser-level click QA if an interactive browser tool is available.
 **Uncommitted work:** NO — committing in this session as the chart/ticker fix checkpoint.
+
+---
+## Session 20 — 2026-05-17T08:49:24Z
+**Phase:** UI Redesign follow-up QA
+**Resuming from:** Committed market chart and ticker interaction fixes on `feat/homepage-market-summary-chart`.
+**Prior status from progress.md:** Sub-feature 9 complete. User requested tooltip right-side tracking, vertical ticker dots, lunch-break-aware axes, and tighter X-axis spacing.
+
+**Ending at:** Tooltip side, ticker dot, and market-break axis refinements
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Perform remote handoff for `feat/homepage-market-summary-chart` or run browser-level hover/click QA if an interactive browser tool is available.
+**Uncommitted work:** NO — committing in this session as the tooltip/ticker/axis refinement checkpoint.
