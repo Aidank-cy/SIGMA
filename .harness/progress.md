@@ -644,3 +644,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added `/api/v1/stats/last-collection`, a settings sidebar data freshness card, display-only theme status in settings, and ToggleSwitch handling for the admin LLM cost guard.
 - Timestamp: 2026-05-17T05:33:37Z
+
+### [UI Redesign] Sub-feature 6: Polish and consistency
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/feed/ItemCard.tsx, sigma-frontend/src/components/feed/FeaturedStory.tsx, sigma-frontend/src/components/feed/ItemSidebar.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added default, compact, and featured ItemCard variants; routed FeaturedStory through the featured variant; and reused compact cards in the item detail sidebar. Navbar transparency on scroll was already present from the foundation slice.
+- Timestamp: 2026-05-17T05:41:00Z

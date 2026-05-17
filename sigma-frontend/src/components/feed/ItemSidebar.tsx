@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
+import { ItemCard } from "@/components/feed/ItemCard";
 import { SentimentBadge } from "@/components/feed/SentimentBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useItems } from "@/hooks/useItems";
@@ -62,7 +62,6 @@ function KeywordsCard({ keywords }: { keywords: string[] }) {
 }
 
 function MoreFromSource({ item }: { item: ItemDetail }) {
-  const locale = useLocale();
   const t = useTranslations("itemDetail.sidebar");
   const { data, isLoading } = useItems({ page_size: 3, source_id: item.source_id });
   const items = (data?.pages[0]?.items ?? []).filter((candidate) => candidate.id !== item.id).slice(0, 3);
@@ -72,15 +71,15 @@ function MoreFromSource({ item }: { item: ItemDetail }) {
       <h2 className="text-sm font-semibold text-sigma-text">{t("moreFromSource")}</h2>
       {isLoading ? <Skeleton className="mt-3 h-24 rounded-xl" /> : null}
       {!isLoading && items.length === 0 ? <p className="mt-3 text-sm text-sigma-muted">{t("empty")}</p> : null}
-      <div className="mt-3 space-y-3">
-        {items.map((sourceItem) => (
-          <Link
-            className="block text-sm font-medium leading-6 text-sigma-text hover:text-sigma-accent"
-            href={`/${locale}/items/${sourceItem.id}`}
+      <div className="mt-3">
+        {items.map((sourceItem, index) => (
+          <ItemCard
+            className="last:border-b-0"
+            index={index}
+            item={sourceItem}
             key={sourceItem.id}
-          >
-            {sourceItem.title}
-          </Link>
+            variant="compact"
+          />
         ))}
       </div>
     </section>
