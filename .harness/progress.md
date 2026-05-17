@@ -612,3 +612,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Reworked the homepage into chart, stats, featured story, timeline feed, and responsive sidebar zones. Added `/api/v1/stats/sentiment` and `/api/v1/stats/trending-keywords`, plus watchlist item counts for the sidebar. Browser visual smoke was blocked because the required in-app browser Node control tool is unavailable; production build passed and the stale local dev server was stopped.
 - Timestamp: 2026-05-17T05:06:43Z
+
+### [UI Redesign] Sub-feature 2: Watchlist dashboard
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/api/v1/routes/watchlists.py, sigma-backend/app/schemas/watchlist.py, sigma-backend/tests/test_watchlists_api.py, sigma-frontend/src/app/[locale]/(main)/watchlist/page.tsx, sigma-frontend/src/components/feed/ItemCard.tsx, sigma-frontend/src/hooks/useWatchlists.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added `/api/v1/watchlists/:id/stats` and `/api/v1/watchlists/:id/trend`, watchlist dashboard metric cards, keyword-hit sparkline, and title keyword highlighting in ItemCard. Verified with backend ruff, backend pytest, frontend build, and post-edit hook.
+- Timestamp: 2026-05-17T05:11:27Z

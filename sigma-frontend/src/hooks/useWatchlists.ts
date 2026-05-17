@@ -3,7 +3,14 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import type { ItemSummary, PaginatedResponse, Watchlist, WatchlistPayload } from "@/lib/types";
+import type {
+  ItemSummary,
+  PaginatedResponse,
+  Watchlist,
+  WatchlistPayload,
+  WatchlistStats,
+  WatchlistTrend
+} from "@/lib/types";
 
 interface WatchlistListResponse {
   items: Watchlist[];
@@ -46,6 +53,36 @@ export function useWatchlistItems(watchlistId: string | null) {
   };
 }
 
+export function useWatchlistStats(watchlistId: string | null) {
+  const query = useQuery({
+    enabled: watchlistId !== null,
+    queryKey: ["watchlist-stats", watchlistId],
+    queryFn: () => apiFetch<WatchlistStats>(`/watchlists/${watchlistId}/stats`)
+  });
+
+  return {
+    data: query.data,
+    error: query.error,
+    isLoading: query.isLoading,
+    mutate: query.refetch
+  };
+}
+
+export function useWatchlistTrend(watchlistId: string | null) {
+  const query = useQuery({
+    enabled: watchlistId !== null,
+    queryKey: ["watchlist-trend", watchlistId],
+    queryFn: () => apiFetch<WatchlistTrend>(`/watchlists/${watchlistId}/trend`)
+  });
+
+  return {
+    data: query.data,
+    error: query.error,
+    isLoading: query.isLoading,
+    mutate: query.refetch
+  };
+}
+
 export function useWatchlistMutations() {
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["watchlists"] });
@@ -66,6 +103,8 @@ export function useWatchlistMutations() {
       onSuccess: (_data, variables) => {
         invalidate();
         queryClient.invalidateQueries({ queryKey: ["watchlist-items", variables.id] });
+        queryClient.invalidateQueries({ queryKey: ["watchlist-stats", variables.id] });
+        queryClient.invalidateQueries({ queryKey: ["watchlist-trend", variables.id] });
       }
     })
   };

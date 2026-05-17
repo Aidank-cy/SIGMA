@@ -118,6 +118,20 @@ export interface WatchlistPayload {
   markets: Market[];
 }
 
+export interface WatchlistStats {
+  matches_today: number;
+  bullish_pct: number;
+}
+
+export interface WatchlistTrendDay {
+  date: string;
+  count: number;
+}
+
+export interface WatchlistTrend {
+  days: WatchlistTrendDay[];
+}
+
 export interface UserReportConfig {
   report_frequency: ReportType;
   markets: Market[];

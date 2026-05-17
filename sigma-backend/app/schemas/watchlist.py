@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -47,3 +47,29 @@ class WatchlistListResponse(BaseModel):
 
 class WatchlistItemsResponse(ItemListResponse):
     """Paginated watchlist item response."""
+
+
+class WatchlistStatsResponse(BaseModel):
+    """Dashboard stats for one watchlist."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    matches_today: int
+    bullish_pct: int
+
+
+class WatchlistTrendDay(BaseModel):
+    """Daily watchlist match count."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: date
+    count: int
+
+
+class WatchlistTrendResponse(BaseModel):
+    """Seven-day watchlist trend response."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    days: list[WatchlistTrendDay]

@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.routes.stats import _sentiment_for_item
 from app.database import get_db
 from app.middleware.auth import get_current_user
 from app.models.collected_item import CollectedItem
@@ -15,6 +17,9 @@ from app.schemas.watchlist import (
     WatchlistCreate,
     WatchlistListResponse,
     WatchlistRead,
+    WatchlistStatsResponse,
+    WatchlistTrendDay,
+    WatchlistTrendResponse,
     WatchlistUpdate,
 )
 
@@ -111,6 +116,53 @@ async def list_watchlist_items(
         total=total or 0,
         has_next=(page * page_size) < (total or 0),
         items=[_summary(row[0], row[1]) for row in rows],
+    )
+
+
+@router.get("/{watchlist_id}/stats", response_model=WatchlistStatsResponse)
+async def get_watchlist_stats(
+    watchlist_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> WatchlistStatsResponse:
+    """Return dashboard stats for one watchlist."""
+    watchlist = await _owned_watchlist(db, current_user, watchlist_id)
+    predicate = _item_predicate(watchlist)
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    matches_today = await db.scalar(
+        select(func.count()).select_from(CollectedItem).where(*predicate, CollectedItem.collected_at >= since)
+    )
+    rows = await db.scalars(
+        select(CollectedItem).where(*predicate).order_by(CollectedItem.collected_at.desc()).limit(100)
+    )
+    sentiments = [_sentiment_for_item(item) for item in rows]
+    bullish_pct = round((sentiments.count("bullish") / len(sentiments)) * 100) if sentiments else 50
+    return WatchlistStatsResponse(matches_today=matches_today or 0, bullish_pct=bullish_pct)
+
+
+@router.get("/{watchlist_id}/trend", response_model=WatchlistTrendResponse)
+async def get_watchlist_trend(
+    watchlist_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> WatchlistTrendResponse:
+    """Return seven days of watchlist match counts."""
+    watchlist = await _owned_watchlist(db, current_user, watchlist_id)
+    today = datetime.now(timezone.utc).date()
+    start = today - timedelta(days=6)
+    start_at = datetime.combine(start, datetime.min.time(), timezone.utc)
+    rows = await db.execute(
+        select(func.date(CollectedItem.collected_at).label("day"), func.count().label("count"))
+        .where(*_item_predicate(watchlist), CollectedItem.collected_at >= start_at)
+        .group_by(func.date(CollectedItem.collected_at))
+        .order_by(func.date(CollectedItem.collected_at))
+    )
+    counts = {datetime.fromisoformat(str(row.day)).date(): int(row.count) for row in rows}
+    return WatchlistTrendResponse(
+        days=[
+            WatchlistTrendDay(date=start + timedelta(days=offset), count=counts.get(start + timedelta(days=offset), 0))
+            for offset in range(7)
+        ]
     )
 
 

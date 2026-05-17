@@ -118,3 +118,14 @@
 **Completion:** SUB-FEATURE COMPLETE
 **Next session should:** Continue with Phase 2 watchlist dashboard stats and keyword highlighting. Reuse the Phase 1 stats patterns and ItemCard tightening.
 **Uncommitted work:** NO — committing in this session as the UI redesign Phase 1 checkpoint.
+
+---
+## Session 12 — 2026-05-17T05:11:27Z
+**Phase:** UI Redesign Phase 2
+**Resuming from:** Phase 1 homepage redesign on `feat/ui-redesign-phase-0`
+**Prior status from progress.md:** Phase 0 and Phase 1 UI redesign slices complete with shared chart/toggle foundations, homepage stats, featured story, and sidebar patterns.
+
+**Ending at:** Watchlist dashboard stats and keyword highlighting
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Continue with Phase 3 reports pages: reading-time metadata, report-card sentiment bar, and active TOC highlighting.
+**Uncommitted work:** NO — committing in this session as the UI redesign Phase 2 checkpoint.

@@ -9,9 +9,16 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Sparkline } from "@/components/ui/Sparkline";
 import { SegmentControl } from "@/components/ui/SegmentControl";
 import { useSources } from "@/hooks/useSources";
-import { useWatchlistItems, useWatchlistMutations, useWatchlists } from "@/hooks/useWatchlists";
+import {
+  useWatchlistItems,
+  useWatchlistMutations,
+  useWatchlists,
+  useWatchlistStats,
+  useWatchlistTrend
+} from "@/hooks/useWatchlists";
 import type { Market, Watchlist, WatchlistPayload } from "@/lib/types";
 
 const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "global"];
@@ -62,6 +69,7 @@ export default function WatchlistPage() {
           {t("empty")}
         </div>
       ) : null}
+      {active ? <WatchlistStatsRow watchlistId={active.id} /> : null}
       {watchlists.length > 0 ? (
         <SegmentControl
           activeId={active?.id ?? ""}
@@ -86,6 +94,70 @@ export default function WatchlistPage() {
         watchlist={editing}
       />
     </section>
+  );
+}
+
+function WatchlistStatsRow({ watchlistId }: { watchlistId: string }) {
+  const t = useTranslations("watchlist");
+  const { data: stats, isLoading: isStatsLoading } = useWatchlistStats(watchlistId);
+  const { data: trend, isLoading: isTrendLoading } = useWatchlistTrend(watchlistId);
+  const bullishPct = stats?.bullish_pct ?? 50;
+  const sentimentText =
+    bullishPct >= 50
+      ? t("sentimentBullish", { value: bullishPct })
+      : t("sentimentBearish", { value: 100 - bullishPct });
+  const sparklineData = trend?.days.map((day) => ({ value: day.count })) ?? [];
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <MetricCard
+        isLoading={isStatsLoading}
+        label={t("matchesToday")}
+        value={String(stats?.matches_today ?? 0)}
+      />
+      <MetricCard
+        className={bullishPct >= 50 ? "text-sigma-success" : "text-sigma-danger"}
+        isLoading={isStatsLoading}
+        label={t("sentiment")}
+        value={sentimentText}
+      />
+      <div className="rounded-xl bg-sigma-elevated p-4">
+        <p className="text-xs font-medium text-sigma-muted">{t("keywordTrend")}</p>
+        {isTrendLoading ? (
+          <Skeleton className="mt-3 h-8 w-full" />
+        ) : (
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-2xl font-semibold tabular-nums text-sigma-text">
+              {sparklineData.at(-1)?.value ?? 0}
+            </p>
+            <Sparkline data={sparklineData.length > 0 ? sparklineData : [{ value: 0 }, { value: 0 }]} positive />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({
+  className,
+  isLoading,
+  label,
+  value
+}: {
+  className?: string;
+  isLoading: boolean;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl bg-sigma-elevated p-4">
+      <p className="text-xs font-medium text-sigma-muted">{label}</p>
+      {isLoading ? (
+        <Skeleton className="mt-3 h-8 w-24" />
+      ) : (
+        <p className={`mt-2 text-2xl font-semibold tabular-nums text-sigma-text ${className ?? ""}`}>{value}</p>
+      )}
+    </div>
   );
 }
 
@@ -137,7 +209,7 @@ function WatchlistFeed({ active, onEdit }: WatchlistFeedProps) {
         </div>
       ) : null}
       {items.map((item, index) => (
-        <ItemCard index={index} item={item} key={item.id} />
+        <ItemCard highlightKeywords={active.keywords} index={index} item={item} key={item.id} />
       ))}
       {hasNextPage ? (
         <Button
