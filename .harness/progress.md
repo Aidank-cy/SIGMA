@@ -596,3 +596,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: NOT RUN per user instruction; verified with targeted repository-reference searches only.
 - Notes: Updated private/public GitHub repository references to Aidank-cy/SIGMA-dev and Aidank-cy/SIGMA without changing local paths, service names, code identifiers, database names, environment variables, or git remotes.
 - Timestamp: 2026-05-17T01:42:55Z
+
+### [UI Redesign] Sub-feature 0: Global foundation
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/ui/Sparkline.tsx, sigma-frontend/src/components/ui/ToggleSwitch.tsx, sigma-frontend/src/components/MarketTickerStrip.tsx, sigma-frontend/src/hooks/useTheme.ts, sigma-frontend/src/hooks/useMarketIndices.ts, sigma-backend/app/schemas/market.py, sigma-backend/app/services/market_indices.py, sigma-backend/app/api/v1/routes/market_indices.py, sigma-backend/tests/test_market_indices.py
+- Files modified: sigma-frontend/src/components/Navbar.tsx, sigma-frontend/src/components/ui/Skeleton.tsx, sigma-frontend/src/app/globals.css, sigma-frontend/tailwind.config.ts, sigma-frontend/src/app/[locale]/layout.tsx, sigma-frontend/src/app/[locale]/(main)/layout.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/api/v1/router.py, sigma-backend/app/scheduler/engine.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_scheduler.py, CHANGELOG.md
+- Tests: PASS
+- Notes: Added shared UI primitives, explicit Google font loading, warning/category token refinements, navbar theme control, market ticker strip, `/api/v1/market-indices` with Redis TTL, and a scheduler refresh job gated by exchange hours. Homepage/watchlist/report/item/settings redesign phases remain pending.
+- Timestamp: 2026-05-17T00:00:00Z

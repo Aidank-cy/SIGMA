@@ -13,6 +13,7 @@
   --sigma-accent: 37 99 235;
   --sigma-success: 16 185 129;
   --sigma-danger: 220 38 38;
+  --sigma-warning: 234 179 8;
   --sigma-neutral: 148 148 158;
   background: rgb(var(--sigma-bg));
 }
@@ -28,7 +29,18 @@ html.dark {
   --sigma-accent: 96 165 250;
   --sigma-success: 52 211 153;
   --sigma-danger: 248 113 113;
+  --sigma-warning: 250 204 21;
   --sigma-neutral: 115 115 124;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 * {

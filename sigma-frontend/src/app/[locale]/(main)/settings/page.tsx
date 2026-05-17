@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, Moon, Save, Sun } from "lucide-react";
+import { KeyRound, Save } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -12,8 +12,10 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentControl } from "@/components/ui/SegmentControl";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { useReportConfig, useSettingsMutations } from "@/hooks/useSettings";
+import { useTheme } from "@/hooks/useTheme";
 import type { Category, Locale, Market, ReportType, UserReportConfig } from "@/lib/types";
 
 const retentionOptions = [7, 30, 60, 90, 180, 365] as const;
@@ -40,6 +42,7 @@ export default function SettingsPage() {
   const { showToast } = useToast();
   const { data: reportConfig, isLoading } = useReportConfig();
   const { updateProfile, updateReportConfig, updateRetention } = useSettingsMutations();
+  const { isDark, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState("");
   const [selectedLocale, setSelectedLocale] = useState<Locale>(defaultLocale);
   const [retentionDays, setRetentionDays] = useState(30);
@@ -47,8 +50,6 @@ export default function SettingsPage() {
   const [profileBaseline, setProfileBaseline] = useState({ displayName: "", locale: defaultLocale });
   const [retentionBaseline, setRetentionBaseline] = useState(30);
   const [reportBaseline, setReportBaseline] = useState<UserReportConfig>(defaultReportConfig);
-  const [isDark, setIsDark] = useState(false);
-  const [savedIsDark, setSavedIsDark] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -72,21 +73,14 @@ export default function SettingsPage() {
     setReportBaseline(reportConfig);
   }, [reportConfig]);
 
-  useEffect(() => {
-    const nextIsDark = document.documentElement.classList.contains("dark");
-    setIsDark(nextIsDark);
-    setSavedIsDark(nextIsDark);
-  }, []);
-
   const dirty = useMemo(
     () => ({
-      appearance: isDark !== savedIsDark,
       language: selectedLocale !== profileBaseline.locale,
       profile: displayName !== profileBaseline.displayName,
       reports: !reportConfigsEqual(reportPayload, reportBaseline),
       retention: retentionDays !== retentionBaseline
     }),
-    [displayName, isDark, profileBaseline, reportBaseline, reportPayload, retentionBaseline, retentionDays, savedIsDark, selectedLocale]
+    [displayName, profileBaseline, reportBaseline, reportPayload, retentionBaseline, retentionDays, selectedLocale]
   );
   const hasChanges = Object.values(dirty).some(Boolean);
 
@@ -124,17 +118,6 @@ export default function SettingsPage() {
         }
       });
     }
-    if (dirty.appearance) {
-      jobs.push({
-        label: t("theme.title"),
-        run: async () => {
-          document.documentElement.classList.toggle("dark", isDark);
-          window.localStorage.setItem("sigma.theme", isDark ? "dark" : "light");
-          setSavedIsDark(isDark);
-        }
-      });
-    }
-
     setIsSaving(true);
     const results = await Promise.allSettled(jobs.map((job) => job.run()));
     setIsSaving(false);
@@ -181,7 +164,7 @@ export default function SettingsPage() {
           <PasswordSection onOpen={() => setIsPasswordOpen(true)} />
         </div>
         <div className="flex flex-col gap-5">
-          <ThemeSection isDark={isDark} onChange={setIsDark} />
+          <ThemeSection isDark={isDark} onChange={(value) => setTheme(value ? "dark" : "light")} />
           <Card className="p-5">
             <h2 className="text-base font-semibold text-sigma-text">{t("trend.title")}</h2>
             <p className="mt-1 text-sm text-sigma-muted">{t("trend.caption")}</p>
@@ -324,17 +307,14 @@ function ReportConfigSection({
           options={categories.map((value) => ({ label: t(`categories.${value}`), value }))}
           values={payload.categories}
         />
-        <label className="flex items-center gap-3 text-sm font-medium text-sigma-text">
-          <input
+        <div className="flex items-center gap-3 text-sm font-medium text-sigma-text">
+          <ToggleSwitch
             checked={payload.is_active}
-            className="h-4 w-4 rounded border-sigma-line"
-            onChange={(event) =>
-              setPayload((current) => ({ ...current, is_active: event.target.checked }))
-            }
-            type="checkbox"
+            label={t("reports.active")}
+            onChange={(checked) => setPayload((current) => ({ ...current, is_active: checked }))}
           />
           {t("reports.active")}
-        </label>
+        </div>
       </div>
     </Card>
   );
@@ -350,10 +330,7 @@ function ThemeSection({ isDark, onChange }: { isDark: boolean; onChange: (value:
           <h2 className="text-base font-semibold text-sigma-text">{t("theme.title")}</h2>
           <p className="mt-1 text-sm text-sigma-muted">{t("theme.caption")}</p>
         </div>
-        <Button aria-label={t("theme.title")} onClick={() => onChange(!isDark)} variant="secondary">
-          {isDark ? <Moon className="h-4 w-4" aria-hidden /> : <Sun className="h-4 w-4" aria-hidden />}
-          {isDark ? t("theme.dark") : t("theme.light")}
-        </Button>
+        <ToggleSwitch checked={isDark} label={t("theme.title")} onChange={onChange} />
       </div>
     </Card>
   );

@@ -15,12 +15,13 @@ const config: Config = {
         "sigma-accent": "rgb(var(--sigma-accent) / <alpha-value>)",
         "sigma-success": "rgb(var(--sigma-success) / <alpha-value>)",
         "sigma-danger": "rgb(var(--sigma-danger) / <alpha-value>)",
+        "sigma-warning": "rgb(var(--sigma-warning) / <alpha-value>)",
         "sigma-neutral": "rgb(var(--sigma-neutral) / <alpha-value>)",
         category: {
-          politics: "#6366f1",
-          finance: "#10b981",
-          tech: "#a855f7",
-          macro: "#f59e0b"
+          politics: "#818cf8",
+          finance: "#34d399",
+          tech: "#c084fc",
+          macro: "#fbbf24"
         },
         ink: "rgb(var(--sigma-text) / <alpha-value>)",
         mist: "rgb(var(--sigma-bg) / <alpha-value>)",
@@ -30,6 +31,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
+          "var(--font-inter)",
+          "var(--font-noto-sans-sc)",
           "Inter",
           "Noto Sans SC",
           "ui-sans-serif",

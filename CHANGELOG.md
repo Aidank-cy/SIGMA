@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add Phase 0 UI redesign foundations with shared sparklines, Apple-style toggles, shimmer skeletons, navbar theme control, ticker strip, and cached market indices API.
 - Add email-verified password reset endpoints and a three-step settings modal for password changes.
 
 ### Changed

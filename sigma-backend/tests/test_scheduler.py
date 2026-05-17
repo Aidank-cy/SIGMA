@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 from app.models import Base
 from app.models.data_source import DataSource
 from app.models.enums import IntelligenceCategory, Market, SourceType
-from app.scheduler.engine import add_report_jobs, load_source_jobs, scheduler
+from app.scheduler.engine import add_market_indices_job, add_report_jobs, load_source_jobs, scheduler
 from app.scheduler.jobs import collect_from_source
 
 
@@ -92,6 +92,16 @@ async def test_collect_from_source_triggers_summarizer(
 
 def test_scheduler_registers_report_jobs() -> None:
     """Scheduler registers daily, weekly, and monthly report jobs."""
+    scheduler.remove_all_jobs()
+
+
+def test_scheduler_registers_market_indices_job() -> None:
+    """Scheduler registers market indices refresh separately."""
+    scheduler.remove_all_jobs()
+
+    add_market_indices_job()
+
+    assert scheduler.get_job("market-indices:refresh") is not None
     scheduler.remove_all_jobs()
 
     add_report_jobs()

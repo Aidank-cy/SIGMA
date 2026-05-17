@@ -44,7 +44,9 @@
     "admin": "管理",
     "settings": "设置",
     "logout": "退出",
-    "menu": "菜单"
+    "menu": "菜单",
+    "themeLight": "切换为浅色模式",
+    "themeDark": "切换为深色模式"
   },
   "feed": {
     "eyebrow": "实时情报",

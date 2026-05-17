@@ -6,6 +6,28 @@ export type ReportType = "daily" | "weekly" | "monthly";
 
 export type Locale = "zh" | "en";
 
+export interface TradingHours {
+  open: string;
+  close: string;
+  timezone: string;
+}
+
+export interface MarketIndex {
+  symbol: string;
+  name: string;
+  value: number;
+  change_pct: number;
+  market: Market;
+  is_trading: boolean;
+  trading_hours: TradingHours;
+  sparkline_24h: number[];
+}
+
+export interface MarketIndicesResponse {
+  indices: MarketIndex[];
+  updated_at: string;
+}
+
 export interface PaginatedResponse<T> {
   page: number;
   page_size: number;

@@ -3,13 +3,19 @@ from uuid import UUID
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.database import AsyncSessionLocal
 from app.models.data_source import DataSource
 from app.models.enums import ReportType
-from app.scheduler.jobs import cleanup_expired_items, collect_from_source, generate_scheduled_reports
+from app.scheduler.jobs import (
+    cleanup_expired_items,
+    collect_from_source,
+    generate_scheduled_reports,
+    refresh_market_indices_job,
+)
 
 scheduler = AsyncIOScheduler(timezone="UTC")
 
@@ -23,6 +29,7 @@ async def start_scheduler(
     await load_source_jobs(session_factory)
     add_cleanup_job(session_factory)
     add_report_jobs(session_factory)
+    add_market_indices_job()
 
 
 async def stop_scheduler() -> None:
@@ -108,6 +115,18 @@ def add_report_jobs(
         trigger=CronTrigger(day="last", hour=22, minute=0, timezone="UTC"),
         id="reports:monthly",
         args=[ReportType.MONTHLY, session_factory],
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
+
+def add_market_indices_job(job_func: Callable[..., object] = refresh_market_indices_job) -> None:
+    """Register the one-minute market indices cache refresh job."""
+    scheduler.add_job(
+        job_func,
+        trigger=IntervalTrigger(seconds=60, timezone="UTC"),
+        id="market-indices:refresh",
         replace_existing=True,
         max_instances=1,
         coalesce=True,

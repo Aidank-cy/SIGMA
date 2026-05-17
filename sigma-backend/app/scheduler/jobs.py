@@ -17,6 +17,7 @@ from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, IntelligenceCategory, Market, ReportType
 from app.models.user_report_config import UserReportConfig
+from app.services.market_indices import any_market_trading_now, refresh_market_indices
 from app.utils.event_hooks import notify_new_items
 from app.utils.redis_lock import acquire_lock, release_lock
 
@@ -100,6 +101,12 @@ async def cleanup_expired_items(
     async with session_factory() as db:
         await db.execute(delete(CollectedItem).where(CollectedItem.expires_at < datetime.now(timezone.utc)))
         await db.commit()
+
+
+async def refresh_market_indices_job() -> None:
+    """Refresh cached market index quotes while any configured market is open."""
+    if any_market_trading_now():
+        await refresh_market_indices(force=True)
 
 
 async def generate_scheduled_reports(

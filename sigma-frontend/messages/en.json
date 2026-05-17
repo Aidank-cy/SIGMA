@@ -44,7 +44,9 @@
     "admin": "Admin",
     "settings": "Settings",
     "logout": "Sign out",
-    "menu": "Menu"
+    "menu": "Menu",
+    "themeLight": "Switch to light mode",
+    "themeDark": "Switch to dark mode"
   },
   "feed": {
     "eyebrow": "Live intelligence",

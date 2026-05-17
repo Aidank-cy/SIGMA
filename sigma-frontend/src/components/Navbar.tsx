@@ -1,13 +1,25 @@
 "use client";
 
-import { BarChart3, FileText, Home, LogOut, Menu, Settings, Star, UserCircle } from "lucide-react";
+import {
+  BarChart3,
+  FileText,
+  Home,
+  LogOut,
+  Menu,
+  Moon,
+  Settings,
+  Star,
+  Sun,
+  UserCircle
+} from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { Button } from "@/components/ui/Button";
+import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/cn";
 
 const navItems = [
@@ -19,13 +31,36 @@ const navItems = [
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAtTop, setIsAtTop] = useState(true);
   const { logout, user } = useAuth();
   const locale = useLocale();
   const t = useTranslations("nav");
+  const { isDark, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => setIsAtTop(window.scrollY === 0));
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", update);
+    };
+  }, []);
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-sigma-line bg-sigma-bg/82 backdrop-blur-xl">
+      <header
+        className={cn(
+          "sticky top-0 z-40 border-b backdrop-blur-xl transition-colors",
+          isAtTop
+            ? "border-transparent bg-transparent"
+            : "border-sigma-line bg-sigma-bg/82"
+        )}
+      >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link className="flex items-center gap-3" href={`/${locale}`}>
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sigma-text text-sigma-bg">
@@ -52,6 +87,9 @@ export function Navbar() {
 
           <div className="hidden items-center gap-3 md:flex">
             <LocaleSwitcher compact />
+            <Button aria-label={isDark ? t("themeLight") : t("themeDark")} onClick={toggleTheme} size="sm" variant="ghost">
+              {isDark ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
+            </Button>
             <div className="flex items-center gap-2 rounded-full border border-sigma-line bg-sigma-elevated px-3 py-1.5">
               <UserCircle className="h-5 w-5 text-sigma-muted" aria-hidden />
               <span className="max-w-32 truncate text-sm font-medium text-sigma-text">
@@ -96,6 +134,9 @@ export function Navbar() {
             })}
             <div className="flex items-center justify-between gap-3 pt-2">
               <LocaleSwitcher compact />
+              <Button aria-label={isDark ? t("themeLight") : t("themeDark")} onClick={toggleTheme} size="sm" variant="ghost">
+                {isDark ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
+              </Button>
               <Button onClick={logout} size="sm" variant="ghost">
                 <LogOut className="h-4 w-4" aria-hidden />
                 {t("logout")}
