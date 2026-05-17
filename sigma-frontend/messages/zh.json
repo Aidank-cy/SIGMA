@@ -250,10 +250,13 @@
     },
     "theme": {
       "title": "外观",
-      "caption": "切换此设备上的工作区主题。",
+      "caption": "主题切换已移至顶部导航栏。",
       "light": "浅色",
       "dark": "深色"
     },
+    "dataFreshness": "数据新鲜度",
+    "lastUpdated": "最近成功采集",
+    "noCollection": "暂无成功采集记录",
     "password": {
       "title": "修改密码",
       "caption": "先通过邮箱验证码验证，再设置新密码。",

@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.collected_item import CollectedItem
-from app.schemas.stats import SentimentStatsResponse, TrendingKeyword, TrendingKeywordsResponse
+from app.models.collector_log import CollectorLog
+from app.models.enums import CollectorStatus
+from app.schemas.stats import LastCollectionResponse, SentimentStatsResponse, TrendingKeyword, TrendingKeywordsResponse
 
 router = APIRouter()
 
@@ -105,6 +107,20 @@ async def get_trending_keywords(db: AsyncSession = Depends(get_db)) -> TrendingK
     return TrendingKeywordsResponse(
         items=[TrendingKeyword(keyword=keyword, count=count) for keyword, count in counts.most_common(5)]
     )
+
+
+@router.get("/last-collection", response_model=LastCollectionResponse)
+async def get_last_collection(db: AsyncSession = Depends(get_db)) -> LastCollectionResponse:
+    """Return the most recent successful collector execution."""
+    last_success = await db.scalar(
+        select(CollectorLog.executed_at)
+        .where(CollectorLog.status == CollectorStatus.SUCCESS)
+        .order_by(CollectorLog.executed_at.desc())
+        .limit(1)
+    )
+    if last_success and last_success.tzinfo is None:
+        last_success = last_success.replace(tzinfo=timezone.utc)
+    return LastCollectionResponse(last_success=last_success.isoformat() if last_success else None)
 
 
 def _sentiment_for_item(item: CollectedItem) -> str:

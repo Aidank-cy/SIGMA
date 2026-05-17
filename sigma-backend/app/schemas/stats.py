@@ -24,3 +24,11 @@ class TrendingKeywordsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[TrendingKeyword]
+
+
+class LastCollectionResponse(BaseModel):
+    """Latest successful collection timestamp."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    last_success: str | None

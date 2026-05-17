@@ -4,10 +4,11 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.routes.stats import get_sentiment_stats, get_trending_keywords
+from app.api.v1.routes.stats import get_last_collection, get_sentiment_stats, get_trending_keywords
 from app.models.collected_item import CollectedItem
+from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
-from app.models.enums import IntelligenceCategory, Market, SourceType
+from app.models.enums import CollectorStatus, IntelligenceCategory, Market, SourceType
 
 
 @pytest.mark.asyncio
@@ -48,6 +49,27 @@ async def test_trending_keywords_prefers_metadata_keywords(db_session: AsyncSess
     assert response.items[0].count == 2
 
 
+@pytest.mark.asyncio
+async def test_last_collection_returns_latest_success(db_session: AsyncSession) -> None:
+    """Last collection stats return the latest successful collector timestamp."""
+    source = _source()
+    older = datetime.now(timezone.utc) - timedelta(hours=2)
+    latest = datetime.now(timezone.utc) - timedelta(minutes=5)
+    db_session.add(source)
+    db_session.add_all(
+        [
+            _log(source, CollectorStatus.SUCCESS, older),
+            _log(source, CollectorStatus.FAIL, datetime.now(timezone.utc)),
+            _log(source, CollectorStatus.SUCCESS, latest),
+        ]
+    )
+    await db_session.commit()
+
+    response = await get_last_collection(db_session)
+
+    assert response.last_success == latest.isoformat()
+
+
 def _source() -> DataSource:
     return DataSource(
         id=uuid4(),
@@ -79,4 +101,15 @@ def _item(
         published_at=datetime.now(timezone.utc),
         collected_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+    )
+
+
+def _log(source: DataSource, status: CollectorStatus, executed_at: datetime) -> CollectorLog:
+    return CollectorLog(
+        source_id=source.id,
+        status=status,
+        items_count=3,
+        error_message=None if status == CollectorStatus.SUCCESS else "failed",
+        duration_ms=120,
+        executed_at=executed_at,
     )

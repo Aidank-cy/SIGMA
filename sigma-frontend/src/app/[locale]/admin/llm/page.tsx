@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { useAdminLLM } from "@/hooks/useAdmin";
 import type { LLMConfig } from "@/hooks/useAdmin";
@@ -179,11 +180,10 @@ export default function AdminLLMPage() {
               <ShieldCheck className="h-4 w-4 text-sigma-muted" aria-hidden />
               {t("costGuard")}
             </span>
-            <input
+            <ToggleSwitch
               checked={form.cost_guard_enabled}
-              className="h-4 w-4 accent-sigma-accent"
-              onChange={(event) => setForm({ ...form, cost_guard_enabled: event.target.checked })}
-              type="checkbox"
+              label={t("costGuard")}
+              onChange={(checked) => setForm({ ...form, cost_guard_enabled: checked })}
             />
           </label>
           <Button isLoading={update.isPending} onClick={save}>

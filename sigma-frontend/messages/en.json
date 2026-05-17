@@ -250,10 +250,13 @@
     },
     "theme": {
       "title": "Appearance",
-      "caption": "Switch the workspace theme on this device.",
+      "caption": "Theme controls now live in the top navigation.",
       "light": "Light",
       "dark": "Dark"
     },
+    "dataFreshness": "Data freshness",
+    "lastUpdated": "Last successful collection",
+    "noCollection": "No successful collection yet",
     "password": {
       "title": "Change password",
       "caption": "Use an email verification code before setting a new password.",

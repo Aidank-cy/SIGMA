@@ -43,6 +43,10 @@ export interface TrendingKeywordsResponse {
   items: TrendingKeyword[];
 }
 
+export interface LastCollectionResponse {
+  last_success: string | null;
+}
+
 export interface PaginatedResponse<T> {
   page: number;
   page_size: number;

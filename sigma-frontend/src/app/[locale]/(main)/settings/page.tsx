@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, Save } from "lucide-react";
+import { Clock3, KeyRound, Save } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { useReportConfig, useSettingsMutations } from "@/hooks/useSettings";
+import { useLastCollectionStats } from "@/hooks/useStats";
 import { useTheme } from "@/hooks/useTheme";
 import type { Category, Locale, Market, ReportType, UserReportConfig } from "@/lib/types";
 
@@ -41,8 +42,9 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { data: reportConfig, isLoading } = useReportConfig();
+  const lastCollection = useLastCollectionStats();
   const { updateProfile, updateReportConfig, updateRetention } = useSettingsMutations();
-  const { isDark, setTheme } = useTheme();
+  const { isDark } = useTheme();
   const [displayName, setDisplayName] = useState("");
   const [selectedLocale, setSelectedLocale] = useState<Locale>(defaultLocale);
   const [retentionDays, setRetentionDays] = useState(30);
@@ -164,7 +166,11 @@ export default function SettingsPage() {
           <PasswordSection onOpen={() => setIsPasswordOpen(true)} />
         </div>
         <div className="flex flex-col gap-5">
-          <ThemeSection isDark={isDark} onChange={(value) => setTheme(value ? "dark" : "light")} />
+          <ThemeSection isDark={isDark} />
+          <DataFreshnessCard
+            isLoading={lastCollection.isLoading}
+            lastSuccess={lastCollection.data?.last_success ?? null}
+          />
           <Card className="p-5">
             <h2 className="text-base font-semibold text-sigma-text">{t("trend.title")}</h2>
             <p className="mt-1 text-sm text-sigma-muted">{t("trend.caption")}</p>
@@ -320,7 +326,7 @@ function ReportConfigSection({
   );
 }
 
-function ThemeSection({ isDark, onChange }: { isDark: boolean; onChange: (value: boolean) => void }) {
+function ThemeSection({ isDark }: { isDark: boolean }) {
   const t = useTranslations("settings");
 
   return (
@@ -330,7 +336,42 @@ function ThemeSection({ isDark, onChange }: { isDark: boolean; onChange: (value:
           <h2 className="text-base font-semibold text-sigma-text">{t("theme.title")}</h2>
           <p className="mt-1 text-sm text-sigma-muted">{t("theme.caption")}</p>
         </div>
-        <ToggleSwitch checked={isDark} label={t("theme.title")} onChange={onChange} />
+        <span className="rounded-full bg-sigma-elevated px-3 py-1 text-sm font-medium text-sigma-text">
+          {isDark ? t("theme.dark") : t("theme.light")}
+        </span>
+      </div>
+    </Card>
+  );
+}
+
+function DataFreshnessCard({ isLoading, lastSuccess }: { isLoading: boolean; lastSuccess: string | null }) {
+  const locale = useLocale() as Locale;
+  const t = useTranslations("settings");
+  const formatted = useMemo(() => {
+    if (!lastSuccess) {
+      return t("noCollection");
+    }
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(new Date(lastSuccess));
+  }, [lastSuccess, locale, t]);
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-start gap-3">
+        <span className="rounded-full bg-sigma-accent/10 p-2 text-sigma-accent">
+          <Clock3 className="h-4 w-4" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-sigma-text">{t("dataFreshness")}</h2>
+          <p className="mt-1 text-sm text-sigma-muted">{t("lastUpdated")}</p>
+          {isLoading ? (
+            <Skeleton className="mt-4 h-5 w-40" />
+          ) : (
+            <p className="mt-4 text-sm font-medium text-sigma-text">{formatted}</p>
+          )}
+        </div>
       </div>
     </Card>
   );

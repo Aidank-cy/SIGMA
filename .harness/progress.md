@@ -636,3 +636,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added item detail sentiment and keyword serialization, source filtering support in the frontend item hook, a sticky item sidebar with sentiment/keywords/more-from-source cards, and horizontal related-story cards.
 - Timestamp: 2026-05-17T05:21:09Z
+
+### [UI Redesign] Sub-feature 5: Settings polish
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/api/v1/routes/stats.py, sigma-backend/app/schemas/stats.py, sigma-backend/tests/test_stats_api.py, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/app/[locale]/admin/llm/page.tsx, sigma-frontend/src/hooks/useStats.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added `/api/v1/stats/last-collection`, a settings sidebar data freshness card, display-only theme status in settings, and ToggleSwitch handling for the admin LLM cost guard.
+- Timestamp: 2026-05-17T05:33:37Z
