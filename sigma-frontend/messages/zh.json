@@ -187,6 +187,7 @@
     "empty": "尚未生成报告。",
     "all": "全部",
     "scope": "{markets} 个市场 · {categories} 个类别",
+    "readingTime": "{count} 分钟阅读",
     "loadMore": "加载更多",
     "filters": {
       "all": "全部",

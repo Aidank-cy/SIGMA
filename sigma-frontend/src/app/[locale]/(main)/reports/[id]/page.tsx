@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useActiveToc } from "@/hooks/useActiveToc";
 import { useReport } from "@/hooks/useReports";
 
 interface TocItem {
@@ -49,6 +50,8 @@ export default function ReportDetailPage() {
   const [isTocOpen, setIsTocOpen] = useState(false);
   const { data: report, isLoading } = useReport(params.id);
   const toc = useMemo(() => extractToc(report?.content ?? ""), [report?.content]);
+  const tocIds = useMemo(() => toc.map((item) => item.id), [toc]);
+  const activeId = useActiveToc(tocIds);
 
   if (isLoading) {
     return <ReportDetailSkeleton />;
@@ -62,7 +65,7 @@ export default function ReportDetailPage() {
     <article className="grid gap-8 print:block lg:grid-cols-[220px_1fr]">
       <aside className="print:hidden">
         <div className="sticky top-24 hidden max-h-[calc(100vh-8rem)] overflow-y-auto border-r border-sigma-line pr-5 lg:block">
-          <Toc items={toc} title={t("toc")} />
+          <Toc activeId={activeId} items={toc} title={t("toc")} />
         </div>
         <div className="rounded-2xl border border-sigma-line bg-sigma-elevated p-4 lg:hidden">
           <button
@@ -73,7 +76,7 @@ export default function ReportDetailPage() {
             {t("toc")}
             <ChevronDown className={isTocOpen ? "h-4 w-4 rotate-180" : "h-4 w-4"} aria-hidden />
           </button>
-          {isTocOpen ? <div className="mt-3"><Toc items={toc} title={t("toc")} compact /></div> : null}
+          {isTocOpen ? <div className="mt-3"><Toc activeId={activeId} items={toc} title={t("toc")} compact /></div> : null}
         </div>
       </aside>
 
@@ -113,7 +116,17 @@ export default function ReportDetailPage() {
   );
 }
 
-function Toc({ compact = false, items, title }: { compact?: boolean; items: TocItem[]; title: string }) {
+function Toc({
+  activeId,
+  compact = false,
+  items,
+  title
+}: {
+  activeId: string;
+  compact?: boolean;
+  items: TocItem[];
+  title: string;
+}) {
   const t = useTranslations("reportDetail");
 
   if (items.length === 0) {
@@ -124,11 +137,13 @@ function Toc({ compact = false, items, title }: { compact?: boolean; items: TocI
     <nav aria-label={title} className="flex flex-col gap-2">
       {items.map((item) => (
         <a
-          className={
-            item.level === 3 && !compact
-              ? "pl-4 text-sm text-sigma-muted hover:text-sigma-text"
-              : "text-sm font-medium text-sigma-muted hover:text-sigma-text"
-          }
+          className={[
+            "border-l-2 py-1 transition",
+            item.id === activeId
+              ? "border-sigma-accent pl-3 text-sm font-semibold text-sigma-text"
+              : "border-transparent pl-3 text-sm text-sigma-muted hover:text-sigma-text",
+            item.level === 3 && !compact ? "ml-3" : "font-medium"
+          ].join(" ")}
           href={`#${item.id}`}
           key={`${item.id}-${item.text}`}
         >

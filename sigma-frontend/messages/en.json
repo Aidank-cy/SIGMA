@@ -187,6 +187,7 @@
     "empty": "No reports have been generated yet.",
     "all": "All",
     "scope": "{markets} markets · {categories} categories",
+    "readingTime": "{count} min read",
     "loadMore": "Load more",
     "filters": {
       "all": "All",

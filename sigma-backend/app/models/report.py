@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import Date, DateTime, Enum, Integer, String, Text, func
+from sqlalchemy import Date, DateTime, Enum, Float, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, UUIDPrimaryKeyMixin, enum_values
@@ -30,3 +30,4 @@ class Report(UUIDPrimaryKeyMixin, Base):
         nullable=False,
     )
     item_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    sentiment_score: Mapped[float] = mapped_column(Float, default=0.5, nullable=False)

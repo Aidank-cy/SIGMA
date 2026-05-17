@@ -87,17 +87,17 @@ export interface ReportSummary {
   id: string;
   report_type: ReportType;
   title: string;
+  content: string;
   market_scope: Market[];
   category_scope: Category[];
   period_start: string;
   period_end: string;
   generated_at: string;
   item_count: number;
+  sentiment_score: number;
 }
 
-export interface ReportDetail extends ReportSummary {
-  content: string;
-}
+export interface ReportDetail extends ReportSummary {}
 
 export interface Watchlist {
   id: string;

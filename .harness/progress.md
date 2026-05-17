@@ -620,3 +620,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added `/api/v1/watchlists/:id/stats` and `/api/v1/watchlists/:id/trend`, watchlist dashboard metric cards, keyword-hit sparkline, and title keyword highlighting in ItemCard. Verified with backend ruff, backend pytest, frontend build, and post-edit hook.
 - Timestamp: 2026-05-17T05:11:27Z
+
+### [UI Redesign] Sub-feature 3: Reports pages
+- Status: COMPLETE
+- Files created: sigma-backend/alembic/versions/20260517_0002_report_sentiment_score.py, sigma-frontend/src/hooks/useActiveToc.ts
+- Files modified: sigma-backend/app/models/report.py, sigma-backend/app/schemas/report.py, sigma-backend/app/analyzers/report_generator.py, sigma-backend/tests/test_report_generator.py, sigma-frontend/src/app/[locale]/(main)/reports/page.tsx, sigma-frontend/src/app/[locale]/(main)/reports/[id]/page.tsx, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added persisted report sentiment scores, exposed report content and sentiment in list summaries, rendered report-card reading time and sentiment mini-bars, and added active TOC highlighting for report detail headings.
+- Timestamp: 2026-05-17T05:16:27Z

@@ -44,6 +44,7 @@ async def test_report_generator_uses_map_reduce_for_large_sets(
     )
 
     assert report.item_count == 40
+    assert report.sentiment_score == 0
     assert "# Overview" in report.content
     assert len(calls) > 1
 

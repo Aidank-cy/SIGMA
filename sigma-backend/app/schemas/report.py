@@ -20,12 +20,12 @@ class ReportSummary(BaseModel):
     period_end: date
     generated_at: datetime
     item_count: int
+    content: str
+    sentiment_score: float = 0.5
 
 
 class ReportDetail(ReportSummary):
     """Full report payload."""
-
-    content: str
 
 
 class ReportListResponse(BaseModel):

@@ -62,11 +62,21 @@ export default function ReportsPage() {
                   })}
                 </p>
               </div>
-              <p className="text-sm text-sigma-muted">
-                {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
-                  new Date(report.generated_at)
-                )}
-              </p>
+              <div className="h-1 overflow-hidden rounded-full bg-sigma-line">
+                <div
+                  aria-hidden
+                  className="h-full rounded-full bg-sigma-success"
+                  style={{ width: `${Math.round(report.sentiment_score * 100)}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm text-sigma-muted">
+                <span>{t("readingTime", { count: readingMinutes(report.content, locale) })}</span>
+                <span>
+                  {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
+                    new Date(report.generated_at)
+                  )}
+                </span>
+              </div>
             </Card>
           </Link>
         ))}
@@ -93,4 +103,10 @@ function ReportGridSkeleton() {
       ))}
     </div>
   );
+}
+
+function readingMinutes(content: string, locale: string) {
+  const wordsPerMinute = locale === "zh" ? 200 : 250;
+  const words = content.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / wordsPerMinute));
 }

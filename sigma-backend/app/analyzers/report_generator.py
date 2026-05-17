@@ -34,6 +34,7 @@ async def generate_report(
         period_start=period_start,
         period_end=period_end,
         item_count=len(items),
+        sentiment_score=_sentiment_score(items),
     )
     db.add(report)
     await db.flush()
@@ -109,3 +110,28 @@ async def _generate_content(
         intermediate,
     )
     return await client.complete(system_prompt, reduce_prompt, max_tokens=2500)
+
+
+def _sentiment_score(items: list[CollectedItem]) -> float:
+    if not items:
+        return 0.5
+    bullish = sum(1 for item in items if _sentiment_for_item(item) == "bullish")
+    return round(bullish / len(items), 4)
+
+
+def _sentiment_for_item(item: CollectedItem) -> str:
+    metadata = item.metadata_extra or {}
+    metadata_sentiment = metadata.get("sentiment")
+    if metadata_sentiment in {"bullish", "bearish", "neutral"}:
+        return str(metadata_sentiment)
+
+    text = f"{item.title} {item.summary or ''}".lower()
+    positive_terms = ("bullish", "beat", "gain", "growth", "rally", "strong", "上涨", "利好", "增长")
+    negative_terms = ("bearish", "decline", "fall", "loss", "risk", "weak", "下跌", "利空", "风险")
+    positive = sum(1 for term in positive_terms if term in text)
+    negative = sum(1 for term in negative_terms if term in text)
+    if positive > negative:
+        return "bullish"
+    if negative > positive:
+        return "bearish"
+    return "neutral"

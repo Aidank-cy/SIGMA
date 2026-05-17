@@ -129,3 +129,14 @@
 **Completion:** SUB-FEATURE COMPLETE
 **Next session should:** Continue with Phase 3 reports pages: reading-time metadata, report-card sentiment bar, and active TOC highlighting.
 **Uncommitted work:** NO — committing in this session as the UI redesign Phase 2 checkpoint.
+
+---
+## Session 13 — 2026-05-17T05:16:27Z
+**Phase:** UI Redesign Phase 3
+**Resuming from:** Phase 2 watchlist dashboard metrics on `feat/ui-redesign-phase-0`
+**Prior status from progress.md:** Phase 0 through Phase 2 redesign slices complete, including market foundations, homepage dashboard, and watchlist stats/highlighting.
+
+**Ending at:** Reports list and detail refinements
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Continue with Phase 4 item detail sidebar and horizontal related stories.
+**Uncommitted work:** NO — committing in this session as the UI redesign Phase 3 checkpoint.
