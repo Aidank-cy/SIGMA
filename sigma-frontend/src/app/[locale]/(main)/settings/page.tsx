@@ -14,10 +14,12 @@ import { SegmentControl } from "@/components/ui/SegmentControl";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
+import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
+import { useLLMSettings } from "@/hooks/useLLMSettings";
 import { useReportConfig, useSettingsMutations } from "@/hooks/useSettings";
 import { useLastCollectionStats } from "@/hooks/useStats";
 import { useTheme } from "@/hooks/useTheme";
-import type { Category, Locale, Market, ReportType, UserReportConfig } from "@/lib/types";
+import type { Category, LLMConfig, LLMUsageResponse, Locale, Market, ReportType, UserReportConfig } from "@/lib/types";
 
 const retentionOptions = [7, 30, 60, 90, 180, 365] as const;
 const categories: Category[] = ["politics", "finance", "technology", "macro"];
@@ -43,6 +45,7 @@ export default function SettingsPage() {
   const { showToast } = useToast();
   const { data: reportConfig, isLoading } = useReportConfig();
   const lastCollection = useLastCollectionStats();
+  const llmSettings = useLLMSettings();
   const { updateProfile, updateReportConfig, updateRetention } = useSettingsMutations();
   const { isDark } = useTheme();
   const [displayName, setDisplayName] = useState("");
@@ -163,6 +166,13 @@ export default function SettingsPage() {
           ) : (
             <ReportConfigSection payload={reportPayload} setPayload={setReportPayload} />
           )}
+          <LLMConfigSection
+            configData={llmSettings.config.data}
+            isConfigLoading={llmSettings.config.isLoading}
+            isSaving={llmSettings.update.isPending}
+            onSave={llmSettings.update.mutateAsync}
+            usageData={llmSettings.usage.data}
+          />
           <PasswordSection onOpen={() => setIsPasswordOpen(true)} />
         </div>
         <div className="flex flex-col gap-5">
@@ -211,6 +221,38 @@ export default function SettingsPage() {
         />
       ) : null}
     </section>
+  );
+}
+
+function LLMConfigSection({
+  configData,
+  isConfigLoading,
+  isSaving,
+  onSave,
+  usageData
+}: {
+  configData?: LLMConfig;
+  isConfigLoading: boolean;
+  isSaving: boolean;
+  onSave: (form: LLMConfig) => Promise<unknown>;
+  usageData?: LLMUsageResponse;
+}) {
+  const t = useTranslations("settings.llm");
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h2 className="text-base font-semibold text-sigma-text">{t("title")}</h2>
+        <p className="mt-1 text-sm text-sigma-muted">{t("caption")}</p>
+      </div>
+      <LLMSettingsPanel
+        configData={configData}
+        isConfigLoading={isConfigLoading}
+        isSaving={isSaving}
+        onSave={onSave}
+        usageData={usageData}
+      />
+    </div>
   );
 }
 

@@ -84,6 +84,9 @@
         "all": "All"
       }
     },
+    "ticker": {
+      "page": "Ticker page {page}"
+    },
     "stats": {
       "todayArticles": "Today's articles",
       "marketSentiment": "Market sentiment",
@@ -260,6 +263,10 @@
       "markets": "Markets",
       "categories": "Categories",
       "active": "Generate scheduled reports"
+    },
+    "llm": {
+      "title": "LLM configuration",
+      "caption": "Choose the model, daily token budget, and cost guard used by SIGMA analysis."
     },
     "theme": {
       "title": "Appearance",

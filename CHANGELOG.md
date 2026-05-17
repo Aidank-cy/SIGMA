@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add user-accessible LLM configuration and usage controls on the Settings page backed by authenticated `/me/llm/*` APIs.
 - Add Phase 6 ItemCard variants for default, compact, and featured feed layouts.
 - Add Phase 5 settings polish with data freshness status, display-only theme state, and switch-based cost guard controls.
 - Add Phase 4 item detail sidebar with sentiment, keywords, more-from-source links, and horizontal related stories.
@@ -17,6 +18,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add email-verified password reset endpoints and a three-step settings modal for password changes.
 
 ### Changed
+- Move the market ticker from the global layout to the homepage and convert it into a pausing vertical carousel below the stats row.
 - Redesign the homepage market index chart into a Google Finance-style market summary with major-index sidebar selection and currency-aware quotes.
 - Update GitHub repo references after rename to SIGMA-dev and SIGMA.
 - Add sliding animated segment controls across feed, reports, watchlist, and settings views.
@@ -48,6 +50,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add admin APIs for dashboard stats, collection trends, recent activity, source health, user management, source previews, source logs, and collector log filtering.
 
 ### Fixed
+- Fix market chart popover isolation, outside/Escape close behavior, responsive z-index positioning, and the major-indices external link.
 - Fix scheduler collection for user-owned sources by avoiding async lazy-loading during normalization.
 - Fix Docker Compose config parsing without requiring a local `.env` secrets file.
 - Fix the post-edit hook to use the verified `python3` backend toolchain.

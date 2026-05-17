@@ -184,3 +184,14 @@
 **Completion:** SUB-FEATURE COMPLETE
 **Next session should:** Perform remote handoff for `feat/homepage-market-summary-chart` or address visual QA follow-up if requested.
 **Uncommitted work:** NO — committing in this session as the market summary chart checkpoint.
+
+---
+## Session 18 — 2026-05-17T08:03:59Z
+**Phase:** UI Redesign follow-up QA
+**Resuming from:** Committed homepage market summary chart on `feat/homepage-market-summary-chart`.
+**Prior status from progress.md:** Sub-feature 7 complete. User requested ticker relocation, user-accessible LLM settings, and a full debug/QA pass.
+
+**Ending at:** Ticker carousel relocation, LLM settings permissions, and chart QA fixes
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Perform remote handoff for `feat/homepage-market-summary-chart` or run browser-level visual QA if an interactive browser tool is available.
+**Uncommitted work:** NO — committing in this session as the ticker/LLM QA checkpoint.

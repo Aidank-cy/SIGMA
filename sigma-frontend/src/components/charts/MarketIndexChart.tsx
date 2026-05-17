@@ -1,5 +1,6 @@
 "use client";
 
+import { ExternalLink } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
@@ -80,7 +81,7 @@ export function MarketIndexChart() {
   const [activeSymbol, setActiveSymbol] = useState("SPX");
   const [range, setRange] = useState<RangeId>("1d");
   const [autoRotate, setAutoRotate] = useState(true);
-  const [openStatusSymbol, setOpenStatusSymbol] = useState<string | null>(null);
+  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
   const resumeTimerRef = useRef<number | null>(null);
 
   const ordered = useMemo(() => orderIndices(data?.indices ?? [], locale), [data?.indices, locale]);
@@ -107,7 +108,21 @@ export function MarketIndexChart() {
   }, [autoRotate, ordered]);
 
   useEffect(() => {
+    setOpenPopoverId(null);
+  }, [activeSymbol]);
+
+  useEffect(() => {
+    const close = () => setOpenPopoverId(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        close();
+      }
+    };
+    document.addEventListener("click", close);
+    document.addEventListener("keydown", closeOnEscape);
     return () => {
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", closeOnEscape);
       if (resumeTimerRef.current !== null) {
         window.clearTimeout(resumeTimerRef.current);
       }
@@ -117,16 +132,16 @@ export function MarketIndexChart() {
   function handleManualSelect(symbol: string) {
     setActiveSymbol(symbol);
     setAutoRotate(false);
-    setOpenStatusSymbol(null);
+    setOpenPopoverId(null);
     if (resumeTimerRef.current !== null) {
       window.clearTimeout(resumeTimerRef.current);
     }
     resumeTimerRef.current = window.setTimeout(() => setAutoRotate(true), 15_000);
   }
 
-  function handleStatusClick(event: MouseEvent<HTMLButtonElement>, symbol: string) {
+  function handleStatusClick(event: MouseEvent<HTMLButtonElement>, id: string) {
     event.stopPropagation();
-    setOpenStatusSymbol((current) => (current === symbol ? null : symbol));
+    setOpenPopoverId((current) => (current === id ? null : id));
   }
 
   const chartData = useMemo(() => (activeIndex ? buildChartData(activeIndex, range) : []), [activeIndex, range]);
@@ -135,7 +150,7 @@ export function MarketIndexChart() {
   const lineColor = positive ? "rgb(var(--sigma-success))" : "rgb(var(--sigma-danger))";
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-sigma-line bg-sigma-surface">
+    <section className="rounded-2xl border border-sigma-line bg-sigma-surface">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px]">
         <div className="min-w-0 p-4 sm:p-5 lg:p-6">
           {activeIndex ? (
@@ -143,7 +158,7 @@ export function MarketIndexChart() {
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <IndexIdentity
                   index={activeIndex}
-                  isOpen={openStatusSymbol === activeIndex.symbol}
+                  isOpen={openPopoverId === "main"}
                   locale={locale}
                   onStatusClick={handleStatusClick}
                   t={t}
@@ -211,7 +226,7 @@ export function MarketIndexChart() {
                 <MajorIndexRow
                   index={index}
                   isActive={activeIndex?.symbol === index.symbol}
-                  isPopoverOpen={openStatusSymbol === index.symbol}
+                  isPopoverOpen={openPopoverId === `major-${index.symbol}`}
                   key={index.symbol}
                   locale={locale}
                   onSelect={handleManualSelect}
@@ -220,8 +235,14 @@ export function MarketIndexChart() {
                 />
               ))}
             </div>
-            <a className="mt-4 text-sm font-semibold text-sigma-accent hover:opacity-80" href="#">
+            <a
+              className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-sigma-accent hover:opacity-80"
+              href="https://www.google.com/finance/"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
               {t("seeAllMajorIndices")}
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
           </div>
         </aside>
@@ -251,7 +272,7 @@ function IndexIdentity({
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="truncate text-base font-semibold text-sigma-text sm:text-lg">{meta.displayName}</h2>
           <span className="rounded bg-sigma-bg px-1.5 py-0.5 text-xs font-semibold text-sigma-muted">{index.symbol}</span>
-          <StatusButton onClick={(event) => onStatusClick(event, index.symbol)} t={t} />
+          <StatusButton onClick={(event) => onStatusClick(event, "main")} t={t} />
         </div>
         <div className="mt-1 flex flex-wrap items-baseline gap-2">
           <span className="text-2xl font-bold tabular-nums text-sigma-text sm:text-3xl">
@@ -344,7 +365,7 @@ function MajorIndexRow({
           <span className="min-w-0">
             <span className="flex min-w-0 items-center gap-2">
               <span className="truncate text-sm font-semibold text-sigma-text">{meta.displayName}</span>
-              <StatusButton onClick={(event) => onStatusClick(event, index.symbol)} t={t} />
+              <StatusButton onClick={(event) => onStatusClick(event, `major-${index.symbol}`)} t={t} />
             </span>
             <span className="mt-0.5 block text-xs font-medium text-sigma-muted">{meta.shortTicker}</span>
           </span>
@@ -430,9 +451,10 @@ function MarketStatusPopover({
 
   return (
     <div
+      onClick={(event) => event.stopPropagation()}
       className={cn(
-        "absolute top-12 z-20 w-72 rounded-xl border border-sigma-line bg-sigma-surface p-4 text-left shadow-apple-soft",
-        align === "right" ? "right-2" : "left-0"
+        "absolute top-12 z-50 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-sigma-line bg-sigma-surface p-4 text-left shadow-apple-soft",
+        align === "right" ? "right-0 sm:right-2" : "left-0"
       )}
     >
       <p className="text-sm font-bold text-sigma-text">{statusTitle}</p>

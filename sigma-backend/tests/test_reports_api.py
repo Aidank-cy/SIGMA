@@ -88,6 +88,38 @@ def test_admin_llm_config_and_usage(client: TestClient) -> None:
     assert usage_response.json()["items"] == []
 
 
+def test_user_llm_config_and_usage(client: TestClient) -> None:
+    """Authenticated users can update shared LLM config and read usage rollups."""
+    token = _token(client, "llm-user@example.com")
+
+    update_response = client.put(
+        "/api/v1/me/llm/config",
+        headers=_auth(token),
+        json={
+            "provider": "anthropic",
+            "model": "claude-test",
+            "daily_token_limit": 67890,
+            "cost_guard_enabled": False,
+        },
+    )
+    get_response = client.get("/api/v1/me/llm/config", headers=_auth(token))
+    usage_response = client.get("/api/v1/me/llm/usage", headers=_auth(token))
+
+    assert update_response.status_code == 200
+    assert update_response.json()["cost_guard_enabled"] is False
+    assert get_response.status_code == 200
+    assert get_response.json()["model"] == "claude-test"
+    assert usage_response.status_code == 200
+    assert usage_response.json()["items"] == []
+
+
+def test_user_llm_config_requires_auth(client: TestClient) -> None:
+    """User-level LLM settings still require authentication."""
+    response = client.get("/api/v1/me/llm/config")
+
+    assert response.status_code == 401
+
+
 def _token(client: TestClient, email: str) -> str:
     register_response = client.post(
         "/api/v1/auth/register",

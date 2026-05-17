@@ -61,7 +61,7 @@ export function Navbar() {
             : "border-sigma-line bg-sigma-bg/82"
         )}
       >
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-3 sm:px-4 lg:px-6">
           <Link className="flex items-center gap-3" href={`/${locale}`}>
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sigma-text text-sigma-bg">
               <BarChart3 className="h-5 w-5" aria-hidden />

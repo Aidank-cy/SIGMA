@@ -84,6 +84,9 @@
         "all": "全部"
       }
     },
+    "ticker": {
+      "page": "行情页 {page}"
+    },
     "stats": {
       "todayArticles": "今日文章",
       "marketSentiment": "市场情绪",
@@ -260,6 +263,10 @@
       "markets": "市场",
       "categories": "类别",
       "active": "生成定时报告"
+    },
+    "llm": {
+      "title": "LLM 配置",
+      "caption": "选择 SIGMA 分析使用的模型、每日 Token 预算和成本保护。"
     },
     "theme": {
       "title": "外观",

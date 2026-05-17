@@ -48,6 +48,25 @@ export interface LastCollectionResponse {
   last_success: string | null;
 }
 
+export interface LLMConfig {
+  provider: "anthropic" | "openai";
+  model: string;
+  daily_token_limit: number;
+  cost_guard_enabled: boolean;
+}
+
+export interface LLMUsageDay {
+  day: string;
+  function_type: "summary" | "report";
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+}
+
+export interface LLMUsageResponse {
+  items: LLMUsageDay[];
+}
+
 export interface PaginatedResponse<T> {
   page: number;
   page_size: number;

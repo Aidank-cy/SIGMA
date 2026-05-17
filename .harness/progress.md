@@ -660,3 +660,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Widened the main/ticker containers, rebuilt MarketIndexChart as a two-panel Google Finance-style market summary, added localized market-status popovers and Beijing-time chart labels, and extended market-index API payloads with currency codes.
 - Timestamp: 2026-05-17T07:33:19Z
+
+### [UI Redesign] Sub-feature 8: Ticker relocation, LLM settings, and QA fixes
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/MarketTickerCarousel.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/hooks/useLLMSettings.ts, sigma-backend/app/services/llm_settings.py
+- Files modified: sigma-frontend/src/app/[locale]/(main)/layout.tsx, sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/app/[locale]/admin/llm/page.tsx, sigma-frontend/src/components/MarketTickerStrip.tsx, sigma-frontend/src/components/Navbar.tsx, sigma-frontend/src/components/charts/MarketIndexChart.tsx, sigma-frontend/src/hooks/useAdmin.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/api/v1/admin/llm.py, sigma-backend/app/api/v1/routes/user_settings.py, sigma-backend/tests/test_reports_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Moved the ticker below homepage stats as a responsive vertical carousel, exposed shared LLM settings through authenticated `/me/llm/*` endpoints and the Settings page, kept the admin LLM page in sync through a shared panel, fixed market chart popover isolation/outside-close/link behavior, and restarted the dev server after stale cache errors to confirm homepage/settings/admin LLM routes return 200.
+- Timestamp: 2026-05-17T08:03:59Z

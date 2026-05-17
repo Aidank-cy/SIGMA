@@ -4,6 +4,7 @@ import { Filter, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { MarketTickerCarousel } from "@/components/MarketTickerCarousel";
 import { MarketIndexChart } from "@/components/charts/MarketIndexChart";
 import { FeaturedStory } from "@/components/feed/FeaturedStory";
 import { ItemCard } from "@/components/feed/ItemCard";
@@ -40,6 +41,7 @@ export default function HomePage() {
     <section className="flex flex-col gap-6">
       <MarketIndexChart />
       <StatsRow />
+      <MarketTickerCarousel />
       {featuredItem ? <FeaturedStory item={featuredItem} /> : null}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <TimelineView

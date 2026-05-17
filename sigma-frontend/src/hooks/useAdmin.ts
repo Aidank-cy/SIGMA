@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import type { DataSource, PaginatedResponse, SourcePayload } from "@/lib/types";
+import type { DataSource, LLMConfig, LLMUsageResponse, PaginatedResponse, SourcePayload } from "@/lib/types";
 import type { User } from "@/lib/auth";
 
 export type CollectorStatus = "success" | "fail" | "timeout";
@@ -54,24 +54,7 @@ export interface SourcePreviewResponse {
   items: Record<string, unknown>[];
 }
 
-export interface LLMConfig {
-  provider: "anthropic" | "openai";
-  model: string;
-  daily_token_limit: number;
-  cost_guard_enabled: boolean;
-}
-
-export interface LLMUsageDay {
-  day: string;
-  function_type: "summary" | "report";
-  input_tokens: number;
-  output_tokens: number;
-  total_tokens: number;
-}
-
-export interface LLMUsageResponse {
-  items: LLMUsageDay[];
-}
+export type { LLMConfig, LLMUsageResponse } from "@/lib/types";
 
 export interface AdminUserUpdate {
   role?: "admin" | "user";
@@ -190,7 +173,10 @@ export function useAdminLLM() {
         body: JSON.stringify(payload),
         method: "PUT"
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "llm", "config"] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "llm", "config"] });
+      queryClient.invalidateQueries({ queryKey: ["llm", "config"] });
+    }
   });
 
   return { config, update, usage };

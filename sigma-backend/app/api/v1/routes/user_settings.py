@@ -7,6 +7,7 @@ from app.middleware.auth import get_current_user
 from app.models.user import User
 from app.models.user_report_config import UserReportConfig
 from app.schemas.auth import UserResponse
+from app.schemas.llm import LLMConfigRead, LLMConfigUpdate, LLMUsageResponse
 from app.schemas.user_settings import (
     UserPasswordUpdate,
     UserProfileUpdate,
@@ -15,6 +16,11 @@ from app.schemas.user_settings import (
     UserRetentionUpdate,
 )
 from app.services.auth_service import hash_password, verify_password
+from app.services.llm_settings import (
+    get_llm_config as read_llm_config,
+    get_llm_usage as read_llm_usage,
+    update_llm_config as write_llm_config,
+)
 
 router = APIRouter()
 
@@ -82,6 +88,34 @@ async def update_password(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
     current_user.hashed_password = hash_password(payload.new_password)
     await db.commit()
+
+
+@router.get("/llm/config", response_model=LLMConfigRead)
+async def get_user_llm_config(
+    _current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> LLMConfigRead:
+    """Return LLM settings for any authenticated user."""
+    return await read_llm_config(db)
+
+
+@router.put("/llm/config", response_model=LLMConfigRead)
+async def update_user_llm_config(
+    payload: LLMConfigUpdate,
+    _current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> LLMConfigRead:
+    """Update LLM settings for any authenticated user."""
+    return await write_llm_config(db, payload)
+
+
+@router.get("/llm/usage", response_model=LLMUsageResponse)
+async def get_user_llm_usage(
+    _current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> LLMUsageResponse:
+    """Return LLM usage rollups for any authenticated user."""
+    return await read_llm_usage(db)
 
 
 async def _get_or_create_config(db: AsyncSession, current_user: User) -> UserReportConfig:
