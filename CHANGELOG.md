@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add a standalone demo data seed script for users, sources, items, watchlists, reports, report configs, collector logs, system config, and LLM usage logs.
 - Add user-accessible LLM configuration and usage controls on the Settings page backed by authenticated `/me/llm/*` APIs.
 - Add Phase 6 ItemCard variants for default, compact, and featured feed layouts.
 - Add Phase 5 settings polish with data freshness status, display-only theme state, and switch-based cost guard controls.
@@ -18,6 +19,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add email-verified password reset endpoints and a three-step settings modal for password changes.
 
 ### Changed
+- Increase home and admin dashboard chart heights while tightening Recharts margins to reduce dead whitespace around axes.
 - Refine market chart tooltip placement, compact styling, break-aware intraday axes, and vertical ticker pagination dots.
 - Stabilize market chart intraday axes around fixed Beijing-time trading sessions and move ticker carousel dots inline.
 - Move the market ticker from the global layout to the homepage and convert it into a pausing vertical carousel below the stats row.

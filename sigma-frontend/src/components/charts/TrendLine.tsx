@@ -19,21 +19,24 @@ interface TrendLineProps {
   height?: number;
 }
 
-export function TrendLine({ data, height = 220 }: TrendLineProps) {
+export function TrendLine({ data, height = 280 }: TrendLineProps) {
   return (
     <div style={{ height }}>
       <ResponsiveContainer height="100%" width="100%">
-        <LineChart data={data} margin={{ bottom: 4, left: -24, right: 8, top: 8 }}>
+        <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
           <XAxis
             axisLine={false}
             dataKey="label"
             tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
             tickLine={false}
+            tickMargin={2}
           />
           <YAxis
             axisLine={false}
             tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
             tickLine={false}
+            tickMargin={2}
+            width={38}
           />
           <Tooltip
             contentStyle={{

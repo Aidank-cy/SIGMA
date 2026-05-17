@@ -179,9 +179,9 @@ export function MarketIndexChart() {
                 <ChartControls autoRotate={autoRotate} range={range} setAutoRotate={setAutoRotate} setRange={setRange} t={t} />
               </div>
 
-              <div className="mt-5 h-[220px] md:h-[340px]">
+              <div className="mt-3 h-[280px] md:h-[380px]">
                 <ResponsiveContainer height="100%" width="100%">
-                  <AreaChart data={chartData} margin={{ bottom: 2, left: 0, right: 10, top: 12 }}>
+                  <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                     <defs>
                       <linearGradient id={`index-fill-${activeIndex.symbol}`} x1="0" x2="0" y1="0" y2="1">
                         <stop offset="0%" stopColor={lineColor} stopOpacity={0.16} />

@@ -684,3 +684,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Switched chart tooltips to right-side instant tracking with compact styling and right-edge fallback, stacked ticker pagination dots vertically, tightened X-axis bottom spacing, and skipped SSE/HSI/N225 midday break interiors in the fixed Beijing-time intraday axis.
 - Timestamp: 2026-05-17T08:49:24Z
+
+### [Maintenance] Chart height and demo seed data
+- Status: COMPLETE
+- Files created: sigma-backend/scripts/seed_demo_data.py
+- Files modified: sigma-frontend/src/components/charts/TrendLine.tsx, sigma-frontend/src/components/charts/MarketIndexChart.tsx, sigma-frontend/src/app/[locale]/admin/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: NOT RUN
+- Notes: Increased home and admin chart heights with tighter Recharts margins; added an idempotent async demo seeder with `--clear` support for users, items, watchlists, reports, configs, logs, LLM usage, and seed sources. Verification commands were intentionally skipped per user instruction.
+- Timestamp: 2026-05-17T09:33:49Z

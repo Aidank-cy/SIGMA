@@ -17,7 +17,7 @@ const statIcons = {
 } as const;
 
 const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((module) => module.TrendLine), {
-  loading: () => <Skeleton className="h-56 w-full" />,
+  loading: () => <Skeleton className="h-[280px] w-full" />,
   ssr: false
 });
 
@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
             <h2 className="text-lg font-semibold">{t("trend")}</h2>
             <span className="text-xs font-medium text-sigma-muted">{t("refresh")}</span>
           </div>
-          {trend.isLoading ? <Skeleton className="h-56 w-full" /> : <TrendLine data={trendData} />}
+          {trend.isLoading ? <Skeleton className="h-[280px] w-full" /> : <TrendLine data={trendData} />}
         </Card>
 
         <Card className="overflow-hidden">
