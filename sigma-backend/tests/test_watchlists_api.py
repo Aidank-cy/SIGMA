@@ -25,6 +25,7 @@ def test_watchlist_crud_and_items(client: TestClient) -> None:
 
     assert list_response.status_code == 200
     assert list_response.json()["items"][0]["name"] == "US macro"
+    assert list_response.json()["items"][0]["item_count"] == 0
     assert items_response.status_code == 200
     assert items_response.json()["total"] == 0
     assert update_response.status_code == 200

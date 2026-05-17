@@ -604,3 +604,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added shared UI primitives, explicit Google font loading, warning/category token refinements, navbar theme control, market ticker strip, `/api/v1/market-indices` with Redis TTL, and a scheduler refresh job gated by exchange hours. Homepage/watchlist/report/item/settings redesign phases remain pending.
 - Timestamp: 2026-05-17T00:00:00Z
+
+### [UI Redesign] Sub-feature 1: Homepage redesign
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/charts/MarketIndexChart.tsx, sigma-frontend/src/components/feed/FeaturedStory.tsx, sigma-frontend/src/components/feed/SentimentBadge.tsx, sigma-frontend/src/components/sidebar/HomeSidebar.tsx, sigma-frontend/src/hooks/useStats.ts, sigma-backend/app/api/v1/routes/stats.py, sigma-backend/app/schemas/stats.py, sigma-backend/tests/test_stats_api.py
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/components/feed/ItemCard.tsx, sigma-frontend/src/hooks/useItems.ts, sigma-frontend/src/hooks/useReports.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/api/v1/router.py, sigma-backend/app/api/v1/routes/watchlists.py, sigma-backend/app/schemas/watchlist.py, sigma-backend/tests/test_watchlists_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Reworked the homepage into chart, stats, featured story, timeline feed, and responsive sidebar zones. Added `/api/v1/stats/sentiment` and `/api/v1/stats/trending-keywords`, plus watchlist item counts for the sidebar. Browser visual smoke was blocked because the required in-app browser Node control tool is unavailable; production build passed and the stale local dev server was stopped.
+- Timestamp: 2026-05-17T05:06:43Z

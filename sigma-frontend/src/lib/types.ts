@@ -28,6 +28,21 @@ export interface MarketIndicesResponse {
   updated_at: string;
 }
 
+export type Sentiment = "bullish" | "bearish" | "neutral";
+
+export interface SentimentStatsResponse {
+  bullish_pct: number;
+}
+
+export interface TrendingKeyword {
+  keyword: string;
+  count: number;
+}
+
+export interface TrendingKeywordsResponse {
+  items: TrendingKeyword[];
+}
+
 export interface PaginatedResponse<T> {
   page: number;
   page_size: number;
@@ -61,6 +76,8 @@ export interface ItemDetail extends ItemSummary {
 
 export interface ItemFilters {
   category?: Category;
+  date_from?: string;
+  date_to?: string;
   market?: Market;
   keyword?: string;
   page_size?: number;
@@ -91,6 +108,7 @@ export interface Watchlist {
   markets: Market[];
   created_at: string;
   updated_at: string;
+  item_count: number;
 }
 
 export interface WatchlistPayload {

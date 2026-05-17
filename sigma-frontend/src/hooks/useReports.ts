@@ -5,12 +5,12 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import type { PaginatedResponse, ReportDetail, ReportSummary, ReportType } from "@/lib/types";
 
-export function useReports(reportType?: ReportType) {
+export function useReports(reportType?: ReportType, pageSize = 12) {
   const query = useInfiniteQuery({
     initialPageParam: 1,
-    queryKey: ["reports", reportType ?? "all"],
+    queryKey: ["reports", reportType ?? "all", pageSize],
     queryFn: ({ pageParam }) => {
-      const params = new URLSearchParams({ page: String(pageParam), page_size: "12" });
+      const params = new URLSearchParams({ page: String(pageParam), page_size: String(pageSize) });
       if (reportType) {
         params.set("report_type", reportType);
       }

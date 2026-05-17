@@ -30,7 +30,12 @@ async def list_watchlists(
     rows = await db.scalars(
         select(Watchlist).where(Watchlist.user_id == current_user.id).order_by(Watchlist.created_at.asc())
     )
-    return WatchlistListResponse(items=[WatchlistRead.model_validate(row) for row in rows])
+    watchlists = list(rows)
+    items: list[WatchlistRead] = []
+    for watchlist in watchlists:
+        total = await db.scalar(select(func.count()).select_from(CollectedItem).where(*_item_predicate(watchlist)))
+        items.append(WatchlistRead.model_validate(watchlist).model_copy(update={"item_count": total or 0}))
+    return WatchlistListResponse(items=items)
 
 
 @router.post("", response_model=WatchlistRead, status_code=status.HTTP_201_CREATED)

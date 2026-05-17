@@ -34,6 +34,7 @@ class WatchlistRead(WatchlistBase):
     user_id: UUID
     created_at: datetime
     updated_at: datetime
+    item_count: int = 0
 
 
 class WatchlistListResponse(BaseModel):

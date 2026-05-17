@@ -59,6 +59,45 @@
     "all": "全部",
     "empty": "当前视图没有匹配的情报。",
     "viewMore": "查看更多",
+    "chart": {
+      "autoRotate": "自动",
+      "empty": "暂无市场指数数据。",
+      "ranges": {
+        "1d": "1日",
+        "5d": "5日",
+        "1m": "1月",
+        "6m": "6月",
+        "1y": "1年",
+        "all": "全部"
+      }
+    },
+    "stats": {
+      "todayArticles": "今日文章",
+      "marketSentiment": "市场情绪",
+      "activeSources": "活跃数据源",
+      "latestReport": "最新报告",
+      "bullish": "{value}% 看多",
+      "bearish": "{value}% 看空",
+      "none": "暂无"
+    },
+    "sentiment": {
+      "bullish": "看多",
+      "bearish": "看空",
+      "neutral": "中性"
+    },
+    "sidebar": {
+      "watchlist": "关注列表",
+      "open": "打开",
+      "items": "{count} 条",
+      "trending": "热门主题",
+      "latestReport": "最新报告",
+      "empty": "暂无数据。",
+      "reportTypes": {
+        "daily": "日报",
+        "weekly": "周报",
+        "monthly": "月报"
+      }
+    },
     "views": {
       "timeline": "时间线",
       "category": "按类别",

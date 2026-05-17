@@ -38,7 +38,7 @@ export function ItemCard({ index = 0, item }: ItemCardProps) {
   return (
     <motion.article
       animate={{ opacity: 1, y: 0 }}
-      className="group border-b border-sigma-line bg-sigma-bg py-5 transition hover:-translate-y-0.5 hover:bg-sigma-elevated/55"
+      className="group border-b border-sigma-line bg-sigma-bg py-3 transition hover:-translate-y-0.5 hover:bg-sigma-elevated/55"
       initial={{ opacity: 0, y: 12 }}
       transition={{ delay: Math.min(index, 8) * 0.035, duration: 0.28 }}
     >
@@ -58,7 +58,7 @@ export function ItemCard({ index = 0, item }: ItemCardProps) {
             aria-hidden
           />
         </Link>
-        <p className="line-clamp-2 text-sm leading-6 text-sigma-muted">
+        <p className="line-clamp-1 text-sm leading-6 text-sigma-muted">
           {item.summary ?? t("summaryFallback")}
         </p>
         <div className="flex flex-wrap gap-2">

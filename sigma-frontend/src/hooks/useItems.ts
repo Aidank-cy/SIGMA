@@ -13,6 +13,12 @@ function buildItemQuery(filters: ItemFilters, page: number): string {
   if (filters.category) {
     params.set("category", filters.category);
   }
+  if (filters.date_from) {
+    params.set("date_from", filters.date_from);
+  }
+  if (filters.date_to) {
+    params.set("date_to", filters.date_to);
+  }
   if (filters.market) {
     params.set("market", filters.market);
   }

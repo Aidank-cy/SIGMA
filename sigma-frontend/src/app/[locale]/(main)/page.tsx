@@ -1,42 +1,30 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { Filter, Search } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { MarketIndexChart } from "@/components/charts/MarketIndexChart";
+import { FeaturedStory } from "@/components/feed/FeaturedStory";
 import { ItemCard } from "@/components/feed/ItemCard";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { HomeSidebar } from "@/components/sidebar/HomeSidebar";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { SegmentControl } from "@/components/ui/SegmentControl";
 import { useItems } from "@/hooks/useItems";
-import type { Category, ItemFilters, Market } from "@/lib/types";
+import { useReports } from "@/hooks/useReports";
+import { useSentimentStats } from "@/hooks/useStats";
+import { useSources } from "@/hooks/useSources";
+import type { Category, ItemFilters, ItemSummary, Market } from "@/lib/types";
 
 const categories: Category[] = ["politics", "finance", "technology", "macro"];
 const markets: Market[] = ["us", "cn", "hk", "jp", "eu"];
-const views = ["timeline", "category", "market"] as const;
-
-type HomeView = (typeof views)[number];
-
-function isHomeView(value: string | null): value is HomeView {
-  return value === "timeline" || value === "category" || value === "market";
-}
 
 export default function HomePage() {
-  const params = useSearchParams();
-  const router = useRouter();
   const t = useTranslations("feed");
-  const viewParam = params.get("view");
-  const [view, setView] = useState<HomeView>(isHomeView(viewParam) ? viewParam : "timeline");
   const [category, setCategory] = useState<Category | "">("");
   const [market, setMarket] = useState<Market | "">("");
   const [keyword, setKeyword] = useState("");
-
-  useEffect(() => {
-    router.replace(`?view=${view}`, { scroll: false });
-  }, [router, view]);
+  const { data: featuredData } = useItems({ page_size: 1 });
+  const featuredItem = featuredData?.pages[0]?.items[0];
 
   const filters = useMemo<ItemFilters>(
     () => ({
@@ -50,67 +38,91 @@ export default function HomePage() {
 
   return (
     <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 border-b border-sigma-line pb-6">
-        <div>
-          <p className="text-sm font-medium uppercase text-sigma-accent">{t("eyebrow")}</p>
-          <h1 className="mt-2 text-3xl font-semibold text-sigma-text sm:text-4xl">{t("title")}</h1>
-        </div>
-        <SegmentControl
-          activeId={view}
-          items={views.map((item) => ({ id: item, label: t(`views.${item}`) }))}
-          onChange={(nextView) => setView(nextView as HomeView)}
+      <MarketIndexChart />
+      <StatsRow />
+      {featuredItem ? <FeaturedStory item={featuredItem} /> : null}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+        <TimelineView
+          category={category}
+          excludedItemId={featuredItem?.id}
+          filters={filters}
+          keyword={keyword}
+          market={market}
+          setCategory={setCategory}
+          setKeyword={setKeyword}
+          setMarket={setMarket}
         />
-      </header>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          initial={{ opacity: 0, y: 8 }}
-          key={view}
-          transition={{ duration: 0.22 }}
-        >
-          {view === "timeline" ? (
-            <TimelineView
-              category={category}
-              filters={filters}
-              keyword={keyword}
-              market={market}
-              setCategory={setCategory}
-              setKeyword={setKeyword}
-              setMarket={setMarket}
-            />
-          ) : null}
-          {view === "category" ? (
-            <SectionGrid
-              dimension="category"
-              values={categories}
-              onViewMore={(value) => {
-                setCategory(value as Category);
-                setMarket("");
-                setView("timeline");
-              }}
-            />
-          ) : null}
-          {view === "market" ? (
-            <SectionGrid
-              dimension="market"
-              values={markets}
-              onViewMore={(value) => {
-                setMarket(value as Market);
-                setCategory("");
-                setView("timeline");
-              }}
-            />
-          ) : null}
-        </motion.div>
-      </AnimatePresence>
+        <HomeSidebar />
+      </div>
+      <h1 className="sr-only">{t("title")}</h1>
     </section>
+  );
+}
+
+function StatsRow() {
+  const t = useTranslations("feed.stats");
+  const locale = useLocale();
+  const todayStart = useMemo(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date.toISOString();
+  }, []);
+  const { data: todayData, isLoading: isItemsLoading } = useItems({ date_from: todayStart, page_size: 1 });
+  const { data: sentiment, isLoading: isSentimentLoading } = useSentimentStats();
+  const { data: sourcesData, isLoading: isSourcesLoading } = useSources();
+  const { data: reportsData, isLoading: isReportsLoading } = useReports(undefined, 1);
+  const activeSources = sourcesData?.items.filter((source) => source.is_active).length;
+  const latestReport = reportsData?.pages[0]?.items[0];
+  const bullishPct = sentiment?.bullish_pct ?? 50;
+  const sentimentLabel = bullishPct >= 50
+    ? t("bullish", { value: bullishPct })
+    : t("bearish", { value: 100 - bullishPct });
+
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <MetricCard isLoading={isItemsLoading} label={t("todayArticles")} value={String(todayData?.pages[0]?.total ?? 0)} />
+      <MetricCard
+        className={bullishPct >= 50 ? "text-sigma-success" : "text-sigma-danger"}
+        isLoading={isSentimentLoading}
+        label={t("marketSentiment")}
+        value={sentimentLabel}
+      />
+      <MetricCard isLoading={isSourcesLoading} label={t("activeSources")} value={String(activeSources ?? 0)} />
+      <MetricCard
+        isLoading={isReportsLoading}
+        label={t("latestReport")}
+        value={latestReport ? relativeTime(latestReport.generated_at, locale) : t("none")}
+      />
+    </div>
+  );
+}
+
+function MetricCard({
+  className,
+  isLoading,
+  label,
+  value
+}: {
+  className?: string;
+  isLoading: boolean;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl bg-sigma-elevated p-4">
+      <p className="text-xs font-medium text-sigma-muted">{label}</p>
+      {isLoading ? (
+        <Skeleton className="mt-3 h-8 w-24" />
+      ) : (
+        <p className={`mt-2 text-2xl font-semibold tabular-nums text-sigma-text ${className ?? ""}`}>{value}</p>
+      )}
+    </div>
   );
 }
 
 interface TimelineViewProps {
   category: Category | "";
+  excludedItemId?: string;
   filters: ItemFilters;
   keyword: string;
   market: Market | "";
@@ -121,6 +133,7 @@ interface TimelineViewProps {
 
 function TimelineView({
   category,
+  excludedItemId,
   filters,
   keyword,
   market,
@@ -131,7 +144,9 @@ function TimelineView({
   const t = useTranslations("feed");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useItems(filters);
-  const items = data?.pages.flatMap((page) => page.items) ?? [];
+  const items = (data?.pages.flatMap((page) => page.items) ?? []).filter(
+    (item): item is ItemSummary => item.id !== excludedItemId
+  );
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -148,7 +163,7 @@ function TimelineView({
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <div className="grid gap-3 rounded-2xl border border-sigma-line bg-sigma-elevated p-3 md:grid-cols-[1fr_180px_180px]">
         <label className="relative">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-sigma-muted" />
@@ -214,83 +229,43 @@ function FilterSelect({ label, onChange, options, value }: FilterSelectProps) {
   );
 }
 
-interface SectionGridProps {
-  dimension: "category" | "market";
-  onViewMore: (value: string) => void;
-  values: Array<Category | Market>;
-}
-
-function SectionGrid({ dimension, onViewMore, values }: SectionGridProps) {
-  return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      {values.map((value) => (
-        <FeedSection
-          dimension={dimension}
-          key={`${dimension}-${value}`}
-          onViewMore={() => onViewMore(value)}
-          value={value}
-        />
-      ))}
-    </div>
-  );
-}
-
-interface FeedSectionProps {
-  dimension: "category" | "market";
-  onViewMore: () => void;
-  value: Category | Market;
-}
-
-function FeedSection({ dimension, onViewMore, value }: FeedSectionProps) {
-  const t = useTranslations("feed");
-  const filters = dimension === "category" ? { category: value as Category, page_size: 5 } : { market: value as Market, page_size: 5 };
-  const { data, isLoading } = useItems(filters);
-  const items = data?.pages[0]?.items ?? [];
-
-  return (
-    <section className="min-h-[360px] border-t border-sigma-line pt-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {dimension === "category" ? (
-            <Badge category={value as Category}>{t(`categories.${value}`)}</Badge>
-          ) : (
-            <Badge market={value as Market}>{t(`markets.${value}`)}</Badge>
-          )}
-        </div>
-        <Button onClick={onViewMore} size="sm" variant="ghost">
-          {t("viewMore")}
-        </Button>
-      </div>
-      {isLoading ? <TimelineSkeleton rows={3} /> : null}
-      {!isLoading && items.length === 0 ? <EmptyState compact /> : null}
-      {items.map((item, index) => (
-        <ItemCard index={index} item={item} key={item.id} />
-      ))}
-    </section>
-  );
-}
-
 function TimelineSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div className="flex flex-col gap-4">
       {Array.from({ length: rows }).map((_, index) => (
-        <div className="space-y-3 border-b border-sigma-line py-5" key={index}>
+        <div className="space-y-3 border-b border-sigma-line py-3" key={index}>
           <Skeleton className="h-4 w-44" />
           <Skeleton className="h-6 w-4/5" />
           <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-2/3" />
         </div>
       ))}
     </div>
   );
 }
 
-function EmptyState({ compact = false }: { compact?: boolean }) {
+function EmptyState() {
   const t = useTranslations("feed");
 
   return (
-    <div className={compact ? "py-8 text-sm text-sigma-muted" : "rounded-2xl border border-dashed border-sigma-line p-10 text-center text-sigma-muted"}>
+    <div className="rounded-2xl border border-dashed border-sigma-line p-10 text-center text-sigma-muted">
       {t("empty")}
     </div>
   );
+}
+
+function relativeTime(value: string, locale: string): string {
+  const date = new Date(value);
+  const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000);
+  const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+    ["day", 86400],
+    ["hour", 3600],
+    ["minute", 60]
+  ];
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  for (const [unit, seconds] of units) {
+    if (Math.abs(diffSeconds) >= seconds) {
+      return formatter.format(Math.round(diffSeconds / seconds), unit);
+    }
+  }
+  return formatter.format(diffSeconds, "second");
 }

@@ -59,6 +59,45 @@
     "all": "All",
     "empty": "No intelligence items match this view.",
     "viewMore": "View more",
+    "chart": {
+      "autoRotate": "Auto",
+      "empty": "No market index data.",
+      "ranges": {
+        "1d": "1D",
+        "5d": "5D",
+        "1m": "1M",
+        "6m": "6M",
+        "1y": "1Y",
+        "all": "All"
+      }
+    },
+    "stats": {
+      "todayArticles": "Today's articles",
+      "marketSentiment": "Market sentiment",
+      "activeSources": "Active sources",
+      "latestReport": "Latest report",
+      "bullish": "{value}% bullish",
+      "bearish": "{value}% bearish",
+      "none": "None"
+    },
+    "sentiment": {
+      "bullish": "Bullish",
+      "bearish": "Bearish",
+      "neutral": "Neutral"
+    },
+    "sidebar": {
+      "watchlist": "Watchlist",
+      "open": "Open",
+      "items": "{count} items",
+      "trending": "Trending topics",
+      "latestReport": "Latest report",
+      "empty": "No data yet.",
+      "reportTypes": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly"
+      }
+    },
     "views": {
       "timeline": "Timeline",
       "category": "Category",
