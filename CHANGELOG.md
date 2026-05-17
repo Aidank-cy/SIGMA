@@ -10,6 +10,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add email-verified password reset endpoints and a three-step settings modal for password changes.
 
 ### Changed
+- Update GitHub repo references after rename to SIGMA-dev and SIGMA.
 - Add sliding animated segment controls across feed, reports, watchlist, and settings views.
 - Consolidate settings saves into one bottom action that submits only changed sections.
 - Configure the dev-to-public sync pipeline with `.sync-filter`, SIGMA_PAT-based

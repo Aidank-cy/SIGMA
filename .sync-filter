@@ -1,4 +1,4 @@
-# Dev-to-public sync exclusions for Aidank-cy/sigma-dev -> Aidank-cy/sigma.
+# Dev-to-public sync exclusions for Aidank-cy/SIGMA-dev -> Aidank-cy/SIGMA.
 #
 # Keep this list in sync with private governance, local data, generated caches,
 # and private-only CI. Patterns are consumed by .github/workflows/sync-public.yml.

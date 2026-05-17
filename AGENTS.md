@@ -23,7 +23,7 @@ next-intl, Tailwind CSS, TanStack Query, framer-motion, and recharts.
 - Namespace system config keys as `sigma.*`.
 - Preserve explicit Docker service names and the `sigma-network` network.
 - Keep private dev-to-public sync exclusions in `.sync-filter` and strip the sync
-  workflow itself before mirroring to `Aidank-cy/sigma`.
+  workflow itself before mirroring to `Aidank-cy/SIGMA`.
 
 ## Never
 - Commit secrets, `.env`, local data, generated caches, or credential-bearing logs.

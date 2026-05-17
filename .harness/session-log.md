@@ -85,3 +85,14 @@
 **Completion:** PHASE COMPLETE
 **Next session should:** Handle remote-only release steps if requested: create/fill `.env.prod`, configure Cloudflare Tunnel, set up backup cron, and push `main` plus tags to the user's remote.
 **Uncommitted work:** NO — release commit and tag are created in this session after final verification.
+
+---
+## Session 9 — 2026-05-17T01:42:55Z
+**Phase:** Maintenance
+**Resuming from:** post-release repository rename cleanup
+**Prior status from progress.md:** SIGMA v1.0.0 complete, maintenance sync pipeline and UI polish completed. User reported GitHub repos were renamed to Aidank-cy/SIGMA-dev and Aidank-cy/SIGMA and requested direct commit to main.
+
+**Ending at:** GitHub repository rename references aligned
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Continue with user-requested maintenance or remote publishing steps. Do not assume tests/builds can run unless the user confirms the dev environment is available.
+**Uncommitted work:** NO — committing in this session with repo reference updates only.

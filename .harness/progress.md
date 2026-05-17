@@ -578,7 +578,7 @@ _This file is read at the start of each agent session and updated after each sub
 - Files created: .sync-filter, .github/workflows/sync-public.yml, .github/workflows/auto-close-pr.yml
 - Files modified: AGENTS.md, CHANGELOG.md, .harness/progress.md
 - Tests: PASS
-- Notes: Replaced the old sync-to-public workflow with the sync-filter credential-helper pattern, SIGMA_PAT authentication, Aidank-cy/sigma target, and public PR auto-close workflow. Classified source, docs, examples, Compose files, and app configs as public; agent governance, harness internals, private CI, sync implementation, env files, local data, and generated caches as private.
+- Notes: Replaced the old sync-to-public workflow with the sync-filter credential-helper pattern, SIGMA_PAT authentication, Aidank-cy/SIGMA target, and public PR auto-close workflow. Classified source, docs, examples, Compose files, and app configs as public; agent governance, harness internals, private CI, sync implementation, env files, local data, and generated caches as private.
 - Timestamp: 2026-05-16T09:54:31Z
 
 ### [Maintenance] Sub-feature M.2: Frontend UI polish and password reset
@@ -588,3 +588,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added one animated segment control, replaced settings section save buttons with a single dirty-state save action, and moved password changes to Redis-backed email verification code endpoints plus a three-step modal. Verified with backend ruff, backend pytest, frontend build, and local frontend route smoke check on port 3001.
 - Timestamp: 2026-05-16T10:56:22Z
+
+### [Maintenance] Sub-feature M.3: GitHub repository rename references
+- Status: COMPLETE
+- Files created: none
+- Files modified: .github/workflows/sync-public.yml, .sync-filter, AGENTS.md, CHANGELOG.md, .harness/progress.md, .harness/session-log.md
+- Tests: NOT RUN per user instruction; verified with targeted repository-reference searches only.
+- Notes: Updated private/public GitHub repository references to Aidank-cy/SIGMA-dev and Aidank-cy/SIGMA without changing local paths, service names, code identifiers, database names, environment variables, or git remotes.
+- Timestamp: 2026-05-17T01:42:55Z
