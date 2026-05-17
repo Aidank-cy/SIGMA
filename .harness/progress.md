@@ -668,3 +668,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Moved the ticker below homepage stats as a responsive vertical carousel, exposed shared LLM settings through authenticated `/me/llm/*` endpoints and the Settings page, kept the admin LLM page in sync through a shared panel, fixed market chart popover isolation/outside-close/link behavior, and restarted the dev server after stale cache errors to confirm homepage/settings/admin LLM routes return 200.
 - Timestamp: 2026-05-17T08:03:59Z
+
+### [UI Redesign] Sub-feature 9: Chart tooltip, popover, axis, and ticker layout fixes
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/charts/MarketIndexChart.tsx, sigma-frontend/src/components/MarketTickerCarousel.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Re-anchored dash-button popovers to their own controls with mousedown outside-close, set chart auto-rotate off by default, forced chart tooltips to prefer the left side of the cursor, moved ticker dots inline on the right, and generated fixed Beijing-time 30-minute intraday axes from exchange trading hours.
+- Timestamp: 2026-05-17T08:27:37Z

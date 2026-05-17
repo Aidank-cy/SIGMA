@@ -3,7 +3,7 @@
 import { ExternalLink } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { MouseEvent } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import {
   Area,
   AreaChart,
@@ -23,6 +23,7 @@ const indexSymbols = ["SPX", "IXIC", "SSE", "N225", "FTSE", "DAX", "HSI", "DJI"]
 const majorIndexSymbols = ["IXIC", "N225", "SSE", "FTSE", "DAX", "CAC"] as const;
 const ranges = ["1d", "5d", "1m", "6m", "1y", "all"] as const;
 const chartTimeZone = "Asia/Shanghai";
+const axisReference = { day: 15, month: 5, year: 2026 };
 
 const localeOrder = {
   zh: ["SSE", "HSI", "N225", "SPX", "IXIC", "FTSE", "DAX", "DJI"],
@@ -80,7 +81,7 @@ export function MarketIndexChart() {
   const { data, isLoading } = useMarketIndices();
   const [activeSymbol, setActiveSymbol] = useState("SPX");
   const [range, setRange] = useState<RangeId>("1d");
-  const [autoRotate, setAutoRotate] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(false);
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
   const resumeTimerRef = useRef<number | null>(null);
 
@@ -112,16 +113,22 @@ export function MarketIndexChart() {
   }, [activeSymbol]);
 
   useEffect(() => {
-    const close = () => setOpenPopoverId(null);
+    const close = (event: globalThis.MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-market-popover-root='true']")) {
+        return;
+      }
+      setOpenPopoverId(null);
+    };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        close();
+        setOpenPopoverId(null);
       }
     };
-    document.addEventListener("click", close);
+    document.addEventListener("mousedown", close);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.removeEventListener("click", close);
+      document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", closeOnEscape);
       if (resumeTimerRef.current !== null) {
         window.clearTimeout(resumeTimerRef.current);
@@ -139,7 +146,7 @@ export function MarketIndexChart() {
     resumeTimerRef.current = window.setTimeout(() => setAutoRotate(true), 15_000);
   }
 
-  function handleStatusClick(event: MouseEvent<HTMLButtonElement>, id: string) {
+  function handleStatusClick(event: ReactMouseEvent<HTMLButtonElement>, id: string) {
     event.stopPropagation();
     setOpenPopoverId((current) => (current === id ? null : id));
   }
@@ -226,7 +233,7 @@ export function MarketIndexChart() {
                 <MajorIndexRow
                   index={index}
                   isActive={activeIndex?.symbol === index.symbol}
-                  isPopoverOpen={openPopoverId === `major-${index.symbol}`}
+                  isPopoverOpen={openPopoverId === index.symbol}
                   key={index.symbol}
                   locale={locale}
                   onSelect={handleManualSelect}
@@ -261,7 +268,7 @@ function IndexIdentity({
   index: MarketIndex;
   isOpen: boolean;
   locale: string;
-  onStatusClick: (event: MouseEvent<HTMLButtonElement>, symbol: string) => void;
+  onStatusClick: (event: ReactMouseEvent<HTMLButtonElement>, symbol: string) => void;
   t: ChartTranslator;
 }) {
   const meta = metaFor(index);
@@ -272,7 +279,13 @@ function IndexIdentity({
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="truncate text-base font-semibold text-sigma-text sm:text-lg">{meta.displayName}</h2>
           <span className="rounded bg-sigma-bg px-1.5 py-0.5 text-xs font-semibold text-sigma-muted">{index.symbol}</span>
-          <StatusButton onClick={(event) => onStatusClick(event, "main")} t={t} />
+          <StatusPopoverControl
+            id="main"
+            index={index}
+            isOpen={isOpen}
+            onStatusClick={onStatusClick}
+            t={t}
+          />
         </div>
         <div className="mt-1 flex flex-wrap items-baseline gap-2">
           <span className="text-2xl font-bold tabular-nums text-sigma-text sm:text-3xl">
@@ -282,7 +295,6 @@ function IndexIdentity({
           <ChangeText change={index.change_pct} />
         </div>
       </div>
-      {isOpen ? <MarketStatusPopover index={index} t={t} /> : null}
     </div>
   );
 }
@@ -339,7 +351,7 @@ function MajorIndexRow({
   isPopoverOpen: boolean;
   locale: string;
   onSelect: (symbol: string) => void;
-  onStatusClick: (event: MouseEvent<HTMLButtonElement>, symbol: string) => void;
+  onStatusClick: (event: ReactMouseEvent<HTMLButtonElement>, symbol: string) => void;
   t: ChartTranslator;
 }) {
   const meta = metaFor(index);
@@ -365,7 +377,14 @@ function MajorIndexRow({
           <span className="min-w-0">
             <span className="flex min-w-0 items-center gap-2">
               <span className="truncate text-sm font-semibold text-sigma-text">{meta.displayName}</span>
-              <StatusButton onClick={(event) => onStatusClick(event, `major-${index.symbol}`)} t={t} />
+              <StatusPopoverControl
+                align="right"
+                id={index.symbol}
+                index={index}
+                isOpen={isPopoverOpen}
+                onStatusClick={onStatusClick}
+                t={t}
+              />
             </span>
             <span className="mt-0.5 block text-xs font-medium text-sigma-muted">{meta.shortTicker}</span>
           </span>
@@ -378,7 +397,6 @@ function MajorIndexRow({
           <ChangeText change={index.change_pct} className="mt-0.5 justify-end text-xs" />
         </span>
       </div>
-      {isPopoverOpen ? <MarketStatusPopover align="right" index={index} t={t} /> : null}
     </div>
   );
 }
@@ -403,19 +421,44 @@ function StatusButton({
   onClick,
   t
 }: {
-  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+  onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   t: ChartTranslator;
 }) {
   return (
     <button
       aria-label={t("status.details")}
+      data-market-popover-root="true"
       className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full bg-sigma-bg text-xs font-bold leading-none text-sigma-muted hover:bg-sigma-line/70 hover:text-sigma-text"
       onClick={onClick}
+      onMouseDown={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
       type="button"
     >
       -
     </button>
+  );
+}
+
+function StatusPopoverControl({
+  align,
+  id,
+  index,
+  isOpen,
+  onStatusClick,
+  t
+}: {
+  align?: "left" | "right";
+  id: string;
+  index: MarketIndex;
+  isOpen: boolean;
+  onStatusClick: (event: ReactMouseEvent<HTMLButtonElement>, id: string) => void;
+  t: ChartTranslator;
+}) {
+  return (
+    <span className="relative inline-flex" data-market-popover-root="true">
+      <StatusButton onClick={(event) => onStatusClick(event, id)} t={t} />
+      {isOpen ? <MarketStatusPopover align={align} index={index} t={t} /> : null}
+    </span>
   );
 }
 
@@ -446,14 +489,16 @@ function MarketStatusPopover({
   const statusTitle = index.is_trading ? t("status.openTitle") : t("status.closedTitle");
   const subtitle = index.is_trading ? t("status.openSubtitle") : t("status.closedSubtitle");
   const timingText = index.is_trading
-    ? t("status.closesIn", { hours: timing.hours })
-    : t("status.opensIn", { hours: timing.hours });
+    ? t("status.closesIn", { hours: timing.hours, minutes: timing.minutes })
+    : t("status.opensIn", { hours: timing.hours, minutes: timing.minutes });
 
   return (
     <div
+      data-market-popover-root="true"
       onClick={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
       className={cn(
-        "absolute top-12 z-50 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-sigma-line bg-sigma-surface p-4 text-left shadow-apple-soft",
+        "absolute top-7 z-50 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-sigma-line bg-sigma-surface p-4 text-left shadow-apple-soft",
         align === "right" ? "right-0 sm:right-2" : "left-0"
       )}
     >
@@ -529,7 +574,16 @@ function formatChange(change: number) {
 }
 
 function buildChartData(index: MarketIndex, range: RangeId): ChartPoint[] {
-  const now = new Date();
+  if (range === "1d") {
+    const labels = generateTradingAxis(index.trading_hours);
+    const values = resampleValues(index.sparkline_24h, labels.length);
+    return labels.map((point, pointIndex) => ({
+      label: point.label,
+      timestamp: point.timestamp.toISOString(),
+      value: values[pointIndex] ?? values[values.length - 1] ?? index.value
+    }));
+  }
+  const now = new Date(Date.UTC(axisReference.year, axisReference.month - 1, axisReference.day, 8, 0, 0));
   const points = expandSparkline(index.sparkline_24h, range);
   return points.map((value, pointIndex) => {
     const timestamp = timestampForRange(now, range, pointIndex, points.length);
@@ -559,13 +613,6 @@ function timestampForRange(now: Date, range: RangeId, index: number, total: numb
 }
 
 function labelForRange(date: Date, range: RangeId) {
-  if (range === "1d") {
-    const parts = dateParts(date, chartTimeZone);
-    if (parts.hour === 0) {
-      return String(parts.day);
-    }
-    return `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
-  }
   if (range === "5d") {
     return new Intl.DateTimeFormat("en", { timeZone: chartTimeZone, weekday: "short" }).format(date);
   }
@@ -594,9 +641,11 @@ function marketTiming(index: MarketIndex) {
     ? parts.weekdayIndex * 1440 + closeMinutes
     : nextOpenWeekMinutes(parts.weekdayIndex, currentMinutes, openMinutes, closeMinutes);
 
+  const minutesUntilTarget = Math.max(1, Math.ceil(targetMinutes - nowWeekMinutes));
   return {
     closePct: (closeMinutes / 1440) * 100,
-    hours: Math.max(1, Math.ceil((targetMinutes - nowWeekMinutes) / 60)),
+    hours: Math.floor(minutesUntilTarget / 60),
+    minutes: minutesUntilTarget % 60,
     nowPct: Math.min(Math.max((currentMinutes / 1440) * 100, 0), 100),
     openPct: (openMinutes / 1440) * 100,
     weekday: parts.weekday
@@ -645,6 +694,98 @@ function timezoneCity(timeZone: string) {
   return timeZone.split("/").pop()?.replaceAll("_", " ") ?? timeZone;
 }
 
+function generateTradingAxis(tradingHours: MarketIndex["trading_hours"]): Array<{ label: string; timestamp: Date }> {
+  const open = timeParts(tradingHours.open);
+  const close = timeParts(tradingHours.close);
+  const openDate = zonedTimeToDate(axisReference, open, tradingHours.timezone);
+  let closeDate = zonedTimeToDate(axisReference, close, tradingHours.timezone);
+  if (closeDate <= openDate) {
+    closeDate = new Date(closeDate.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  const points: Array<{ label: string; timestamp: Date }> = [];
+  let cursor = openDate;
+  let previousDay = beijingParts(cursor).day;
+  while (cursor <= closeDate) {
+    const parts = beijingParts(cursor);
+    if (parts.day !== previousDay) {
+      points.push({ label: String(parts.day), timestamp: new Date(cursor) });
+      previousDay = parts.day;
+    } else {
+      points.push({
+        label: `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`,
+        timestamp: new Date(cursor)
+      });
+    }
+    cursor = new Date(cursor.getTime() + 30 * 60 * 1000);
+  }
+  return points;
+}
+
+function resampleValues(values: number[], targetLength: number): number[] {
+  const source = values.length >= 2 ? values : [values[0] ?? 100, values[0] ?? 100];
+  if (targetLength <= 1) {
+    return [source[0]];
+  }
+  const lastSourceIndex = source.length - 1;
+  return Array.from({ length: targetLength }, (_, targetIndex) => {
+    const sourcePosition = (targetIndex / (targetLength - 1)) * lastSourceIndex;
+    const leftIndex = Math.floor(sourcePosition);
+    const rightIndex = Math.min(Math.ceil(sourcePosition), lastSourceIndex);
+    const ratio = sourcePosition - leftIndex;
+    return Number((source[leftIndex] + (source[rightIndex] - source[leftIndex]) * ratio).toFixed(2));
+  });
+}
+
+function timeParts(value: string) {
+  const [hour, minute] = value.split(":").map(Number);
+  return { hour: hour ?? 0, minute: minute ?? 0 };
+}
+
+function zonedTimeToDate(
+  date: { day: number; month: number; year: number },
+  time: { hour: number; minute: number },
+  timeZone: string
+) {
+  let utcDate = new Date(Date.UTC(date.year, date.month - 1, date.day, time.hour, time.minute, 0));
+  for (let iteration = 0; iteration < 3; iteration += 1) {
+    const parts = zonedParts(utcDate, timeZone);
+    const zonedAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, 0);
+    const targetAsUtc = Date.UTC(date.year, date.month - 1, date.day, time.hour, time.minute, 0);
+    utcDate = new Date(utcDate.getTime() - (zonedAsUtc - targetAsUtc));
+  }
+  return utcDate;
+}
+
+function zonedParts(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone,
+    year: "numeric"
+  }).formatToParts(date);
+  const valueFor = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "0";
+  return {
+    day: Number(valueFor("day")),
+    hour: Number(valueFor("hour")),
+    minute: Number(valueFor("minute")),
+    month: Number(valueFor("month")),
+    year: Number(valueFor("year"))
+  };
+}
+
+function beijingParts(date: Date) {
+  const parts = zonedParts(date, chartTimeZone);
+  return {
+    day: parts.day,
+    hour: parts.hour,
+    minute: parts.minute
+  };
+}
+
 function CustomCursor({ height = 0, points }: { height?: number; points?: Array<{ x: number; y: number }> }) {
   const x = points?.[0]?.x;
   if (x === undefined) {
@@ -666,15 +807,20 @@ function CustomTooltip({
   }
   const date = new Date(point.timestamp);
   const offset = timezoneOffset(date, chartTimeZone);
-  const flipRight = (coordinate?.x ?? 0) < 100;
+  const tooltipWidth = 140;
+  const gap = 14;
+  const x = coordinate?.x ?? 0;
+  const translateX = x < tooltipWidth + gap + 20 ? gap : -(tooltipWidth + gap);
 
   return (
     <div
-      className="min-w-[90px] rounded-lg px-3.5 py-2 text-center shadow-apple-soft"
+      className="min-w-[130px] rounded-lg px-3.5 py-2 text-center shadow-apple-soft"
       style={{
         background: "rgb(10, 10, 10)",
         borderTop: `2px solid ${lineColor}`,
-        transform: flipRight ? "translate(16px, -50%)" : "translate(-105px, -50%)"
+        pointerEvents: "none",
+        transform: `translate(${translateX}px, -50%)`,
+        width: tooltipWidth
       }}
     >
       <p className="text-[15px] font-medium text-white">{formatValue(point.value, locale)}</p>

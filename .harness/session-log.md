@@ -195,3 +195,14 @@
 **Completion:** SUB-FEATURE COMPLETE
 **Next session should:** Perform remote handoff for `feat/homepage-market-summary-chart` or run browser-level visual QA if an interactive browser tool is available.
 **Uncommitted work:** NO — committing in this session as the ticker/LLM QA checkpoint.
+
+---
+## Session 19 — 2026-05-17T08:27:37Z
+**Phase:** UI Redesign follow-up QA
+**Resuming from:** Committed ticker relocation and LLM settings follow-up on `feat/homepage-market-summary-chart`.
+**Prior status from progress.md:** Sub-feature 8 complete. User requested focused chart tooltip, popover, axis, auto-rotate, and ticker dot layout fixes.
+
+**Ending at:** Market chart and ticker interaction fixes
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Perform remote handoff for `feat/homepage-market-summary-chart` or run browser-level click QA if an interactive browser tool is available.
+**Uncommitted work:** NO — committing in this session as the chart/ticker fix checkpoint.

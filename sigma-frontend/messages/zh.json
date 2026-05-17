@@ -71,8 +71,8 @@
         "closedTitle": "市场休市",
         "openSubtitle": "该市场当前正在交易。",
         "closedSubtitle": "市场已休市，可以稍作休息。",
-        "opensIn": "将在 {hours} 小时后开盘。",
-        "closesIn": "将在 {hours} 小时后收盘。",
+        "opensIn": "将在 {hours} 小时 {minutes} 分钟后开盘。",
+        "closesIn": "将在 {hours} 小时 {minutes} 分钟后收盘。",
         "exchangeTimezone": "交易所时区：{timezone} ({offset})"
       },
       "ranges": {

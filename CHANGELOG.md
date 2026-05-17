@@ -18,6 +18,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add email-verified password reset endpoints and a three-step settings modal for password changes.
 
 ### Changed
+- Stabilize market chart intraday axes around fixed Beijing-time trading sessions and move ticker carousel dots inline.
 - Move the market ticker from the global layout to the homepage and convert it into a pausing vertical carousel below the stats row.
 - Redesign the homepage market index chart into a Google Finance-style market summary with major-index sidebar selection and currency-aware quotes.
 - Update GitHub repo references after rename to SIGMA-dev and SIGMA.
@@ -50,6 +51,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add admin APIs for dashboard stats, collection trends, recent activity, source health, user management, source previews, source logs, and collector log filtering.
 
 ### Fixed
+- Fix market chart dash-button popovers, default auto-rotation state, and line-chart tooltip positioning.
 - Fix market chart popover isolation, outside/Escape close behavior, responsive z-index positioning, and the major-indices external link.
 - Fix scheduler collection for user-owned sources by avoiding async lazy-loading during normalization.
 - Fix Docker Compose config parsing without requiring a local `.env` secrets file.

@@ -71,8 +71,8 @@
         "closedTitle": "Market closed",
         "openSubtitle": "This market is currently trading.",
         "closedSubtitle": "Time for a walk — this market is closed.",
-        "opensIn": "It'll open in {hours, plural, one {# hour} other {# hours}}.",
-        "closesIn": "Closes in {hours, plural, one {# hour} other {# hours}}.",
+        "opensIn": "It'll open in {hours, plural, =0 {} one {# hour } other {# hours }}{minutes, plural, =0 {0 minutes} one {# minute} other {# minutes}}.",
+        "closesIn": "Closes in {hours, plural, =0 {} one {# hour } other {# hours }}{minutes, plural, =0 {0 minutes} one {# minute} other {# minutes}}.",
         "exchangeTimezone": "Exchange timezone: {timezone} ({offset})"
       },
       "ranges": {

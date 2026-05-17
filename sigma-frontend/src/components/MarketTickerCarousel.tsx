@@ -61,11 +61,11 @@ export function MarketTickerCarousel() {
 
   return (
     <div
-      className="rounded-2xl border border-sigma-line bg-sigma-surface px-3 py-2"
+      className="flex items-center gap-3 rounded-2xl border border-sigma-line bg-sigma-surface px-3 py-2"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="overflow-hidden" style={{ height: pageHeight }}>
+      <div className="min-w-0 flex-1 overflow-hidden" style={{ height: pageHeight }}>
         <div
           className="transition-transform duration-500 ease-in-out"
           style={{ transform: `translateY(-${activePage * pageHeight}px)` }}
@@ -87,13 +87,13 @@ export function MarketTickerCarousel() {
         </div>
       </div>
       {pages.length > 1 ? (
-        <div className="mt-2 flex justify-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           {pages.map((_, pageIndex) => (
             <button
               aria-label={t("page", { page: pageIndex + 1 })}
               className={cn(
-                "h-1.5 rounded-full transition-all",
-                activePage === pageIndex ? "w-5 bg-sigma-accent" : "w-1.5 bg-sigma-line hover:bg-sigma-muted"
+                "h-1.5 w-1.5 rounded-full transition-colors",
+                activePage === pageIndex ? "bg-sigma-text" : "bg-sigma-line hover:bg-sigma-muted"
               )}
               key={pageIndex}
               onClick={() => setActivePage(pageIndex)}
