@@ -10,7 +10,7 @@ export function MarketTickerStrip() {
 
   return (
     <div className="h-9 border-b border-sigma-line bg-sigma-bg/88 backdrop-blur-xl">
-      <div className="mx-auto flex h-full max-w-7xl snap-x snap-mandatory items-center gap-3 overflow-x-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-full max-w-[1600px] snap-x snap-mandatory items-center gap-3 overflow-x-auto px-3 sm:px-4 lg:px-6">
         {isLoading
           ? Array.from({ length: 5 }).map((_, index) => (
               <Skeleton className="h-5 min-w-40 rounded-full" key={index} />

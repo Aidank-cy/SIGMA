@@ -62,6 +62,19 @@
     "chart": {
       "autoRotate": "自动",
       "empty": "暂无市场指数数据。",
+      "loading": "正在加载市场指数数据。",
+      "majorIndices": "主要指数",
+      "seeAllMajorIndices": "查看全部主要指数 >",
+      "status": {
+        "details": "显示市场状态",
+        "openTitle": "市场开放",
+        "closedTitle": "市场休市",
+        "openSubtitle": "该市场当前正在交易。",
+        "closedSubtitle": "市场已休市，可以稍作休息。",
+        "opensIn": "将在 {hours} 小时后开盘。",
+        "closesIn": "将在 {hours} 小时后收盘。",
+        "exchangeTimezone": "交易所时区：{timezone} ({offset})"
+      },
       "ranges": {
         "1d": "1日",
         "5d": "5日",

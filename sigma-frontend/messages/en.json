@@ -62,6 +62,19 @@
     "chart": {
       "autoRotate": "Auto",
       "empty": "No market index data.",
+      "loading": "Loading market index data.",
+      "majorIndices": "Major indices",
+      "seeAllMajorIndices": "See all major indices >",
+      "status": {
+        "details": "Show market status",
+        "openTitle": "Market open",
+        "closedTitle": "Market closed",
+        "openSubtitle": "This market is currently trading.",
+        "closedSubtitle": "Time for a walk — this market is closed.",
+        "opensIn": "It'll open in {hours, plural, one {# hour} other {# hours}}.",
+        "closesIn": "Closes in {hours, plural, one {# hour} other {# hours}}.",
+        "exchangeTimezone": "Exchange timezone: {timezone} ({offset})"
+      },
       "ranges": {
         "1d": "1D",
         "5d": "5D",

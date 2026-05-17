@@ -173,3 +173,14 @@
 **Completion:** SUB-FEATURE COMPLETE
 **Next session should:** Perform remote handoff or address follow-up visual QA if requested. UI redesign prompt phases 0 through 6 are locally complete.
 **Uncommitted work:** NO — committing in this session as the UI redesign Phase 6 checkpoint.
+
+---
+## Session 17 — 2026-05-17T07:33:19Z
+**Phase:** UI Redesign follow-up
+**Resuming from:** UI redesign Phase 6 complete; user requested a targeted homepage market chart redesign and container widening.
+**Prior status from progress.md:** UI redesign phases 0 through 6 complete. Harness integrity passed. Work started from clean `main` and continued on `feat/homepage-market-summary-chart`.
+
+**Ending at:** Homepage market summary chart redesign
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Perform remote handoff for `feat/homepage-market-summary-chart` or address visual QA follow-up if requested.
+**Uncommitted work:** NO — committing in this session as the market summary chart checkpoint.

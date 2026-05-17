@@ -19,6 +19,7 @@ class MarketIndex(BaseModel):
     value: float
     change_pct: float
     market: str
+    currency: str
     is_trading: bool
     trading_hours: TradingHours
     sparkline_24h: list[float] = Field(min_length=2)

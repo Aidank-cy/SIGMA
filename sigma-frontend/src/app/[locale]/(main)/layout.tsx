@@ -16,7 +16,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <MarketTickerStrip />
         <Navbar />
         <PageTransition>
-          <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+          <main className="mx-auto w-full max-w-[1600px] px-3 py-8 sm:px-4 lg:px-6">{children}</main>
         </PageTransition>
       </div>
     </ProtectedRoute>

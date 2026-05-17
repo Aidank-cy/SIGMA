@@ -17,6 +17,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add email-verified password reset endpoints and a three-step settings modal for password changes.
 
 ### Changed
+- Redesign the homepage market index chart into a Google Finance-style market summary with major-index sidebar selection and currency-aware quotes.
 - Update GitHub repo references after rename to SIGMA-dev and SIGMA.
 - Add sliding animated segment controls across feed, reports, watchlist, and settings views.
 - Consolidate settings saves into one bottom action that submits only changed sections.

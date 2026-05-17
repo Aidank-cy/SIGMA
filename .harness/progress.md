@@ -652,3 +652,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added default, compact, and featured ItemCard variants; routed FeaturedStory through the featured variant; and reused compact cards in the item detail sidebar. Navbar transparency on scroll was already present from the foundation slice.
 - Timestamp: 2026-05-17T05:41:00Z
+
+### [UI Redesign] Sub-feature 7: Homepage market summary chart
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/layout.tsx, sigma-frontend/src/components/MarketTickerStrip.tsx, sigma-frontend/src/components/charts/MarketIndexChart.tsx, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/schemas/market.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Widened the main/ticker containers, rebuilt MarketIndexChart as a two-panel Google Finance-style market summary, added localized market-status popovers and Beijing-time chart labels, and extended market-index API payloads with currency codes.
+- Timestamp: 2026-05-17T07:33:19Z

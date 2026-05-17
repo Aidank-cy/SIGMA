@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import {
   Area,
   AreaChart,
@@ -17,14 +18,54 @@ import { useMarketIndices } from "@/hooks/useMarketIndices";
 import { cn } from "@/lib/cn";
 import type { MarketIndex } from "@/lib/types";
 
-const indexSymbols = ["SPX", "IXIC", "SSE", "N225", "FTSE", "DAX", "HSI"] as const;
+const indexSymbols = ["SPX", "IXIC", "SSE", "N225", "FTSE", "DAX", "HSI", "DJI"] as const;
+const majorIndexSymbols = ["IXIC", "N225", "SSE", "FTSE", "DAX", "CAC"] as const;
 const ranges = ["1d", "5d", "1m", "6m", "1y", "all"] as const;
+const chartTimeZone = "Asia/Shanghai";
+
 const localeOrder = {
-  zh: ["SSE", "HSI", "N225", "SPX", "IXIC", "FTSE", "DAX"],
-  en: ["SPX", "IXIC", "FTSE", "DAX", "N225", "SSE", "HSI"]
+  zh: ["SSE", "HSI", "N225", "SPX", "IXIC", "FTSE", "DAX", "DJI"],
+  en: ["SPX", "IXIC", "FTSE", "DAX", "N225", "SSE", "HSI", "DJI"]
 } as const;
 
+const indexMeta: Record<string, { displayName: string; shortTicker: string; iconLabel: string; currency: string }> = {
+  SPX: { displayName: "S&P 500", shortTicker: "SPX", iconLabel: "500", currency: "USD" },
+  IXIC: { displayName: "Nasdaq 100", shortTicker: "NDX", iconLabel: "100", currency: "USD" },
+  DJI: { displayName: "Dow Jones", shortTicker: "DJI", iconLabel: "30", currency: "USD" },
+  N225: { displayName: "Japan 225", shortTicker: "NI225", iconLabel: "225", currency: "JPY" },
+  SSE: { displayName: "SSE Composite", shortTicker: "000001", iconLabel: "", currency: "CNY" },
+  HSI: { displayName: "Hang Seng", shortTicker: "HSI", iconLabel: "", currency: "HKD" },
+  FTSE: { displayName: "FTSE 100", shortTicker: "UKX", iconLabel: "100", currency: "GBP" },
+  DAX: { displayName: "DAX", shortTicker: "DAX", iconLabel: "X", currency: "EUR" },
+  CAC: { displayName: "CAC 40", shortTicker: "PX1", iconLabel: "40", currency: "EUR" }
+};
+
+const iconClasses: Record<string, string> = {
+  SPX: "bg-red-600",
+  IXIC: "bg-blue-600",
+  DJI: "bg-slate-800",
+  N225: "bg-red-600",
+  SSE: "bg-teal-600",
+  HSI: "bg-emerald-600",
+  FTSE: "bg-slate-950",
+  DAX: "bg-zinc-900",
+  CAC: "bg-sky-600"
+};
+
+const currencyMap: Record<string, string> = {
+  SPX: "USD",
+  IXIC: "USD",
+  DJI: "USD",
+  SSE: "CNY",
+  HSI: "HKD",
+  N225: "JPY",
+  FTSE: "GBP",
+  DAX: "EUR",
+  CAC: "EUR"
+};
+
 type RangeId = (typeof ranges)[number];
+type ChartTranslator = ReturnType<typeof useTranslations>;
 
 interface ChartPoint {
   label: string;
@@ -39,9 +80,12 @@ export function MarketIndexChart() {
   const [activeSymbol, setActiveSymbol] = useState("SPX");
   const [range, setRange] = useState<RangeId>("1d");
   const [autoRotate, setAutoRotate] = useState(true);
+  const [openStatusSymbol, setOpenStatusSymbol] = useState<string | null>(null);
   const resumeTimerRef = useRef<number | null>(null);
+
   const ordered = useMemo(() => orderIndices(data?.indices ?? [], locale), [data?.indices, locale]);
   const activeIndex = ordered.find((index) => index.symbol === activeSymbol) ?? ordered[0] ?? null;
+  const majorIndices = useMemo(() => orderMajorIndices(data?.indices ?? []), [data?.indices]);
 
   useEffect(() => {
     if (!activeIndex && ordered[0]) {
@@ -62,13 +106,27 @@ export function MarketIndexChart() {
     return () => window.clearInterval(interval);
   }, [autoRotate, ordered]);
 
+  useEffect(() => {
+    return () => {
+      if (resumeTimerRef.current !== null) {
+        window.clearTimeout(resumeTimerRef.current);
+      }
+    };
+  }, []);
+
   function handleManualSelect(symbol: string) {
     setActiveSymbol(symbol);
     setAutoRotate(false);
+    setOpenStatusSymbol(null);
     if (resumeTimerRef.current !== null) {
       window.clearTimeout(resumeTimerRef.current);
     }
     resumeTimerRef.current = window.setTimeout(() => setAutoRotate(true), 15_000);
+  }
+
+  function handleStatusClick(event: MouseEvent<HTMLButtonElement>, symbol: string) {
+    event.stopPropagation();
+    setOpenStatusSymbol((current) => (current === symbol ? null : symbol));
   }
 
   const chartData = useMemo(() => (activeIndex ? buildChartData(activeIndex, range) : []), [activeIndex, range]);
@@ -77,97 +135,329 @@ export function MarketIndexChart() {
   const lineColor = positive ? "rgb(var(--sigma-success))" : "rgb(var(--sigma-danger))";
 
   return (
-    <section className="rounded-2xl border border-sigma-line bg-sigma-surface p-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
-          {isLoading
-            ? null
-            : ordered.map((index) => (
-                <button
-                  className={cn(
-                    "h-8 shrink-0 snap-start rounded-full px-3 text-xs font-semibold",
-                    activeIndex?.symbol === index.symbol
-                      ? "bg-sigma-text text-sigma-bg"
-                      : "border border-sigma-line text-sigma-muted hover:text-sigma-text"
-                  )}
-                  key={index.symbol}
-                  onClick={() => handleManualSelect(index.symbol)}
-                  type="button"
-                >
-                  {shortIndexName(index)}
-                </button>
-              ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {ranges.map((item) => (
-            <button
-              className={cn(
-                "h-7 rounded-full px-2.5 text-xs font-semibold",
-                range === item
-                  ? "bg-sigma-text text-sigma-bg"
-                  : "border border-sigma-line text-sigma-muted hover:text-sigma-text"
-              )}
-              key={item}
-              onClick={() => setRange(item)}
-              type="button"
-            >
-              {t(`ranges.${item}`)}
-            </button>
-          ))}
-          <div className="ml-1 flex items-center gap-2 text-xs font-semibold text-sigma-muted">
-            <ToggleSwitch checked={autoRotate} label={t("autoRotate")} onChange={setAutoRotate} />
-            {t("autoRotate")}
-          </div>
-        </div>
-      </div>
+    <section className="overflow-hidden rounded-2xl border border-sigma-line bg-sigma-surface">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px]">
+        <div className="min-w-0 p-4 sm:p-5 lg:p-6">
+          {activeIndex ? (
+            <>
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <IndexIdentity
+                  index={activeIndex}
+                  isOpen={openStatusSymbol === activeIndex.symbol}
+                  locale={locale}
+                  onStatusClick={handleStatusClick}
+                  t={t}
+                />
+                <ChartControls autoRotate={autoRotate} range={range} setAutoRotate={setAutoRotate} setRange={setRange} t={t} />
+              </div>
 
-      <div className="mt-3 h-[180px] md:h-[300px]">
-        {activeIndex ? (
-          <ResponsiveContainer height="100%" width="100%">
-            <AreaChart data={chartData} margin={{ bottom: 8, left: 0, right: 10, top: 12 }}>
-              <defs>
-                <linearGradient id={`index-fill-${activeIndex.symbol}`} x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor={lineColor} stopOpacity={0.08} />
-                  <stop offset="100%" stopColor={lineColor} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                axisLine={false}
-                dataKey="label"
-                interval="preserveStartEnd"
-                tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
-                tickLine={false}
-              />
-              <YAxis
-                axisLine={false}
-                domain={domain}
-                orientation="left"
-                tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
-                tickFormatter={(value: number) => value.toLocaleString(locale, { maximumFractionDigits: 0 })}
-                tickLine={false}
-                width={60}
-              />
-              <Tooltip
-                content={<CustomTooltip locale={locale} lineColor={lineColor} timeZone={activeIndex.trading_hours.timezone} />}
-                cursor={<CustomCursor />}
-                wrapperStyle={{ pointerEvents: "none" }}
-              />
-              <Area
-                activeDot={{ fill: lineColor, r: 4, stroke: "rgb(var(--sigma-bg))", strokeWidth: 2 }}
-                dataKey="value"
-                fill={`url(#index-fill-${activeIndex.symbol})`}
-                isAnimationActive={false}
-                stroke={lineColor}
-                strokeWidth={2}
-                type="monotone"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-sigma-muted">{t("empty")}</div>
-        )}
+              <div className="mt-5 h-[220px] md:h-[340px]">
+                <ResponsiveContainer height="100%" width="100%">
+                  <AreaChart data={chartData} margin={{ bottom: 8, left: 0, right: 8, top: 12 }}>
+                    <defs>
+                      <linearGradient id={`index-fill-${activeIndex.symbol}`} x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor={lineColor} stopOpacity={0.16} />
+                        <stop offset="72%" stopColor={lineColor} stopOpacity={0.04} />
+                        <stop offset="100%" stopColor={lineColor} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      axisLine={false}
+                      dataKey="label"
+                      interval="preserveStartEnd"
+                      minTickGap={18}
+                      tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      domain={domain}
+                      orientation="left"
+                      tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
+                      tickFormatter={(value: number) => value.toLocaleString(locale, { maximumFractionDigits: 0 })}
+                      tickLine={false}
+                      width={64}
+                    />
+                    <Tooltip
+                      content={<CustomTooltip lineColor={lineColor} locale={locale} />}
+                      cursor={<CustomCursor />}
+                      wrapperStyle={{ pointerEvents: "none" }}
+                    />
+                    <Area
+                      activeDot={{ fill: lineColor, r: 4, stroke: "rgb(var(--sigma-bg))", strokeWidth: 2 }}
+                      dataKey="value"
+                      fill={`url(#index-fill-${activeIndex.symbol})`}
+                      isAnimationActive={false}
+                      stroke={lineColor}
+                      strokeWidth={2.5}
+                      type="monotone"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          ) : (
+            <div className="flex min-h-[320px] items-center justify-center text-sm text-sigma-muted">
+              {isLoading ? t("loading") : t("empty")}
+            </div>
+          )}
+        </div>
+
+        <aside className="border-t border-sigma-line p-4 sm:p-5 lg:border-l lg:border-t-0">
+          <div className="flex h-full flex-col">
+            <h2 className="text-base font-bold text-sigma-text">{t("majorIndices")}</h2>
+            <div className="mt-3 flex-1 divide-y divide-sigma-line">
+              {majorIndices.map((index) => (
+                <MajorIndexRow
+                  index={index}
+                  isActive={activeIndex?.symbol === index.symbol}
+                  isPopoverOpen={openStatusSymbol === index.symbol}
+                  key={index.symbol}
+                  locale={locale}
+                  onSelect={handleManualSelect}
+                  onStatusClick={handleStatusClick}
+                  t={t}
+                />
+              ))}
+            </div>
+            <a className="mt-4 text-sm font-semibold text-sigma-accent hover:opacity-80" href="#">
+              {t("seeAllMajorIndices")}
+            </a>
+          </div>
+        </aside>
       </div>
     </section>
+  );
+}
+
+function IndexIdentity({
+  index,
+  isOpen,
+  locale,
+  onStatusClick,
+  t
+}: {
+  index: MarketIndex;
+  isOpen: boolean;
+  locale: string;
+  onStatusClick: (event: MouseEvent<HTMLButtonElement>, symbol: string) => void;
+  t: ChartTranslator;
+}) {
+  const meta = metaFor(index);
+  return (
+    <div className="relative flex min-w-0 items-start gap-3">
+      <IndexIcon className="h-10 w-10 text-sm" symbol={index.symbol} />
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="truncate text-base font-semibold text-sigma-text sm:text-lg">{meta.displayName}</h2>
+          <span className="rounded bg-sigma-bg px-1.5 py-0.5 text-xs font-semibold text-sigma-muted">{index.symbol}</span>
+          <StatusButton onClick={(event) => onStatusClick(event, index.symbol)} t={t} />
+        </div>
+        <div className="mt-1 flex flex-wrap items-baseline gap-2">
+          <span className="text-2xl font-bold tabular-nums text-sigma-text sm:text-3xl">
+            {formatValue(index.value, locale)}
+          </span>
+          <span className="text-sm font-medium text-sigma-muted">{currencyFor(index)}</span>
+          <ChangeText change={index.change_pct} />
+        </div>
+      </div>
+      {isOpen ? <MarketStatusPopover index={index} t={t} /> : null}
+    </div>
+  );
+}
+
+function ChartControls({
+  autoRotate,
+  range,
+  setAutoRotate,
+  setRange,
+  t
+}: {
+  autoRotate: boolean;
+  range: RangeId;
+  setAutoRotate: (value: boolean) => void;
+  setRange: (value: RangeId) => void;
+  t: ChartTranslator;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+      {ranges.map((item) => (
+        <button
+          className={cn(
+            "h-7 rounded-full px-2.5 text-xs font-semibold",
+            range === item
+              ? "bg-sigma-text text-sigma-bg"
+              : "border border-sigma-line text-sigma-muted hover:text-sigma-text"
+          )}
+          key={item}
+          onClick={() => setRange(item)}
+          type="button"
+        >
+          {t(`ranges.${item}`)}
+        </button>
+      ))}
+      <div className="ml-1 flex items-center gap-2 text-xs font-semibold text-sigma-muted">
+        <ToggleSwitch checked={autoRotate} label={t("autoRotate")} onChange={setAutoRotate} />
+        {t("autoRotate")}
+      </div>
+    </div>
+  );
+}
+
+function MajorIndexRow({
+  index,
+  isActive,
+  isPopoverOpen,
+  locale,
+  onSelect,
+  onStatusClick,
+  t
+}: {
+  index: MarketIndex;
+  isActive: boolean;
+  isPopoverOpen: boolean;
+  locale: string;
+  onSelect: (symbol: string) => void;
+  onStatusClick: (event: MouseEvent<HTMLButtonElement>, symbol: string) => void;
+  t: ChartTranslator;
+}) {
+  const meta = metaFor(index);
+  return (
+    <div className="relative py-2">
+      <div
+        className={cn(
+          "grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-sigma-bg",
+          isActive && "bg-sigma-accent/10"
+        )}
+        onClick={() => onSelect(index.symbol)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onSelect(index.symbol);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <IndexIcon className="h-9 w-9 text-xs" symbol={index.symbol} />
+          <span className="min-w-0">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-sm font-semibold text-sigma-text">{meta.displayName}</span>
+              <StatusButton onClick={(event) => onStatusClick(event, index.symbol)} t={t} />
+            </span>
+            <span className="mt-0.5 block text-xs font-medium text-sigma-muted">{meta.shortTicker}</span>
+          </span>
+        </span>
+        <span className="text-right">
+          <span className="block whitespace-nowrap">
+            <span className="text-sm font-bold tabular-nums text-sigma-text">{formatValue(index.value, locale)}</span>{" "}
+            <span className="text-xs font-medium text-sigma-muted">{currencyFor(index)}</span>
+          </span>
+          <ChangeText change={index.change_pct} className="mt-0.5 justify-end text-xs" />
+        </span>
+      </div>
+      {isPopoverOpen ? <MarketStatusPopover align="right" index={index} t={t} /> : null}
+    </div>
+  );
+}
+
+function IndexIcon({ className, symbol }: { className?: string; symbol: string }) {
+  const meta = indexMeta[symbol];
+  const label = meta?.iconLabel || "<>";
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full font-bold leading-none text-white shadow-sm",
+        iconClasses[symbol] ?? "bg-sigma-accent",
+        className
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+function StatusButton({
+  onClick,
+  t
+}: {
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+  t: ChartTranslator;
+}) {
+  return (
+    <button
+      aria-label={t("status.details")}
+      className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full bg-sigma-bg text-xs font-bold leading-none text-sigma-muted hover:bg-sigma-line/70 hover:text-sigma-text"
+      onClick={onClick}
+      onKeyDown={(event) => event.stopPropagation()}
+      type="button"
+    >
+      -
+    </button>
+  );
+}
+
+function ChangeText({ change, className }: { change: number; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex font-semibold tabular-nums",
+        change > 0 ? "text-sigma-success" : change < 0 ? "text-sigma-danger" : "text-sigma-text",
+        className ?? "text-sm"
+      )}
+    >
+      {formatChange(change)}
+    </span>
+  );
+}
+
+function MarketStatusPopover({
+  align = "left",
+  index,
+  t
+}: {
+  align?: "left" | "right";
+  index: MarketIndex;
+  t: ChartTranslator;
+}) {
+  const timing = marketTiming(index);
+  const statusTitle = index.is_trading ? t("status.openTitle") : t("status.closedTitle");
+  const subtitle = index.is_trading ? t("status.openSubtitle") : t("status.closedSubtitle");
+  const timingText = index.is_trading
+    ? t("status.closesIn", { hours: timing.hours })
+    : t("status.opensIn", { hours: timing.hours });
+
+  return (
+    <div
+      className={cn(
+        "absolute top-12 z-20 w-72 rounded-xl border border-sigma-line bg-sigma-surface p-4 text-left shadow-apple-soft",
+        align === "right" ? "right-2" : "left-0"
+      )}
+    >
+      <p className="text-sm font-bold text-sigma-text">{statusTitle}</p>
+      <p className="mt-1 text-xs leading-5 text-sigma-muted">{subtitle}</p>
+      <p className="mt-2 text-sm font-bold text-sigma-text">{timingText}</p>
+      <div className="mt-4">
+        <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-sigma-muted">
+          <span>{timing.weekday}</span>
+          <span>00:00 - 24:00</span>
+        </div>
+        <div className="relative h-2 rounded-full bg-sigma-bg">
+          <span
+            className="absolute top-0 h-2 rounded-full bg-sigma-accent/25"
+            style={{ left: `${timing.openPct}%`, width: `${Math.max(timing.closePct - timing.openPct, 2)}%` }}
+          />
+          <span
+            className="absolute top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-sigma-text"
+            style={{ left: `${timing.nowPct}%` }}
+          />
+        </div>
+      </div>
+      <p className="mt-4 text-[11px] font-medium text-sigma-muted">
+        {t("status.exchangeTimezone", { timezone: timezoneCity(index.trading_hours.timezone), offset: timezoneOffset(new Date(), index.trading_hours.timezone) })}
+      </p>
+    </div>
   );
 }
 
@@ -183,22 +473,37 @@ function orderIndices(indices: MarketIndex[], locale: "zh" | "en") {
     });
 }
 
+function orderMajorIndices(indices: MarketIndex[]) {
+  return indices
+    .filter((index) => majorIndexSymbols.includes(index.symbol as (typeof majorIndexSymbols)[number]))
+    .sort((left, right) => symbolRank(majorIndexSymbols, left.symbol) - symbolRank(majorIndexSymbols, right.symbol));
+}
+
 function symbolRank(priority: readonly string[], symbol: string) {
   const index = priority.indexOf(symbol);
   return index === -1 ? priority.length : index;
 }
 
-function shortIndexName(index: MarketIndex) {
-  if (index.symbol === "SPX") {
-    return "S&P";
-  }
-  if (index.symbol === "IXIC") {
-    return "Nasdaq";
-  }
-  if (index.symbol === "N225") {
-    return "Nikkei";
-  }
-  return index.symbol;
+function metaFor(index: MarketIndex) {
+  return indexMeta[index.symbol] ?? {
+    displayName: index.name,
+    shortTicker: index.symbol,
+    iconLabel: "",
+    currency: currencyFor(index)
+  };
+}
+
+function currencyFor(index: MarketIndex) {
+  return index.currency ?? indexMeta[index.symbol]?.currency ?? currencyMap[index.symbol] ?? "";
+}
+
+function formatValue(value: number, locale: string) {
+  return value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatChange(change: number) {
+  const sign = change > 0 ? "+" : change < 0 ? "−" : "";
+  return `${sign}${Math.abs(change).toFixed(2)}%`;
 }
 
 function buildChartData(index: MarketIndex, range: RangeId): ChartPoint[] {
@@ -233,12 +538,16 @@ function timestampForRange(now: Date, range: RangeId, index: number, total: numb
 
 function labelForRange(date: Date, range: RangeId) {
   if (range === "1d") {
-    return new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+    const parts = dateParts(date, chartTimeZone);
+    if (parts.hour === 0) {
+      return String(parts.day);
+    }
+    return `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
   }
   if (range === "5d") {
-    return new Intl.DateTimeFormat("en", { weekday: "short" }).format(date);
+    return new Intl.DateTimeFormat("en", { timeZone: chartTimeZone, weekday: "short" }).format(date);
   }
-  return new Intl.DateTimeFormat("en", { day: "numeric", month: "short" }).format(date);
+  return new Intl.DateTimeFormat("en", { day: "numeric", month: "short", timeZone: chartTimeZone }).format(date);
 }
 
 function yDomain(data: ChartPoint[]): [number, number] {
@@ -252,6 +561,68 @@ function yDomain(data: ChartPoint[]): [number, number] {
   return [Number((min - padding).toFixed(2)), Number((max + padding).toFixed(2))];
 }
 
+function marketTiming(index: MarketIndex) {
+  const now = new Date();
+  const parts = dateParts(now, index.trading_hours.timezone);
+  const openMinutes = timeToMinutes(index.trading_hours.open);
+  const closeMinutes = timeToMinutes(index.trading_hours.close);
+  const currentMinutes = parts.hour * 60 + parts.minute;
+  const nowWeekMinutes = parts.weekdayIndex * 1440 + currentMinutes;
+  const targetMinutes = index.is_trading
+    ? parts.weekdayIndex * 1440 + closeMinutes
+    : nextOpenWeekMinutes(parts.weekdayIndex, currentMinutes, openMinutes, closeMinutes);
+
+  return {
+    closePct: (closeMinutes / 1440) * 100,
+    hours: Math.max(1, Math.ceil((targetMinutes - nowWeekMinutes) / 60)),
+    nowPct: Math.min(Math.max((currentMinutes / 1440) * 100, 0), 100),
+    openPct: (openMinutes / 1440) * 100,
+    weekday: parts.weekday
+  };
+}
+
+function nextOpenWeekMinutes(weekdayIndex: number, currentMinutes: number, openMinutes: number, closeMinutes: number) {
+  if (weekdayIndex >= 1 && weekdayIndex <= 5 && currentMinutes < openMinutes) {
+    return weekdayIndex * 1440 + openMinutes;
+  }
+  let daysUntilOpen = 1;
+  if (weekdayIndex === 6) {
+    daysUntilOpen = 2;
+  } else if (weekdayIndex === 5 && currentMinutes >= closeMinutes) {
+    daysUntilOpen = 3;
+  }
+  return (weekdayIndex + daysUntilOpen) * 1440 + openMinutes;
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return (hours ?? 0) * 60 + (minutes ?? 0);
+}
+
+function dateParts(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+    minute: "2-digit",
+    timeZone,
+    weekday: "short"
+  }).formatToParts(date);
+  const valueFor = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "0";
+  const weekday = valueFor("weekday");
+  return {
+    day: Number(valueFor("day")),
+    hour: Number(valueFor("hour")),
+    minute: Number(valueFor("minute")),
+    weekday,
+    weekdayIndex: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday)
+  };
+}
+
+function timezoneCity(timeZone: string) {
+  return timeZone.split("/").pop()?.replaceAll("_", " ") ?? timeZone;
+}
+
 function CustomCursor({ height = 0, points }: { height?: number; points?: Array<{ x: number; y: number }> }) {
   const x = points?.[0]?.x;
   if (x === undefined) {
@@ -263,18 +634,16 @@ function CustomCursor({ height = 0, points }: { height?: number; points?: Array<
 function CustomTooltip({
   active,
   coordinate,
-  label,
   lineColor,
   locale,
-  payload,
-  timeZone
-}: TooltipProps<number, string> & { lineColor: string; locale: string; timeZone: string }) {
+  payload
+}: TooltipProps<number, string> & { lineColor: string; locale: string }) {
   const point = payload?.[0]?.payload as ChartPoint | undefined;
   if (!active || !point) {
     return null;
   }
   const date = new Date(point.timestamp);
-  const offset = timezoneOffset(date, timeZone);
+  const offset = timezoneOffset(date, chartTimeZone);
   const flipRight = (coordinate?.x ?? 0) < 100;
 
   return (
@@ -286,14 +655,13 @@ function CustomTooltip({
         transform: flipRight ? "translate(16px, -50%)" : "translate(-105px, -50%)"
       }}
     >
-      <p className="text-[15px] font-medium text-white">{point.value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+      <p className="text-[15px] font-medium text-white">{formatValue(point.value, locale)}</p>
       <p className="mt-1 text-[11px] text-[#aaaaaa]">
-        {new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "2-digit" }).format(date)}
+        {new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: chartTimeZone, year: "2-digit" }).format(date)}
       </p>
       <p className="text-[11px] text-[#aaaaaa]">
-        {new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone }).format(date)} {offset}
+        {new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: chartTimeZone }).format(date)} {offset}
       </p>
-      <span className="sr-only">{label}</span>
     </div>
   );
 }
