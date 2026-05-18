@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { AdminSettingsSection } from "@/components/admin/AdminSettingsSection";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -200,6 +201,8 @@ export default function SettingsPage() {
           </Card>
         </div>
       </div>
+
+      {user?.role === "admin" ? <AdminSettingsSection /> : null}
 
       <div className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-6xl rounded-full border border-sigma-line bg-sigma-elevated/95 p-2 shadow-apple backdrop-blur-xl">
         <div className="flex items-center justify-between gap-3">

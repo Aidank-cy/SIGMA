@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useAdminUsers } from "@/hooks/useAdmin";
 import type { AdminUser } from "@/hooks/useAdmin";
 
-export default function AdminUsersPage() {
+export function AdminUsersPanel() {
   const [query, setQuery] = useState("");
   const [pendingDelete, setPendingDelete] = useState<AdminUser | null>(null);
   const [confirmation, setConfirmation] = useState("");

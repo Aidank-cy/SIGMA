@@ -268,6 +268,11 @@
       "title": "LLM 配置",
       "caption": "选择 SIGMA 分析使用的模型、每日 Token 预算和成本保护。"
     },
+    "admin": {
+      "eyebrow": "管理员控制",
+      "title": "管理工作区",
+      "caption": "在同一个设置页面管理用户、采集数据源、系统模型配置和采集活动。"
+    },
     "theme": {
       "title": "外观",
       "caption": "主题切换已移至顶部导航栏。",
@@ -328,7 +333,7 @@
     "title": "SIGMA",
     "subtitle": "聚合政治、金融、科技和宏观经济信号，为全球股票市场生成可追踪的情报摘要与报告。",
     "welcome": "欢迎使用 SIGMA，{name}",
-    "intro": "已认证工作区已准备好承载情报流、关注列表、报告和管理页面。",
+    "intro": "已认证工作区已准备好承载情报流、关注列表、报告和设置页面。",
     "userFallback": "分析师",
     "categories": {
       "politics": "政治",

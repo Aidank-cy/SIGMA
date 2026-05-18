@@ -21,7 +21,7 @@ const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((mo
   ssr: false
 });
 
-export default function AdminDashboardPage() {
+export function AdminDashboardPanel() {
   const t = useTranslations("admin.dashboard");
   const statusT = useTranslations("admin.status");
   const { activity, health, stats, trend } = useAdminDashboard();

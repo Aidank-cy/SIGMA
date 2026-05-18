@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
 import { useAdminLLM } from "@/hooks/useAdmin";
 
-export default function AdminLLMPage() {
+export function AdminLLMPanel() {
   const t = useTranslations("admin.llm");
   const { config, update, usage } = useAdminLLM();
 

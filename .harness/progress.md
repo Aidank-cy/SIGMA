@@ -724,3 +724,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added top and right chart margin so the market index chart shifts down-left and the rightmost x-axis timestamp has enough room to render.
 - Timestamp: 2026-05-18T09:41:25Z
+
+### [Maintenance] Admin controls in settings
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/admin/AdminSettingsSection.tsx, sigma-frontend/src/components/admin/AdminDashboardPanel.tsx, sigma-frontend/src/components/admin/AdminUsersPanel.tsx, sigma-frontend/src/components/admin/AdminSourcesPanel.tsx, sigma-frontend/src/components/admin/AdminLLMPanel.tsx, sigma-frontend/src/components/admin/AdminLogsPanel.tsx
+- Files modified: sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Files removed: sigma-frontend/src/app/[locale]/admin/layout.tsx, sigma-frontend/src/app/[locale]/admin/page.tsx, sigma-frontend/src/app/[locale]/admin/users/page.tsx, sigma-frontend/src/app/[locale]/admin/sources/page.tsx, sigma-frontend/src/app/[locale]/admin/llm/page.tsx, sigma-frontend/src/app/[locale]/admin/logs/page.tsx
+- Tests: PASS
+- Notes: Moved admin dashboard, user management, source management, LLM configuration, and collector logs into a role-gated section on the Settings page; production build no longer emits `/[locale]/admin` routes.
+- Timestamp: 2026-05-18T09:47:58Z
