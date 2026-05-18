@@ -277,7 +277,12 @@ function ProfileSection({
     <Card className="p-5">
       <div className="flex flex-col gap-4">
         <h2 className="text-base font-semibold text-sigma-text">{t("profile.title")}</h2>
-        <Input label={t("profile.displayName")} onChange={(event) => onDisplayNameChange(event.target.value)} value={displayName} />
+        <Input
+          className="text-sigma-muted opacity-65 focus:text-sigma-text focus:opacity-100"
+          label={t("profile.displayName")}
+          onChange={(event) => onDisplayNameChange(event.target.value)}
+          value={displayName}
+        />
         <Select
           label={t("profile.language")}
           onChange={(event) => onLocaleChange(event.target.value as Locale)}
