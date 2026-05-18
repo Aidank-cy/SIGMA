@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
+import { ChevronDown, ExternalLink } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
@@ -21,9 +21,21 @@ import type { MarketIndex } from "@/lib/types";
 
 const indexSymbols = ["SPX", "IXIC", "SSE", "N225", "FTSE", "DAX", "HSI", "DJI"] as const;
 const majorIndexSymbols = ["IXIC", "N225", "SSE", "FTSE", "DAX", "CAC"] as const;
-const ranges = ["1d", "5d", "1m", "6m", "1y", "all"] as const;
+const ranges = ["1d", "3d", "7d", "15d", "30d", "90d", "180d", "1y", "5y", "10y"] as const;
 const chartTimeZone = "Asia/Shanghai";
 const axisReference = { day: 15, month: 5, year: 2026 };
+const rangeDays: Record<RangeId, number> = {
+  "1d": 1,
+  "3d": 3,
+  "7d": 7,
+  "15d": 15,
+  "30d": 30,
+  "90d": 90,
+  "180d": 180,
+  "1y": 365,
+  "5y": 365 * 5,
+  "10y": 365 * 10
+};
 
 const marketBreaks: Record<string, Array<{ start: string; end: string }>> = {
   HSI: [{ start: "12:00", end: "13:00" }],
@@ -328,23 +340,52 @@ function ChartControls({
   setRange: (value: RangeId) => void;
   t: ChartTranslator;
 }) {
+  const [isRangeOpen, setIsRangeOpen] = useState(false);
+  const selectedLabel = t(`ranges.${range}`);
+
+  function selectRange(value: RangeId) {
+    setRange(value);
+    setIsRangeOpen(false);
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-      {ranges.map((item) => (
+      <div className="relative">
         <button
-          className={cn(
-            "h-7 rounded-full px-2.5 text-xs font-semibold",
-            range === item
-              ? "bg-sigma-text text-sigma-bg"
-              : "border border-sigma-line text-sigma-muted hover:text-sigma-text"
-          )}
-          key={item}
-          onClick={() => setRange(item)}
+          aria-expanded={isRangeOpen}
+          className="inline-flex h-8 items-center gap-2 rounded-full border border-sigma-line px-3 text-xs font-semibold text-sigma-text hover:bg-sigma-elevated"
+          onClick={() => setIsRangeOpen((current) => !current)}
           type="button"
         >
-          {t(`ranges.${item}`)}
+          {t("rangeLabel")}
+          <span className="rounded-full bg-sigma-text px-2 py-0.5 text-sigma-bg">{selectedLabel}</span>
+          <ChevronDown
+            className={cn("h-3.5 w-3.5 text-sigma-muted transition-transform", isRangeOpen ? "rotate-180" : "")}
+            aria-hidden
+          />
         </button>
-      ))}
+        {isRangeOpen ? (
+          <div className="absolute right-0 top-10 z-30 w-44 rounded-xl border border-sigma-line bg-sigma-surface p-1.5 shadow-apple">
+            <div className="grid grid-cols-2 gap-1">
+              {ranges.map((item) => (
+                <button
+                  className={cn(
+                    "h-9 rounded-lg px-2 text-sm font-semibold",
+                    range === item
+                      ? "bg-sigma-text text-sigma-bg"
+                      : "text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
+                  )}
+                  key={item}
+                  onClick={() => selectRange(item)}
+                  type="button"
+                >
+                  {t(`ranges.${item}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
       <div className="ml-1 flex items-center gap-2 text-xs font-semibold text-sigma-muted">
         <ToggleSwitch checked={autoRotate} label={t("autoRotate")} onChange={setAutoRotate} />
         {t("autoRotate")}
@@ -612,7 +653,7 @@ function buildChartData(index: MarketIndex, range: RangeId): ChartPoint[] {
 }
 
 function expandSparkline(values: number[], range: RangeId): number[] {
-  const multiplier = range === "1d" ? 1 : range === "5d" ? 2 : range === "1m" ? 3 : range === "6m" ? 4 : 5;
+  const multiplier = range === "1d" ? 1 : Math.min(12, Math.max(2, Math.ceil(rangeDays[range] / 30)));
   const source = values.length >= 2 ? values : [100, 101];
   const expanded: number[] = [];
   for (let cycle = 0; cycle < multiplier; cycle += 1) {
@@ -623,14 +664,17 @@ function expandSparkline(values: number[], range: RangeId): number[] {
 }
 
 function timestampForRange(now: Date, range: RangeId, index: number, total: number) {
-  const spanHours = range === "1d" ? 24 : range === "5d" ? 24 * 5 : range === "1m" ? 24 * 30 : range === "6m" ? 24 * 183 : range === "1y" ? 24 * 365 : 24 * 365 * 5;
+  const spanHours = rangeDays[range] * 24;
   const offsetMs = ((total - 1 - index) / Math.max(total - 1, 1)) * spanHours * 60 * 60 * 1000;
   return new Date(now.getTime() - offsetMs);
 }
 
 function labelForRange(date: Date, range: RangeId) {
-  if (range === "5d") {
+  if (rangeDays[range] <= 7) {
     return new Intl.DateTimeFormat("en", { timeZone: chartTimeZone, weekday: "short" }).format(date);
+  }
+  if (rangeDays[range] >= 365) {
+    return new Intl.DateTimeFormat("en", { month: "short", timeZone: chartTimeZone, year: "2-digit" }).format(date);
   }
   return new Intl.DateTimeFormat("en", { day: "numeric", month: "short", timeZone: chartTimeZone }).format(date);
 }
@@ -639,7 +683,7 @@ function shouldShowRangeLabel(index: number, total: number, range: RangeId) {
   if (range === "1d" || total <= 2) {
     return true;
   }
-  const targetTicks = range === "5d" ? 6 : 7;
+  const targetTicks = rangeDays[range] <= 7 ? 6 : 7;
   const interval = Math.max(1, Math.floor((total - 1) / (targetTicks - 1)));
   return index === 0 || index === total - 1 || index % interval === 0;
 }
