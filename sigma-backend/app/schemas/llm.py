@@ -3,6 +3,15 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class LLMApiKey(BaseModel):
+    """Named API key entry for user-managed LLM credentials."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=80)
+    key: str = Field(min_length=1, max_length=500)
+
+
 class LLMConfigRead(BaseModel):
     """Runtime LLM configuration payload."""
 
@@ -12,6 +21,7 @@ class LLMConfigRead(BaseModel):
     model: str
     daily_token_limit: int
     cost_guard_enabled: bool = True
+    api_keys: list[LLMApiKey] = Field(default_factory=list)
 
 
 class LLMConfigUpdate(BaseModel):
@@ -23,6 +33,7 @@ class LLMConfigUpdate(BaseModel):
     model: str = Field(min_length=1, max_length=160)
     daily_token_limit: int = Field(gt=0)
     cost_guard_enabled: bool = True
+    api_keys: list[LLMApiKey] = Field(default_factory=list, max_length=20)
 
 
 class LLMUsageDay(BaseModel):

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, DollarSign, ShieldCheck } from "lucide-react";
+import { Bot, DollarSign, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -40,7 +40,8 @@ const defaultConfig: LLMConfig = {
   provider: "anthropic",
   model: models.anthropic[0],
   daily_token_limit: 1_000_000,
-  cost_guard_enabled: true
+  cost_guard_enabled: true,
+  api_keys: []
 };
 
 interface LLMSettingsPanelProps {
@@ -124,6 +125,33 @@ export function LLMSettingsPanel({
     ];
   }, [t, usageData]);
 
+  const hasInvalidApiKeys = form.api_keys.some(
+    (entry) => entry.name.trim().length === 0 || entry.key.trim().length === 0
+  );
+
+  function addApiKey() {
+    setForm({
+      ...form,
+      api_keys: [...form.api_keys, { key: "", name: t("newKeyName") }]
+    });
+  }
+
+  function updateApiKey(index: number, field: "key" | "name", value: string) {
+    setForm({
+      ...form,
+      api_keys: form.api_keys.map((entry, entryIndex) =>
+        entryIndex === index ? { ...entry, [field]: value } : entry
+      )
+    });
+  }
+
+  function removeApiKey(index: number) {
+    setForm({
+      ...form,
+      api_keys: form.api_keys.filter((_, entryIndex) => entryIndex !== index)
+    });
+  }
+
   async function save() {
     try {
       await onSave(form);
@@ -149,7 +177,7 @@ export function LLMSettingsPanel({
               <p className="text-sm font-medium text-sigma-muted">{t("current")}</p>
               <h2 className="mt-1 truncate text-xl font-semibold text-sigma-text">{form.model}</h2>
               <p className="mt-2 text-sm text-sigma-muted">
-                {t(`providers.${form.provider}`)} · {t("keyMasked")}
+                {t(`providers.${form.provider}`)} · {t("keyCount", { count: form.api_keys.length })}
               </p>
             </div>
           </div>
@@ -201,7 +229,51 @@ export function LLMSettingsPanel({
               onChange={(checked) => setForm({ ...form, cost_guard_enabled: checked })}
             />
           </label>
-          <Button isLoading={isSaving} onClick={save}>
+          <section className="space-y-3 rounded-lg border border-sigma-line p-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-sigma-text">{t("apiKeys")}</h3>
+                <p className="mt-1 text-xs leading-5 text-sigma-muted">{t("apiKeysCaption")}</p>
+              </div>
+              <Button onClick={addApiKey} size="sm" type="button" variant="secondary">
+                <Plus className="h-4 w-4" aria-hidden />
+                {t("addKey")}
+              </Button>
+            </div>
+            {form.api_keys.length === 0 ? (
+              <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
+            ) : (
+              <div className="space-y-3">
+                {form.api_keys.map((entry, index) => (
+                  <div className="grid gap-3 rounded-lg bg-sigma-elevated p-3 lg:grid-cols-[0.8fr_1fr_auto]" key={index}>
+                    <Input
+                      label={t("keyName")}
+                      onChange={(event) => updateApiKey(index, "name", event.target.value)}
+                      value={entry.name}
+                    />
+                    <Input
+                      label={t("keyValue")}
+                      onChange={(event) => updateApiKey(index, "key", event.target.value)}
+                      type="password"
+                      value={entry.key}
+                    />
+                    <Button
+                      aria-label={t("deleteKey")}
+                      className="self-center"
+                      onClick={() => removeApiKey(index)}
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                      {t("deleteKey")}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+          <Button disabled={hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
             {t("save")}
           </Button>
         </Card>

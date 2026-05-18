@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add named multi-key LLM settings so users can save, rename, edit, and delete multiple API keys.
 - Add a standalone demo data seed script for users, sources, items, watchlists, reports, report configs, collector logs, system config, and LLM usage logs.
 - Add user-accessible LLM configuration and usage controls on the Settings page backed by authenticated `/me/llm/*` APIs.
 - Add Phase 6 ItemCard variants for default, compact, and featured feed layouts.
