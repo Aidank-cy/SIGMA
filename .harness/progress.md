@@ -749,3 +749,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Replaced inline market chart range buttons with a single Range dropdown and added 1D, 3D, 7D, 15D, 30D, 90D, 180D, 1Y, 5Y, and 10Y chart ranges.
 - Timestamp: 2026-05-18T10:22:55Z
+
+### [Maintenance] Standardized select controls
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/ui/Select.tsx
+- Files modified: sigma-frontend/src/components/LocaleSwitcher.tsx, sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/admin/AdminSourcesPanel.tsx, sigma-frontend/src/components/admin/AdminLogsPanel.tsx, sigma-frontend/src/components/charts/MarketIndexChart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Replaced scattered native select styling and local Select helpers with one shared UI Select primitive, and aligned the market chart Range dropdown with the same border, radius, spacing, and focus treatment.
+- Timestamp: 2026-05-18T10:27:12Z

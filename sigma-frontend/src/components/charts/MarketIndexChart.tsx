@@ -353,24 +353,26 @@ function ChartControls({
       <div className="relative">
         <button
           aria-expanded={isRangeOpen}
-          className="inline-flex h-8 items-center gap-2 rounded-full border border-sigma-line px-3 text-xs font-semibold text-sigma-text hover:bg-sigma-elevated"
+          className="inline-flex h-12 items-center gap-2 rounded-2xl border border-sigma-line bg-sigma-elevated px-4 text-sm font-medium text-sigma-text outline-none hover:bg-sigma-elevated/80 focus-visible:border-sigma-accent focus-visible:ring-4 focus-visible:ring-sigma-accent/15"
           onClick={() => setIsRangeOpen((current) => !current)}
           type="button"
         >
           {t("rangeLabel")}
-          <span className="rounded-full bg-sigma-text px-2 py-0.5 text-sigma-bg">{selectedLabel}</span>
+          <span className="rounded-xl bg-sigma-text px-2 py-0.5 text-xs font-semibold text-sigma-bg">
+            {selectedLabel}
+          </span>
           <ChevronDown
             className={cn("h-3.5 w-3.5 text-sigma-muted transition-transform", isRangeOpen ? "rotate-180" : "")}
             aria-hidden
           />
         </button>
         {isRangeOpen ? (
-          <div className="absolute right-0 top-10 z-30 w-44 rounded-xl border border-sigma-line bg-sigma-surface p-1.5 shadow-apple">
+          <div className="absolute right-0 top-14 z-30 w-44 origin-top-right rounded-2xl border border-sigma-line bg-sigma-surface p-2 shadow-apple transition duration-150 ease-out">
             <div className="grid grid-cols-2 gap-1">
               {ranges.map((item) => (
                 <button
                   className={cn(
-                    "h-9 rounded-lg px-2 text-sm font-semibold",
+                    "h-9 rounded-xl px-2 text-sm font-semibold",
                     range === item
                       ? "bg-sigma-text text-sigma-bg"
                       : "text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"

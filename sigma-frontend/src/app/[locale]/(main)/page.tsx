@@ -9,6 +9,7 @@ import { MarketIndexChart } from "@/components/charts/MarketIndexChart";
 import { FeaturedStory } from "@/components/feed/FeaturedStory";
 import { ItemCard } from "@/components/feed/ItemCard";
 import { HomeSidebar } from "@/components/sidebar/HomeSidebar";
+import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useItems } from "@/hooks/useItems";
 import { useReports } from "@/hooks/useReports";
@@ -212,22 +213,20 @@ function FilterSelect({ label, onChange, options, value }: FilterSelectProps) {
   const t = useTranslations("feed");
 
   return (
-    <label className="relative">
-      <Filter className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-sigma-muted" />
-      <select
-        aria-label={label}
-        className="h-11 w-full appearance-none rounded-full border border-sigma-line bg-sigma-bg pl-11 pr-4 text-sm font-medium text-sigma-text outline-none focus:border-sigma-accent focus:ring-4 focus:ring-sigma-accent/15"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        <option value="">{t("all")}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Select
+      label={label}
+      leadingIcon={<Filter className="h-4 w-4" aria-hidden />}
+      onChange={(event) => onChange(event.target.value)}
+      selectClassName="bg-sigma-bg"
+      value={value}
+    >
+      <option value="">{t("all")}</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </Select>
   );
 }
 

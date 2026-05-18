@@ -3,10 +3,10 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Select } from "@/components/ui/Select";
 import { useAdminLogs, useAdminSources } from "@/hooks/useAdmin";
 import type { CollectorStatus } from "@/hooks/useAdmin";
 import { cn } from "@/lib/cn";
@@ -48,8 +48,8 @@ export function AdminLogsPanel() {
         <div className="grid gap-3 md:grid-cols-4">
           <Select
             label={t("source")}
-            onChange={(value) => {
-              setSourceId(value);
+            onChange={(event) => {
+              setSourceId(event.target.value);
               setPage(1);
             }}
             value={sourceId}
@@ -63,8 +63,8 @@ export function AdminLogsPanel() {
           </Select>
           <Select
             label={t("status")}
-            onChange={(value) => {
-              setStatus(value as CollectorStatus | "all");
+            onChange={(event) => {
+              setStatus(event.target.value as CollectorStatus | "all");
               setPage(1);
             }}
             value={status}
@@ -153,31 +153,6 @@ function DateField({ label, onChange, value }: { label: string; onChange: (value
         type="date"
         value={value}
       />
-    </label>
-  );
-}
-
-function Select({
-  children,
-  label,
-  onChange,
-  value
-}: {
-  children: ReactNode;
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <label className="space-y-2 text-xs font-medium text-sigma-muted">
-      <span>{label}</span>
-      <select
-        className="h-12 w-full rounded-2xl border border-sigma-line bg-sigma-elevated px-4 text-sm text-sigma-text outline-none focus:border-sigma-accent focus:ring-4 focus:ring-sigma-accent/15"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {children}
-      </select>
     </label>
   );
 }
