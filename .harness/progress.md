@@ -692,3 +692,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: NOT RUN
 - Notes: Increased home and admin chart heights with tighter Recharts margins; added an idempotent async demo seeder with `--clear` support for users, items, watchlists, reports, configs, logs, LLM usage, and seed sources. Verification commands were intentionally skipped per user instruction.
 - Timestamp: 2026-05-17T09:33:49Z
+
+### [Maintenance] Backend scripts in Docker images
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/Dockerfile, sigma-backend/Dockerfile.prod, CHANGELOG.md, .harness/progress.md
+- Tests: NOT RUN
+- Notes: Added `scripts/` to both backend Docker images so `python3 scripts/seed_demo_data.py` exists inside the running backend container after rebuild.
+- Timestamp: 2026-05-18T02:04:12Z
