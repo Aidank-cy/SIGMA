@@ -4,7 +4,7 @@ import { Languages } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 
-import { cn } from "@/lib/cn";
+import { Select } from "@/components/ui/Select";
 
 const locales = ["zh", "en"] as const;
 
@@ -25,26 +25,21 @@ export function LocaleSwitcher({ compact = false }: LocaleSwitcherProps) {
   };
 
   return (
-    <label
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-sigma-line bg-sigma-elevated px-3 text-sm text-sigma-muted",
-        compact ? "h-9" : "h-10"
-      )}
+    <Select
+      aria-label={t("label")}
+      label={t("label")}
+      leadingIcon={<Languages className="h-4 w-4" aria-hidden />}
+      onChange={(event) => switchLocale(event.target.value)}
+      selectClassName={compact ? "h-10 min-w-28" : "h-12 min-w-32"}
+      showLabel={false}
+      value={locale}
+      wrapperClassName="shrink-0"
     >
-      <Languages className="h-4 w-4" aria-hidden />
-      <span className="sr-only">{t("label")}</span>
-      <select
-        aria-label={t("label")}
-        className="bg-transparent text-sm font-medium text-sigma-text outline-none"
-        onChange={(event) => switchLocale(event.target.value)}
-        value={locale}
-      >
         {locales.map((item) => (
           <option key={item} value={item}>
             {t(item)}
           </option>
         ))}
-      </select>
-    </label>
+    </Select>
   );
 }

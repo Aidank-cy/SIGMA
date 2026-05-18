@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentControl } from "@/components/ui/SegmentControl";
+import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
@@ -277,17 +278,14 @@ function ProfileSection({
       <div className="flex flex-col gap-4">
         <h2 className="text-base font-semibold text-sigma-text">{t("profile.title")}</h2>
         <Input label={t("profile.displayName")} onChange={(event) => onDisplayNameChange(event.target.value)} value={displayName} />
-        <label className="space-y-2">
-          <span className="text-sm font-medium text-sigma-text">{t("profile.language")}</span>
-          <select
-            className="h-11 w-full rounded-full border border-sigma-line bg-sigma-elevated px-4 text-sm text-sigma-text outline-none focus:border-sigma-accent focus:ring-4 focus:ring-sigma-accent/15"
-            onChange={(event) => onLocaleChange(event.target.value as Locale)}
-            value={locale}
-          >
-            <option value="zh">{t("profile.zh")}</option>
-            <option value="en">{t("profile.en")}</option>
-          </select>
-        </label>
+        <Select
+          label={t("profile.language")}
+          onChange={(event) => onLocaleChange(event.target.value as Locale)}
+          value={locale}
+        >
+          <option value="zh">{t("profile.zh")}</option>
+          <option value="en">{t("profile.en")}</option>
+        </Select>
       </div>
     </Card>
   );

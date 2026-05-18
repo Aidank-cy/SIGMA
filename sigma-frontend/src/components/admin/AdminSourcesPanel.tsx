@@ -3,12 +3,12 @@
 import { CheckCircle2, FileClock, Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
 import { useAdminSources } from "@/hooks/useAdmin";
 import type { AdminActivity } from "@/hooks/useAdmin";
@@ -343,14 +343,22 @@ function MetadataStep({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Select label={t("category")} onChange={(value) => setPayload({ category: value as Category })} value={payload.category}>
+        <Select
+          label={t("category")}
+          onChange={(event) => setPayload({ category: event.target.value as Category })}
+          value={payload.category}
+        >
           {categories.map((category) => (
             <option key={category} value={category}>
               {t(`categories.${category}`)}
             </option>
           ))}
         </Select>
-        <Select label={t("market")} onChange={(value) => setPayload({ market: value as Market })} value={payload.market}>
+        <Select
+          label={t("market")}
+          onChange={(event) => setPayload({ market: event.target.value as Market })}
+          value={payload.market}
+        >
           {markets.map((market) => (
             <option key={market} value={market}>
               {t(`markets.${market}`)}
@@ -401,31 +409,6 @@ function StepIndicator({ step, t }: { step: number; t: TranslationFn }) {
         />
       ))}
     </div>
-  );
-}
-
-function Select({
-  children,
-  label,
-  onChange,
-  value
-}: {
-  children: ReactNode;
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <label className="space-y-2 text-xs font-medium text-sigma-muted">
-      <span>{label}</span>
-      <select
-        className="h-12 w-full rounded-2xl border border-sigma-line bg-sigma-elevated px-4 text-sm text-sigma-text outline-none focus:border-sigma-accent focus:ring-4 focus:ring-sigma-accent/15"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {children}
-      </select>
-    </label>
   );
 }
 

@@ -4,11 +4,11 @@ import { Bot, DollarSign, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
@@ -187,11 +187,11 @@ export function LLMSettingsPanel({
           <div className="grid gap-3 sm:grid-cols-2">
             <Select
               label={t("provider")}
-              onChange={(value) =>
+              onChange={(event) =>
                 setForm({
                   ...form,
-                  provider: value as LLMConfig["provider"],
-                  model: models[value as LLMConfig["provider"]][0]
+                  provider: event.target.value as LLMConfig["provider"],
+                  model: models[event.target.value as LLMConfig["provider"]][0]
                 })
               }
               value={form.provider}
@@ -201,7 +201,7 @@ export function LLMSettingsPanel({
             </Select>
             <Select
               label={t("model")}
-              onChange={(value) => setForm({ ...form, model: value })}
+              onChange={(event) => setForm({ ...form, model: event.target.value })}
               value={form.model}
             >
               {models[form.provider].map((model) => (
@@ -313,30 +313,5 @@ function UsageCard({ label, tokens }: { label: string; tokens: number }) {
         <DollarSign className="h-5 w-5 text-sigma-muted" aria-hidden />
       </div>
     </Card>
-  );
-}
-
-function Select({
-  children,
-  label,
-  onChange,
-  value
-}: {
-  children: ReactNode;
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <label className="space-y-2 text-xs font-medium text-sigma-muted">
-      <span>{label}</span>
-      <select
-        className="h-12 w-full rounded-2xl border border-sigma-line bg-sigma-elevated px-4 text-sm text-sigma-text outline-none focus:border-sigma-accent focus:ring-4 focus:ring-sigma-accent/15"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {children}
-      </select>
-    </label>
   );
 }
