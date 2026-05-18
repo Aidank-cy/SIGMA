@@ -268,6 +268,11 @@
       "title": "LLM configuration",
       "caption": "Choose the model, daily token budget, and cost guard used by SIGMA analysis."
     },
+    "admin": {
+      "eyebrow": "Administrator controls",
+      "title": "Admin workspace",
+      "caption": "Manage users, collection sources, system model configuration, and collector activity from the same settings page."
+    },
     "theme": {
       "title": "Appearance",
       "caption": "Theme controls now live in the top navigation.",
@@ -328,7 +333,7 @@
     "title": "SIGMA",
     "subtitle": "Collect political, financial, technology, and macroeconomic signals for traceable global equity intelligence reports.",
     "welcome": "Welcome to SIGMA, {name}",
-    "intro": "The authenticated workspace is ready for feed, watchlist, report, and admin pages.",
+    "intro": "The authenticated workspace is ready for feed, watchlist, report, and settings pages.",
     "userFallback": "Analyst",
     "categories": {
       "politics": "Politics",

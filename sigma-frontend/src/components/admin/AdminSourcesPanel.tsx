@@ -37,7 +37,7 @@ const initialPayload: SourcePayload = {
   is_active: true
 };
 
-export default function AdminSourcesPage() {
+export function AdminSourcesPanel() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [editingId, setEditingId] = useState<string | null>(null);

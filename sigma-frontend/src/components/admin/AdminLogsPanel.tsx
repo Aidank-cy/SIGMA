@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 
 const statuses: Array<CollectorStatus | "all"> = ["all", "success", "fail", "timeout"];
 
-export default function AdminLogsPage() {
+export function AdminLogsPanel() {
   const [sourceId, setSourceId] = useState("");
   const [status, setStatus] = useState<CollectorStatus | "all">("all");
   const [dateFrom, setDateFrom] = useState("");
