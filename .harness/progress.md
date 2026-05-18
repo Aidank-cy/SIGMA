@@ -757,3 +757,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Replaced scattered native select styling and local Select helpers with one shared UI Select primitive, and aligned the market chart Range dropdown with the same border, radius, spacing, and focus treatment.
 - Timestamp: 2026-05-18T10:27:12Z
+
+### [Maintenance] Profile name focus visibility
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Muted the Settings profile display-name input by default and restored full text color and opacity while focused or clicked for editing.
+- Timestamp: 2026-05-18T10:33:08Z

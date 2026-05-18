@@ -20,6 +20,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add email-verified password reset endpoints and a three-step settings modal for password changes.
 
 ### Changed
+- Dim the Settings profile name field until it receives focus.
 - Standardize dropdown and select controls around one shared visual style.
 - Replace homepage market chart inline range buttons with a dropdown supporting 10 time ranges.
 - Move admin controls into the Settings page and remove standalone admin frontend routes.
