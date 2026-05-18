@@ -708,3 +708,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: NOT RUN
 - Notes: Pinned bcrypt below 4.1 so passlib 1.7.4 no longer emits the trapped `__about__` warning during password hashing in seed/auth flows after rebuilding the backend image.
 - Timestamp: 2026-05-18T02:15:26Z
+
+### [Maintenance] Demo content variety and chart tooltip precision
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/scripts/seed_demo_data.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, sigma-backend/tests/test_seeds.py, sigma-frontend/src/components/charts/MarketIndexChart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added explicit short/medium/long demo item body generation with per-market coverage, expanded market-index sparklines to 480 points, generated one-minute chart data while keeping sparse axis labels, and verified backend tests plus frontend build.
+- Timestamp: 2026-05-18T04:26:11Z

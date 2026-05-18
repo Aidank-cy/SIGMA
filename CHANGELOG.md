@@ -54,6 +54,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add admin APIs for dashboard stats, collection trends, recent activity, source health, user management, source previews, source logs, and collector log filtering.
 
 ### Fixed
+- Fix demo seed item bodies to include short, medium, and long content lengths across markets.
+- Fix market index chart tooltip density by using per-minute data while preserving sparse axis labels.
 - Fix passlib bcrypt compatibility by pinning bcrypt below 4.1 to remove noisy seed/auth hashing warnings.
 - Fix backend Docker images to include standalone scripts such as the demo data seeder.
 - Fix market chart dash-button popovers, default auto-rotation state, and line-chart tooltip positioning.

@@ -19,6 +19,7 @@ import sys
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
+from typing import Literal
 
 from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,7 +72,8 @@ SYSTEM_CONFIGS = {
 }
 
 
-ItemSpec = tuple[IntelligenceCategory, Market, str, list[str], str]
+ContentLength = Literal["short", "medium", "long"]
+ItemSpec = tuple[IntelligenceCategory, Market, str, list[str], str, ContentLength]
 
 FINANCE = IntelligenceCategory.FINANCE
 POLITICS = IntelligenceCategory.POLITICS
@@ -86,71 +88,71 @@ GLOBAL = Market.GLOBAL
 
 
 ITEM_SPECS: list[ItemSpec] = [
-    (FINANCE, US, "Fed holds rates steady at 5.25%", ["Fed", "rates", "CPI"], "neutral"),
-    (FINANCE, US, "S&P 500 hits new record amid AI rally", ["S&P 500", "AI"], "bullish"),
-    (FINANCE, US, "Tesla Q2 earnings beat expectations", ["Tesla", "earnings"], "bullish"),
-    (FINANCE, US, "NVIDIA adds $180 billion in market value after guidance raise", ["NVIDIA", "AI"], "bullish"),
-    (FINANCE, US, "Apple services revenue offsets softer iPhone demand", ["Apple", "services"], "neutral"),
-    (FINANCE, US, "US banks lift loan-loss reserves as consumers slow spending", ["banks", "credit"], "bearish"),
-    (FINANCE, US, "Treasury yields retreat as traders price September rate cut", ["Treasury", "rates"], "bullish"),
-    (FINANCE, US, "Semiconductor shares extend gains on cloud capex outlook", ["semiconductors", "cloud"], "bullish"),
-    (FINANCE, US, "Retail stocks fall after mixed same-store sales data", ["retail", "sales"], "bearish"),
-    (FINANCE, US, "Small caps rebound as funding conditions improve", ["small caps", "funding"], "bullish"),
-    (FINANCE, US, "Oil majors rise with Brent crude near three-month high", ["oil", "Brent"], "bullish"),
-    (FINANCE, US, "Dollar slips as investors rotate into risk assets", ["dollar", "risk"], "neutral"),
-    (FINANCE, US, "Cloud software sector rallies after resilient bookings", ["software", "bookings"], "bullish"),
-    (FINANCE, US, "Biotech IPO window reopens with two oversubscribed listings", ["biotech", "IPO"], "bullish"),
-    (FINANCE, US, "Private credit funds report slower but positive inflows", ["private credit"], "neutral"),
-    (FINANCE, CN, "PBOC cuts reserve ratio by 25bps", ["PBOC", "RRR"], "bullish"),
-    (FINANCE, CN, "A-share market rebounds on stimulus hopes", ["A-share", "stimulus"], "bullish"),
-    (FINANCE, CN, "China property developers gain after funding support plan", ["property", "funding"], "bullish"),
-    (FINANCE, CN, "Mainland brokerages rise as margin financing stabilizes", ["brokerages"], "bullish"),
-    (FINANCE, CN, "Consumer names lag after weaker holiday travel spending", ["consumer", "travel"], "bearish"),
-    (FINANCE, CN, "Yuan strengthens on state bank dollar selling reports", ["yuan", "dollar"], "neutral"),
-    (FINANCE, CN, "EV supply chain shares advance on export order growth", ["EV", "exports"], "bullish"),
-    (FINANCE, CN, "Industrial profits rise for third straight month", ["industrial profits"], "bullish"),
-    (FINANCE, CN, "Shanghai Composite closes higher on liquidity support", ["Shanghai Composite"], "bullish"),
-    (FINANCE, CN, "China insurers increase allocation to dividend stocks", ["insurers", "dividends"], "neutral"),
-    (FINANCE, JP, "Nikkei 225 crosses 40,000 milestone", ["Nikkei", "日経"], "bullish"),
-    (FINANCE, JP, "BOJ signals end to negative rates", ["BOJ", "rates"], "neutral"),
-    (FINANCE, JP, "Yen volatility rises ahead of wage negotiation results", ["yen", "円"], "bearish"),
-    (FINANCE, JP, "Japan exporters climb as auto orders recover", ["Japan", "autos"], "bullish"),
-    (FINANCE, JP, "Tokyo inflation cools but remains above BOJ target", ["inflation", "BOJ"], "neutral"),
-    (FINANCE, JP, "Japanese banks gain on steeper yield curve", ["banks", "yield curve"], "bullish"),
-    (FINANCE, JP, "Robot makers rally after factory automation orders improve", ["robots", "automation"], "bullish"),
-    (FINANCE, JP, "Japan REITs slip as long-end yields edge higher", ["REITs", "yields"], "bearish"),
-    (FINANCE, JP, "TOPIX value shares outperform growth peers", ["TOPIX", "value"], "neutral"),
-    (FINANCE, JP, "Household spending data points to gradual recovery", ["spending", "GDP"], "neutral"),
-    (FINANCE, EU, "ECB holds rates, signals cut in June", ["ECB", "rates"], "bullish"),
-    (FINANCE, EU, "European luxury shares stabilize after China demand update", ["luxury", "China"], "neutral"),
-    (FINANCE, EU, "DAX closes at record as exporters benefit from softer euro", ["DAX", "euro"], "bullish"),
-    (FINANCE, EU, "Eurozone bank stocks rise on net interest income guidance", ["banks", "income"], "bullish"),
-    (FINANCE, EU, "Renewable energy developers drop after auction pricing reset", ["renewables"], "bearish"),
-    (FINANCE, HK, "Hang Seng Tech Index drops 3% on regulation fears", ["Hang Seng", "regulation"], "bearish"),
-    (FINANCE, HK, "Hong Kong IPO pipeline improves as biotech issuer files", ["Hong Kong", "IPO"], "bullish"),
-    (FINANCE, HK, "Mainland internet ADRs lift Hong Kong turnover", ["internet", "turnover"], "bullish"),
-    (FINANCE, HK, "Hong Kong property shares fall on refinancing concerns", ["property", "refinancing"], "bearish"),
-    (FINANCE, HK, "Southbound flows support high-dividend financials", ["southbound", "dividends"], "bullish"),
-    (POLITICS, US, "White House announces new chip export controls", ["White House", "chips"], "bearish"),
-    (POLITICS, US, "Senate committee advances bipartisan AI safety bill", ["AI", "Senate"], "neutral"),
-    (POLITICS, US, "Treasury outlines outbound investment screening rules", ["Treasury", "screening"], "neutral"),
-    (POLITICS, US, "Commerce Department expands clean-energy grant program", ["Commerce", "clean energy"], "bullish"),
-    (POLITICS, US, "Congress debates debt ceiling framework before recess", ["Congress", "debt"], "neutral"),
-    (POLITICS, GLOBAL, "G7 agrees on coordinated sanctions package", ["G7", "sanctions"], "neutral"),
-    (POLITICS, GLOBAL, "EU and ASEAN ministers discuss supply-chain resilience", ["EU", "ASEAN"], "neutral"),
-    (POLITICS, GLOBAL, "Global trade talks focus on critical minerals access", ["trade", "minerals"], "bullish"),
-    (POLITICS, GLOBAL, "Oil producers extend voluntary output curbs", ["oil", "OPEC"], "bullish"),
-    (POLITICS, GLOBAL, "IMF urges fiscal discipline as election cycle intensifies", ["IMF", "fiscal"], "neutral"),
-    (TECHNOLOGY, GLOBAL, "NVIDIA unveils next-gen AI chips at GTC", ["NVIDIA", "GTC"], "bullish"),
-    (TECHNOLOGY, GLOBAL, "OpenAI announces GPT-5 release date", ["OpenAI", "GPT-5"], "bullish"),
-    (TECHNOLOGY, GLOBAL, "Cloud providers raise capital spending forecasts for AI clusters", ["cloud", "AI"], "bullish"),
-    (TECHNOLOGY, GLOBAL, "Cybersecurity vendors report surge in identity attacks", ["cybersecurity"], "bearish"),
-    (TECHNOLOGY, GLOBAL, "Chip equipment makers see orders recover from memory customers", ["chips", "memory"], "bullish"),
-    (MACRO, US, "US CPI falls to 2.8%, lowest since 2021", ["CPI", "inflation"], "bullish"),
-    (MACRO, US, "Unemployment holds steady at 3.7%", ["unemployment", "labor"], "neutral"),
-    (MACRO, US, "US GDP growth revised higher on services spending", ["GDP", "services"], "bullish"),
-    (MACRO, US, "Consumer confidence improves as inflation expectations ease", ["confidence", "inflation"], "bullish"),
-    (MACRO, US, "Manufacturing PMI returns to expansion for first time in months", ["PMI", "manufacturing"], "bullish"),
+    (FINANCE, US, "Fed holds rates steady at 5.25%", ["Fed", "rates", "CPI"], "neutral", "short"),
+    (FINANCE, US, "S&P 500 hits new record amid AI rally", ["S&P 500", "AI"], "bullish", "medium"),
+    (FINANCE, US, "Tesla Q2 earnings beat expectations", ["Tesla", "earnings"], "bullish", "long"),
+    (FINANCE, US, "NVIDIA adds $180 billion in market value after guidance raise", ["NVIDIA", "AI"], "bullish", "short"),
+    (FINANCE, US, "Apple services revenue offsets softer iPhone demand", ["Apple", "services"], "neutral", "medium"),
+    (FINANCE, US, "US banks lift loan-loss reserves as consumers slow spending", ["banks", "credit"], "bearish", "long"),
+    (FINANCE, US, "Treasury yields retreat as traders price September rate cut", ["Treasury", "rates"], "bullish", "short"),
+    (FINANCE, US, "Semiconductor shares extend gains on cloud capex outlook", ["semiconductors", "cloud"], "bullish", "medium"),
+    (FINANCE, US, "Retail stocks fall after mixed same-store sales data", ["retail", "sales"], "bearish", "long"),
+    (FINANCE, US, "Small caps rebound as funding conditions improve", ["small caps", "funding"], "bullish", "short"),
+    (FINANCE, US, "Oil majors rise with Brent crude near three-month high", ["oil", "Brent"], "bullish", "medium"),
+    (FINANCE, US, "Dollar slips as investors rotate into risk assets", ["dollar", "risk"], "neutral", "long"),
+    (FINANCE, US, "Cloud software sector rallies after resilient bookings", ["software", "bookings"], "bullish", "short"),
+    (FINANCE, US, "Biotech IPO window reopens with two oversubscribed listings", ["biotech", "IPO"], "bullish", "medium"),
+    (FINANCE, US, "Private credit funds report slower but positive inflows", ["private credit"], "neutral", "long"),
+    (FINANCE, CN, "PBOC cuts reserve ratio by 25bps", ["PBOC", "RRR"], "bullish", "short"),
+    (FINANCE, CN, "A-share market rebounds on stimulus hopes", ["A-share", "stimulus"], "bullish", "medium"),
+    (FINANCE, CN, "China property developers gain after funding support plan", ["property", "funding"], "bullish", "long"),
+    (FINANCE, CN, "Mainland brokerages rise as margin financing stabilizes", ["brokerages"], "bullish", "short"),
+    (FINANCE, CN, "Consumer names lag after weaker holiday travel spending", ["consumer", "travel"], "bearish", "medium"),
+    (FINANCE, CN, "Yuan strengthens on state bank dollar selling reports", ["yuan", "dollar"], "neutral", "long"),
+    (FINANCE, CN, "EV supply chain shares advance on export order growth", ["EV", "exports"], "bullish", "short"),
+    (FINANCE, CN, "Industrial profits rise for third straight month", ["industrial profits"], "bullish", "medium"),
+    (FINANCE, CN, "Shanghai Composite closes higher on liquidity support", ["Shanghai Composite"], "bullish", "long"),
+    (FINANCE, CN, "China insurers increase allocation to dividend stocks", ["insurers", "dividends"], "neutral", "short"),
+    (FINANCE, JP, "Nikkei 225 crosses 40,000 milestone", ["Nikkei", "日経"], "bullish", "short"),
+    (FINANCE, JP, "BOJ signals end to negative rates", ["BOJ", "rates"], "neutral", "medium"),
+    (FINANCE, JP, "Yen volatility rises ahead of wage negotiation results", ["yen", "円"], "bearish", "long"),
+    (FINANCE, JP, "Japan exporters climb as auto orders recover", ["Japan", "autos"], "bullish", "short"),
+    (FINANCE, JP, "Tokyo inflation cools but remains above BOJ target", ["inflation", "BOJ"], "neutral", "medium"),
+    (FINANCE, JP, "Japanese banks gain on steeper yield curve", ["banks", "yield curve"], "bullish", "long"),
+    (FINANCE, JP, "Robot makers rally after factory automation orders improve", ["robots", "automation"], "bullish", "short"),
+    (FINANCE, JP, "Japan REITs slip as long-end yields edge higher", ["REITs", "yields"], "bearish", "medium"),
+    (FINANCE, JP, "TOPIX value shares outperform growth peers", ["TOPIX", "value"], "neutral", "long"),
+    (FINANCE, JP, "Household spending data points to gradual recovery", ["spending", "GDP"], "neutral", "short"),
+    (FINANCE, EU, "ECB holds rates, signals cut in June", ["ECB", "rates"], "bullish", "short"),
+    (FINANCE, EU, "European luxury shares stabilize after China demand update", ["luxury", "China"], "neutral", "medium"),
+    (FINANCE, EU, "DAX closes at record as exporters benefit from softer euro", ["DAX", "euro"], "bullish", "long"),
+    (FINANCE, EU, "Eurozone bank stocks rise on net interest income guidance", ["banks", "income"], "bullish", "short"),
+    (FINANCE, EU, "Renewable energy developers drop after auction pricing reset", ["renewables"], "bearish", "medium"),
+    (FINANCE, HK, "Hang Seng Tech Index drops 3% on regulation fears", ["Hang Seng", "regulation"], "bearish", "short"),
+    (FINANCE, HK, "Hong Kong IPO pipeline improves as biotech issuer files", ["Hong Kong", "IPO"], "bullish", "medium"),
+    (FINANCE, HK, "Mainland internet ADRs lift Hong Kong turnover", ["internet", "turnover"], "bullish", "long"),
+    (FINANCE, HK, "Hong Kong property shares fall on refinancing concerns", ["property", "refinancing"], "bearish", "short"),
+    (FINANCE, HK, "Southbound flows support high-dividend financials", ["southbound", "dividends"], "bullish", "medium"),
+    (POLITICS, US, "White House announces new chip export controls", ["White House", "chips"], "bearish", "medium"),
+    (POLITICS, US, "Senate committee advances bipartisan AI safety bill", ["AI", "Senate"], "neutral", "long"),
+    (POLITICS, US, "Treasury outlines outbound investment screening rules", ["Treasury", "screening"], "neutral", "short"),
+    (POLITICS, US, "Commerce Department expands clean-energy grant program", ["Commerce", "clean energy"], "bullish", "medium"),
+    (POLITICS, US, "Congress debates debt ceiling framework before recess", ["Congress", "debt"], "neutral", "long"),
+    (POLITICS, GLOBAL, "G7 agrees on coordinated sanctions package", ["G7", "sanctions"], "neutral", "short"),
+    (POLITICS, GLOBAL, "EU and ASEAN ministers discuss supply-chain resilience", ["EU", "ASEAN"], "neutral", "medium"),
+    (POLITICS, GLOBAL, "Global trade talks focus on critical minerals access", ["trade", "minerals"], "bullish", "long"),
+    (POLITICS, GLOBAL, "Oil producers extend voluntary output curbs", ["oil", "OPEC"], "bullish", "short"),
+    (POLITICS, GLOBAL, "IMF urges fiscal discipline as election cycle intensifies", ["IMF", "fiscal"], "neutral", "medium"),
+    (TECHNOLOGY, GLOBAL, "NVIDIA unveils next-gen AI chips at GTC", ["NVIDIA", "GTC"], "bullish", "long"),
+    (TECHNOLOGY, GLOBAL, "OpenAI announces GPT-5 release date", ["OpenAI", "GPT-5"], "bullish", "short"),
+    (TECHNOLOGY, GLOBAL, "Cloud providers raise capital spending forecasts for AI clusters", ["cloud", "AI"], "bullish", "medium"),
+    (TECHNOLOGY, GLOBAL, "Cybersecurity vendors report surge in identity attacks", ["cybersecurity"], "bearish", "long"),
+    (TECHNOLOGY, GLOBAL, "Chip equipment makers see orders recover from memory customers", ["chips", "memory"], "bullish", "short"),
+    (MACRO, US, "US CPI falls to 2.8%, lowest since 2021", ["CPI", "inflation"], "bullish", "long"),
+    (MACRO, US, "Unemployment holds steady at 3.7%", ["unemployment", "labor"], "neutral", "short"),
+    (MACRO, US, "US GDP growth revised higher on services spending", ["GDP", "services"], "bullish", "medium"),
+    (MACRO, US, "Consumer confidence improves as inflation expectations ease", ["confidence", "inflation"], "bullish", "long"),
+    (MACRO, US, "Manufacturing PMI returns to expansion for first time in months", ["PMI", "manufacturing"], "bullish", "short"),
 ]
 
 
@@ -268,7 +270,7 @@ async def create_items(db: AsyncSession, sources: Sequence[DataSource]) -> None:
     rng = random.Random(20260517)
     created = 0
     for index, spec in enumerate(ITEM_SPECS):
-        category, market, title, keywords, sentiment = spec
+        category, market, title, keywords, sentiment, content_length = spec
         existing = await db.scalar(select(CollectedItem.id).where(CollectedItem.title == title))
         if existing is not None:
             continue
@@ -281,9 +283,9 @@ async def create_items(db: AsyncSession, sources: Sequence[DataSource]) -> None:
         item = CollectedItem(
             source_id=select_source(sources, category, market).id,
             title=title,
-            content_raw=article_body(title, category, market, keywords),
+            content_raw=article_body(title, category, market, keywords, content_length),
             content_url=demo_url(category, market, title),
-            summary=summary_for(title, market, sentiment),
+            summary=summary_for(title, market, sentiment, content_length),
             category=category,
             market=market,
             published_at=published_at,
@@ -291,6 +293,7 @@ async def create_items(db: AsyncSession, sources: Sequence[DataSource]) -> None:
             expires_at=collected_at + timedelta(days=30),
             metadata_extra={
                 "demo_seed": True,
+                "content_length": content_length,
                 "sentiment": sentiment,
                 "keywords": keywords,
             },
@@ -549,6 +552,36 @@ def article_body(
     category: IntelligenceCategory,
     market: Market,
     keywords: Sequence[str],
+    content_length: ContentLength,
+) -> str:
+    if content_length == "short":
+        return short_article_body(title, category, market, keywords)
+    if content_length == "long":
+        return long_article_body(title, category, market, keywords)
+    return medium_article_body(title, category, market, keywords)
+
+
+def short_article_body(
+    title: str,
+    category: IntelligenceCategory,
+    market: Market,
+    keywords: Sequence[str],
+) -> str:
+    region = market.value.upper()
+    topic = ", ".join(keywords[:2])
+    return (
+        f"{title}. The {region} {category.value} signal moved quickly as desks focused on "
+        f"{topic}. SIGMA is tracking whether the headline produces follow-through in rates, "
+        "currencies, and the most exposed equity sectors. For demo review, this item is meant "
+        "to read like a fast market flash rather than a full analyst note."
+    )
+
+
+def medium_article_body(
+    title: str,
+    category: IntelligenceCategory,
+    market: Market,
+    keywords: Sequence[str],
 ) -> str:
     region = market.value.upper()
     topic = ", ".join(keywords[:3])
@@ -562,18 +595,79 @@ def article_body(
         "communication. Portfolio managers are keeping gross exposure measured while adding "
         "selective risk in names with strong balance sheets, pricing power, and clear earnings "
         "visibility.\n\n"
+        "The move also changes the watchlist priority for related sectors. Follow-up signals "
+        "from policy desks, broker revisions, and currency markets will help determine whether "
+        "this is a short-lived reaction or the start of a broader allocation shift.\n\n"
         "The immediate implication for SIGMA monitoring is a higher priority on related source "
         "updates, follow-through in futures markets, and whether the story broadens beyond the "
         "initial headline into sector-level revisions."
     )
 
 
-def summary_for(title: str, market: Market, sentiment: str) -> str:
+def long_article_body(
+    title: str,
+    category: IntelligenceCategory,
+    market: Market,
+    keywords: Sequence[str],
+) -> str:
+    region = market.value.upper()
+    topic = ", ".join(keywords[:3])
+    return (
+        f"{title}. The headline landed as a broader {region} {category.value} story rather "
+        f"than a single-asset move, with traders immediately linking it to {topic}. Early "
+        "price action showed stronger activity in index futures, rates, and the most liquid "
+        "large-cap names, while defensive sectors moved more cautiously.\n\n"
+        "The first market read was about positioning. Several desks had entered the session "
+        "with lighter risk after a run of mixed macro data, so even a modest surprise created "
+        "an outsized reaction in crowded trades. Volumes were concentrated near the open and "
+        "again around regional policy headlines.\n\n"
+        "The second read was about transmission. Analysts said the story matters most if it "
+        "changes earnings estimates, funding costs, or regulatory assumptions over the next "
+        "several sessions. That makes source follow-up more important than the first headline "
+        "alone, especially for watchlists tied to policy, AI infrastructure, banks, property, "
+        "or export demand.\n\n"
+        "Cross-market signals were mixed but useful. Currency moves suggested investors were "
+        "not treating the update as a pure risk-on event, while credit spreads remained stable "
+        "enough to avoid a defensive rotation. Commodity-linked names reacted mainly through "
+        "demand expectations rather than supply shock pricing.\n\n"
+        "Sector rotation added another layer. Momentum accounts favored liquid leaders first, "
+        "but the more important test is whether second-tier suppliers, regional banks, and "
+        "domestic demand proxies begin to confirm the same direction. Without that breadth, "
+        "the move may remain a positioning adjustment rather than a durable market regime "
+        "change.\n\n"
+        "Macro sensitivity also remains high. A single inflation print, central-bank speech, "
+        "or funding headline could change the interpretation quickly, especially in markets "
+        "where liquidity is concentrated in a narrow group of index heavyweights. That makes "
+        "the timing of follow-up alerts as important as the headline classification itself.\n\n"
+        "Investor time horizon is the final distinction. Fast-money accounts may only need a "
+        "few sessions of confirmation, but long-only funds will look for evidence that margins, "
+        "cash flow, and policy support can survive the next macro release cycle. That gap between "
+        "trading reaction and fundamental confirmation is where the best monitoring value sits.\n\n"
+        "The risk case is still visible. If liquidity fades, if officials walk back the policy "
+        "signal, or if earnings revisions fail to appear, the market could unwind the initial "
+        "move quickly. SIGMA should therefore track both positive continuation signals and early "
+        "signs that the headline has already been fully priced.\n\n"
+        "For SIGMA monitoring, the practical takeaway is to keep the story elevated until the "
+        "next data point confirms or rejects the initial interpretation. The highest-value "
+        "alerts should watch related policy remarks, revisions from major brokers, and whether "
+        "the move broadens from headline-sensitive stocks into the wider market."
+    )
+
+
+def summary_for(title: str, market: Market, sentiment: str, content_length: ContentLength) -> str:
     tone = {
         "bullish": "constructive",
         "bearish": "cautious",
         "neutral": "balanced",
     }[sentiment]
+    if content_length == "short":
+        return f"{title} kept the {market.value.upper()} signal {tone} and merits quick monitoring."
+    if content_length == "long":
+        return (
+            f"{title} kept the {market.value.upper()} signal {tone}. "
+            "The fuller read-through depends on follow-up policy language, earnings revisions, "
+            "liquidity conditions, and whether sector-level participation broadens."
+        )
     return (
         f"{title} kept the {market.value.upper()} signal {tone}. "
         "SIGMA should watch policy follow-through, earnings revisions, and liquidity conditions."
@@ -634,7 +728,7 @@ def demo_url(category: IntelligenceCategory, market: Market, title: str) -> str:
 
 
 def item_titles() -> list[str]:
-    return [title for _, _, title, _, _ in ITEM_SPECS]
+    return [title for _, _, title, _, _, _ in ITEM_SPECS]
 
 
 def source_names() -> list[str]:

@@ -148,10 +148,16 @@ def _is_trading(config: IndexConfig, now: datetime | None = None) -> bool:
 
 
 def _sparkline(value: float, change_pct: float) -> list[float]:
+    """Generate per-minute price points for one trading day.
+
+    480 points covers an 8-hour session at 1-minute resolution. The
+    frontend resamples these values to each exchange's trading window.
+    """
+    num_points = 480
     start = value / (1 + change_pct / 100) if change_pct != -100 else value
     points: list[float] = []
-    for index in range(24):
-        progress = index / 23
+    for index in range(num_points):
+        progress = index / (num_points - 1)
         curve = math.sin(progress * math.pi * 2) * value * 0.0008
         points.append(round(start + (value - start) * progress + curve, 2))
     return points

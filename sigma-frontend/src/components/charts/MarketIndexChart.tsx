@@ -158,6 +158,11 @@ export function MarketIndexChart() {
   }
 
   const chartData = useMemo(() => (activeIndex ? buildChartData(activeIndex, range) : []), [activeIndex, range]);
+  const axisTicks = useMemo(() => chartData.filter((point) => point.label !== "").map((point) => point.timestamp), [chartData]);
+  const axisLabels = useMemo(
+    () => new Map(chartData.filter((point) => point.label !== "").map((point) => [point.timestamp, point.label])),
+    [chartData]
+  );
   const domain = useMemo(() => yDomain(chartData), [chartData]);
   const positive = (activeIndex?.change_pct ?? 0) >= 0;
   const lineColor = positive ? "rgb(var(--sigma-success))" : "rgb(var(--sigma-danger))";
@@ -191,12 +196,14 @@ export function MarketIndexChart() {
                     </defs>
                     <XAxis
                       axisLine={false}
-                      dataKey="label"
-                      interval="preserveStartEnd"
+                      dataKey="timestamp"
+                      interval={0}
                       minTickGap={18}
                       tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
+                      tickFormatter={(value: unknown) => axisLabels.get(String(value)) ?? ""}
                       tickLine={false}
                       tickMargin={2}
+                      ticks={axisTicks}
                     />
                     <YAxis
                       axisLine={false}
@@ -597,7 +604,7 @@ function buildChartData(index: MarketIndex, range: RangeId): ChartPoint[] {
   return points.map((value, pointIndex) => {
     const timestamp = timestampForRange(now, range, pointIndex, points.length);
     return {
-      label: labelForRange(timestamp, range),
+      label: shouldShowRangeLabel(pointIndex, points.length, range) ? labelForRange(timestamp, range) : "",
       timestamp: timestamp.toISOString(),
       value
     };
@@ -626,6 +633,15 @@ function labelForRange(date: Date, range: RangeId) {
     return new Intl.DateTimeFormat("en", { timeZone: chartTimeZone, weekday: "short" }).format(date);
   }
   return new Intl.DateTimeFormat("en", { day: "numeric", month: "short", timeZone: chartTimeZone }).format(date);
+}
+
+function shouldShowRangeLabel(index: number, total: number, range: RangeId) {
+  if (range === "1d" || total <= 2) {
+    return true;
+  }
+  const targetTicks = range === "5d" ? 6 : 7;
+  const interval = Math.max(1, Math.floor((total - 1) / (targetTicks - 1)));
+  return index === 0 || index === total - 1 || index % interval === 0;
 }
 
 function yDomain(data: ChartPoint[]): [number, number] {
@@ -719,17 +735,21 @@ function generateTradingAxis(tradingHours: MarketIndex["trading_hours"], symbol:
   while (cursor <= closeDate) {
     if (!isInsideTradingBreak(cursor, tradingHours.timezone, breaks)) {
       const parts = beijingParts(cursor);
+      const minuteOfDay = parts.hour * 60 + parts.minute;
+      const isLabelTick = minuteOfDay % 30 === 0;
       if (parts.day !== previousDay) {
         points.push({ label: String(parts.day), timestamp: new Date(cursor) });
         previousDay = parts.day;
       } else {
         points.push({
-          label: `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`,
+          label: isLabelTick
+            ? `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`
+            : "",
           timestamp: new Date(cursor)
         });
       }
     }
-    cursor = new Date(cursor.getTime() + 30 * 60 * 1000);
+    cursor = new Date(cursor.getTime() + 60 * 1000);
   }
   return points;
 }
