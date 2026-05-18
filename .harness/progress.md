@@ -741,3 +741,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added user-scoped named LLM API key lists persisted through `/me/llm/config`, retained global admin key storage through `/admin/llm/config`, and exposed add/edit/rename/delete controls in the shared LLM settings panel.
 - Timestamp: 2026-05-18T09:54:04Z
+
+### [Maintenance] Market chart range dropdown
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/charts/MarketIndexChart.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Replaced inline market chart range buttons with a single Range dropdown and added 1D, 3D, 7D, 15D, 30D, 90D, 180D, 1Y, 5Y, and 10Y chart ranges.
+- Timestamp: 2026-05-18T10:22:55Z
