@@ -733,3 +733,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Moved admin dashboard, user management, source management, LLM configuration, and collector logs into a role-gated section on the Settings page; production build no longer emits `/[locale]/admin` routes.
 - Timestamp: 2026-05-18T09:47:58Z
+
+### [Maintenance] Named LLM API keys
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/schemas/llm.py, sigma-backend/app/services/llm_settings.py, sigma-backend/app/api/v1/routes/user_settings.py, sigma-backend/tests/test_reports_api.py, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added user-scoped named LLM API key lists persisted through `/me/llm/config`, retained global admin key storage through `/admin/llm/config`, and exposed add/edit/rename/delete controls in the shared LLM settings panel.
+- Timestamp: 2026-05-18T09:54:04Z

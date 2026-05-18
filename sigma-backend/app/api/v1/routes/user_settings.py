@@ -92,21 +92,21 @@ async def update_password(
 
 @router.get("/llm/config", response_model=LLMConfigRead)
 async def get_user_llm_config(
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> LLMConfigRead:
     """Return LLM settings for any authenticated user."""
-    return await read_llm_config(db)
+    return await read_llm_config(db, current_user.id)
 
 
 @router.put("/llm/config", response_model=LLMConfigRead)
 async def update_user_llm_config(
     payload: LLMConfigUpdate,
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> LLMConfigRead:
     """Update LLM settings for any authenticated user."""
-    return await write_llm_config(db, payload)
+    return await write_llm_config(db, payload, current_user.id)
 
 
 @router.get("/llm/usage", response_model=LLMUsageResponse)

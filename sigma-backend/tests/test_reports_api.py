@@ -75,7 +75,12 @@ def test_admin_llm_config_and_usage(client: TestClient) -> None:
     update_response = client.put(
         "/api/v1/admin/llm/config",
         headers=_auth(token),
-        json={"provider": "openai", "model": "gpt-test", "daily_token_limit": 12345},
+        json={
+            "provider": "openai",
+            "model": "gpt-test",
+            "daily_token_limit": 12345,
+            "api_keys": [{"name": "Operations", "key": "sk-admin-test"}],
+        },
     )
     get_response = client.get("/api/v1/admin/llm/config", headers=_auth(token))
     usage_response = client.get("/api/v1/admin/llm/usage", headers=_auth(token))
@@ -84,13 +89,15 @@ def test_admin_llm_config_and_usage(client: TestClient) -> None:
     assert get_response.status_code == 200
     assert get_response.json()["provider"] == "openai"
     assert get_response.json()["model"] == "gpt-test"
+    assert get_response.json()["api_keys"] == [{"name": "Operations", "key": "sk-admin-test"}]
     assert usage_response.status_code == 200
     assert usage_response.json()["items"] == []
 
 
 def test_user_llm_config_and_usage(client: TestClient) -> None:
-    """Authenticated users can update shared LLM config and read usage rollups."""
+    """Authenticated users can update personal LLM API keys and read usage rollups."""
     token = _token(client, "llm-user@example.com")
+    second_token = _token(client, "llm-second-user@example.com")
 
     update_response = client.put(
         "/api/v1/me/llm/config",
@@ -100,15 +107,51 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
             "model": "claude-test",
             "daily_token_limit": 67890,
             "cost_guard_enabled": False,
+            "api_keys": [
+                {"name": "Work", "key": "sk-work-test"},
+                {"name": "Personal", "key": "sk-personal-test"},
+            ],
+        },
+    )
+    second_update_response = client.put(
+        "/api/v1/me/llm/config",
+        headers=_auth(second_token),
+        json={
+            "provider": "anthropic",
+            "model": "claude-test",
+            "daily_token_limit": 67890,
+            "cost_guard_enabled": False,
+            "api_keys": [{"name": "GPT-4 key", "key": "sk-second-test"}],
         },
     )
     get_response = client.get("/api/v1/me/llm/config", headers=_auth(token))
+    edited_response = client.put(
+        "/api/v1/me/llm/config",
+        headers=_auth(token),
+        json={
+            "provider": "anthropic",
+            "model": "claude-test",
+            "daily_token_limit": 67890,
+            "cost_guard_enabled": False,
+            "api_keys": [{"name": "Work renamed", "key": "sk-work-updated"}],
+        },
+    )
+    edited_get_response = client.get("/api/v1/me/llm/config", headers=_auth(token))
+    second_get_response = client.get("/api/v1/me/llm/config", headers=_auth(second_token))
     usage_response = client.get("/api/v1/me/llm/usage", headers=_auth(token))
 
     assert update_response.status_code == 200
+    assert second_update_response.status_code == 200
+    assert edited_response.status_code == 200
     assert update_response.json()["cost_guard_enabled"] is False
     assert get_response.status_code == 200
     assert get_response.json()["model"] == "claude-test"
+    assert get_response.json()["api_keys"] == [
+        {"name": "Work", "key": "sk-work-test"},
+        {"name": "Personal", "key": "sk-personal-test"},
+    ]
+    assert edited_get_response.json()["api_keys"] == [{"name": "Work renamed", "key": "sk-work-updated"}]
+    assert second_get_response.json()["api_keys"] == [{"name": "GPT-4 key", "key": "sk-second-test"}]
     assert usage_response.status_code == 200
     assert usage_response.json()["items"] == []
 

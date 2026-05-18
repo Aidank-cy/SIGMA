@@ -53,6 +53,12 @@ export interface LLMConfig {
   model: string;
   daily_token_limit: number;
   cost_guard_enabled: boolean;
+  api_keys: LLMApiKey[];
+}
+
+export interface LLMApiKey {
+  name: string;
+  key: string;
 }
 
 export interface LLMUsageDay {
