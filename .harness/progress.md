@@ -765,3 +765,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Muted the Settings profile display-name input by default and restored full text color and opacity while focused or clicked for editing.
 - Timestamp: 2026-05-18T10:33:08Z
+
+### [Maintenance] Offline frontend font build
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/layout.tsx, sigma-frontend/src/app/globals.css, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Removed `next/font/google` usage so production Docker builds no longer fetch Inter or Noto Sans SC from Google Fonts, and supplied equivalent system font stacks through CSS variables.
+- Timestamp: 2026-05-18T10:41:57Z
