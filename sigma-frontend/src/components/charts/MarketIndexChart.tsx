@@ -186,7 +186,7 @@ export function MarketIndexChart() {
 
               <div className="mt-3 h-[280px] md:h-[380px]">
                 <ResponsiveContainer height="100%" width="100%">
-                  <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                  <AreaChart data={chartData} margin={{ top: 16, right: 36, bottom: 6, left: 5 }}>
                     <defs>
                       <linearGradient id={`index-fill-${activeIndex.symbol}`} x1="0" x2="0" y1="0" y2="1">
                         <stop offset="0%" stopColor={lineColor} stopOpacity={0.16} />

@@ -716,3 +716,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added explicit short/medium/long demo item body generation with per-market coverage, expanded market-index sparklines to 480 points, generated one-minute chart data while keeping sparse axis labels, and verified backend tests plus frontend build.
 - Timestamp: 2026-05-18T04:26:11Z
+
+### [Maintenance] Market chart axis label clipping
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/charts/MarketIndexChart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added top and right chart margin so the market index chart shifts down-left and the rightmost x-axis timestamp has enough room to render.
+- Timestamp: 2026-05-18T09:41:25Z
