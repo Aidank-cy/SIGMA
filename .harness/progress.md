@@ -700,3 +700,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: NOT RUN
 - Notes: Added `scripts/` to both backend Docker images so `python3 scripts/seed_demo_data.py` exists inside the running backend container after rebuild.
 - Timestamp: 2026-05-18T02:04:12Z
+
+### [Maintenance] Bcrypt compatibility pin
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/pyproject.toml, CHANGELOG.md, .harness/progress.md
+- Tests: NOT RUN
+- Notes: Pinned bcrypt below 4.1 so passlib 1.7.4 no longer emits the trapped `__about__` warning during password hashing in seed/auth flows after rebuilding the backend image.
+- Timestamp: 2026-05-18T02:15:26Z
