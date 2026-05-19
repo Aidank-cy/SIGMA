@@ -805,3 +805,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Changed the market chart X-axis to preserve start/end labels with a larger tick gap and reduced generated 1-day labels from 30-minute to 60-minute cadence to prevent overlapping timestamps.
 - Timestamp: 2026-05-19T05:52:59Z
+
+### [Maintenance] Select text alignment
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/ui/Select.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Adjusted the shared Select value padding and floating-label top offset so labels and selected values sit evenly within the existing h-12 control.
+- Timestamp: 2026-05-19T05:55:27Z
