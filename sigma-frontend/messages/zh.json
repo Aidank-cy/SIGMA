@@ -530,6 +530,7 @@
       "newKeyName": "新 Key",
       "keyName": "Key 名称",
       "keyValue": "API Key",
+      "tokenLimit": "Token 上限",
       "deleteKey": "删除",
       "emptyKeys": "还没有保存 API Key。",
       "keyCount": "{count} 个 API Key",
@@ -544,7 +545,11 @@
       "usageByFunction": "按功能统计",
       "providers": {
         "anthropic": "Anthropic",
-        "openai": "OpenAI"
+        "openai": "OpenAI",
+        "deepseek": "DeepSeek",
+        "minimax": "MiniMax",
+        "kimi": "Kimi (Moonshot)",
+        "gemini": "Gemini"
       },
       "functions": {
         "summary": "摘要",

@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     default_retention_days: int = 30
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    deepseek_api_key: str = ""
+    minimax_api_key: str = ""
+    kimi_api_key: str = ""
+    gemini_api_key: str = ""
     default_llm_provider: str = "anthropic"
     default_llm_model: str = "claude-sonnet-4-20250514"
     daily_token_limit: int = 1_000_000
