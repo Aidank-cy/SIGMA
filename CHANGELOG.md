@@ -6,6 +6,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ## [Unreleased]
 
+### Fixed
+- Fix production frontend Docker builds by excluding host build artifacts and macOS `node_modules` from the Docker context.
+
 ## [1.1.0] - 2026-05-19
 
 ### Added
