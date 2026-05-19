@@ -8,8 +8,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ### Added
 - Add a custom design-system select dropdown that matches SIGMA's dark rounded menu styling.
+- Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Redesign LLM settings into a full-width form with provider-grouped API keys and per-key token limits.
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Fixed

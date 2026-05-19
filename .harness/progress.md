@@ -821,3 +821,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added a React/ref-based custom dropdown with outside-click and Escape close behavior, migrated native Select usages across feed, settings, locale, LLM, and admin filters, left the native Select as a deprecated fallback, and browser-smoked the login locale dropdown on localhost.
 - Timestamp: 2026-05-19T06:04:48Z
+
+### [Maintenance] LLM provider settings redesign
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/schemas/llm.py, sigma-backend/app/analyzers/llm_client.py, sigma-backend/app/core/config.py, CHANGELOG.md, .harness/progress.md
+- Tests: PARTIAL
+- Notes: Redesigned the LLM settings panel into a single full-width form, added six provider options, moved API keys to provider-grouped entries with per-key token limits, and routed DeepSeek, MiniMax, Kimi, and Gemini through OpenAI-compatible backend endpoints. Frontend build, backend ruff, and post-edit hook passed; full backend pytest has two unchanged legacy assertions expecting the old API-key response shape without provider/token_limit.
+- Timestamp: 2026-05-19T06:28:00Z

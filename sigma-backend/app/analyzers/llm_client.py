@@ -29,8 +29,17 @@ class LLMRuntimeConfig:
     daily_token_limit: int
 
 
+OPENAI_COMPATIBLE_BASE_URLS = {
+    "openai": "https://api.openai.com/v1",
+    "deepseek": "https://api.deepseek.com/v1",
+    "minimax": "https://api.minimax.chat/v1",
+    "kimi": "https://api.moonshot.cn/v1",
+    "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
+}
+
+
 class LLMClient:
-    """Unified async client for Anthropic and OpenAI chat-style completions."""
+    """Unified async client for Anthropic and OpenAI-compatible chat completions."""
 
     def __init__(
         self,
@@ -121,9 +130,9 @@ class LLMClient:
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json",
             }
-        if provider == "openai":
+        if provider in OPENAI_COMPATIBLE_BASE_URLS:
             return {
-                "authorization": f"Bearer {settings.openai_api_key}",
+                "authorization": f"Bearer {self._api_key(provider)}",
                 "content-type": "application/json",
             }
         raise ValueError(f"Unsupported LLM provider: {provider}")
@@ -131,8 +140,21 @@ class LLMClient:
     def _url(self, provider: str) -> str:
         if provider == "anthropic":
             return "https://api.anthropic.com/v1/messages"
+        if provider in OPENAI_COMPATIBLE_BASE_URLS:
+            return f"{OPENAI_COMPATIBLE_BASE_URLS[provider]}/chat/completions"
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    def _api_key(self, provider: str) -> str:
         if provider == "openai":
-            return "https://api.openai.com/v1/chat/completions"
+            return settings.openai_api_key
+        if provider == "deepseek":
+            return settings.deepseek_api_key
+        if provider == "minimax":
+            return settings.minimax_api_key
+        if provider == "kimi":
+            return settings.kimi_api_key
+        if provider == "gemini":
+            return settings.gemini_api_key
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
     def _payload(
@@ -152,7 +174,7 @@ class LLMClient:
                 "max_tokens": max_tokens,
                 "temperature": temperature,
             }
-        if provider == "openai":
+        if provider in OPENAI_COMPATIBLE_BASE_URLS:
             return {
                 "model": model,
                 "messages": [
@@ -197,7 +219,7 @@ class LLMClient:
             text = "".join(part.get("text", "") for part in content if part.get("type") == "text")
             usage = response.get("usage", {})
             return text, int(usage.get("input_tokens", 0)), int(usage.get("output_tokens", 0))
-        if provider == "openai":
+        if provider in OPENAI_COMPATIBLE_BASE_URLS:
             choices = response.get("choices", [])
             text = str(choices[0]["message"]["content"]) if choices else ""
             usage = response.get("usage", {})

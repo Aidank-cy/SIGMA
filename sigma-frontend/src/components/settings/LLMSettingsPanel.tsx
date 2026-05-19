@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, DollarSign, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { DollarSign, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -12,12 +12,18 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
-import type { LLMConfig, LLMUsageResponse } from "@/lib/types";
+import type { LLMApiKey, LLMConfig, LLMUsageResponse } from "@/lib/types";
 
-const models = {
-  anthropic: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-latest"],
-  openai: ["gpt-4.1", "gpt-4.1-mini"]
-} as const;
+const models: Record<string, string[]> = {
+  anthropic: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-latest", "claude-opus-4-20250514"],
+  openai: ["gpt-4.1", "gpt-4.1-mini", "gpt-4o"],
+  deepseek: ["deepseek-chat", "deepseek-reasoner"],
+  minimax: ["minimax-01", "abab7-chat"],
+  kimi: ["moonshot-v1-128k", "moonshot-v1-32k"],
+  gemini: ["gemini-2.5-pro", "gemini-2.5-flash"]
+};
+
+const providers: LLMConfig["provider"][] = ["anthropic", "openai", "deepseek", "minimax", "kimi", "gemini"];
 
 const tokenCost = 0.000003;
 
@@ -67,7 +73,14 @@ export function LLMSettingsPanel({
 
   useEffect(() => {
     if (configData) {
-      setForm(configData);
+      setForm({
+        ...configData,
+        api_keys: configData.api_keys.map((entry) => ({
+          ...entry,
+          provider: entry.provider || configData.provider,
+          token_limit: entry.token_limit || 1_000_000
+        }))
+      });
     }
   }, [configData]);
 
@@ -126,17 +139,42 @@ export function LLMSettingsPanel({
   }, [t, usageData]);
 
   const hasInvalidApiKeys = form.api_keys.some(
-    (entry) => entry.name.trim().length === 0 || entry.key.trim().length === 0
+    (entry) =>
+      entry.name.trim().length === 0 ||
+      entry.key.trim().length === 0 ||
+      entry.provider.trim().length === 0 ||
+      entry.token_limit <= 0
   );
+
+  const groupedApiKeys = useMemo(
+    () =>
+      providers
+        .map((provider) => ({
+          entries: form.api_keys
+            .map((entry, index) => ({ entry, index }))
+            .filter(({ entry }) => entry.provider === provider),
+          provider
+        }))
+        .filter((group) => group.entries.length > 0),
+    [form.api_keys]
+  );
+
+  const providerOptions = providers.map((provider) => ({
+    label: t(`providers.${provider}`),
+    value: provider
+  }));
 
   function addApiKey() {
     setForm({
       ...form,
-      api_keys: [...form.api_keys, { key: "", name: t("newKeyName") }]
+      api_keys: [
+        ...form.api_keys,
+        { key: "", name: t("newKeyName"), provider: form.provider, token_limit: 1_000_000 }
+      ]
     });
   }
 
-  function updateApiKey(index: number, field: "key" | "name", value: string) {
+  function updateApiKey(index: number, field: keyof LLMApiKey, value: string | number) {
     setForm({
       ...form,
       api_keys: form.api_keys.map((entry, entryIndex) =>
@@ -167,22 +205,7 @@ export function LLMSettingsPanel({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card className="p-5">
-          <div className="flex items-start gap-4">
-            <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-sigma-accent/10 text-sigma-accent">
-              <Bot className="h-6 w-6" aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-sigma-muted">{t("current")}</p>
-              <h2 className="mt-1 truncate text-xl font-semibold text-sigma-text">{form.model}</h2>
-              <p className="mt-2 text-sm text-sigma-muted">
-                {t(`providers.${form.provider}`)} · {t("keyCount", { count: form.api_keys.length })}
-              </p>
-            </div>
-          </div>
-        </Card>
-
+      <section className="space-y-4">
         <Card className="space-y-4 p-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <CustomSelect
@@ -191,13 +214,10 @@ export function LLMSettingsPanel({
                 setForm({
                   ...form,
                   provider: value as LLMConfig["provider"],
-                  model: models[value as LLMConfig["provider"]][0]
+                  model: models[value][0]
                 })
               }
-              options={[
-                { label: t("providers.anthropic"), value: "anthropic" },
-                { label: t("providers.openai"), value: "openai" }
-              ]}
+              options={providerOptions}
               value={form.provider}
             />
             <CustomSelect
@@ -207,13 +227,6 @@ export function LLMSettingsPanel({
               value={form.model}
             />
           </div>
-          <Input
-            label={t("dailyLimit")}
-            min={1}
-            onChange={(event) => setForm({ ...form, daily_token_limit: Number(event.target.value) })}
-            type="number"
-            value={form.daily_token_limit}
-          />
           <label className="flex items-center justify-between gap-4 rounded-lg border border-sigma-line p-3 text-sm font-medium text-sigma-text">
             <span className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-sigma-muted" aria-hidden />
@@ -239,37 +252,62 @@ export function LLMSettingsPanel({
             {form.api_keys.length === 0 ? (
               <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
             ) : (
-              <div className="space-y-3">
-                {form.api_keys.map((entry, index) => (
-                  <div className="grid gap-3 rounded-lg bg-sigma-elevated p-3 lg:grid-cols-[0.8fr_1fr_auto]" key={index}>
-                    <Input
-                      label={t("keyName")}
-                      onChange={(event) => updateApiKey(index, "name", event.target.value)}
-                      value={entry.name}
-                    />
-                    <Input
-                      label={t("keyValue")}
-                      onChange={(event) => updateApiKey(index, "key", event.target.value)}
-                      type="password"
-                      value={entry.key}
-                    />
-                    <Button
-                      aria-label={t("deleteKey")}
-                      className="self-center"
-                      onClick={() => removeApiKey(index)}
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden />
-                      {t("deleteKey")}
-                    </Button>
+              <div className="space-y-4">
+                {groupedApiKeys.map((group) => (
+                  <div className="space-y-2" key={group.provider}>
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-sigma-muted">
+                      {t(`providers.${group.provider}`)}
+                    </h4>
+                    <div className="space-y-3">
+                      {group.entries.map(({ entry, index }) => (
+                        <div
+                          className="grid gap-3 rounded-lg bg-sigma-elevated p-3 lg:grid-cols-[0.9fr_1fr_1fr_0.8fr_auto]"
+                          key={index}
+                        >
+                          <CustomSelect
+                            label={t("provider")}
+                            onChange={(value) => updateApiKey(index, "provider", value)}
+                            options={providerOptions}
+                            value={entry.provider}
+                          />
+                          <Input
+                            label={t("keyName")}
+                            onChange={(event) => updateApiKey(index, "name", event.target.value)}
+                            value={entry.name}
+                          />
+                          <Input
+                            label={t("keyValue")}
+                            onChange={(event) => updateApiKey(index, "key", event.target.value)}
+                            type="password"
+                            value={entry.key}
+                          />
+                          <Input
+                            label={t("tokenLimit")}
+                            min={1}
+                            onChange={(event) => updateApiKey(index, "token_limit", Number(event.target.value))}
+                            type="number"
+                            value={entry.token_limit}
+                          />
+                          <Button
+                            aria-label={t("deleteKey")}
+                            className="self-center"
+                            onClick={() => removeApiKey(index)}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden />
+                            {t("deleteKey")}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </section>
-          <Button disabled={hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
+          <Button className="w-full" disabled={hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
             {t("save")}
           </Button>
         </Card>

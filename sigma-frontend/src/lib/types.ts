@@ -49,7 +49,7 @@ export interface LastCollectionResponse {
 }
 
 export interface LLMConfig {
-  provider: "anthropic" | "openai";
+  provider: "anthropic" | "openai" | "deepseek" | "minimax" | "kimi" | "gemini";
   model: string;
   daily_token_limit: number;
   cost_guard_enabled: boolean;
@@ -59,6 +59,8 @@ export interface LLMConfig {
 export interface LLMApiKey {
   name: string;
   key: string;
+  provider: string;
+  token_limit: number;
 }
 
 export interface LLMUsageDay {

@@ -530,6 +530,7 @@
       "newKeyName": "New key",
       "keyName": "Key name",
       "keyValue": "API key",
+      "tokenLimit": "Token limit",
       "deleteKey": "Delete",
       "emptyKeys": "No API keys saved yet.",
       "keyCount": "{count, plural, =0 {No API keys} one {# API key} other {# API keys}}",
@@ -544,7 +545,11 @@
       "usageByFunction": "Usage by function",
       "providers": {
         "anthropic": "Anthropic",
-        "openai": "OpenAI"
+        "openai": "OpenAI",
+        "deepseek": "DeepSeek",
+        "minimax": "MiniMax",
+        "kimi": "Kimi (Moonshot)",
+        "gemini": "Gemini"
       },
       "functions": {
         "summary": "Summaries",
