@@ -853,3 +853,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Executed Layer 3 from the full-stack workflow, expanded weak LLM coverage, added `/api/v1/me/settings` tests, fixed live endpoint failures for market indices, admin dashboard token stats, and admin source listing, then verified the full backend suite, E2E flow, Ruff, frontend build, and live Docker endpoint matrix.
 - Timestamp: 2026-05-19T11:02:37Z
+
+### [Maintenance] Layer 5 data collection pipeline audit
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/collectors/api_collector.py, sigma-backend/app/collectors/base.py, sigma-backend/app/collectors/dedup.py, sigma-backend/app/collectors/normalizer.py, sigma-backend/app/collectors/rss_collector.py, sigma-backend/app/collectors/seeds.py, sigma-backend/tests/test_collectors.py, sigma-backend/tests/test_seeds.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Executed Layer 5 from the full-stack workflow. Replaced dead Reuters and Docker-unreachable NewsAPI seed sources with working business/markets RSS feeds, reconciled the running Docker database, fixed Yahoo Finance mapping and request headers, added default API/RSS collector User-Agent headers, added normalizer coverage for ISO, Unix, human-readable, and Alpha Vantage timestamps, and changed dedup fallback to source/title identity. Live Docker collection inserted 25 new items, then the rebuilt backend image passed a final 8/8 source success smoke with no new duplicates.
+- Timestamp: 2026-05-19T11:21:42Z
