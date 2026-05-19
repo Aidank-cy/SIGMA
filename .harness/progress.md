@@ -789,3 +789,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Excluded frontend host `node_modules`, `.next`, output folders, debug logs, macOS metadata, and local env files from production Docker build context so `COPY . .` no longer overwrites Linux container dependencies with macOS-only Next.js SWC binaries. Direct Docker rebuild verification was blocked by Docker Hub token timeouts before the application build stage.
 - Timestamp: 2026-05-19T02:30:19Z
+
+### [Maintenance] Market range dropdown columns
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/charts/MarketIndexChart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Increased the market chart range dropdown width to `w-56` and changed its range button grid to four columns so the ten range options render as three compact rows.
+- Timestamp: 2026-05-19T02:58:59Z

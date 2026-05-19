@@ -367,8 +367,8 @@ function ChartControls({
           />
         </button>
         {isRangeOpen ? (
-          <div className="absolute right-0 top-14 z-30 w-44 origin-top-right rounded-2xl border border-sigma-line bg-sigma-surface p-2 shadow-apple transition duration-150 ease-out">
-            <div className="grid grid-cols-2 gap-1">
+          <div className="absolute right-0 top-14 z-30 w-56 origin-top-right rounded-2xl border border-sigma-line bg-sigma-surface p-2 shadow-apple transition duration-150 ease-out">
+            <div className="grid grid-cols-4 gap-1">
               {ranges.map((item) => (
                 <button
                   className={cn(
