@@ -23,6 +23,7 @@ class IndexConfig:
     open_time: time
     close_time: time
     finnhub_symbol: str
+    finnhub_proxy_symbol: str | None
     alpha_symbol: str
     fallback_value: float
     fallback_change_pct: float
@@ -30,14 +31,14 @@ class IndexConfig:
 
 
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
-    IndexConfig("SPX", "S&P 500", "us", "America/New_York", time(9, 30), time(16, 0), "^GSPC", "SPY", 5842.15, 0.41, "USD"),
-    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", time(9, 30), time(16, 0), "^IXIC", "QQQ", 18352.04, 0.56, "USD"),
-    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", time(9, 30), time(16, 0), "^DJI", "DIA", 40218.33, 0.24, "USD"),
-    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", time(9, 30), time(15, 0), "000001.SS", "000001.SHH", 3138.92, -0.18, "CNY"),
-    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", time(9, 30), time(16, 0), "^HSI", "HSI", 19553.61, 0.32, "HKD"),
-    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", time(9, 0), time(15, 30), "^N225", "N225", 38570.76, -0.12, "JPY"),
-    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", time(8, 0), time(16, 30), "^FTSE", "FTSE", 8433.21, 0.21, "GBP"),
-    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", time(9, 0), time(17, 30), "^GDAXI", "DAX", 18772.85, 0.37, "EUR"),
+    IndexConfig("SPX", "S&P 500", "us", "America/New_York", time(9, 30), time(16, 0), "^GSPC", "SPY", "SPY", 5842.15, 0.41, "USD"),
+    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", time(9, 30), time(16, 0), "^IXIC", "QQQ", "QQQ", 18352.04, 0.56, "USD"),
+    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", time(9, 30), time(16, 0), "^DJI", "DIA", "DIA", 40218.33, 0.24, "USD"),
+    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", time(9, 30), time(15, 0), "000001.SS", None, "000001.SHH", 3138.92, -0.18, "CNY"),
+    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", time(9, 30), time(16, 0), "^HSI", None, "HSI", 19553.61, 0.32, "HKD"),
+    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", time(9, 0), time(15, 30), "^N225", None, "N225", 38570.76, -0.12, "JPY"),
+    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", time(8, 0), time(16, 30), "^FTSE", None, "FTSE", 8433.21, 0.21, "GBP"),
+    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", time(9, 0), time(17, 30), "^GDAXI", None, "DAX", 18772.85, 0.37, "EUR"),
 )
 
 
@@ -98,11 +99,23 @@ async def _fetch_finnhub_quote(config: IndexConfig) -> tuple[float, float] | Non
     token = os.getenv("FINNHUB_KEY", "")
     if not token:
         return None
+    quote = await _fetch_finnhub_symbol_quote(config.finnhub_symbol, token)
+    if quote is not None:
+        return quote
+    if config.finnhub_proxy_symbol:
+        proxy_quote = await _fetch_finnhub_symbol_quote(config.finnhub_proxy_symbol, token)
+        if proxy_quote is not None:
+            _, change_pct = proxy_quote
+            return config.fallback_value * (1 + change_pct / 100), change_pct
+    return None
+
+
+async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> tuple[float, float] | None:
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             response = await client.get(
                 "https://finnhub.io/api/v1/quote",
-                params={"symbol": config.finnhub_symbol, "token": token},
+                params={"symbol": symbol, "token": token},
             )
             response.raise_for_status()
             payload = response.json()

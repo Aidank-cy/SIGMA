@@ -54,6 +54,29 @@ def test_market_trading_hours_are_timezone_aware() -> None:
 
 
 @pytest.mark.asyncio
+async def test_finnhub_index_quote_uses_scaled_proxy_when_index_requires_subscription(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """SPX can use Finnhub's SPY quote when direct index data is unavailable."""
+    calls: list[str] = []
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+
+    async def fake_symbol_quote(symbol: str, _token: str) -> tuple[float, float] | None:
+        calls.append(symbol)
+        if symbol == spx.finnhub_symbol:
+            return None
+        return 550.0, 2.0
+
+    monkeypatch.setenv("FINNHUB_KEY", "token")
+    monkeypatch.setattr(market_indices, "_fetch_finnhub_symbol_quote", fake_symbol_quote)
+
+    quote = await market_indices._fetch_finnhub_quote(spx)
+
+    assert quote == pytest.approx((spx.fallback_value * 1.02, 2.0))
+    assert calls == [spx.finnhub_symbol, spx.finnhub_proxy_symbol]
+
+
+@pytest.mark.asyncio
 async def test_refresh_job_skips_when_all_markets_closed(monkeypatch: pytest.MonkeyPatch) -> None:
     """Scheduler job avoids API refresh work when every market is closed."""
     called = False

@@ -29,6 +29,7 @@ def test_summary_system_prompt_requires_json_and_locale() -> None:
 
 def test_report_prompt_includes_required_sections_instruction() -> None:
     """Report system prompt names the expected markdown sections."""
+    item = _item("A", "content")
     system_prompt = report_system_prompt("zh")
     user_prompt = report_user_prompt(
         "daily",
@@ -36,13 +37,17 @@ def test_report_prompt_includes_required_sections_instruction() -> None:
         "2026-05-16",
         ["us"],
         ["finance"],
-        [_item("A", "content")],
+        [item],
     )
 
     assert "Overview" in system_prompt
+    assert "Sentiment Analysis" in system_prompt
     assert "Politics" in system_prompt
     assert "Tech" in system_prompt
+    assert "Sources" in system_prompt
+    assert "source titles and URLs" in system_prompt
     assert "Report type: daily" in user_prompt
+    assert item.content_url in user_prompt
 
 
 def _item(title: str, content: str) -> CollectedItem:
