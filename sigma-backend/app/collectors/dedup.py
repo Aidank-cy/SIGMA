@@ -22,31 +22,29 @@ async def filter_new_items(
         existing_urls = {url for url in url_rows if url}
 
     composite_keys = [
-        (item.source_id, item.title, item.published_at)
+        (item.source_id, item.title)
         for item in items
         if not item.content_url or item.content_url not in existing_urls
     ]
-    existing_composites: set[tuple[object, str, object]] = set()
+    existing_composites: set[tuple[object, str]] = set()
     if composite_keys:
-        statement: Select[tuple[object, str, object]] = select(
+        statement: Select[tuple[object, str]] = select(
             CollectedItem.source_id,
             CollectedItem.title,
-            CollectedItem.published_at,
         ).where(
             tuple_(
                 CollectedItem.source_id,
                 CollectedItem.title,
-                CollectedItem.published_at,
             ).in_(composite_keys)
         )
         rows = await db.execute(statement)
         existing_composites = set(rows.all())
 
     seen_urls: set[str] = set()
-    seen_composites: set[tuple[object, str, object]] = set()
+    seen_composites: set[tuple[object, str]] = set()
     new_items: list[CollectedItemCreate] = []
     for item in items:
-        composite = (item.source_id, item.title, item.published_at)
+        composite = (item.source_id, item.title)
         if item.content_url and item.content_url in existing_urls:
             continue
         if item.content_url and item.content_url in seen_urls:

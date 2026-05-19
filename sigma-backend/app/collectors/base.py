@@ -5,6 +5,8 @@ import httpx
 
 from app.models.data_source import DataSource
 
+DEFAULT_USER_AGENT = "SIGMACollector/1.0"
+
 
 class RawCollectedItem(TypedDict, total=False):
     """Collector output before normalization."""

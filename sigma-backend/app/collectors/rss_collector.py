@@ -4,7 +4,7 @@ from email.utils import parsedate_to_datetime
 import feedparser
 import httpx
 
-from app.collectors.base import BaseCollector, RawCollectedItem
+from app.collectors.base import DEFAULT_USER_AGENT, BaseCollector, RawCollectedItem
 
 
 class RSSCollector(BaseCollector):
@@ -26,7 +26,8 @@ class RSSCollector(BaseCollector):
             return await self._collect_with_client(client)
 
     async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
-        response = await client.get(str(self.config["feed_url"]))
+        headers = {"User-Agent": str(self.config.get("user_agent") or DEFAULT_USER_AGENT)}
+        response = await client.get(str(self.config["feed_url"]), headers=headers)
         response.raise_for_status()
         feed = feedparser.parse(response.text)
         max_entries = int(self.config.get("max_entries", 20))

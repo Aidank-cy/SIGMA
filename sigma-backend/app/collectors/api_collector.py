@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 import httpx
 
-from app.collectors.base import BaseCollector, RawCollectedItem
+from app.collectors.base import DEFAULT_USER_AGENT, BaseCollector, RawCollectedItem
 
 
 class APICollector(BaseCollector):
@@ -31,6 +31,7 @@ class APICollector(BaseCollector):
         method = str(self.config.get("method", "GET")).upper()
         base_params = self._resolve_env_values(dict(self.config.get("params") or {}))
         headers = self._resolve_env_values(dict(self.config.get("headers") or {}))
+        headers.setdefault("User-Agent", str(self.config.get("user_agent") or DEFAULT_USER_AGENT))
         pagination = self.config.get("pagination") or {}
         max_pages = int(pagination.get("max_pages", 1))
         page_param = pagination.get("param", "page")

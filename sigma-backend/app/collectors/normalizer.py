@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 from app.collectors.base import RawCollectedItem
@@ -42,19 +43,33 @@ def _parse_datetime(value: Any) -> datetime:
     elif isinstance(value, int | float):
         parsed = datetime.fromtimestamp(value, tz=timezone.utc)
     elif isinstance(value, str) and value:
-        try:
-            normalized = value.replace("Z", "+00:00")
-            if normalized.isdigit():
-                parsed = datetime.fromtimestamp(int(normalized), tz=timezone.utc)
-            else:
-                parsed = datetime.fromisoformat(normalized)
-        except ValueError:
-            parsed = datetime.now(timezone.utc)
+        parsed = _parse_datetime_string(value)
     else:
         parsed = datetime.now(timezone.utc)
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=timezone.utc)
     return parsed
+
+
+def _parse_datetime_string(value: str) -> datetime:
+    normalized = value.strip()
+    if normalized.isdigit():
+        return datetime.fromtimestamp(int(normalized), tz=timezone.utc)
+
+    parsers = (
+        lambda candidate: datetime.fromisoformat(candidate.replace("Z", "+00:00")),
+        lambda candidate: datetime.strptime(candidate, "%Y%m%dT%H%M%S"),
+        lambda candidate: datetime.strptime(candidate, "%Y%m%dT%H%M"),
+        lambda candidate: datetime.strptime(candidate, "%B %d, %Y"),
+        lambda candidate: datetime.strptime(candidate, "%b %d, %Y"),
+        parsedate_to_datetime,
+    )
+    for parser in parsers:
+        try:
+            return parser(normalized)
+        except (TypeError, ValueError):
+            continue
+    return datetime.now(timezone.utc)
 
 
 def _metadata(raw: RawCollectedItem) -> dict[str, object] | None:
