@@ -52,7 +52,7 @@ export function Modal({ children, closeLabel, isOpen, onClose, title }: ModalPro
           <h2 className="text-lg font-semibold text-sigma-text">{title}</h2>
           <button
             aria-label={closeLabel}
-            className="rounded-full p-2 text-sigma-muted hover:bg-sigma-surface hover:text-sigma-text"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-sigma-muted hover:bg-sigma-surface hover:text-sigma-text"
             onClick={onClose}
             type="button"
           >

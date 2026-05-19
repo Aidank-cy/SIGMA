@@ -98,7 +98,7 @@ export function AdminLogsPanel() {
                 </div>
                 <button
                   aria-label={expanded ? t("collapse") : t("expand")}
-                  className="self-start rounded-full p-2 text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
+                  className="flex h-11 w-11 items-center justify-center self-start rounded-full text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
                   onClick={() => toggle(log.id)}
                   type="button"
                 >

@@ -77,7 +77,7 @@ export function AdminUsersPanel() {
                   </td>
                   <td className="px-5 py-4">
                     <button
-                      className="inline-flex items-center gap-2 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
                       onClick={() =>
                         handleUpdate(user, { role: user.role === "admin" ? "user" : "admin" })
                       }
@@ -89,7 +89,7 @@ export function AdminUsersPanel() {
                   </td>
                   <td className="px-5 py-4">
                     <button
-                      className="inline-flex items-center gap-2 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
                       onClick={() => handleUpdate(user, { is_active: !user.is_active })}
                       type="button"
                     >

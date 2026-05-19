@@ -69,7 +69,7 @@ export default function ReportDetailPage() {
         </div>
         <div className="rounded-2xl border border-sigma-line bg-sigma-elevated p-4 lg:hidden">
           <button
-            className="flex w-full items-center justify-between text-sm font-semibold text-sigma-text"
+            className="flex min-h-11 w-full items-center justify-between text-sm font-semibold text-sigma-text"
             onClick={() => setIsTocOpen((current) => !current)}
             type="button"
           >
@@ -138,7 +138,7 @@ function Toc({
       {items.map((item) => (
         <a
           className={[
-            "border-l-2 py-1 transition",
+            "flex min-h-11 items-center border-l-2 py-1 transition",
             item.id === activeId
               ? "border-sigma-accent pl-3 text-sm font-semibold text-sigma-text"
               : "border-transparent pl-3 text-sm text-sigma-muted hover:text-sigma-text",

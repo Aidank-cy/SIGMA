@@ -61,7 +61,7 @@ export default function ItemDetailPage() {
               <h2 className="text-base font-semibold text-sigma-text">{t("summaryTitle")}</h2>
               {item.content_url ? (
                 <Link
-                  className="inline-flex items-center gap-2 text-sm font-medium text-sigma-accent"
+                  className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-sigma-accent"
                   href={item.content_url}
                   rel="noreferrer"
                   target="_blank"
@@ -76,7 +76,7 @@ export default function ItemDetailPage() {
 
           <section className="border-t border-sigma-line pt-5">
             <button
-              className="flex w-full items-center justify-between gap-4 text-left"
+              className="flex min-h-11 w-full items-center justify-between gap-4 text-left"
               onClick={() => setIsRawOpen((current) => !current)}
               type="button"
             >

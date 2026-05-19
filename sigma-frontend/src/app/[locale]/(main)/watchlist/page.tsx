@@ -312,8 +312,8 @@ function WatchlistModal({ isOpen, onClose, watchlist }: WatchlistModalProps) {
               <button
                 className={
                   payload.markets.includes(market)
-                    ? "rounded-full bg-sigma-text px-3 py-2 text-sm font-medium text-sigma-bg"
-                    : "rounded-full border border-sigma-line px-3 py-2 text-sm font-medium text-sigma-muted hover:text-sigma-text"
+                    ? "min-h-11 rounded-full bg-sigma-text px-3 py-2 text-sm font-medium text-sigma-bg"
+                    : "min-h-11 rounded-full border border-sigma-line px-3 py-2 text-sm font-medium text-sigma-muted hover:text-sigma-text"
                 }
                 key={market}
                 onClick={() => toggleMarket(market)}
@@ -330,10 +330,10 @@ function WatchlistModal({ isOpen, onClose, watchlist }: WatchlistModalProps) {
           <div className="max-h-44 space-y-2 overflow-y-auto rounded-2xl border border-sigma-line p-3">
             {sources.length === 0 ? <p className="text-sm text-sigma-muted">{t("sourcesEmpty")}</p> : null}
             {sources.map((source) => (
-              <label className="flex items-center gap-3 text-sm text-sigma-text" key={source.id}>
+              <label className="flex min-h-11 items-center gap-3 text-sm text-sigma-text" key={source.id}>
                 <input
                   checked={payload.sources.includes(source.id)}
-                  className="h-4 w-4 rounded border-sigma-line"
+                  className="h-5 w-5 rounded border-sigma-line"
                   onChange={() => toggleSource(source.id)}
                   type="checkbox"
                 />

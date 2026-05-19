@@ -131,7 +131,7 @@ export function CustomSelect({
                   <button
                     aria-selected={isSelected}
                     className={cn(
-                      "flex h-9 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-semibold",
+                      "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-semibold",
                       isSelected
                         ? "bg-sigma-text text-sigma-bg"
                         : "text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"

@@ -19,7 +19,7 @@ export function Input({ className, error, id, label, ...props }: InputProps) {
       <div className="group relative">
         <input
           className={cn(
-            "peer h-14 w-full rounded-2xl border bg-sigma-elevated px-4 pb-2 pt-6 text-sm text-sigma-text outline-none",
+            "peer h-12 w-full rounded-2xl border bg-sigma-elevated px-4 pb-1.5 pt-[18px] text-sm text-sigma-text outline-none",
             "placeholder:text-transparent focus:border-sigma-accent focus:ring-4 focus:ring-sigma-accent/15",
             error ? "border-sigma-danger focus:border-sigma-danger focus:ring-sigma-danger/15" : "",
             className
@@ -30,8 +30,8 @@ export function Input({ className, error, id, label, ...props }: InputProps) {
         />
         <label
           className={cn(
-            "pointer-events-none absolute left-4 top-2 text-xs font-medium text-sigma-muted",
-            "peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs",
+            "pointer-events-none absolute left-4 top-[7px] text-xs font-medium text-sigma-muted",
+            "peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-focus:top-[7px] peer-focus:text-xs",
             error ? "text-sigma-danger" : "peer-focus:text-sigma-accent"
           )}
           htmlFor={inputId}

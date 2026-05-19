@@ -124,7 +124,7 @@ export default function RegisterPage() {
 
         <div className="mt-6 text-center">
           <Link
-            className="text-sm font-medium text-sigma-accent hover:text-sigma-text"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-sigma-accent hover:text-sigma-text"
             href={`/${locale}/login`}
           >
             {t("register.loginLink")}

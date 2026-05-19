@@ -29,7 +29,7 @@ export function SegmentControl({ activeId, className, items, onChange }: Segment
           return (
             <button
               className={cn(
-                "relative h-9 min-w-20 rounded-full px-4 text-sm font-medium transition-colors",
+                "relative h-11 min-w-20 rounded-full px-4 text-sm font-medium transition-colors",
                 active ? "text-sigma-bg" : "text-sigma-muted hover:text-sigma-text"
               )}
               key={item.id}

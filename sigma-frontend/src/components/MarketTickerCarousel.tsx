@@ -92,13 +92,15 @@ export function MarketTickerCarousel() {
             <button
               aria-label={t("page", { page: pageIndex + 1 })}
               className={cn(
-                "h-1.5 w-1.5 rounded-full transition-colors",
-                activePage === pageIndex ? "bg-sigma-text" : "bg-sigma-line hover:bg-sigma-muted"
+                "flex h-11 w-11 items-center justify-center rounded-full transition-colors",
+                activePage === pageIndex ? "text-sigma-text" : "text-sigma-line hover:text-sigma-muted"
               )}
               key={pageIndex}
               onClick={() => setActivePage(pageIndex)}
               type="button"
-            />
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            </button>
           ))}
         </div>
       ) : null}
