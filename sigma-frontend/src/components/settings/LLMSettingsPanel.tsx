@@ -7,8 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
@@ -185,31 +185,27 @@ export function LLMSettingsPanel({
 
         <Card className="space-y-4 p-5">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Select
+            <CustomSelect
               label={t("provider")}
-              onChange={(event) =>
+              onChange={(value) =>
                 setForm({
                   ...form,
-                  provider: event.target.value as LLMConfig["provider"],
-                  model: models[event.target.value as LLMConfig["provider"]][0]
+                  provider: value as LLMConfig["provider"],
+                  model: models[value as LLMConfig["provider"]][0]
                 })
               }
+              options={[
+                { label: t("providers.anthropic"), value: "anthropic" },
+                { label: t("providers.openai"), value: "openai" }
+              ]}
               value={form.provider}
-            >
-              <option value="anthropic">{t("providers.anthropic")}</option>
-              <option value="openai">{t("providers.openai")}</option>
-            </Select>
-            <Select
+            />
+            <CustomSelect
               label={t("model")}
-              onChange={(event) => setForm({ ...form, model: event.target.value })}
+              onChange={(value) => setForm({ ...form, model: value })}
+              options={models[form.provider].map((model) => ({ label: model, value: model }))}
               value={form.model}
-            >
-              {models[form.provider].map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
-            </Select>
+            />
           </div>
           <Input
             label={t("dailyLimit")}

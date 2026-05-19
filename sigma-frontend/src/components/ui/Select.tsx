@@ -6,6 +6,7 @@ import { useId } from "react";
 
 import { cn } from "@/lib/cn";
 
+// Deprecated: use CustomSelect for design-system dropdowns. Keep this native select fallback for edge cases.
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
   label: string;

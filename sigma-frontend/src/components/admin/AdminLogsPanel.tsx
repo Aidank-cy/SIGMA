@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Select } from "@/components/ui/Select";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { useAdminLogs, useAdminSources } from "@/hooks/useAdmin";
 import type { CollectorStatus } from "@/hooks/useAdmin";
 import { cn } from "@/lib/cn";
@@ -46,35 +46,30 @@ export function AdminLogsPanel() {
 
       <Card className="p-4">
         <div className="grid gap-3 md:grid-cols-4">
-          <Select
+          <CustomSelect
             label={t("source")}
-            onChange={(event) => {
-              setSourceId(event.target.value);
+            onChange={(value) => {
+              setSourceId(value);
               setPage(1);
             }}
+            options={[
+              { label: t("allSources"), value: "" },
+              ...(sources.list.data?.items ?? []).map((source) => ({ label: source.name, value: source.id }))
+            ]}
             value={sourceId}
-          >
-            <option value="">{t("allSources")}</option>
-            {(sources.list.data?.items ?? []).map((source) => (
-              <option key={source.id} value={source.id}>
-                {source.name}
-              </option>
-            ))}
-          </Select>
-          <Select
+          />
+          <CustomSelect
             label={t("status")}
-            onChange={(event) => {
-              setStatus(event.target.value as CollectorStatus | "all");
+            onChange={(value) => {
+              setStatus(value as CollectorStatus | "all");
               setPage(1);
             }}
+            options={statuses.map((item) => ({
+              label: item === "all" ? t("allStatuses") : statusT(item),
+              value: item
+            }))}
             value={status}
-          >
-            {statuses.map((item) => (
-              <option key={item} value={item}>
-                {item === "all" ? t("allStatuses") : statusT(item)}
-              </option>
-            ))}
-          </Select>
+          />
           <DateField label={t("from")} onChange={setDateFrom} value={dateFrom} />
           <DateField label={t("to")} onChange={setDateTo} value={dateTo} />
         </div>

@@ -9,7 +9,7 @@ import { MarketIndexChart } from "@/components/charts/MarketIndexChart";
 import { FeaturedStory } from "@/components/feed/FeaturedStory";
 import { ItemCard } from "@/components/feed/ItemCard";
 import { HomeSidebar } from "@/components/sidebar/HomeSidebar";
-import { Select } from "@/components/ui/Select";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useItems } from "@/hooks/useItems";
 import { useReports } from "@/hooks/useReports";
@@ -213,20 +213,14 @@ function FilterSelect({ label, onChange, options, value }: FilterSelectProps) {
   const t = useTranslations("feed");
 
   return (
-    <Select
+    <CustomSelect
       label={label}
       leadingIcon={<Filter className="h-4 w-4" aria-hidden />}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={onChange}
+      options={[{ label: t("all"), value: "" }, ...options]}
       selectClassName="bg-sigma-bg"
       value={value}
-    >
-      <option value="">{t("all")}</option>
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </Select>
+    />
   );
 }
 

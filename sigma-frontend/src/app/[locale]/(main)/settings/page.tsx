@@ -9,10 +9,10 @@ import { useAuth } from "@/components/AuthProvider";
 import { AdminSettingsSection } from "@/components/admin/AdminSettingsSection";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentControl } from "@/components/ui/SegmentControl";
-import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
@@ -283,14 +283,15 @@ function ProfileSection({
           onChange={(event) => onDisplayNameChange(event.target.value)}
           value={displayName}
         />
-        <Select
+        <CustomSelect
           label={t("profile.language")}
-          onChange={(event) => onLocaleChange(event.target.value as Locale)}
+          onChange={(value) => onLocaleChange(value as Locale)}
+          options={[
+            { label: t("profile.zh"), value: "zh" },
+            { label: t("profile.en"), value: "en" }
+          ]}
           value={locale}
-        >
-          <option value="zh">{t("profile.zh")}</option>
-          <option value="en">{t("profile.en")}</option>
-        </Select>
+        />
       </div>
     </Card>
   );
