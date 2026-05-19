@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from uuid import UUID
 
@@ -125,7 +126,7 @@ def _minimal(item: CollectedItem) -> MinimalItem:
     return MinimalItem(
         id=item.id,
         title=item.title,
-        summary=item.summary,
+        summary=_summary_text(item.summary),
         category=item.category.value,
         market=item.market.value,
         published_at=item.published_at,
@@ -148,6 +149,10 @@ def _sentiment_for_item(item: CollectedItem) -> str:
     metadata_sentiment = metadata.get("sentiment")
     if metadata_sentiment in {"bullish", "bearish", "neutral"}:
         return str(metadata_sentiment)
+    summary_payload = _summary_payload(item.summary)
+    summary_sentiment = summary_payload.get("sentiment")
+    if summary_sentiment in {"bullish", "bearish", "neutral"}:
+        return str(summary_sentiment)
 
     text = f"{item.title} {item.summary or ''}".lower()
     positive_terms = ("bullish", "beat", "gain", "growth", "rally", "strong", "上涨", "利好", "增长")
@@ -168,6 +173,13 @@ def _keywords_for_item(item: CollectedItem) -> list[str]:
         return [
             str(keyword).strip()
             for keyword in metadata_keywords
+            if isinstance(keyword, str) and len(keyword.strip()) >= 2
+        ][:12]
+    summary_keywords = _summary_payload(item.summary).get("keywords")
+    if isinstance(summary_keywords, list):
+        return [
+            str(keyword).strip()
+            for keyword in summary_keywords
             if isinstance(keyword, str) and len(keyword.strip()) >= 2
         ][:12]
 
@@ -195,6 +207,25 @@ def _keywords_for_item(item: CollectedItem) -> list[str]:
         seen.add(normalized)
         keywords.append(normalized)
     return keywords[:8]
+
+
+def _summary_text(summary: str | None) -> str | None:
+    if summary is None:
+        return None
+    payload = _summary_payload(summary)
+    if isinstance(payload.get("summary"), str):
+        return str(payload["summary"])
+    return summary
+
+
+def _summary_payload(summary: str | None) -> dict[str, object]:
+    if not summary:
+        return {}
+    try:
+        parsed = json.loads(summary)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
 
 
 def _cache_key(*parts: object) -> str:

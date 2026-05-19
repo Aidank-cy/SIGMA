@@ -66,6 +66,26 @@ async def test_items_detail_includes_sentiment_and_keywords(db_session: AsyncSes
     assert detail.keywords == ["chips", "AI demand"]
 
 
+@pytest.mark.asyncio
+async def test_items_detail_extracts_llm_summary_json(db_session: AsyncSession) -> None:
+    """Item detail presents readable fields from stored LLM summary JSON."""
+    source = _source()
+    target = _item(source, "Fed signal", IntelligenceCategory.FINANCE)
+    target.summary = (
+        '{"sentiment":"bearish","summary":"The Fed signaled tighter policy.",'
+        '"keywords":["fed","rates"]}'
+    )
+    db_session.add_all([source, target])
+    await db_session.commit()
+    await db_session.refresh(target)
+
+    detail = await get_item(target.id, db_session)
+
+    assert detail.summary == "The Fed signaled tighter policy."
+    assert detail.sentiment == "bearish"
+    assert detail.keywords == ["fed", "rates"]
+
+
 def _source() -> DataSource:
     return DataSource(
         id=uuid4(),

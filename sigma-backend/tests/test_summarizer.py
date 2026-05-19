@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.analyzers.summarizer import batch_summarize
+from app.analyzers.summarizer import _normalize_summary_payload, batch_summarize
 from app.models.collected_item import CollectedItem
 from app.models.data_source import DataSource
 from app.models.enums import IntelligenceCategory, Market, SourceType
@@ -28,8 +28,12 @@ async def test_batch_summarize_writes_and_skips_existing(
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             pass
 
-        async def complete(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> str:
-            return f"Summary for {user_prompt.splitlines()[0]}"
+        async def complete_json(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> dict[str, object]:
+            return {
+                "sentiment": "bullish",
+                "summary": f"Summary for {user_prompt.splitlines()[0]}",
+                "keywords": ["rates", "fed"],
+            }
 
     monkeypatch.setattr("app.analyzers.summarizer.LLMClient", FakeLLMClient)
 
@@ -38,7 +42,7 @@ async def test_batch_summarize_writes_and_skips_existing(
 
     refreshed = list(await db_session.scalars(select(CollectedItem).order_by(CollectedItem.title)))
     assert refreshed[0].summary == "Existing summary"
-    assert all(item.summary for item in refreshed)
+    assert all(item.summary and "\"sentiment\":\"bullish\"" in item.summary for item in refreshed[1:])
 
 
 @pytest.mark.asyncio
@@ -58,10 +62,10 @@ async def test_batch_summarize_failure_does_not_crash(
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             pass
 
-        async def complete(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> str:
+        async def complete_json(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> dict[str, object]:
             if "Title: Fail" in user_prompt:
                 raise RuntimeError("boom")
-            return "Ok summary"
+            return {"sentiment": "neutral", "summary": "Ok summary", "keywords": ["ok"]}
 
     monkeypatch.setattr("app.analyzers.summarizer.LLMClient", FakeLLMClient)
 
@@ -70,9 +74,26 @@ async def test_batch_summarize_failure_does_not_crash(
     await db_session.refresh(ok)
     await db_session.refresh(failing)
 
-    assert ok.summary == "Ok summary"
+    assert ok.summary == '{"sentiment":"neutral","summary":"Ok summary","keywords":["ok"]}'
     assert failing.summary is None
     assert failing.metadata_extra == {"summary_retry_count": 1}
+
+
+def test_normalize_summary_payload_bounds_fields() -> None:
+    """Summary JSON normalization preserves only supported sentiment and keywords."""
+    payload = _normalize_summary_payload(
+        {
+            "sentiment": "mixed",
+            "summary": "Markets were choppy.",
+            "keywords": ["markets", "", "rates", "credit"] * 4,
+        }
+    )
+
+    assert payload == {
+        "sentiment": "neutral",
+        "summary": "Markets were choppy.",
+        "keywords": ["markets", "rates", "credit"] * 4,
+    }
 
 
 def _source() -> DataSource:
