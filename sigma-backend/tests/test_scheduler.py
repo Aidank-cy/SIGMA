@@ -6,9 +6,9 @@ from sqlalchemy.pool import StaticPool
 
 from app.models import Base
 from app.models.data_source import DataSource
-from app.models.enums import IntelligenceCategory, Market, SourceType
-from app.scheduler.engine import add_market_indices_job, add_report_jobs, load_source_jobs, scheduler
-from app.scheduler.jobs import collect_from_source
+from app.models.enums import IntelligenceCategory, Market, ReportType, SourceType
+from app.scheduler.engine import add_cleanup_job, add_market_indices_job, add_report_jobs, load_source_jobs, scheduler
+from app.scheduler.jobs import _period_for, collect_from_source
 
 
 @pytest.mark.asyncio
@@ -31,6 +31,9 @@ async def test_scheduler_registers_active_source_jobs() -> None:
 
     jobs = scheduler.get_jobs()
     assert len(jobs) == 3
+    assert all(job.max_instances == 1 for job in jobs)
+    assert all(job.coalesce is True for job in jobs)
+    assert all("cron[" in str(job.trigger) for job in jobs)
 
     scheduler.remove_all_jobs()
     async with engine.begin() as connection:
@@ -94,6 +97,30 @@ def test_scheduler_registers_report_jobs() -> None:
     """Scheduler registers daily, weekly, and monthly report jobs."""
     scheduler.remove_all_jobs()
 
+    add_report_jobs()
+
+    jobs = {job.id: job for job in scheduler.get_jobs()}
+    assert "cron[hour='22', minute='0']" == str(jobs["reports:daily"].trigger)
+    assert "cron[day_of_week='sun', hour='22', minute='0']" == str(jobs["reports:weekly"].trigger)
+    assert "cron[day='last', hour='22', minute='0']" == str(jobs["reports:monthly"].trigger)
+    assert all(job.max_instances == 1 for job in jobs.values())
+    assert all(job.coalesce is True for job in jobs.values())
+    scheduler.remove_all_jobs()
+
+
+def test_scheduler_registers_cleanup_job() -> None:
+    """Scheduler registers expired item cleanup at 03:00 UTC."""
+    scheduler.remove_all_jobs()
+
+    add_cleanup_job()
+
+    job = scheduler.get_job("cleanup_expired_items")
+    assert job is not None
+    assert str(job.trigger) == "cron[hour='3', minute='0']"
+    assert job.max_instances == 1
+    assert job.coalesce is True
+    scheduler.remove_all_jobs()
+
 
 def test_scheduler_registers_market_indices_job() -> None:
     """Scheduler registers market indices refresh separately."""
@@ -102,6 +129,7 @@ def test_scheduler_registers_market_indices_job() -> None:
     add_market_indices_job()
 
     assert scheduler.get_job("market-indices:refresh") is not None
+    assert scheduler.get_job("market-indices:refresh").trigger.interval.total_seconds() == 60
     scheduler.remove_all_jobs()
 
     add_report_jobs()
@@ -109,6 +137,19 @@ def test_scheduler_registers_market_indices_job() -> None:
     job_ids = {job.id for job in scheduler.get_jobs()}
     assert {"reports:daily", "reports:weekly", "reports:monthly"}.issubset(job_ids)
     scheduler.remove_all_jobs()
+
+
+def test_report_periods_match_report_type() -> None:
+    """Scheduled report periods cover daily, trailing-week, and month-to-date ranges."""
+    daily_start, daily_end = _period_for(ReportType.DAILY)
+    weekly_start, weekly_end = _period_for(ReportType.WEEKLY)
+    monthly_start, monthly_end = _period_for(ReportType.MONTHLY)
+
+    assert daily_start == daily_end
+    assert weekly_end == daily_end
+    assert (weekly_end - weekly_start).days == 6
+    assert monthly_end == daily_end
+    assert monthly_start == daily_end.replace(day=1)
 
 
 async def asyncio_sleep() -> None:

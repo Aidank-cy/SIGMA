@@ -17,7 +17,9 @@ SUMMARY_USER = (
 
 REPORT_SYSTEM = (
     "You are a market intelligence analyst. Write a structured markdown report in {locale}. "
-    "Use the sections: Overview, Politics, Finance, Tech, Timeline, Outlook."
+    "Use level-2 markdown headings for these sections: Overview, Sentiment Analysis, "
+    "Politics, Finance, Tech, Timeline, Outlook, Sources. Include concise source "
+    "attribution with source titles and URLs in Sources."
 )
 
 REPORT_USER = (
@@ -74,10 +76,12 @@ def _render_item(item: CollectedItem | str) -> str:
     if isinstance(item, str):
         return item
     summary = item.summary or item.content_raw
+    source = item.content_url or "unavailable"
     return (
         f"- {item.title}\n"
         f"  Category: {item.category.value}; Market: {item.market.value}; "
         f"Published: {item.published_at.isoformat()}\n"
+        f"  Source: {source}\n"
         f"  Summary: {_truncate(summary)}"
     )
 

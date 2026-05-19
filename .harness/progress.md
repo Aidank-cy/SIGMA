@@ -869,3 +869,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Executed Layer 6 from the full-stack workflow. Expanded LLM tests from the 8-test baseline to 40 focused Layer 6 tests, updated MiniMax and DeepSeek base URLs against official docs, changed summarization to validate and store JSON with sentiment/summary/keywords, kept item API summaries readable for the frontend, added fenced JSON extraction, and verified retry exhaustion plus budget guard behavior. Full backend suite passed with 107 tests, post-edit hook and frontend build passed, and the rebuilt Docker backend completed a live DeepSeek summarizer smoke with valid JSON and positive token usage logged.
 - Timestamp: 2026-05-19T11:37:41Z
+
+### [Maintenance] Layer 7 scheduled tasks and reports
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/analyzers/prompts.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_scheduler.py, sigma-backend/tests/test_market_indices.py, sigma-backend/tests/test_prompts.py, sigma-backend/tests/test_redis_lock.py, CHANGELOG.md, .harness/progress.md, .harness/session-log.md
+- Tests: PASS
+- Notes: Executed Layer 7 from `Sigma full stack workflow en.md`; tightened report markdown prompts for sentiment analysis and source attribution, added scheduler timing and report period assertions, expanded Redis lock TTL/parallel-key checks, and fixed Finnhub SPX quote verification by scaling an ETF proxy when direct index data requires a paid subscription. Rebuilt `sigma-backend` and verified `/api/v1/health`, live Redis locks, and FINNHUB SPX quote types.
+- Timestamp: 2026-05-19T11:47:28Z
