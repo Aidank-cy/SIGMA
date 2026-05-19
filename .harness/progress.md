@@ -861,3 +861,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Executed Layer 5 from the full-stack workflow. Replaced dead Reuters and Docker-unreachable NewsAPI seed sources with working business/markets RSS feeds, reconciled the running Docker database, fixed Yahoo Finance mapping and request headers, added default API/RSS collector User-Agent headers, added normalizer coverage for ISO, Unix, human-readable, and Alpha Vantage timestamps, and changed dedup fallback to source/title identity. Live Docker collection inserted 25 new items, then the rebuilt backend image passed a final 8/8 source success smoke with no new duplicates.
 - Timestamp: 2026-05-19T11:21:42Z
+
+### [Maintenance] Layer 6 LLM analysis engine audit
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/analyzers/llm_client.py, sigma-backend/app/analyzers/prompts.py, sigma-backend/app/analyzers/summarizer.py, sigma-backend/app/api/v1/routes/items.py, sigma-backend/tests/e2e/test_full_flow.py, sigma-backend/tests/test_items_api.py, sigma-backend/tests/test_llm.py, sigma-backend/tests/test_prompts.py, sigma-backend/tests/test_summarizer.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Executed Layer 6 from the full-stack workflow. Expanded LLM tests from the 8-test baseline to 40 focused Layer 6 tests, updated MiniMax and DeepSeek base URLs against official docs, changed summarization to validate and store JSON with sentiment/summary/keywords, kept item API summaries readable for the frontend, added fenced JSON extraction, and verified retry exhaustion plus budget guard behavior. Full backend suite passed with 107 tests, post-edit hook and frontend build passed, and the rebuilt Docker backend completed a live DeepSeek summarizer smoke with valid JSON and positive token usage logged.
+- Timestamp: 2026-05-19T11:37:41Z

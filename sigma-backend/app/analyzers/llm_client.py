@@ -31,8 +31,8 @@ class LLMRuntimeConfig:
 
 OPENAI_COMPATIBLE_BASE_URLS = {
     "openai": "https://api.openai.com/v1",
-    "deepseek": "https://api.deepseek.com/v1",
-    "minimax": "https://api.minimax.chat/v1",
+    "deepseek": "https://api.deepseek.com",
+    "minimax": "https://api.minimax.io/v1",
     "kimi": "https://api.moonshot.cn/v1",
     "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
 }
@@ -90,7 +90,7 @@ class LLMClient:
     ) -> dict[str, Any]:
         """Complete a prompt and parse the response as a JSON object."""
         text = await self.complete(system_prompt, user_prompt, max_tokens, temperature, context_docs)
-        parsed = json.loads(text)
+        parsed = json.loads(_extract_json_object(text))
         if not isinstance(parsed, dict):
             raise ValueError("LLM response was not a JSON object")
         return parsed
@@ -233,3 +233,20 @@ def build_prompt(prompt: str, context_docs: list[str] | None = None) -> str:
         return prompt
     references = "\n\n".join(context_docs)
     return f"Reference documents:\n{references}\n\nContent:\n{prompt}"
+
+
+def _extract_json_object(text: str) -> str:
+    """Extract a JSON object from plain or fenced model output."""
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        lines = stripped.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].startswith("```"):
+            lines = lines[:-1]
+        stripped = "\n".join(lines).strip()
+    start = stripped.find("{")
+    end = stripped.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return stripped
+    return stripped[start : end + 1]

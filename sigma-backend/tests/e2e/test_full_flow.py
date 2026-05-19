@@ -54,6 +54,13 @@ def test_full_intelligence_flow(monkeypatch, tmp_path) -> None:
                 return "## Overview\n\nChip demand is improving.\n\n## Outlook\n\nMonitor rates."
             return "Chip stocks rose on stable rates and AI infrastructure demand."
 
+        async def complete_json(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> dict[str, object]:
+            return {
+                "sentiment": "bullish",
+                "summary": "Chip stocks rose on stable rates and AI infrastructure demand.",
+                "keywords": ["chips", "rates", "AI"],
+            }
+
     async def fake_acquire(*_args: object, **_kwargs: object) -> bool:
         return True
 

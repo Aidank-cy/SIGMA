@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -17,7 +19,20 @@ logger = logging.getLogger(__name__)
 async def summarize_item(item: CollectedItem, db: AsyncSession, locale: str = "zh") -> str:
     """Summarize one collected item."""
     client = LLMClient(db, function_type=LLMFunctionType.SUMMARY)
-    return await client.complete(summary_system_prompt(locale), summary_user_prompt(item), max_tokens=300)
+    payload = await client.complete_json(summary_system_prompt(locale), summary_user_prompt(item), max_tokens=300)
+    return json.dumps(_normalize_summary_payload(payload), ensure_ascii=False, separators=(",", ":"))
+
+
+def _normalize_summary_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    sentiment = str(payload.get("sentiment") or "neutral").lower()
+    if sentiment not in {"bullish", "bearish", "neutral"}:
+        sentiment = "neutral"
+    summary = str(payload.get("summary") or "").strip()
+    if not summary:
+        raise ValueError("LLM summary JSON did not include a summary")
+    raw_keywords = payload.get("keywords") or []
+    keywords = [str(keyword).strip() for keyword in raw_keywords if str(keyword).strip()]
+    return {"sentiment": sentiment, "summary": summary, "keywords": keywords[:12]}
 
 
 async def batch_summarize(
