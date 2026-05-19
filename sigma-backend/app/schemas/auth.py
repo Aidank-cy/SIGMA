@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.enums import UserLocale, UserRole
 
@@ -13,7 +13,11 @@ class UserCreate(BaseModel):
 
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    display_name: str = Field(min_length=1, max_length=120)
+    display_name: str = Field(
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("display_name", "username"),
+    )
 
     @field_validator("password")
     @classmethod
@@ -108,6 +112,15 @@ class TokenResponse(BaseModel):
     """JWT token payload."""
 
     model_config = ConfigDict(extra="forbid")
+
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    refresh_token: str | None = None
+
+
+class UserRegistrationResponse(UserResponse):
+    """Registration response with immediate JWT credentials."""
 
     access_token: str
     token_type: str = "bearer"

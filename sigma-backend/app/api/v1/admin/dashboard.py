@@ -26,6 +26,7 @@ router = APIRouter()
 TModel = TypeVar("TModel", bound=BaseModel)
 
 
+@router.get("", response_model=AdminStatsResponse)
 @router.get("/stats", response_model=AdminStatsResponse)
 async def get_admin_stats(
     db: AsyncSession = Depends(get_db),

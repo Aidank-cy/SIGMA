@@ -829,3 +829,19 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PARTIAL
 - Notes: Redesigned the LLM settings panel into a single full-width form, added six provider options, moved API keys to provider-grouped entries with per-key token limits, and routed DeepSeek, MiniMax, Kimi, and Gemini through OpenAI-compatible backend endpoints. Frontend build, backend ruff, and post-edit hook passed; full backend pytest has two unchanged legacy assertions expecting the old API-key response shape without provider/token_limit.
 - Timestamp: 2026-05-19T06:28:00Z
+
+### [Maintenance] Docker Compose infrastructure hardening
+- Status: COMPLETE
+- Files created: none
+- Files modified: docker-compose.yml, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added restart policies, Postgres and Redis healthchecks, health-gated backend dependencies, verified Docker stack startup, Alembic upgrade/check, Redis ping, env hostnames/API key presence, and backend health endpoint.
+- Timestamp: 2026-05-19T10:22:34Z
+
+### [Maintenance] Layer 4 authentication and security audit
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/api/v1/admin/dashboard.py, sigma-backend/app/api/v1/routes/auth.py, sigma-backend/app/middleware/security.py, sigma-backend/app/schemas/auth.py, sigma-backend/tests/test_admin_api.py, sigma-backend/tests/test_auth.py, sigma-backend/tests/test_security.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Executed Layer 4 from the full-stack workflow, added registration token issuance, workflow-style username alias handling, invalid Bearer token rejection, CSP headers, rate-limit security headers, and `/api/v1/admin/dashboard` protection. Verified local auth/security/admin tests and live Docker JWT, rate-limit, isolation, admin, and security-header checks.
+- Timestamp: 2026-05-19T10:46:21Z

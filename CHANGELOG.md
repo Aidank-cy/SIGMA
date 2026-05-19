@@ -11,10 +11,12 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Harden Docker Compose startup with service restart policies, Postgres and Redis healthchecks, and health-gated backend dependencies.
 - Redesign LLM settings into a full-width form with provider-grouped API keys and per-key token limits.
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Fixed
+- Add Layer 4 authentication hardening for registration tokens, workflow-style registration payloads, invalid Bearer token rejection, admin dashboard route protection, and CSP headers.
 - Align shared select floating labels and selected values within the control.
 - Reduce 1-day market chart X-axis label density to avoid overlapping timestamps.
 - Improve market chart range dropdown layout by showing four range options per row.

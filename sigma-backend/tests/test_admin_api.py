@@ -7,12 +7,15 @@ def test_admin_dashboard_endpoints(client: TestClient) -> None:
     headers = _auth(token)
 
     stats = client.get("/api/v1/admin/dashboard/stats", headers=headers)
+    stats_root = client.get("/api/v1/admin/dashboard", headers=headers)
     trend = client.get("/api/v1/admin/dashboard/collection-trend", headers=headers)
     activity = client.get("/api/v1/admin/dashboard/recent-activity", headers=headers)
     health = client.get("/api/v1/admin/dashboard/source-health", headers=headers)
 
     assert stats.status_code == 200
     assert stats.json()["users"] == 1
+    assert stats_root.status_code == 200
+    assert stats_root.json() == stats.json()
     assert trend.status_code == 200
     assert len(trend.json()) == 7
     assert activity.status_code == 200

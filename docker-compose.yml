@@ -2,6 +2,7 @@ services:
   sigma-postgres:
     image: postgres:16
     container_name: sigma-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: sigma
       POSTGRES_USER: sigma
@@ -10,16 +11,27 @@ services:
       - "5432:5432"
     volumes:
       - ${SIGMA_DATA_DIR:-~/sigma-data}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sigma"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - sigma-network
 
   sigma-redis:
     image: redis:7-alpine
     container_name: sigma-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - ${SIGMA_DATA_DIR:-~/sigma-data}/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - sigma-network
 
@@ -27,6 +39,7 @@ services:
     build:
       context: ./sigma-backend
     container_name: sigma-backend
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -35,8 +48,10 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - sigma-postgres
-      - sigma-redis
+      sigma-postgres:
+        condition: service_healthy
+      sigma-redis:
+        condition: service_healthy
     networks:
       - sigma-network
 
@@ -44,6 +59,7 @@ services:
     build:
       context: ./sigma-frontend
     container_name: sigma-frontend
+    restart: unless-stopped
     environment:
       BACKEND_URL: http://sigma-backend:8000
       NEXT_PUBLIC_BACKEND_URL: http://localhost:8000

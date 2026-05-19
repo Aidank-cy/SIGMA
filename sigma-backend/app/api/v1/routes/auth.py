@@ -21,6 +21,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserCreate,
     UserLogin,
+    UserRegistrationResponse,
     UserResponse,
 )
 from app.services.auth_service import (
@@ -40,9 +41,13 @@ PASSWORD_RESET_TTL_SECONDS = 10 * 60
 PASSWORD_RESET_TOKEN_SECONDS = 5 * 60
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)) -> User:
-    """Register a user, promoting the first account to admin."""
+@router.post("/register", response_model=UserRegistrationResponse, status_code=status.HTTP_201_CREATED)
+async def register(
+    payload: UserCreate,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> UserRegistrationResponse:
+    """Register a user, promoting the first account to admin, and issue JWT credentials."""
     email = str(payload.email).lower()
     existing_user = await db.scalar(select(User).where(User.email == email))
     if existing_user is not None:
@@ -59,7 +64,8 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)) -> U
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    return user
+    token = _issue_tokens(user, response)
+    return UserRegistrationResponse(**UserResponse.model_validate(user).model_dump(), **token.model_dump())
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -74,22 +80,7 @@ async def login(
     if user is None or not user.is_active or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    access_token = create_access_token(user.id, user.role, user.email)
-    refresh_token = create_refresh_token(user.id)
-    max_age = 60 * 60 * 24 * 7
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=max_age,
-    )
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=60 * 15,
-    )
+    return _issue_tokens(user, response)
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -201,3 +192,21 @@ async def me(current_user: User = Depends(get_current_user)) -> User:
 
 def _password_reset_key(email: str) -> str:
     return f"pwd_reset:{email}"
+
+
+def _issue_tokens(user: User, response: Response) -> TokenResponse:
+    access_token = create_access_token(user.id, user.role, user.email)
+    refresh_token = create_refresh_token(user.id)
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7,
+    )
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=60 * 15,
+    )

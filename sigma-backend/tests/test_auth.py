@@ -45,7 +45,22 @@ def test_register_first_is_admin(client: TestClient) -> None:
 
     assert payload["email"] == "admin@example.com"
     assert payload["role"] == "admin"
+    assert payload["access_token"]
+    assert payload["refresh_token"]
     assert "hashed_password" not in payload
+
+
+def test_register_accepts_username_alias(client: TestClient) -> None:
+    """Registration accepts workflow-style username as display name."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "sectest", "email": "sec-alias@example.com", "password": "StrongPass1"},
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["display_name"] == "sectest"
+    assert payload["access_token"]
 
 
 def test_register_second_is_user(client: TestClient) -> None:

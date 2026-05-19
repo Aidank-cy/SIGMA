@@ -9,16 +9,25 @@ from starlette.responses import JSONResponse
 from app.core.config import settings
 from app.services.auth_service import decode_token
 
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "img-src 'self' data: https://fastapi.tiangolo.com; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'"
+)
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Attach baseline browser security headers to every response."""
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
-        response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("X-Frame-Options", "DENY")
-        response.headers.setdefault("X-XSS-Protection", "1; mode=block")
-        return response
+        return apply_security_headers(response)
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -27,6 +36,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.url.path.startswith("/api/v1/"):
             limiter = _LimiterStore.for_request(request.app.state)
+            authorization = request.headers.get("Authorization", "")
+            if authorization.startswith("Bearer ") and not _has_valid_bearer_token(authorization):
+                return _invalid_token()
             login_key = _client_ip(request)
             general_key = _rate_identity(request)
             if request.url.path == "/api/v1/auth/login" and not limiter.allow(
@@ -77,6 +89,14 @@ def _rate_identity(request: Request) -> str:
     return f"ip:{_client_ip(request)}"
 
 
+def _has_valid_bearer_token(authorization: str) -> bool:
+    try:
+        decode_token(authorization.removeprefix("Bearer ").strip())
+    except JWTError:
+        return False
+    return True
+
+
 def _client_ip(request: Request) -> str:
     forwarded_for = request.headers.get("X-Forwarded-For", "")
     if forwarded_for:
@@ -87,8 +107,26 @@ def _client_ip(request: Request) -> str:
 
 
 def _too_many_requests() -> JSONResponse:
-    return JSONResponse(
+    response = JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={"detail": "Rate limit exceeded"},
         headers={"Retry-After": "60"},
     )
+    return apply_security_headers(response)
+
+
+def _invalid_token() -> JSONResponse:
+    response = JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": "Invalid token"},
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    return apply_security_headers(response)
+
+
+def apply_security_headers(response: Response) -> Response:
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-XSS-Protection", "1; mode=block")
+    response.headers.setdefault("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+    return response
