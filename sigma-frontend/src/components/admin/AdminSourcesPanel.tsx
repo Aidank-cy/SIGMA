@@ -6,9 +6,9 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
 import { useAdminSources } from "@/hooks/useAdmin";
 import type { AdminActivity } from "@/hooks/useAdmin";
@@ -343,28 +343,18 @@ function MetadataStep({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Select
+        <CustomSelect
           label={t("category")}
-          onChange={(event) => setPayload({ category: event.target.value as Category })}
+          onChange={(value) => setPayload({ category: value as Category })}
+          options={categories.map((category) => ({ label: t(`categories.${category}`), value: category }))}
           value={payload.category}
-        >
-          {categories.map((category) => (
-            <option key={category} value={category}>
-              {t(`categories.${category}`)}
-            </option>
-          ))}
-        </Select>
-        <Select
+        />
+        <CustomSelect
           label={t("market")}
-          onChange={(event) => setPayload({ market: event.target.value as Market })}
+          onChange={(value) => setPayload({ market: value as Market })}
+          options={markets.map((market) => ({ label: t(`markets.${market}`), value: market }))}
           value={payload.market}
-        >
-          {markets.map((market) => (
-            <option key={market} value={market}>
-              {t(`markets.${market}`)}
-            </option>
-          ))}
-        </Select>
+        />
       </div>
       <div className="flex flex-wrap gap-2">
         {presets.map((preset) => (

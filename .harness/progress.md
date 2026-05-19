@@ -813,3 +813,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Adjusted the shared Select value padding and floating-label top offset so labels and selected values sit evenly within the existing h-12 control.
 - Timestamp: 2026-05-19T05:55:27Z
+
+### [Maintenance] Custom select dropdown
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/ui/CustomSelect.tsx
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/LocaleSwitcher.tsx, sigma-frontend/src/components/admin/AdminLogsPanel.tsx, sigma-frontend/src/components/admin/AdminSourcesPanel.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/ui/Select.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added a React/ref-based custom dropdown with outside-click and Escape close behavior, migrated native Select usages across feed, settings, locale, LLM, and admin filters, left the native Select as a deprecated fallback, and browser-smoked the login locale dropdown on localhost.
+- Timestamp: 2026-05-19T06:04:48Z
