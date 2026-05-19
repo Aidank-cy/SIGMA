@@ -44,7 +44,7 @@ function WatchlistPreview() {
           <Star className="h-4 w-4 text-sigma-accent" aria-hidden />
           {t("watchlist")}
         </h2>
-        <Link className="text-xs font-semibold text-sigma-accent" href={`/${locale}/watchlist`}>
+        <Link className="inline-flex min-h-11 items-center text-xs font-semibold text-sigma-accent" href={`/${locale}/watchlist`}>
           {t("open")}
         </Link>
       </div>
@@ -52,7 +52,7 @@ function WatchlistPreview() {
       {!isLoading && watchlists.length === 0 ? <p className="text-sm text-sigma-muted">{t("empty")}</p> : null}
       <div className="space-y-3">
         {watchlists.map((watchlist) => (
-          <Link className="flex items-center justify-between gap-3 text-sm" href={`/${locale}/watchlist`} key={watchlist.id}>
+          <Link className="flex min-h-11 items-center justify-between gap-3 text-sm" href={`/${locale}/watchlist`} key={watchlist.id}>
             <span className="truncate font-medium text-sigma-text">{watchlist.name}</span>
             <span className="shrink-0 tabular-nums text-sigma-muted">{t("items", { count: watchlist.item_count })}</span>
           </Link>
@@ -102,7 +102,7 @@ function LatestReport() {
       {isLoading ? <Skeleton className="h-24 rounded-xl" /> : null}
       {!isLoading && !report ? <p className="text-sm text-sigma-muted">{t("empty")}</p> : null}
       {report ? (
-        <Link className="block" href={`/${locale}/reports/${report.id}`}>
+        <Link className="block min-h-11" href={`/${locale}/reports/${report.id}`}>
           <Badge>{t(`reportTypes.${report.report_type}`)}</Badge>
           <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 text-sigma-text">{report.title}</p>
         </Link>

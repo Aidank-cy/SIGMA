@@ -74,7 +74,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
                 </p>
                 <button
                   aria-label={t("close")}
-                  className="rounded-full p-1 text-sigma-muted hover:bg-sigma-surface hover:text-sigma-text"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-sigma-muted hover:bg-sigma-surface hover:text-sigma-text"
                   onClick={() => closeToast(item.id)}
                   type="button"
                 >

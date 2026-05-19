@@ -359,7 +359,7 @@ function MetadataStep({
       <div className="flex flex-wrap gap-2">
         {presets.map((preset) => (
           <button
-            className="rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
+            className="min-h-11 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
             key={preset.key}
             onClick={() => setPayload({ schedule_cron: preset.cron })}
             type="button"

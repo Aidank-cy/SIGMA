@@ -16,6 +16,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Fixed
+- Fix Layer 1 UI layout consistency by normalizing shared controls to 44px touch targets, aligning inputs to h-12, and replacing raw chart colors with SIGMA design tokens.
 - Fix Layer 7 scheduled task and report coverage for report markdown attribution, Redis lock TTL behavior, scheduler timing assertions, and Finnhub index quote fallbacks.
 - Fix Layer 6 LLM analysis coverage for provider routing, current OpenAI-compatible base URLs, JSON summary output, retry handling, budget guards, and live usage logging.
 - Fix Layer 5 collection pipeline coverage for dead external sources, Yahoo Finance mapping, collector request headers, normalizer date formats, and source/title deduplication.

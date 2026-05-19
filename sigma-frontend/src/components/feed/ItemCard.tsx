@@ -63,7 +63,7 @@ export function ItemCard({
         <span className="shrink-0 text-xs text-sigma-muted">{timeLabel}</span>
         <span className="max-w-28 shrink-0 truncate font-medium text-sigma-text">{sourceName}</span>
         <Link
-          className="min-w-0 flex-1 truncate font-medium text-sigma-text group-hover:text-sigma-accent"
+          className="flex min-h-11 min-w-0 flex-1 items-center truncate font-medium text-sigma-text group-hover:text-sigma-accent"
           href={`/${locale}/items/${item.id}`}
         >
           {highlightTitle(item.title, highlightKeywords)}
@@ -100,7 +100,7 @@ export function ItemCard({
         </div>
         <Link
           className={cn(
-            "flex items-start justify-between gap-4 font-semibold text-sigma-text hover:text-sigma-accent",
+            "flex min-h-11 items-start justify-between gap-4 font-semibold text-sigma-text hover:text-sigma-accent",
             isFeatured ? "mt-1 text-xl leading-8" : "text-lg leading-7"
           )}
           href={`/${locale}/items/${item.id}`}

@@ -595,8 +595,8 @@ function ToggleSet({
           <button
             className={
               values.includes(option.value)
-                ? "rounded-full bg-sigma-text px-3 py-2 text-sm font-medium text-sigma-bg"
-                : "rounded-full border border-sigma-line px-3 py-2 text-sm font-medium text-sigma-muted hover:text-sigma-text"
+                ? "min-h-11 rounded-full bg-sigma-text px-3 py-2 text-sm font-medium text-sigma-bg"
+                : "min-h-11 rounded-full border border-sigma-line px-3 py-2 text-sm font-medium text-sigma-muted hover:text-sigma-text"
             }
             key={option.value}
             onClick={() => onToggle(option.value)}

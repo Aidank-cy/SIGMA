@@ -61,15 +61,15 @@ const indexMeta: Record<string, { displayName: string; shortTicker: string; icon
 };
 
 const iconClasses: Record<string, string> = {
-  SPX: "bg-red-600",
-  IXIC: "bg-blue-600",
-  DJI: "bg-slate-800",
-  N225: "bg-red-600",
-  SSE: "bg-teal-600",
-  HSI: "bg-emerald-600",
-  FTSE: "bg-slate-950",
-  DAX: "bg-zinc-900",
-  CAC: "bg-sky-600"
+  SPX: "bg-sigma-danger",
+  IXIC: "bg-sigma-accent",
+  DJI: "bg-sigma-text",
+  N225: "bg-sigma-danger",
+  SSE: "bg-sigma-neutral",
+  HSI: "bg-sigma-success",
+  FTSE: "bg-sigma-text",
+  DAX: "bg-sigma-text",
+  CAC: "bg-sigma-accent"
 };
 
 const currencyMap: Record<string, string> = {
@@ -372,7 +372,7 @@ function ChartControls({
               {ranges.map((item) => (
                 <button
                   className={cn(
-                    "h-9 rounded-xl px-2 text-sm font-semibold",
+                    "min-h-11 rounded-xl px-2 text-sm font-semibold",
                     range === item
                       ? "bg-sigma-text text-sigma-bg"
                       : "text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
@@ -466,7 +466,7 @@ function IndexIcon({ className, symbol }: { className?: string; symbol: string }
   return (
     <span
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-bold leading-none text-white shadow-sm",
+        "flex shrink-0 items-center justify-center rounded-full font-bold leading-none text-sigma-bg shadow-sm",
         iconClasses[symbol] ?? "bg-sigma-accent",
         className
       )}
@@ -487,13 +487,15 @@ function StatusButton({
     <button
       aria-label={t("status.details")}
       data-market-popover-root="true"
-      className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full bg-sigma-bg text-xs font-bold leading-none text-sigma-muted hover:bg-sigma-line/70 hover:text-sigma-text"
+      className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-sigma-muted hover:text-sigma-text"
       onClick={onClick}
       onMouseDown={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
       type="button"
     >
-      -
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sigma-bg text-xs font-bold leading-none">
+        -
+      </span>
     </button>
   );
 }
@@ -911,20 +913,19 @@ function CustomTooltip({
 
   return (
     <div
-      className="min-w-[100px] rounded-md px-2 py-1.5 text-center shadow-lg"
+      className="min-w-[100px] rounded-md bg-sigma-text px-2 py-1.5 text-center shadow-lg"
       style={{
-        background: "rgb(10, 10, 10)",
         borderTop: `2px solid ${lineColor}`,
         pointerEvents: "none",
         transform: `translate(${translateX}px, -50%)`,
         width: tooltipWidth
       }}
     >
-      <p className="text-[12px] font-medium leading-tight text-white">{formatValue(point.value, locale)}</p>
-      <p className="mt-0.5 text-[10px] leading-tight text-[#aaaaaa]">
+      <p className="text-[12px] font-medium leading-tight text-sigma-bg">{formatValue(point.value, locale)}</p>
+      <p className="mt-0.5 text-[10px] leading-tight text-sigma-bg/70">
         {new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: chartTimeZone, year: "2-digit" }).format(date)}
       </p>
-      <p className="text-[10px] leading-tight text-[#aaaaaa]">
+      <p className="text-[10px] leading-tight text-sigma-bg/70">
         {new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: chartTimeZone }).format(date)} {offset}
       </p>
     </div>

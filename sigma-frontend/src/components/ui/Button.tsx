@@ -10,13 +10,13 @@ const variants = {
   secondary:
     "border border-sigma-line bg-sigma-elevated text-sigma-text hover:-translate-y-0.5 hover:bg-sigma-elevated/80",
   ghost: "text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text",
-  danger: "bg-sigma-danger text-white shadow-apple-soft hover:-translate-y-0.5"
+  danger: "bg-sigma-danger text-sigma-bg shadow-apple-soft hover:-translate-y-0.5"
 } as const;
 
 const sizes = {
-  sm: "h-9 gap-2 px-3 text-sm",
-  md: "h-11 gap-2.5 px-4 text-sm",
-  lg: "h-12 gap-3 px-5 text-base"
+  sm: "h-11 min-w-11 gap-2 px-3 text-sm",
+  md: "h-11 min-w-11 gap-2.5 px-4 text-sm",
+  lg: "h-12 min-w-12 gap-3 px-5 text-base"
 } as const;
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
