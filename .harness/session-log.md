@@ -217,3 +217,14 @@
 **Completion:** SUB-FEATURE COMPLETE
 **Next session should:** Perform remote handoff for `feat/homepage-market-summary-chart` or run browser-level hover/click QA if an interactive browser tool is available.
 **Uncommitted work:** NO — committing in this session as the tooltip/ticker/axis refinement checkpoint.
+
+---
+## Session 21 — 2026-05-19T02:04:07Z
+**Phase:** Release
+**Resuming from:** Clean `main` with v1.0.0 tagged and post-release changes accumulated under `[Unreleased]`.
+**Prior status from progress.md:** Latest maintenance entry was offline frontend font build; no active in-progress task.
+
+**Ending at:** SIGMA v1.1.0 release preparation
+**Completion:** RELEASE COMPLETE
+**Next session should:** Continue with post-release maintenance or new feature work after confirming remote CI/release status if needed.
+**Uncommitted work:** NO — release commit and tag are created in this session after verification.

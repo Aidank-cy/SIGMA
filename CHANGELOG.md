@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-19
+
 ### Added
 - Add named multi-key LLM settings so users can save, rename, edit, and delete multiple API keys.
 - Add a standalone demo data seed script for users, sources, items, watchlists, reports, report configs, collector logs, system config, and LLM usage logs.

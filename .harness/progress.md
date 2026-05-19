@@ -773,3 +773,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Removed `next/font/google` usage so production Docker builds no longer fetch Inter or Noto Sans SC from Google Fonts, and supplied equivalent system font stacks through CSS variables.
 - Timestamp: 2026-05-18T10:41:57Z
+
+### [Release] v1.1.0
+- Status: COMPLETE
+- Files created: none
+- Files modified: CHANGELOG.md, sigma-backend/pyproject.toml, sigma-frontend/package.json, sigma-frontend/package-lock.json, .harness/progress.md, .harness/session-log.md
+- Tests: PASS
+- Notes: Promoted accumulated Unreleased UI redesign, LLM settings, demo seed, Docker, bcrypt, chart, select-control, profile focus, and offline font-build changes into the v1.1.0 release.
+- Timestamp: 2026-05-19T02:04:07Z
