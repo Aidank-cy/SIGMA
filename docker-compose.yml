@@ -28,7 +28,7 @@ services:
       context: ./sigma-backend
     container_name: sigma-backend
     env_file:
-      - .env.example
+      - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://sigma:sigma@sigma-postgres:5432/sigma
       REDIS_URL: redis://sigma-redis:6379/0
