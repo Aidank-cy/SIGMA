@@ -797,3 +797,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Increased the market chart range dropdown width to `w-56` and changed its range button grid to four columns so the ten range options render as three compact rows.
 - Timestamp: 2026-05-19T02:58:59Z
+
+### [Maintenance] Market chart X-axis label density
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/charts/MarketIndexChart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Changed the market chart X-axis to preserve start/end labels with a larger tick gap and reduced generated 1-day labels from 30-minute to 60-minute cadence to prevent overlapping timestamps.
+- Timestamp: 2026-05-19T05:52:59Z
