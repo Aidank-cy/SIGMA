@@ -14,6 +14,8 @@ from app.schemas.user_settings import (
     UserReportConfigRead,
     UserReportConfigUpdate,
     UserRetentionUpdate,
+    UserSettingsRead,
+    UserSettingsUpdate,
 )
 from app.services.auth_service import hash_password, verify_password
 from app.services.llm_settings import (
@@ -23,6 +25,37 @@ from app.services.llm_settings import (
 )
 
 router = APIRouter()
+
+
+@router.get("/settings", response_model=UserSettingsRead)
+async def get_settings(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserSettingsRead:
+    """Return the current user's aggregated settings."""
+    config = await _get_or_create_config(db, current_user)
+    return _settings_response(current_user, config)
+
+
+@router.put("/settings", response_model=UserSettingsRead)
+async def update_settings(
+    payload: UserSettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserSettingsRead:
+    """Update the current user's profile, retention, and report settings together."""
+    config = await _get_or_create_config(db, current_user)
+    current_user.display_name = payload.display_name
+    current_user.locale = payload.locale
+    current_user.data_retention_days = payload.data_retention_days
+    config.report_frequency = payload.report_frequency
+    config.markets = payload.markets
+    config.categories = payload.categories
+    config.is_active = payload.is_active
+    await db.commit()
+    await db.refresh(current_user)
+    await db.refresh(config)
+    return _settings_response(current_user, config)
 
 
 @router.get("/report-config", response_model=UserReportConfigRead)
@@ -127,3 +160,15 @@ async def _get_or_create_config(db: AsyncSession, current_user: User) -> UserRep
     await db.commit()
     await db.refresh(config)
     return config
+
+
+def _settings_response(user: User, config: UserReportConfig) -> UserSettingsRead:
+    return UserSettingsRead(
+        display_name=user.display_name,
+        locale=user.locale,
+        data_retention_days=user.data_retention_days,
+        report_frequency=config.report_frequency,
+        markets=[str(market) for market in config.markets],
+        categories=[str(category) for category in config.categories],
+        is_active=config.is_active,
+    )

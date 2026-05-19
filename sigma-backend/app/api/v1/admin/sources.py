@@ -17,12 +17,39 @@ from app.schemas.admin import AdminSourceLogsResponse, AdminSourcePreviewPayload
 from app.schemas.source import (
     DataSourceRead,
     DataSourceUpdate,
+    SourceListResponse,
     SourceStatsResponse,
     SourcePreviewResponse,
     SystemDataSourceCreate,
 )
 
 router = APIRouter()
+
+
+@router.get("/sources", response_model=SourceListResponse)
+async def list_system_sources(
+    page: int = 1,
+    page_size: int = 20,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+) -> SourceListResponse:
+    """List all sources for admin management."""
+    if page < 1 or page_size < 1 or page_size > 100:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid pagination")
+    total = await db.scalar(select(func.count()).select_from(DataSource))
+    sources = await db.scalars(
+        select(DataSource)
+        .order_by(DataSource.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    return SourceListResponse(
+        page=page,
+        page_size=page_size,
+        total=total or 0,
+        has_next=(page * page_size) < (total or 0),
+        items=[DataSourceRead.model_validate(source) for source in sources],
+    )
 
 
 @router.post("/sources", response_model=DataSourceRead, status_code=status.HTTP_201_CREATED)

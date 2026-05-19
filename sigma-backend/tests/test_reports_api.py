@@ -79,7 +79,14 @@ def test_admin_llm_config_and_usage(client: TestClient) -> None:
             "provider": "openai",
             "model": "gpt-test",
             "daily_token_limit": 12345,
-            "api_keys": [{"name": "Operations", "key": "sk-admin-test"}],
+            "api_keys": [
+                {
+                    "name": "Operations",
+                    "key": "sk-admin-test",
+                    "provider": "openai",
+                    "token_limit": 12345,
+                }
+            ],
         },
     )
     get_response = client.get("/api/v1/admin/llm/config", headers=_auth(token))
@@ -89,7 +96,9 @@ def test_admin_llm_config_and_usage(client: TestClient) -> None:
     assert get_response.status_code == 200
     assert get_response.json()["provider"] == "openai"
     assert get_response.json()["model"] == "gpt-test"
-    assert get_response.json()["api_keys"] == [{"name": "Operations", "key": "sk-admin-test"}]
+    assert get_response.json()["api_keys"] == [
+        {"name": "Operations", "key": "sk-admin-test", "provider": "openai", "token_limit": 12345}
+    ]
     assert usage_response.status_code == 200
     assert usage_response.json()["items"] == []
 
@@ -108,8 +117,8 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
             "daily_token_limit": 67890,
             "cost_guard_enabled": False,
             "api_keys": [
-                {"name": "Work", "key": "sk-work-test"},
-                {"name": "Personal", "key": "sk-personal-test"},
+                {"name": "Work", "key": "sk-work-test", "provider": "anthropic", "token_limit": 25000},
+                {"name": "Personal", "key": "sk-personal-test", "provider": "openai", "token_limit": 50000},
             ],
         },
     )
@@ -121,7 +130,7 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
             "model": "claude-test",
             "daily_token_limit": 67890,
             "cost_guard_enabled": False,
-            "api_keys": [{"name": "GPT-4 key", "key": "sk-second-test"}],
+            "api_keys": [{"name": "GPT-4 key", "key": "sk-second-test", "provider": "openai", "token_limit": 12000}],
         },
     )
     get_response = client.get("/api/v1/me/llm/config", headers=_auth(token))
@@ -133,7 +142,9 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
             "model": "claude-test",
             "daily_token_limit": 67890,
             "cost_guard_enabled": False,
-            "api_keys": [{"name": "Work renamed", "key": "sk-work-updated"}],
+            "api_keys": [
+                {"name": "Work renamed", "key": "sk-work-updated", "provider": "anthropic", "token_limit": 30000}
+            ],
         },
     )
     edited_get_response = client.get("/api/v1/me/llm/config", headers=_auth(token))
@@ -147,11 +158,15 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
     assert get_response.status_code == 200
     assert get_response.json()["model"] == "claude-test"
     assert get_response.json()["api_keys"] == [
-        {"name": "Work", "key": "sk-work-test"},
-        {"name": "Personal", "key": "sk-personal-test"},
+        {"name": "Work", "key": "sk-work-test", "provider": "anthropic", "token_limit": 25000},
+        {"name": "Personal", "key": "sk-personal-test", "provider": "openai", "token_limit": 50000},
     ]
-    assert edited_get_response.json()["api_keys"] == [{"name": "Work renamed", "key": "sk-work-updated"}]
-    assert second_get_response.json()["api_keys"] == [{"name": "GPT-4 key", "key": "sk-second-test"}]
+    assert edited_get_response.json()["api_keys"] == [
+        {"name": "Work renamed", "key": "sk-work-updated", "provider": "anthropic", "token_limit": 30000}
+    ]
+    assert second_get_response.json()["api_keys"] == [
+        {"name": "GPT-4 key", "key": "sk-second-test", "provider": "openai", "token_limit": 12000}
+    ]
     assert usage_response.status_code == 200
     assert usage_response.json()["items"] == []
 

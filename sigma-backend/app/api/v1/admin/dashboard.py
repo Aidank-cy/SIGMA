@@ -38,6 +38,8 @@ async def get_admin_stats(
         return cached
 
     today = datetime.now(timezone.utc).date()
+    start = datetime.combine(today, datetime.min.time(), timezone.utc)
+    end = start + timedelta(days=1)
     users = await db.scalar(select(func.count()).select_from(User))
     sources = await db.scalar(select(func.count()).select_from(DataSource))
     active_sources = await db.scalar(
@@ -48,7 +50,7 @@ async def get_admin_stats(
         select(
             func.sum(LLMUsageLog.input_tokens).label("input_tokens"),
             func.sum(LLMUsageLog.output_tokens).label("output_tokens"),
-        ).where(func.date(LLMUsageLog.created_at) == today.isoformat())
+        ).where(LLMUsageLog.created_at >= start, LLMUsageLog.created_at < end)
     )
     token_row = token_rows.one()
     response = AdminStatsResponse(

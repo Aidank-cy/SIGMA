@@ -28,7 +28,7 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
 
     response = await list_market_indices()
 
-    assert {index.symbol for index in response.indices} == {
+    assert {index.symbol for index in response} == {
         "SPX",
         "IXIC",
         "DJI",
@@ -38,10 +38,9 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
         "FTSE",
         "DAX",
     }
-    assert response.updated_at.tzinfo is UTC
-    assert all(len(index.sparkline_24h) == 480 for index in response.indices)
-    assert {index.symbol: index.currency for index in response.indices}["SPX"] == "USD"
-    assert {index.symbol: index.currency for index in response.indices}["SSE"] == "CNY"
+    assert all(len(index.sparkline_24h) == 480 for index in response)
+    assert {index.symbol: index.currency for index in response}["SPX"] == "USD"
+    assert {index.symbol: index.currency for index in response}["SSE"] == "CNY"
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["symbol"] == "SPX"
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["currency"] == "USD"
 

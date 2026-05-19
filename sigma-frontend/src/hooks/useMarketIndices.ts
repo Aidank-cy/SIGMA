@@ -3,12 +3,15 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import type { MarketIndicesResponse } from "@/lib/types";
+import type { MarketIndex, MarketIndicesResponse } from "@/lib/types";
 
 export function useMarketIndices() {
   const query = useQuery({
     queryKey: ["market-indices"],
-    queryFn: () => apiFetch<MarketIndicesResponse>("/market-indices"),
+    queryFn: async () => {
+      const response = await apiFetch<MarketIndex[] | MarketIndicesResponse>("/market-indices");
+      return Array.isArray(response) ? { indices: response } : response;
+    },
     refetchInterval: 60_000
   });
 

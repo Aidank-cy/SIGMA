@@ -25,6 +25,42 @@ class UserReportConfigUpdate(BaseModel):
     is_active: bool = True
 
 
+class UserSettingsRead(BaseModel):
+    """Aggregated user settings payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: str
+    locale: UserLocale
+    data_retention_days: int
+    report_frequency: ReportType
+    markets: list[str]
+    categories: list[str]
+    is_active: bool
+
+
+class UserSettingsUpdate(BaseModel):
+    """Aggregated user settings update payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: str = Field(min_length=1, max_length=120)
+    locale: UserLocale
+    data_retention_days: int
+    report_frequency: ReportType = ReportType.DAILY
+    markets: list[str] = Field(default_factory=list)
+    categories: list[str] = Field(default_factory=list)
+    is_active: bool = True
+
+    @field_validator("data_retention_days")
+    @classmethod
+    def validate_retention(cls, value: int) -> int:
+        """Restrict retention to supported UI choices."""
+        if value not in {7, 30, 60, 90, 180, 365}:
+            raise ValueError("Unsupported retention period")
+        return value
+
+
 class UserProfileUpdate(BaseModel):
     """User profile update payload."""
 

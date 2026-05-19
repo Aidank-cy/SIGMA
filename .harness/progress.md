@@ -845,3 +845,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Executed Layer 4 from the full-stack workflow, added registration token issuance, workflow-style username alias handling, invalid Bearer token rejection, CSP headers, rate-limit security headers, and `/api/v1/admin/dashboard` protection. Verified local auth/security/admin tests and live Docker JWT, rate-limit, isolation, admin, and security-header checks.
 - Timestamp: 2026-05-19T10:46:21Z
+
+### [Maintenance] Layer 3 API endpoint audit
+- Status: COMPLETE
+- Files created: sigma-backend/tests/test_user_settings_api.py
+- Files modified: sigma-backend/app/api/v1/admin/dashboard.py, sigma-backend/app/api/v1/admin/sources.py, sigma-backend/app/api/v1/routes/market_indices.py, sigma-backend/app/api/v1/routes/user_settings.py, sigma-backend/app/schemas/user_settings.py, sigma-backend/tests/test_llm.py, sigma-backend/tests/test_market_indices.py, sigma-backend/tests/test_reports_api.py, sigma-frontend/src/hooks/useMarketIndices.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Executed Layer 3 from the full-stack workflow, expanded weak LLM coverage, added `/api/v1/me/settings` tests, fixed live endpoint failures for market indices, admin dashboard token stats, and admin source listing, then verified the full backend suite, E2E flow, Ruff, frontend build, and live Docker endpoint matrix.
+- Timestamp: 2026-05-19T11:02:37Z
