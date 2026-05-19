@@ -209,8 +209,8 @@ export function MarketIndexChart() {
                     <XAxis
                       axisLine={false}
                       dataKey="timestamp"
-                      interval={0}
-                      minTickGap={18}
+                      interval="preserveStartEnd"
+                      minTickGap={60}
                       tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
                       tickFormatter={(value: unknown) => axisLabels.get(String(value)) ?? ""}
                       tickLine={false}
@@ -782,7 +782,7 @@ function generateTradingAxis(tradingHours: MarketIndex["trading_hours"], symbol:
     if (!isInsideTradingBreak(cursor, tradingHours.timezone, breaks)) {
       const parts = beijingParts(cursor);
       const minuteOfDay = parts.hour * 60 + parts.minute;
-      const isLabelTick = minuteOfDay % 30 === 0;
+      const isLabelTick = minuteOfDay % 60 === 0;
       if (parts.day !== previousDay) {
         points.push({ label: String(parts.day), timestamp: new Date(cursor) });
         previousDay = parts.day;
