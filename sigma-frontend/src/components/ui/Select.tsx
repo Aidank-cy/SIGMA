@@ -43,7 +43,7 @@ export function Select({
           className={cn(
             "peer h-12 w-full appearance-none rounded-2xl border border-sigma-line bg-sigma-elevated text-sm font-medium text-sigma-text outline-none",
             "focus:border-sigma-accent focus:ring-4 focus:ring-sigma-accent/15",
-            showLabel ? "pb-1 pt-5" : "py-0",
+            showLabel ? "pb-1.5 pt-[18px]" : "py-0",
             hasLeadingIcon ? "pl-11" : "pl-4",
             "pr-10",
             error ? "border-sigma-danger focus:border-sigma-danger focus:ring-sigma-danger/15" : "",
@@ -56,7 +56,7 @@ export function Select({
         </select>
         <label
           className={cn(
-            "pointer-events-none absolute left-4 top-2 text-xs font-medium text-sigma-muted transition-colors",
+            "pointer-events-none absolute left-4 top-[7px] text-xs font-medium text-sigma-muted transition-colors",
             hasLeadingIcon ? "left-11" : "",
             showLabel ? "" : "sr-only",
             error ? "text-sigma-danger" : "peer-focus:text-sigma-accent"
