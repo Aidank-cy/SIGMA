@@ -781,3 +781,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Promoted accumulated Unreleased UI redesign, LLM settings, demo seed, Docker, bcrypt, chart, select-control, profile focus, and offline font-build changes into the v1.1.0 release.
 - Timestamp: 2026-05-19T02:04:07Z
+
+### [Maintenance] Frontend Docker context hygiene
+- Status: COMPLETE
+- Files created: sigma-frontend/.dockerignore
+- Files modified: CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Excluded frontend host `node_modules`, `.next`, output folders, debug logs, macOS metadata, and local env files from production Docker build context so `COPY . .` no longer overwrites Linux container dependencies with macOS-only Next.js SWC binaries. Direct Docker rebuild verification was blocked by Docker Hub token timeouts before the application build stage.
+- Timestamp: 2026-05-19T02:30:19Z
