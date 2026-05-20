@@ -3,6 +3,7 @@ import { NextIntlClientProvider, useMessages } from "next-intl";
 
 import { AuthProvider } from "@/components/AuthProvider";
 import { ClientProviders } from "@/components/ClientProviders";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const locales = ["zh", "en"] as const;
 
@@ -21,13 +22,15 @@ export default function LocaleLayout({ children, params }: LocaleLayoutProps) {
   const messages = useMessages();
 
   return (
-    <html lang={params.locale}>
+    <html lang={params.locale} suppressHydrationWarning>
       <body>
-        <NextIntlClientProvider locale={params.locale} messages={messages}>
-          <ClientProviders>
-            <AuthProvider>{children}</AuthProvider>
-          </ClientProviders>
-        </NextIntlClientProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange enableSystem>
+          <NextIntlClientProvider locale={params.locale} messages={messages}>
+            <ClientProviders>
+              <AuthProvider>{children}</AuthProvider>
+            </ClientProviders>
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

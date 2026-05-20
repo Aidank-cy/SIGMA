@@ -6,37 +6,55 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        "sigma-bg": "rgb(var(--sigma-bg) / <alpha-value>)",
-        "sigma-surface": "rgb(var(--sigma-surface) / <alpha-value>)",
-        "sigma-elevated": "rgb(var(--sigma-elevated) / <alpha-value>)",
-        "sigma-text": "rgb(var(--sigma-text) / <alpha-value>)",
-        "sigma-muted": "rgb(var(--sigma-muted) / <alpha-value>)",
-        "sigma-line": "rgb(var(--sigma-line) / <alpha-value>)",
-        "sigma-accent": "rgb(var(--sigma-accent) / <alpha-value>)",
-        "sigma-success": "rgb(var(--sigma-success) / <alpha-value>)",
-        "sigma-danger": "rgb(var(--sigma-danger) / <alpha-value>)",
-        "sigma-warning": "rgb(var(--sigma-warning) / <alpha-value>)",
-        "sigma-neutral": "rgb(var(--sigma-neutral) / <alpha-value>)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        card: { DEFAULT: "var(--card)", foreground: "var(--card-foreground)" },
+        popover: { DEFAULT: "var(--popover)", foreground: "var(--popover-foreground)" },
+        primary: { DEFAULT: "var(--primary)", foreground: "var(--primary-foreground)" },
+        secondary: { DEFAULT: "var(--secondary)", foreground: "var(--secondary-foreground)" },
+        muted: { DEFAULT: "var(--muted)", foreground: "var(--muted-foreground)" },
+        accent: { DEFAULT: "var(--accent)", foreground: "var(--accent-foreground)" },
+        destructive: { DEFAULT: "var(--destructive)", foreground: "var(--destructive-foreground)" },
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        "chart-1": "var(--chart-1)",
+        "chart-2": "var(--chart-2)",
+        "chart-3": "var(--chart-3)",
+        "chart-4": "var(--chart-4)",
+        "chart-5": "var(--chart-5)",
+        success: { DEFAULT: "var(--success)", foreground: "var(--success-foreground)" },
+        warning: { DEFAULT: "var(--warning)", foreground: "var(--warning-foreground)" },
+        sidebar: {
+          DEFAULT: "var(--sidebar)",
+          foreground: "var(--sidebar-foreground)",
+          primary: "var(--sidebar-primary)",
+          "primary-foreground": "var(--sidebar-primary-foreground)",
+          accent: "var(--sidebar-accent)",
+          "accent-foreground": "var(--sidebar-accent-foreground)",
+          border: "var(--sidebar-border)",
+          ring: "var(--sidebar-ring)"
+        },
         category: {
           politics: "#818cf8",
           finance: "#34d399",
           tech: "#c084fc",
           macro: "#fbbf24"
-        },
-        ink: "rgb(var(--sigma-text) / <alpha-value>)",
-        mist: "rgb(var(--sigma-bg) / <alpha-value>)",
-        line: "rgb(var(--sigma-line) / <alpha-value>)",
-        signal: "rgb(var(--sigma-accent) / <alpha-value>)",
-        alert: "rgb(var(--sigma-danger) / <alpha-value>)"
+        }
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)"
       },
       fontFamily: {
         sans: [
           "var(--font-inter)",
           "var(--font-noto-sans-sc)",
           "Inter",
-          "Noto Sans SC",
-          "ui-sans-serif",
-          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
           "sans-serif"
         ]
       },
@@ -45,6 +63,10 @@ const config: Config = {
         "apple-soft": "0 10px 30px rgba(0, 0, 0, 0.10)"
       },
       keyframes: {
+        "fade-in-up": {
+          from: { opacity: "0", transform: "translateY(20px)" },
+          to: { opacity: "1", transform: "translateY(0)" }
+        },
         "sigma-float": {
           "0%, 100%": { transform: "translate3d(0, 0, 0)" },
           "50%": { transform: "translate3d(0, -10px, 0)" }
@@ -59,6 +81,7 @@ const config: Config = {
         }
       },
       animation: {
+        "fade-in-up": "fade-in-up 0.5s ease-out forwards",
         "sigma-float": "sigma-float 10s ease-in-out infinite",
         "toast-in": "toast-in 180ms ease-out",
         "modal-in": "modal-in 180ms ease-out"

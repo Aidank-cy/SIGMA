@@ -37,6 +37,11 @@
     }
   },
   "nav": {
+    "dashboard": "Dashboard",
+    "markets": "Markets",
+    "news": "News",
+    "analytics": "Analytics",
+    "sync": "Sync",
     "home": "Home",
     "feed": "Feed",
     "watchlist": "Watchlist",
@@ -47,6 +52,16 @@
     "menu": "Menu",
     "themeLight": "Switch to light mode",
     "themeDark": "Switch to dark mode"
+  },
+  "dashboard": {
+    "greeting": "Good morning, {name}",
+    "subtitle": "Here's what's happening in the markets today",
+    "lastUpdated": "Last updated",
+    "live": "Live",
+    "marketMovers": "Market Movers",
+    "latestNews": "Latest News",
+    "viewAll": "View All",
+    "swipeHint": "Swipe or use arrow keys to navigate"
   },
   "feed": {
     "eyebrow": "Live intelligence",
@@ -99,7 +114,8 @@
       "latestReport": "Latest report",
       "bullish": "{value}% bullish",
       "bearish": "{value}% bearish",
-      "none": "None"
+      "none": "None",
+      "new": "New"
     },
     "sentiment": {
       "bullish": "Bullish",
@@ -140,6 +156,15 @@
       "hk": "Hong Kong",
       "global": "Global"
     }
+  },
+  "sidebar": {
+    "watchlist": "Watchlist",
+    "trending": "Trending Topics",
+    "marketOverview": "Market Overview",
+    "fearGreed": "Fear & Greed",
+    "volume": "Volume",
+    "viewPortfolio": "View Full Portfolio",
+    "empty": "No data yet."
   },
   "itemDetail": {
     "breadcrumbHome": "Home",
