@@ -699,6 +699,9 @@
       "month": "本月",
       "tokenTrend": "14 天 Token 趋势",
       "usageByFunction": "按功能统计",
+      "providerUsageDistribution": "Provider Usage Distribution",
+      "dailyTokenBudget": "Daily Token Budget",
+      "dailyTokenBudgetCaption": "{tokens} of {limit} tokens used today.",
       "providers": {
         "anthropic": "Anthropic",
         "openai": "OpenAI",

@@ -699,6 +699,9 @@
       "month": "This month",
       "tokenTrend": "14-day token trend",
       "usageByFunction": "Usage by function",
+      "providerUsageDistribution": "Provider Usage Distribution",
+      "dailyTokenBudget": "Daily Token Budget",
+      "dailyTokenBudgetCaption": "{tokens} of {limit} tokens used today.",
       "providers": {
         "anthropic": "Anthropic",
         "openai": "OpenAI",

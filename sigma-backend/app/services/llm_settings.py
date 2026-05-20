@@ -43,22 +43,26 @@ async def update_llm_config(db: AsyncSession, payload: LLMConfigUpdate, user_id:
 
 
 async def get_llm_usage(db: AsyncSession) -> LLMUsageResponse:
-    """Return LLM usage totals grouped by day and function type."""
+    """Return LLM usage totals grouped by day, function, provider, and model."""
     day_expr = func.date(LLMUsageLog.created_at)
     rows = await db.execute(
         select(
             day_expr.label("day"),
             LLMUsageLog.function_type,
+            LLMUsageLog.provider,
+            LLMUsageLog.model,
             func.sum(LLMUsageLog.input_tokens).label("input_tokens"),
             func.sum(LLMUsageLog.output_tokens).label("output_tokens"),
         )
-        .group_by(day_expr, LLMUsageLog.function_type)
+        .group_by(day_expr, LLMUsageLog.function_type, LLMUsageLog.provider, LLMUsageLog.model)
         .order_by(day_expr.desc())
     )
     items = [
         LLMUsageDay(
             day=date.fromisoformat(str(row.day)),
             function_type=row.function_type.value,
+            provider=row.provider,
+            model=row.model,
             input_tokens=int(row.input_tokens or 0),
             output_tokens=int(row.output_tokens or 0),
             total_tokens=int((row.input_tokens or 0) + (row.output_tokens or 0)),

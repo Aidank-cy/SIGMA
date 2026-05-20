@@ -4,9 +4,12 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -22,6 +25,17 @@ interface TokenTrendPoint {
 
 interface FunctionUsagePoint {
   name: string;
+  tokens: number;
+}
+
+interface ProviderUsagePoint {
+  color: string;
+  name: string;
+  tokens: number;
+}
+
+interface DailyUsagePoint {
+  day: string;
   tokens: number;
 }
 
@@ -41,6 +55,31 @@ export function TokenTrendChart({ data }: { data: TokenTrendPoint[] }) {
   );
 }
 
+export function ProviderUsageDistributionChart({ data }: { data: ProviderUsagePoint[] }) {
+  return (
+    <ChartFrame>
+      <PieChart>
+        <Tooltip formatter={(value: number) => value.toLocaleString()} />
+        <Legend layout="horizontal" verticalAlign="bottom" />
+        <Pie
+          cx="50%"
+          cy="44%"
+          data={data}
+          dataKey="tokens"
+          innerRadius={58}
+          nameKey="name"
+          outerRadius={88}
+          paddingAngle={2}
+        >
+          {data.map((entry) => (
+            <Cell fill={entry.color} key={entry.name} />
+          ))}
+        </Pie>
+      </PieChart>
+    </ChartFrame>
+  );
+}
+
 export function FunctionUsageChart({ data }: { data: FunctionUsagePoint[] }) {
   return (
     <ChartFrame>
@@ -52,6 +91,19 @@ export function FunctionUsageChart({ data }: { data: FunctionUsagePoint[] }) {
         <Bar dataKey="tokens" fill="rgb(var(--sigma-accent))" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ChartFrame>
+  );
+}
+
+export function DailyUsageSparkline({ data }: { data: DailyUsagePoint[] }) {
+  return (
+    <div className="h-16">
+      <ResponsiveContainer height="100%" width="100%">
+        <LineChart data={data}>
+          <Line dataKey="tokens" dot={false} stroke="var(--chart-3)" strokeWidth={2} type="monotone" />
+          <Tooltip formatter={(value: number) => value.toLocaleString()} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

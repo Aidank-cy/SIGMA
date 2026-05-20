@@ -66,6 +66,8 @@ export interface LLMApiKey {
 export interface LLMUsageDay {
   day: string;
   function_type: "summary" | "report";
+  model?: string;
+  provider?: string;
   input_tokens: number;
   output_tokens: number;
   total_tokens: number;

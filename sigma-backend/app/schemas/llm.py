@@ -61,6 +61,8 @@ class LLMUsageDay(BaseModel):
 
     day: date
     function_type: str
+    provider: str
+    model: str
     input_tokens: int
     output_tokens: int
     total_tokens: int

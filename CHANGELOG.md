@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add admin LLM provider distribution and daily token budget visualizations backed by provider and model usage rollups.
 - Add Markets index range controls, Korea and Taiwan index coverage, watchlist creation from Markets, and region-grouped sector sections.
 - Add visible hero chart time labels, richer price tooltips, and browser-time dashboard greetings.
 - Add index logo badges and currency labels to the dashboard hero market chart.
@@ -34,6 +35,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix admin log filter alignment, design-token colors, and date range constraints.
 - Fix Sync source card settings actions so they open the Settings admin sources panel.
 - Fix the v0 sidebar frosted-glass background and light-mode sidebar tokens so theme toggles update the sidebar with the rest of the app.
 - Fix duplicate top-level dashboard i18n namespaces so the v0 dashboard renders localized runtime strings without `next-intl` missing-message errors.

@@ -961,3 +961,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Routed Sync source card configure actions to the Settings admin sources panel, added stacked label spacing for Settings forms, restyled segmented controls with animated primary pill indicators, and improved global toggle contrast. Verified with frontend build and the post-edit hook.
 - Timestamp: 2026-05-20T08:59:42Z
+
+### [Maintenance] Admin LLM visualizations and log filters
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/charts/LLMUsageCharts.tsx, sigma-frontend/src/components/admin/AdminLogsPanel.tsx, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/schemas/llm.py, sigma-backend/app/services/llm_settings.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Removed API key management from the admin LLM workspace, added provider distribution and daily token budget visualization cards, exposed provider/model in LLM usage rollups, aligned admin log filters, added date constraints, and migrated the logs panel off old sigma color classes. Verified with `./hooks/post-file-edit.sh` and `cd sigma-frontend && npm run build`.
+- Timestamp: 2026-05-20T09:10:56Z
