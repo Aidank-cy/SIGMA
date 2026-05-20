@@ -13,7 +13,7 @@ import type { Category, ItemFilters, ItemSummary, Market, Sentiment } from "@/li
 type ViewMode = "grid" | "list"
 
 const categoryFilters: Array<Category | ""> = ["", "politics", "finance", "technology", "macro"]
-const marketFilters: Array<Market | ""> = ["", "us", "cn", "hk", "jp", "eu"]
+const marketFilters: Array<Market | ""> = ["", "us", "cn", "hk", "jp", "eu", "kr", "tw"]
 const sortOptions = ["latest", "relevant", "discussed"] as const
 
 const categoryGradients: Record<Category, string> = {

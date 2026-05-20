@@ -17,6 +17,7 @@ interface CustomSelectProps {
   disabled?: boolean;
   error?: string;
   label: string;
+  labelMode?: "floating" | "stacked";
   leadingIcon?: ReactNode;
   onChange: (value: string) => void;
   options: CustomSelectOption[];
@@ -32,6 +33,7 @@ export function CustomSelect({
   disabled = false,
   error,
   label,
+  labelMode = "floating",
   leadingIcon,
   onChange,
   options,
@@ -45,6 +47,7 @@ export function CustomSelect({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selected = options.find((option) => option.value === value);
   const hasLeadingIcon = leadingIcon !== undefined;
+  const isStacked = labelMode === "stacked";
 
   useEffect(() => {
     if (!isOpen) {
@@ -77,7 +80,12 @@ export function CustomSelect({
   }
 
   return (
-    <div className={cn("space-y-2", wrapperClassName)} ref={rootRef}>
+    <div className={cn(isStacked ? "space-y-3" : "space-y-2", wrapperClassName)} ref={rootRef}>
+      {isStacked ? (
+        <label className="block px-1 text-sm font-medium text-muted-foreground" htmlFor={generatedId}>
+          {label}
+        </label>
+      ) : null}
       <div className={cn("group relative", className)}>
         {hasLeadingIcon ? (
           <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground">
@@ -91,7 +99,7 @@ export function CustomSelect({
           className={cn(
             "peer flex h-12 w-full appearance-none items-center rounded-2xl border border-border bg-card text-left text-sm font-medium text-foreground outline-none",
             "focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60",
-            showLabel ? "pb-1.5 pt-[18px]" : "py-0",
+            showLabel && !isStacked ? "pb-1.5 pt-[18px]" : "py-0",
             hasLeadingIcon ? "pl-11" : "pl-4",
             "pr-10",
             error ? "border-destructive focus:border-destructive focus:ring-destructive/15" : "",
@@ -104,17 +112,19 @@ export function CustomSelect({
         >
           <span className="block min-w-0 truncate">{selected?.label ?? ""}</span>
         </button>
-        <label
-          className={cn(
-            "pointer-events-none absolute left-4 top-[7px] text-xs font-medium text-muted-foreground transition-colors",
-            hasLeadingIcon ? "left-11" : "",
-            showLabel ? "" : "sr-only",
-            error ? "text-destructive" : "peer-focus:text-primary"
-          )}
-          htmlFor={generatedId}
-        >
-          {label}
-        </label>
+        {!isStacked ? (
+          <label
+            className={cn(
+              "pointer-events-none absolute left-4 top-[7px] text-xs font-medium text-muted-foreground transition-colors",
+              hasLeadingIcon ? "left-11" : "",
+              showLabel ? "" : "sr-only",
+              error ? "text-destructive" : "peer-focus:text-primary"
+            )}
+            htmlFor={generatedId}
+          >
+            {label}
+          </label>
+        ) : null}
         <ChevronDown
           aria-hidden
           className={cn(
@@ -123,7 +133,7 @@ export function CustomSelect({
           )}
         />
         {isOpen ? (
-          <div className="absolute left-0 top-14 z-30 w-full rounded-2xl border border-border bg-popover p-2 shadow-apple">
+          <div className={cn("absolute left-0 z-30 w-full rounded-2xl border border-border bg-popover p-2 shadow-apple", isStacked ? "top-full mt-2" : "top-14")}>
             <div aria-label={label} className="space-y-1" role="listbox">
               {options.map((option) => {
                 const isSelected = option.value === value;

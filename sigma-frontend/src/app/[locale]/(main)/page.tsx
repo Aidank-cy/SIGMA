@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { HeroChart } from "@/components/dashboard/hero-chart";
@@ -14,12 +14,39 @@ import { TickerCarousel } from "@/components/dashboard/ticker-carousel";
 import { useMarketIndices } from "@/hooks/useMarketIndices";
 import type { Category, ItemFilters, Market } from "@/lib/types";
 
+type GreetingKey =
+  | "greetingMorning"
+  | "greetingNoon"
+  | "greetingAfternoon"
+  | "greetingEvening"
+  | "greetingNight";
+
+function getGreetingKey(): GreetingKey {
+  const now = new Date();
+  const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
+
+  if (minutesSinceMidnight >= 6 * 60 && minutesSinceMidnight < 12 * 60) {
+    return "greetingMorning";
+  }
+  if (minutesSinceMidnight >= 12 * 60 && minutesSinceMidnight < 12 * 60 + 30) {
+    return "greetingNoon";
+  }
+  if (minutesSinceMidnight >= 12 * 60 + 30 && minutesSinceMidnight < 18 * 60 + 30) {
+    return "greetingAfternoon";
+  }
+  if (minutesSinceMidnight >= 18 * 60 + 30) {
+    return "greetingEvening";
+  }
+  return "greetingNight";
+}
+
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
   const locale = useLocale();
   const { user } = useAuth();
   const { data: marketData } = useMarketIndices();
   const [category, setCategory] = useState<Category | "">("");
+  const [greetingKey, setGreetingKey] = useState<GreetingKey>("greetingMorning");
   const [market, setMarket] = useState<Market | "">("");
   const [query, setQuery] = useState("");
   const filters = useMemo<ItemFilters>(
@@ -31,6 +58,11 @@ export default function DashboardPage() {
     }),
     [category, market, query]
   );
+
+  useEffect(() => {
+    setGreetingKey(getGreetingKey());
+  }, []);
+
   const marketUpdatedAt = marketData && "updated_at" in marketData ? marketData.updated_at : null;
   const updatedAt = marketUpdatedAt
     ? new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
@@ -50,7 +82,7 @@ export default function DashboardPage() {
         >
           <div>
             <h1 className="text-balance text-2xl font-bold text-foreground lg:text-3xl">
-              {t("greeting", { name: user?.display_name ?? "SIGMA" })}
+              {t(greetingKey, { name: user?.display_name ?? "SIGMA" })}
             </h1>
             <p className="mt-1 text-muted-foreground">{t("subtitle")}</p>
           </div>

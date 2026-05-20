@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { Activity, AlertTriangle, Check, ChevronDown, Code, Database, RefreshCw, Rss, Settings, X, Zap } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
+import { useRouter } from "next/navigation"
 import type { ReactNode } from "react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -46,6 +47,7 @@ export default function SyncPage() {
   const t = useTranslations("sync")
   const adminT = useTranslations("admin")
   const locale = useLocale()
+  const router = useRouter()
   const { user } = useAuth()
   const { showToast } = useToast()
   const { data, isLoading, mutate } = useSources()
@@ -116,6 +118,10 @@ export default function SyncPage() {
     }
   }
 
+  function handleConfigureSources() {
+    router.push(`/${locale}/settings?admin=sources`)
+  }
+
   return (
     <div className="space-y-8 p-6 lg:p-8">
       <motion.div animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" initial={{ opacity: 0, y: 20 }}>
@@ -175,6 +181,7 @@ export default function SyncPage() {
                 index={index}
                 isSyncing={syncingSourceId === source.id}
                 key={source.id}
+                onConfigure={handleConfigureSources}
                 onSync={() => handleSyncSource(source.id)}
                 onToggle={() => handleToggleSource(source)}
                 source={source}
@@ -277,6 +284,7 @@ function SourceCard({
   canAdmin,
   index,
   isSyncing,
+  onConfigure,
   onSync,
   onToggle,
   source
@@ -284,6 +292,7 @@ function SourceCard({
   canAdmin: boolean
   index: number
   isSyncing: boolean
+  onConfigure: () => void
   onSync: () => void
   onToggle: () => void
   source: DataSource
@@ -309,7 +318,7 @@ function SourceCard({
             <p className="text-xs text-muted-foreground">{t(`sourceTypes.${source.source_type}`)}</p>
           </div>
         </div>
-        <button aria-label={t("configure")} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" type="button">
+        <button aria-label={t("configure")} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" onClick={onConfigure} type="button">
           <Settings className="h-4 w-4" />
         </button>
       </div>

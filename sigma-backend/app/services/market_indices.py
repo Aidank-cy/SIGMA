@@ -39,6 +39,8 @@ INDEX_CONFIGS: tuple[IndexConfig, ...] = (
     IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", time(9, 0), time(15, 30), "^N225", None, "N225", 38570.76, -0.12, "JPY"),
     IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", time(8, 0), time(16, 30), "^FTSE", None, "FTSE", 8433.21, 0.21, "GBP"),
     IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", time(9, 0), time(17, 30), "^GDAXI", None, "DAX", 18772.85, 0.37, "EUR"),
+    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", time(9, 0), time(15, 30), "^KS11", None, "KS11", 2650.30, 0.45, "KRW"),
+    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", time(9, 0), time(13, 30), "^TWII", None, "TWII", 20500.15, 0.28, "TWD"),
 )
 
 

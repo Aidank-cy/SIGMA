@@ -1,11 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import type { FormEvent } from "react"
 import { motion } from "framer-motion"
-import { Star, Plus, TrendingUp, TrendingDown } from "lucide-react"
+import { Star, Plus, TrendingUp, TrendingDown, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 
-import { useWatchlists } from "@/hooks/useWatchlists"
+import { useWatchlistMutations, useWatchlists } from "@/hooks/useWatchlists"
 import type { Watchlist } from "@/lib/types"
 
 const containerVariants = {
@@ -56,8 +57,13 @@ export function WatchlistTab() {
   const t = useTranslations("markets")
   const feedT = useTranslations("feed")
   const { data, isLoading } = useWatchlists()
+  const { createWatchlist } = useWatchlistMutations()
   const watchlists = data?.items ?? []
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [keywords, setKeywords] = useState("")
+  const [name, setName] = useState("")
   const [starred, setStarred] = useState<Set<string>>(new Set())
+  const [submitError, setSubmitError] = useState("")
 
   const toggleStar = (symbol: string) => {
     const newStarred = new Set(starred)
@@ -67,6 +73,47 @@ export function WatchlistTab() {
       newStarred.add(symbol)
     }
     setStarred(newStarred)
+  }
+
+  const resetForm = () => {
+    setKeywords("")
+    setName("")
+    setSubmitError("")
+  }
+
+  const closeCreateModal = () => {
+    if (createWatchlist.isPending) {
+      return
+    }
+    setIsCreateOpen(false)
+    resetForm()
+  }
+
+  const parsedKeywords = keywords
+    .split(/[\n,]+/)
+    .map((keyword) => keyword.trim())
+    .filter(Boolean)
+
+  const handleCreateWatchlist = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSubmitError("")
+    if (!name.trim() || parsedKeywords.length === 0) {
+      setSubmitError(t("watchlistCreateRequired"))
+      return
+    }
+
+    try {
+      await createWatchlist.mutateAsync({
+        keywords: parsedKeywords,
+        markets: [],
+        name: name.trim(),
+        sources: []
+      })
+      setIsCreateOpen(false)
+      resetForm()
+    } catch {
+      setSubmitError(t("watchlistCreateError"))
+    }
   }
 
   return (
@@ -80,6 +127,8 @@ export function WatchlistTab() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-border hover:border-primary text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => setIsCreateOpen(true)}
+          type="button"
         >
           <Plus className="w-4 h-4" />
           {t("addStock")}
@@ -185,6 +234,83 @@ export function WatchlistTab() {
         })}
       </motion.div>
       )}
+
+      {isCreateOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            aria-label={t("watchlistCreateClose")}
+            className="absolute inset-0 bg-black/50 backdrop-blur-md"
+            onClick={closeCreateModal}
+            type="button"
+          />
+          <motion.form
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            aria-modal="true"
+            className="relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl"
+            exit={{ opacity: 0, scale: 0.98, y: 12 }}
+            initial={{ opacity: 0, scale: 0.98, y: 12 }}
+            onSubmit={handleCreateWatchlist}
+            role="dialog"
+          >
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">{t("watchlistCreateTitle")}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t("watchlistCreateDescription")}</p>
+              </div>
+              <button
+                aria-label={t("watchlistCreateClose")}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                onClick={closeCreateModal}
+                type="button"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-foreground">{t("watchlistNameLabel")}</span>
+                <input
+                  className="h-12 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/15"
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder={t("watchlistNamePlaceholder")}
+                  value={name}
+                />
+              </label>
+
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-foreground">{t("watchlistKeywordsLabel")}</span>
+                <textarea
+                  className="min-h-28 w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/15"
+                  onChange={(event) => setKeywords(event.target.value)}
+                  placeholder={t("watchlistKeywordsPlaceholder")}
+                  value={keywords}
+                />
+              </label>
+
+              {submitError ? <p className="text-sm font-medium text-chart-2">{submitError}</p> : null}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                className="rounded-full px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                disabled={createWatchlist.isPending}
+                onClick={closeCreateModal}
+                type="button"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-55"
+                disabled={createWatchlist.isPending}
+                type="submit"
+              >
+                {createWatchlist.isPending ? t("creating") : t("createWatchlist")}
+              </button>
+            </div>
+          </motion.form>
+        </div>
+      ) : null}
     </div>
   )
 }

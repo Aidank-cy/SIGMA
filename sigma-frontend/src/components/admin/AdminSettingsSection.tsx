@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 import { useState } from "react";
 
 import { AdminDashboardPanel } from "@/components/admin/AdminDashboardPanel";
@@ -13,10 +14,21 @@ import { SegmentControl } from "@/components/ui/SegmentControl";
 const panels = ["dashboard", "users", "sources", "llm", "logs"] as const;
 type AdminPanel = (typeof panels)[number];
 
+function isAdminPanel(value: string | null): value is AdminPanel {
+  return panels.includes(value as AdminPanel);
+}
+
 export function AdminSettingsSection() {
   const [activePanel, setActivePanel] = useState<AdminPanel>("dashboard");
   const t = useTranslations("admin.nav");
   const settingsT = useTranslations("settings.admin");
+
+  useEffect(() => {
+    const requestedPanel = new URLSearchParams(window.location.search).get("admin");
+    if (isAdminPanel(requestedPanel)) {
+      setActivePanel(requestedPanel);
+    }
+  }, []);
 
   return (
     <section className="space-y-5 border-t border-sigma-line pt-6">

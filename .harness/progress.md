@@ -937,3 +937,27 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added symbol-based circular index badges beside hero chart index names and displayed the market currency code beside each price while preserving backend-driven market data.
 - Timestamp: 2026-05-20T07:58:30Z
+
+### [UI Integration] Hero chart time labels and timed greetings
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added market-open-based X-axis time labels, a themed price tooltip with timestamp, tighter chart-to-selector spacing, hidden Y-axis lines, and browser-local time-based dashboard greeting messages.
+- Timestamp: 2026-05-20T08:42:10Z
+
+### [UI Integration] Markets range controls and regional indices
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/components/markets/watchlist-tab.tsx, sigma-frontend/src/components/markets/sectors-tab.tsx, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/dashboard/search-bar.tsx, sigma-frontend/src/app/[locale]/(main)/news/page.tsx, sigma-frontend/src/components/ui/Badge.tsx, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added the Markets index time-range selector, KOSPI and TAIEX backend/frontend coverage, Korea and Taiwan filters/translations/icons, a functional watchlist creation dialog, and collapsible region-grouped sector mock data. Verified frontend build, market-index backend tests, Ruff checks, Docker backend rebuild, `/api/v1/health`, and live `/api/v1/market-indices` output including KOSPI and TAIEX.
+- Timestamp: 2026-05-20T08:53:53Z
+
+### [UI Integration] Sync settings routing and Settings controls
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/src/components/admin/AdminSettingsSection.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/dashboard/custom-select.tsx, sigma-frontend/src/components/ui/Input.tsx, sigma-frontend/src/components/ui/SegmentControl.tsx, sigma-frontend/src/components/ui/ToggleSwitch.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Routed Sync source card configure actions to the Settings admin sources panel, added stacked label spacing for Settings forms, restyled segmented controls with animated primary pill indicators, and improved global toggle contrast. Verified with frontend build and the post-edit hook.
+- Timestamp: 2026-05-20T08:59:42Z

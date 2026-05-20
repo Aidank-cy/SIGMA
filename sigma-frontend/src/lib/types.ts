@@ -1,6 +1,6 @@
 export type Category = "politics" | "finance" | "technology" | "macro" | "other";
 
-export type Market = "us" | "cn" | "jp" | "eu" | "hk" | "global";
+export type Market = "us" | "cn" | "jp" | "eu" | "hk" | "kr" | "tw" | "global";
 
 export type ReportType = "daily" | "weekly" | "monthly";
 

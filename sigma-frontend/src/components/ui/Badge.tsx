@@ -15,6 +15,8 @@ const marketFlags = {
   jp: "🇯🇵",
   eu: "🇪🇺",
   hk: "🇭🇰",
+  kr: "🇰🇷",
+  tw: "🇹🇼",
   global: "🌐"
 } as const;
 

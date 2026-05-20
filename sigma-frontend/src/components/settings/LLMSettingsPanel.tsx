@@ -209,6 +209,7 @@ export function LLMSettingsPanel({
         <Card className="space-y-4 p-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <CustomSelect
+              labelMode="stacked"
               label={t("provider")}
               onChange={(value) =>
                 setForm({
@@ -221,6 +222,7 @@ export function LLMSettingsPanel({
               value={form.provider}
             />
             <CustomSelect
+              labelMode="stacked"
               label={t("model")}
               onChange={(value) => setForm({ ...form, model: value })}
               options={models[form.provider].map((model) => ({ label: model, value: model }))}
@@ -265,6 +267,7 @@ export function LLMSettingsPanel({
                           key={index}
                         >
                           <CustomSelect
+                            labelMode="stacked"
                             label={t("provider")}
                             onChange={(value) => updateApiKey(index, "provider", value)}
                             options={providerOptions}
@@ -272,17 +275,20 @@ export function LLMSettingsPanel({
                           />
                           <Input
                             label={t("keyName")}
+                            labelMode="stacked"
                             onChange={(event) => updateApiKey(index, "name", event.target.value)}
                             value={entry.name}
                           />
                           <Input
                             label={t("keyValue")}
+                            labelMode="stacked"
                             onChange={(event) => updateApiKey(index, "key", event.target.value)}
                             type="password"
                             value={entry.key}
                           />
                           <Input
                             label={t("tokenLimit")}
+                            labelMode="stacked"
                             min={1}
                             onChange={(event) => updateApiKey(index, "token_limit", Number(event.target.value))}
                             type="number"

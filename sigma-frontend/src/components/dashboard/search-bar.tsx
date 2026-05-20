@@ -9,7 +9,7 @@ import type { Category, Market } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const categories: Category[] = ["politics", "finance", "technology", "macro"];
-const markets: Market[] = ["us", "cn", "hk", "jp", "eu"];
+const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "kr", "tw"];
 
 interface CustomSelectProps {
   onChange: (value: string) => void;

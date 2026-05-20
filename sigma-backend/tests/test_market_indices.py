@@ -37,6 +37,8 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
         "N225",
         "FTSE",
         "DAX",
+        "KOSPI",
+        "TAIEX",
     }
     assert all(len(index.sparkline_24h) == 480 for index in response)
     assert {index.symbol: index.currency for index in response}["SPX"] == "USD"

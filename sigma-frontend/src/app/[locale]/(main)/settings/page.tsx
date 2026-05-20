@@ -281,11 +281,13 @@ function ProfileSection({
         <h2 className="text-base font-semibold text-foreground">{t("profile.title")}</h2>
         <Input
           className="text-muted-foreground opacity-65 focus:text-foreground focus:opacity-100"
+          labelMode="stacked"
           label={t("profile.displayName")}
           onChange={(event) => onDisplayNameChange(event.target.value)}
           value={displayName}
         />
         <CustomSelect
+          labelMode="stacked"
           label={t("profile.language")}
           onChange={(value) => onLocaleChange(value as Locale)}
           options={[
@@ -306,7 +308,7 @@ function RetentionSection({ days, onChange }: { days: number; onChange: (days: n
     <Card className="p-5">
       <div className="flex flex-col gap-4">
         <h2 className="text-base font-semibold text-foreground">{t("retention.title")}</h2>
-        <div className="overflow-x-auto pb-1">
+        <div className="overflow-x-auto pb-1 pt-1">
           <SegmentControl
             activeId={String(days)}
             items={retentionOptions.map((option) => ({ id: String(option), label: t("retention.days", { count: option }) }))}
@@ -331,7 +333,7 @@ function ReportConfigSection({
     <Card className="p-5">
       <div className="flex flex-col gap-5">
         <h2 className="text-base font-semibold text-foreground">{t("reports.title")}</h2>
-        <div className="overflow-x-auto pb-1">
+        <div className="overflow-x-auto pb-1 pt-1">
           <SegmentControl
             activeId={payload.report_frequency}
             items={reportTypes.map((value) => ({ id: value, label: t(`reports.${value}`) }))}
@@ -525,7 +527,7 @@ function PasswordResetModal({ email, isOpen, onClose }: { email: string; isOpen:
 
         {step === 1 ? (
           <div className="space-y-4">
-            <Input label={t("password.email")} readOnly value={email} />
+            <Input label={t("password.email")} labelMode="stacked" readOnly value={email} />
             <Button isLoading={requestPasswordReset.isPending} onClick={sendCode}>
               {t("password.sendCode")}
             </Button>
@@ -536,6 +538,7 @@ function PasswordResetModal({ email, isOpen, onClose }: { email: string; isOpen:
             <Input
               inputMode="numeric"
               label={t("password.code")}
+              labelMode="stacked"
               maxLength={6}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
               value={code}
@@ -549,12 +552,14 @@ function PasswordResetModal({ email, isOpen, onClose }: { email: string; isOpen:
           <div className="space-y-4">
             <Input
               label={t("password.next")}
+              labelMode="stacked"
               onChange={(event) => setNewPassword(event.target.value)}
               type="password"
               value={newPassword}
             />
             <Input
               label={t("password.confirm")}
+              labelMode="stacked"
               onChange={(event) => setConfirmPassword(event.target.value)}
               type="password"
               value={confirmPassword}
@@ -590,7 +595,7 @@ function ToggleSet({
   values: string[];
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <p className="text-sm font-medium text-foreground">{label}</p>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (

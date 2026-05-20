@@ -54,7 +54,11 @@
     "themeDark": "切换为深色模式"
   },
   "dashboard": {
-    "greeting": "早上好，{name}",
+    "greetingMorning": "早上好，{name}",
+    "greetingNoon": "中午好，{name}",
+    "greetingAfternoon": "下午好，{name}",
+    "greetingEvening": "晚上好，{name}",
+    "greetingNight": "凌晨好，{name}",
     "subtitle": "以下是今日市场动态",
     "lastUpdated": "最后更新",
     "live": "实时",
@@ -154,6 +158,8 @@
       "jp": "日本",
       "eu": "欧洲",
       "hk": "香港",
+      "kr": "韩国",
+      "tw": "台湾",
       "global": "全球"
     }
   },
@@ -178,17 +184,44 @@
     "empty": "暂无市场指数数据。",
     "emptyWatchlist": "尚未创建关注列表。",
     "watchlistCount": "{count} 个关注列表",
+    "watchlistCreateTitle": "创建关注列表",
+    "watchlistCreateDescription": "跨全部市场追踪一组聚焦关键词。",
+    "watchlistCreateClose": "关闭创建关注列表弹窗",
+    "watchlistNameLabel": "关注列表名称",
+    "watchlistNamePlaceholder": "AI 基础设施",
+    "watchlistKeywordsLabel": "关键词",
+    "watchlistKeywordsPlaceholder": "芯片，数据中心，英伟达",
+    "watchlistCreateRequired": "请输入关注列表名称和至少一个关键词。",
+    "watchlistCreateError": "无法创建关注列表。",
+    "createWatchlist": "创建关注列表",
+    "creating": "创建中...",
+    "cancel": "取消",
     "items": "条目",
     "allMarkets": "全部市场",
     "sectorsCaption": "今日板块表现概览",
     "marketCapDistribution": "市值分布",
+    "sectorCount": "{count} 个板块",
+    "regionNames": {
+      "us": "美国",
+      "cn": "中国",
+      "jp": "日本",
+      "eu": "欧洲",
+      "kr": "韩国",
+      "tw": "台湾"
+    },
     "sectorNames": {
       "technology": "科技",
       "healthcare": "医疗健康",
       "finance": "金融",
       "energy": "能源",
       "consumer": "消费",
-      "industrial": "工业"
+      "industrial": "工业",
+      "realEstate": "房地产",
+      "automotive": "汽车",
+      "electronics": "电子",
+      "luxury": "奢侈品",
+      "pharmaceuticals": "制药",
+      "semiconductor": "半导体"
     },
     "summary": {
       "Advancing": "上涨",
@@ -313,6 +346,8 @@
       "jp": "日本",
       "eu": "欧洲",
       "hk": "香港",
+      "kr": "韩国",
+      "tw": "台湾",
       "global": "全球"
     }
   },
@@ -347,6 +382,8 @@
       "jp": "日本",
       "eu": "欧洲",
       "hk": "香港",
+      "kr": "韩国",
+      "tw": "台湾",
       "global": "全球"
     }
   },
@@ -481,6 +518,8 @@
       "jp": "日本",
       "eu": "欧洲",
       "hk": "香港",
+      "kr": "韩国",
+      "tw": "台湾",
       "global": "全球"
     }
   },
@@ -605,6 +644,8 @@
         "jp": "日本",
         "eu": "欧洲",
         "hk": "香港",
+        "kr": "韩国",
+        "tw": "台湾",
         "global": "全球"
       },
       "fields": {

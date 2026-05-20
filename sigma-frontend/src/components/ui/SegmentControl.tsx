@@ -23,14 +23,14 @@ export function SegmentControl({ activeId, className, items, onChange }: Segment
 
   return (
     <LayoutGroup id={groupId}>
-      <div className={cn("inline-flex w-fit rounded-full border border-sigma-line bg-sigma-elevated p-1", className)}>
+      <div className={cn("inline-flex w-fit rounded-full border border-border bg-muted p-1", className)}>
         {items.map((item) => {
           const active = item.id === activeId;
           return (
             <button
               className={cn(
-                "relative h-11 min-w-20 rounded-full px-4 text-sm font-medium transition-colors",
-                active ? "text-sigma-bg" : "text-sigma-muted hover:text-sigma-text"
+                "relative h-11 min-w-20 rounded-full bg-muted px-4 text-sm font-medium transition-colors",
+                active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               )}
               key={item.id}
               onClick={() => onChange(item.id)}
@@ -38,7 +38,7 @@ export function SegmentControl({ activeId, className, items, onChange }: Segment
             >
               {active ? (
                 <motion.div
-                  className="absolute inset-0 rounded-full bg-sigma-text shadow-apple-soft"
+                  className="absolute inset-0 rounded-full bg-primary shadow-apple-soft"
                   layoutId="tab-indicator"
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                 />

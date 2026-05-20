@@ -17,10 +17,13 @@ const INDEX_ICONS: Record<string, { letter: string; bg: string; text: string }> 
   HSI: { letter: "HS", bg: "bg-teal-600", text: "text-white" },
   N225: { letter: "N225", bg: "bg-rose-600", text: "text-white" },
   FTSE: { letter: "FT", bg: "bg-blue-800", text: "text-white" },
-  DAX: { letter: "DAX", bg: "bg-yellow-500", text: "text-black" }
+  DAX: { letter: "DAX", bg: "bg-yellow-500", text: "text-black" },
+  KOSPI: { letter: "KS", bg: "bg-blue-600", text: "text-white" },
+  TAIEX: { letter: "TW", bg: "bg-green-600", text: "text-white" }
 };
 
 const timeRanges = ["1D", "1W", "1M", "3M", "1Y"];
+const MARKET_OPEN_MINUTES = 21 * 60 + 30;
 
 interface ChartPoint {
   time: number;
@@ -54,6 +57,36 @@ function toChartData(value: number, sparkline: number[] | undefined, positive: b
     return sparkline.map((point, index) => ({ time: index, value: point }));
   }
   return generateChartData(60, value || 100, positive);
+}
+
+function getChartDate(pointIndex: number): Date {
+  const date = new Date();
+  date.setHours(0, MARKET_OPEN_MINUTES + pointIndex, 0, 0);
+  return date;
+}
+
+function formatChartTime(pointIndex: number): string {
+  const date = getChartDate(pointIndex);
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function formatUtcOffset(date: Date): string {
+  const offsetMinutes = -date.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absoluteMinutes = Math.abs(offsetMinutes);
+  const hours = Math.floor(absoluteMinutes / 60);
+  const minutes = absoluteMinutes % 60;
+  return minutes === 0
+    ? `UTC${sign}${hours}`
+    : `UTC${sign}${hours}:${String(minutes).padStart(2, "0")}`;
+}
+
+function formatTooltipTime(pointIndex: number): string {
+  const date = getChartDate(pointIndex);
+  const day = date.getDate();
+  const month = new Intl.DateTimeFormat("en-US", { month: "short" }).format(date);
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day} ${month} '${year} ${formatChartTime(pointIndex)} ${formatUtcOffset(date)}`;
 }
 
 export function HeroChart() {
@@ -252,7 +285,7 @@ export function HeroChart() {
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <ResponsiveContainer height="100%" width="100%">
-              <AreaChart data={currentData?.data ?? []} margin={{ bottom: 0, left: 0, right: 0, top: 10 }}>
+              <AreaChart data={currentData?.data ?? []} margin={{ bottom: 4, left: 0, right: 0, top: 10 }}>
                 <defs>
                   <linearGradient id="colorPositive" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.35} />
@@ -263,15 +296,28 @@ export function HeroChart() {
                     <stop offset="100%" stopColor="oklch(0.6 0.22 25)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="time" hide />
-                <YAxis domain={["dataMin - 10", "dataMax + 10"]} hide />
+                <XAxis
+                  axisLine={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.28 }}
+                  dataKey="time"
+                  interval="preserveStartEnd"
+                  minTickGap={60}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                  tickFormatter={(value) => formatChartTime(Number(value))}
+                  tickLine={false}
+                  tickMargin={8}
+                />
+                <YAxis axisLine={false} domain={["dataMin - 10", "dataMax + 10"]} hide tickLine={false} />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
+                      const pointIndex = Number(payload[0].payload?.time ?? 0);
                       return (
-                        <div className="rounded-xl border border-border bg-popover/95 px-4 py-2.5 shadow-xl backdrop-blur-sm">
-                          <p className="text-base font-bold text-foreground">
+                        <div className="rounded-xl bg-foreground px-4 py-3 text-background shadow-xl dark:border dark:border-border dark:bg-card dark:text-card-foreground">
+                          <p className="text-base font-bold">
                             {Number(payload[0].value ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="mt-1 text-xs font-medium text-background/70 dark:text-muted-foreground">
+                            {formatTooltipTime(pointIndex)}
                           </p>
                         </div>
                       );
@@ -292,12 +338,12 @@ export function HeroChart() {
           </motion.div>
         </AnimatePresence>
 
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2 text-xs text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100">
           {t("swipeHint")}
         </div>
       </motion.div>
 
-      <div className="mb-5 mt-6 flex items-center justify-center gap-2">
+      <div className="mb-2 mt-4 flex items-center justify-center gap-2">
         {markets.map((market) => (
           <button
             aria-label={market.name}
