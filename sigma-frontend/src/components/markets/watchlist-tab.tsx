@@ -3,65 +3,10 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Star, Plus, TrendingUp, TrendingDown } from "lucide-react"
+import { useTranslations } from "next-intl"
 
-const watchlistStocks = [
-  {
-    symbol: "AAPL",
-    name: "Apple Inc.",
-    price: 189.84,
-    change: 2.34,
-    sparkline: [45, 48, 52, 50, 55, 58, 54, 60, 58, 62, 65, 68],
-  },
-  {
-    symbol: "TSLA",
-    name: "Tesla Inc.",
-    price: 177.48,
-    change: 2.87,
-    sparkline: [40, 45, 42, 50, 48, 55, 52, 58, 60, 65, 62, 68],
-  },
-  {
-    symbol: "NVDA",
-    name: "NVIDIA Corp.",
-    price: 875.28,
-    change: 4.56,
-    sparkline: [35, 42, 48, 52, 58, 55, 62, 68, 72, 78, 82, 88],
-  },
-  {
-    symbol: "META",
-    name: "Meta Platforms",
-    price: 505.95,
-    change: -1.23,
-    sparkline: [70, 68, 72, 65, 68, 62, 65, 58, 62, 55, 58, 52],
-  },
-  {
-    symbol: "GOOGL",
-    name: "Alphabet Inc.",
-    price: 141.80,
-    change: -0.45,
-    sparkline: [55, 58, 52, 55, 50, 52, 48, 50, 45, 48, 42, 45],
-  },
-  {
-    symbol: "AMZN",
-    name: "Amazon.com Inc.",
-    price: 178.25,
-    change: 3.21,
-    sparkline: [40, 45, 48, 52, 50, 58, 55, 62, 60, 68, 72, 75],
-  },
-  {
-    symbol: "MSFT",
-    name: "Microsoft Corp.",
-    price: 428.52,
-    change: 1.45,
-    sparkline: [50, 52, 55, 58, 55, 62, 60, 65, 68, 72, 70, 75],
-  },
-  {
-    symbol: "BRK.B",
-    name: "Berkshire Hathaway",
-    price: 408.32,
-    change: 0.89,
-    sparkline: [48, 50, 52, 55, 52, 58, 55, 60, 58, 62, 60, 65],
-  },
-]
+import { useWatchlists } from "@/hooks/useWatchlists"
+import type { Watchlist } from "@/lib/types"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -108,9 +53,11 @@ function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
 }
 
 export function WatchlistTab() {
-  const [starred, setStarred] = useState<Set<string>>(
-    new Set(watchlistStocks.map((s) => s.symbol))
-  )
+  const t = useTranslations("markets")
+  const feedT = useTranslations("feed")
+  const { data, isLoading } = useWatchlists()
+  const watchlists = data?.items ?? []
+  const [starred, setStarred] = useState<Set<string>>(new Set())
 
   const toggleStar = (symbol: string) => {
     const newStarred = new Set(starred)
@@ -127,7 +74,7 @@ export function WatchlistTab() {
       {/* Header with Add Button */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {watchlistStocks.length} stocks in your watchlist
+          {t("watchlistCount", { count: watchlists.length })}
         </p>
         <motion.button
           whileHover={{ scale: 1.02 }}
@@ -135,38 +82,59 @@ export function WatchlistTab() {
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-border hover:border-primary text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Add Stock
+          {t("addStock")}
         </motion.button>
       </div>
 
       {/* Stock List */}
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div className="h-20 animate-pulse rounded-xl bg-muted/50" key={index} />
+          ))}
+        </div>
+      ) : watchlists.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
+          {t("emptyWatchlist")}
+        </div>
+      ) : (
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
         className="space-y-2"
       >
-        {watchlistStocks.map((stock) => {
-          const isPositive = stock.change >= 0
-          const isStarred = starred.has(stock.symbol)
+        {watchlists.map((watchlist: Watchlist) => {
+          const isPositive = watchlist.item_count >= 0
+          const isStarred = starred.has(watchlist.id)
+          const sparkline = [
+            Math.max(1, watchlist.item_count - 4),
+            Math.max(1, watchlist.item_count - 2),
+            Math.max(1, watchlist.item_count - 3),
+            Math.max(1, watchlist.item_count),
+            Math.max(1, watchlist.item_count + 1)
+          ]
 
           return (
             <motion.div
-              key={stock.symbol}
+              key={watchlist.id}
               variants={itemVariants}
               className="flex items-center gap-4 p-4 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer group"
             >
               {/* Symbol & Name */}
               <div className="min-w-[140px]">
-                <p className="font-bold text-foreground">{stock.symbol}</p>
-                <p className="text-sm text-muted-foreground">{stock.name}</p>
+                <p className="font-bold text-foreground">{watchlist.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {watchlist.markets.map((market) => feedT(`markets.${market}`)).join(", ") || t("allMarkets")}
+                </p>
               </div>
 
               {/* Price */}
               <div className="min-w-[100px] text-right">
                 <p className="font-bold tabular-nums text-foreground">
-                  ${stock.price.toFixed(2)}
+                  {watchlist.item_count}
                 </p>
+                <p className="text-xs text-muted-foreground">{t("items")}</p>
               </div>
 
               {/* Change Badge */}
@@ -184,20 +152,20 @@ export function WatchlistTab() {
                     <TrendingDown className="w-3 h-3" />
                   )}
                   {isPositive ? "+" : ""}
-                  {stock.change.toFixed(2)}%
+                  {watchlist.keywords.length}
                 </span>
               </div>
 
               {/* Sparkline */}
               <div className="flex-1 flex justify-center">
-                <Sparkline data={stock.sparkline} positive={isPositive} />
+                <Sparkline data={sparkline} positive={isPositive} />
               </div>
 
               {/* Star Button */}
               <motion.button
                 onClick={(e) => {
                   e.stopPropagation()
-                  toggleStar(stock.symbol)
+                  toggleStar(watchlist.id)
                 }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -216,6 +184,7 @@ export function WatchlistTab() {
           )
         })}
       </motion.div>
+      )}
     </div>
   )
 }

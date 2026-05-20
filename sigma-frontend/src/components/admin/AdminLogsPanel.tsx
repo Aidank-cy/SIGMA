@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { CustomSelect } from "@/components/ui/CustomSelect";
+import { CustomSelect } from "@/components/dashboard/custom-select";
 import { useAdminLogs, useAdminSources } from "@/hooks/useAdmin";
 import type { CollectorStatus } from "@/hooks/useAdmin";
 import { cn } from "@/lib/cn";

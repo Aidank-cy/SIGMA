@@ -1,0 +1,35 @@
+[      96ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:186
+[     481ms] [LOG] [Fast Refresh] done in 386ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:43
+[     929ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:38559
+[    1086ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1087ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1114ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1115ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1129ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1129ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1141ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1141ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1161ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1161ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1180ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    1180ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    4336ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    4336ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    4350ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18
+[    4350ms] [WARNING] The width(120) and height(120) are both fixed numbers,
+       maybe you don't need to use a ResponsiveContainer. @ webpack-internal:///(app-pages-browser)/./node_modules/recharts/es6/util/LogUtils.js:18

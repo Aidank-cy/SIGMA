@@ -166,6 +166,123 @@
     "viewPortfolio": "View Full Portfolio",
     "empty": "No data yet."
   },
+  "markets": {
+    "title": "Markets",
+    "subtitle": "Real-time market data and portfolio tracking",
+    "indices": "Indices",
+    "watchlist": "Watchlist",
+    "sectors": "Sectors",
+    "addStock": "Add stock",
+    "viewPortfolio": "View full portfolio",
+    "marketSummary": "Market summary",
+    "empty": "No market index data is available yet.",
+    "emptyWatchlist": "No watchlists have been created yet.",
+    "watchlistCount": "{count, plural, =0 {No watchlists} one {# watchlist} other {# watchlists}}",
+    "items": "Items",
+    "allMarkets": "All markets",
+    "sectorsCaption": "Sector performance overview for today",
+    "marketCapDistribution": "Market cap distribution",
+    "sectorNames": {
+      "technology": "Technology",
+      "healthcare": "Healthcare",
+      "finance": "Finance",
+      "energy": "Energy",
+      "consumer": "Consumer",
+      "industrial": "Industrial"
+    },
+    "summary": {
+      "Advancing": "Advancing",
+      "Declining": "Declining",
+      "Unchanged": "Unchanged",
+      "52-Week Highs": "52-week highs",
+      "52-Week Lows": "52-week lows",
+      "Most Active": "Most active"
+    }
+  },
+  "news": {
+    "title": "News",
+    "subtitle": "Intelligence feed from global financial sources",
+    "searchPlaceholder": "Search articles, topics, sources...",
+    "allMarkets": "All markets",
+    "showing": "Showing {shown} of {total} articles",
+    "sort": {
+      "latest": "Latest",
+      "relevant": "Most relevant",
+      "discussed": "Most discussed"
+    }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Sentiment analysis and intelligence reports",
+    "sentimentOverview": "Sentiment overview",
+    "sentimentTrend": "Sentiment trend",
+    "articleVolume": "Article volume",
+    "sourceDistribution": "Source distribution",
+    "reports": "Intelligence reports",
+    "generateReport": "Generate report",
+    "topKeywords": "Top keywords",
+    "sentimentByCategory": "Sentiment by category",
+    "articlesThisWeek": "articles this week",
+    "articleCount": "{count, plural, one {# article} other {# articles}}",
+    "reportMeta": "{count, plural, one {# article} other {# articles}} · {minutes, plural, one {# min read} other {# min read}}",
+    "readReport": "Read report",
+    "adminOnly": "Admin access is required to generate reports.",
+    "generationQueued": "Report generation queued.",
+    "generationError": "Unable to queue report generation.",
+    "categories": {
+      "politics": "Politics",
+      "finance": "Finance",
+      "technology": "Technology",
+      "macro": "Macro"
+    },
+    "reportTypes": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    }
+  },
+  "sync": {
+    "title": "Sync",
+    "subtitle": "Data pipeline status and collection management",
+    "syncAll": "Sync all now",
+    "activeSources": "Active sources",
+    "todayCollections": "Today's collections",
+    "pipelineHealth": "Pipeline health",
+    "recentActivity": "Recent activity",
+    "scheduleOverview": "Schedule overview",
+    "syncNow": "Sync now",
+    "configure": "Configure",
+    "lastSynced": "Last synced",
+    "unknown": "Unknown",
+    "ofTotal": "of {total} total",
+    "collectedToday": "collected today",
+    "activeRatio": "active ratio",
+    "dataSources": "Data sources",
+    "adminLogsOnly": "Collector logs are available to administrators only.",
+    "collectedItems": "Collected {count} items in {duration} ms.",
+    "manual": "Manual",
+    "active": "Active",
+    "paused": "Paused",
+    "category": "Category",
+    "market": "Market",
+    "syncQueued": "Sync preview completed.",
+    "sourceSynced": "Source sync preview completed.",
+    "syncError": "Unable to sync the selected source.",
+    "adminOnly": "Only admins can enable or disable sources.",
+    "sourceUpdated": "Source updated.",
+    "sourceUpdateError": "Unable to update source.",
+    "filters": {
+      "all": "All",
+      "success": "Success",
+      "fail": "Failed",
+      "timeout": "Timeout"
+    },
+    "sourceTypes": {
+      "api": "API",
+      "rss": "RSS",
+      "scraper": "Scraper"
+    }
+  },
   "itemDetail": {
     "breadcrumbHome": "Home",
     "breadcrumbCurrent": "Item detail",
@@ -269,6 +386,7 @@
   "settings": {
     "eyebrow": "Workspace preferences",
     "title": "Settings",
+    "subtitle": "Manage your account and platform preferences",
     "save": "Save",
     "saved": "Saved.",
     "saveError": "Unable to save: {sections}.",
@@ -302,6 +420,14 @@
       "eyebrow": "Administrator controls",
       "title": "Admin workspace",
       "caption": "Manage users, collection sources, system model configuration, and collector activity from the same settings page."
+    },
+    "sections": {
+      "profile": "Profile",
+      "preferences": "Preferences",
+      "notifications": "Notifications",
+      "llm": "LLM configuration",
+      "apikeys": "API keys",
+      "security": "Security"
     },
     "theme": {
       "title": "Appearance",
@@ -356,42 +482,6 @@
       "eu": "Europe",
       "hk": "Hong Kong",
       "global": "Global"
-    }
-  },
-  "dashboard": {
-    "eyebrow": "Market intelligence hub",
-    "title": "SIGMA",
-    "subtitle": "Collect political, financial, technology, and macroeconomic signals for traceable global equity intelligence reports.",
-    "welcome": "Welcome to SIGMA, {name}",
-    "intro": "The authenticated workspace is ready for feed, watchlist, report, and settings pages.",
-    "userFallback": "Analyst",
-    "categories": {
-      "politics": "Politics",
-      "finance": "Finance",
-      "tech": "Tech",
-      "macro": "Macro"
-    },
-    "metrics": {
-      "items": {
-        "label": "Items",
-        "value": "0",
-        "caption": "Collection pipeline pending"
-      },
-      "reports": {
-        "label": "Reports",
-        "value": "0",
-        "caption": "Report generator not yet running"
-      },
-      "sources": {
-        "label": "Sources",
-        "value": "0",
-        "caption": "Configured in later phases"
-      },
-      "config": {
-        "label": "System config",
-        "value": "0",
-        "caption": "Uses sigma.* namespace"
-      }
     }
   },
   "admin": {

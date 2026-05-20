@@ -54,6 +54,7 @@ export function Sidebar() {
   const nextTheme = mounted && theme === "dark" ? "light" : "dark";
 
   return (
+    <>
     <motion.aside
       animate={{ opacity: 1, x: 0 }}
       className="fixed left-0 top-0 z-50 hidden h-screen w-20 flex-col items-center border-r border-sidebar-border py-6 md:flex frosted-glass"
@@ -152,5 +153,27 @@ export function Sidebar() {
         </motion.button>
       </div>
     </motion.aside>
+    <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-6 gap-1 rounded-2xl border border-border bg-card/95 p-1 shadow-apple backdrop-blur-xl md:hidden">
+      {navItems.map((item) => {
+        const isActive = activeId === item.id;
+        const Icon = item.icon;
+
+        return (
+          <Link
+            aria-label={item.label}
+            className={cn(
+              "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-semibold transition-all",
+              isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+            href={item.href}
+            key={item.id}
+          >
+            <Icon className="h-4 w-4" aria-hidden />
+            <span className="max-w-full truncate">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+    </>
   );
 }

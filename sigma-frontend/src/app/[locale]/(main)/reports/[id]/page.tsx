@@ -58,18 +58,18 @@ export default function ReportDetailPage() {
   }
 
   if (!report) {
-    return <div className="rounded-2xl border border-dashed border-sigma-line p-10 text-sigma-muted">{t("empty")}</div>;
+    return <div className="rounded-2xl border border-dashed border-border p-10 text-muted-foreground">{t("empty")}</div>;
   }
 
   return (
     <article className="grid gap-8 print:block lg:grid-cols-[220px_1fr]">
       <aside className="print:hidden">
-        <div className="sticky top-24 hidden max-h-[calc(100vh-8rem)] overflow-y-auto border-r border-sigma-line pr-5 lg:block">
+        <div className="sticky top-24 hidden max-h-[calc(100vh-8rem)] overflow-y-auto border-r border-border pr-5 lg:block">
           <Toc activeId={activeId} items={toc} title={t("toc")} />
         </div>
-        <div className="rounded-2xl border border-sigma-line bg-sigma-elevated p-4 lg:hidden">
+        <div className="rounded-2xl border border-border bg-card p-4 lg:hidden">
           <button
-            className="flex min-h-11 w-full items-center justify-between text-sm font-semibold text-sigma-text"
+            className="flex min-h-11 w-full items-center justify-between text-sm font-semibold text-foreground"
             onClick={() => setIsTocOpen((current) => !current)}
             type="button"
           >
@@ -81,9 +81,9 @@ export default function ReportDetailPage() {
       </aside>
 
       <div className="min-w-0">
-        <header className="mb-8 flex flex-col gap-4 border-b border-sigma-line pb-6">
-          <nav className="flex items-center gap-2 text-sm text-sigma-muted print:hidden">
-            <Link className="hover:text-sigma-text" href={`/${locale}/reports`}>
+        <header className="mb-8 flex flex-col gap-4 border-b border-border pb-6">
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground print:hidden">
+            <Link className="hover:text-foreground" href={`/${locale}/analytics`}>
               {t("breadcrumbReports")}
             </Link>
             <span>/</span>
@@ -91,14 +91,14 @@ export default function ReportDetailPage() {
           </nav>
           <div className="flex flex-wrap items-center gap-2">
             <Badge>{t(`types.${report.report_type}`)}</Badge>
-            <span className="text-sm text-sigma-muted">
+            <span className="text-sm text-muted-foreground">
               {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
                 new Date(report.generated_at)
               )}
             </span>
           </div>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <h1 className="text-3xl font-semibold leading-tight text-sigma-text sm:text-5xl">
+            <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-5xl">
               {report.title}
             </h1>
             <Button className="print:hidden" onClick={() => window.print()} variant="secondary">
@@ -108,7 +108,7 @@ export default function ReportDetailPage() {
           </div>
         </header>
 
-        <div className="report-markdown text-sigma-text">
+        <div className="report-markdown text-foreground">
           <ReportMarkdown content={report.content} slugify={slugify} />
         </div>
       </div>
@@ -130,7 +130,7 @@ function Toc({
   const t = useTranslations("reportDetail");
 
   if (items.length === 0) {
-    return <p className="text-sm text-sigma-muted">{t("tocEmpty")}</p>;
+    return <p className="text-sm text-muted-foreground">{t("tocEmpty")}</p>;
   }
 
   return (
@@ -140,8 +140,8 @@ function Toc({
           className={[
             "flex min-h-11 items-center border-l-2 py-1 transition",
             item.id === activeId
-              ? "border-sigma-accent pl-3 text-sm font-semibold text-sigma-text"
-              : "border-transparent pl-3 text-sm text-sigma-muted hover:text-sigma-text",
+              ? "border-primary pl-3 text-sm font-semibold text-foreground"
+              : "border-transparent pl-3 text-sm text-muted-foreground hover:text-foreground",
             item.level === 3 && !compact ? "ml-3" : "font-medium"
           ].join(" ")}
           href={`#${item.id}`}

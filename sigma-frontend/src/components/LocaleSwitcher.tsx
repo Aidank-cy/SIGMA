@@ -4,7 +4,7 @@ import { Languages } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 
-import { CustomSelect } from "@/components/ui/CustomSelect";
+import { CustomSelect } from "@/components/dashboard/custom-select";
 
 const locales = ["zh", "en"] as const;
 

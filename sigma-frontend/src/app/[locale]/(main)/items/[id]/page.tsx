@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { ItemCard } from "@/components/feed/ItemCard";
 import { ItemSidebar } from "@/components/feed/ItemSidebar";
 import { RawContent } from "@/components/feed/RawContent";
 import { Badge } from "@/components/ui/Badge";
@@ -14,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useItem } from "@/hooks/useItems";
+import type { MinimalItem } from "@/lib/types";
 
 export default function ItemDetailPage() {
   const params = useParams<{ id: string }>();
@@ -27,41 +27,41 @@ export default function ItemDetailPage() {
   }
 
   if (!item) {
-    return <div className="rounded-2xl border border-dashed border-sigma-line p-10 text-sigma-muted">{t("empty")}</div>;
+    return <div className="rounded-2xl border border-dashed border-border p-10 text-muted-foreground">{t("empty")}</div>;
   }
 
   return (
-    <article className="grid gap-8 lg:grid-cols-[1fr_280px]">
+    <article className="grid gap-8 p-6 lg:grid-cols-[1fr_280px] lg:p-8">
       <div className="min-w-0">
-        <nav className="flex items-center gap-2 text-sm text-sigma-muted">
-          <Link className="hover:text-sigma-text" href={`/${locale}`}>
+        <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link className="hover:text-foreground" href={`/${locale}`}>
             {t("breadcrumbHome")}
           </Link>
           <span>/</span>
           <span>{t("breadcrumbCurrent")}</span>
         </nav>
 
-        <header className="mt-8 flex flex-col gap-4 border-b border-sigma-line pb-6">
+        <header className="mt-8 flex flex-col gap-4 border-b border-border pb-6">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-sigma-text">{item.source_name}</span>
+            <span className="text-sm font-medium text-foreground">{item.source_name}</span>
             <Badge category={item.category}>{t(`categories.${item.category}`)}</Badge>
             <Badge market={item.market}>{t(`markets.${item.market}`)}</Badge>
-            <span className="text-sm text-sigma-muted">
+            <span className="text-sm text-muted-foreground">
               {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
                 new Date(item.published_at)
               )}
             </span>
           </div>
-          <h1 className="text-3xl font-semibold leading-tight text-sigma-text sm:text-5xl">{item.title}</h1>
+          <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-5xl">{item.title}</h1>
         </header>
 
         <div className="mt-8 flex flex-col gap-8">
           <Card className="p-6">
             <div className="mb-3 flex items-center justify-between gap-4">
-              <h2 className="text-base font-semibold text-sigma-text">{t("summaryTitle")}</h2>
+              <h2 className="text-base font-semibold text-foreground">{t("summaryTitle")}</h2>
               {item.content_url ? (
                 <Link
-                  className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-sigma-accent"
+                  className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary"
                   href={item.content_url}
                   rel="noreferrer"
                   target="_blank"
@@ -71,34 +71,34 @@ export default function ItemDetailPage() {
                 </Link>
               ) : null}
             </div>
-            <p className="text-base leading-7 text-sigma-muted">{item.summary ?? t("summaryFallback")}</p>
+            <p className="text-base leading-7 text-muted-foreground">{item.summary ?? t("summaryFallback")}</p>
           </Card>
 
-          <section className="border-t border-sigma-line pt-5">
+          <section className="border-t border-border pt-5">
             <button
               className="flex min-h-11 w-full items-center justify-between gap-4 text-left"
               onClick={() => setIsRawOpen((current) => !current)}
               type="button"
             >
-              <span className="text-lg font-semibold text-sigma-text">{t("rawTitle")}</span>
-              <ChevronDown className={isRawOpen ? "h-5 w-5 rotate-180 text-sigma-muted" : "h-5 w-5 text-sigma-muted"} />
+              <span className="text-lg font-semibold text-foreground">{t("rawTitle")}</span>
+              <ChevronDown className={isRawOpen ? "h-5 w-5 rotate-180 text-muted-foreground" : "h-5 w-5 text-muted-foreground"} />
             </button>
             {isRawOpen ? (
-              <div className="mt-5 rounded-2xl border border-sigma-line bg-sigma-elevated p-5">
+              <div className="mt-5 rounded-2xl border border-border bg-card p-5">
                 <RawContent content={item.content_raw} />
               </div>
             ) : null}
           </section>
 
-          <section className="border-t border-sigma-line pt-5">
-            <h2 className="mb-3 text-lg font-semibold text-sigma-text">{t("relatedTitle")}</h2>
+          <section className="border-t border-border pt-5">
+            <h2 className="mb-3 text-lg font-semibold text-foreground">{t("relatedTitle")}</h2>
             {item.related.length === 0 ? (
-              <p className="text-sm text-sigma-muted">{t("relatedEmpty")}</p>
+              <p className="text-sm text-muted-foreground">{t("relatedEmpty")}</p>
             ) : (
               <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
                 {item.related.map((related, index) => (
                   <div className="min-w-[260px] max-w-[300px] snap-start" key={related.id}>
-                    <ItemCard index={index} item={related} />
+                    <RelatedItemCard index={index} item={related} locale={locale} />
                   </div>
                 ))}
               </div>
@@ -111,9 +111,22 @@ export default function ItemDetailPage() {
   );
 }
 
+function RelatedItemCard({ index, item, locale }: { index: number; item: MinimalItem; locale: string }) {
+  return (
+    <Link
+      className="block h-full rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
+      href={`/${locale}/items/${item.id}`}
+      style={{ transitionDelay: `${index * 20}ms` }}
+    >
+      <p className="line-clamp-3 text-sm font-semibold text-foreground">{item.title}</p>
+      <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">{item.summary}</p>
+    </Link>
+  );
+}
+
 function DetailSkeleton() {
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
+    <div className="grid gap-8 p-6 lg:grid-cols-[1fr_280px] lg:p-8">
       <div className="flex flex-col gap-6">
         <Skeleton className="h-5 w-56" />
         <Skeleton className="h-12 w-4/5" />

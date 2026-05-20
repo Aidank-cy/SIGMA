@@ -1,0 +1,12 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - heading "404" [level=1] [ref=e4]
+    - heading "This page could not be found." [level=2] [ref=e6]
+  - dialog "Missing required html tags" [ref=e9]:
+    - generic [ref=e11]:
+      - heading "Missing required html tags" [level=3] [ref=e12]
+      - paragraph [ref=e13]:
+        - text: "The following tags are missing in the Root Layout: <html>, <body>. Read more at"
+        - link "https://nextjs.org/docs/messages/missing-root-layout-tags" [ref=e14] [cursor=pointer]:
+          - /url: https://nextjs.org/docs/messages/missing-root-layout-tags
+  - alert [ref=e15]

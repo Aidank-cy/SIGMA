@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { CustomSelect } from "@/components/ui/CustomSelect";
+import { CustomSelect } from "@/components/dashboard/custom-select";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";

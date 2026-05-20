@@ -10,16 +10,26 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add v0 redesign Phase 0 foundations with shadcn-compatible UI components, next-themes, Tailwind v3 design tokens, and copied reference pages.
 - Add a locale-aware v0 sidebar shell with protected routing, live auth avatar logout, and theme controls.
 - Add a live-data dashboard page with market index charts, ticker cards, stats, search filters, infinite news feed, watchlist, trending keyword, and market overview panels.
+- Add v0-style Markets, News, Analytics, and Sync pages wired to existing SIGMA hooks and localized route labels.
+- Add complete zh/en translations for the v0 dashboard, markets, news, analytics, sync, and settings flows.
+- Add mobile bottom navigation for the v0 application shell so authenticated pages remain reachable below the desktop sidebar breakpoint.
 - Add a custom design-system select dropdown that matches SIGMA's dark rounded menu styling.
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
 - Preserve v0 reference pages as compile-excluded integration references while wiring production pages to tested SIGMA hooks and i18n.
+- Consolidate watchlist and report-list workflows into the new Markets and Analytics pages while preserving item and report detail routes.
+- Update login, register, item detail, report detail, and settings pages from legacy `sigma-*` classes to the new design tokens.
+- Move legacy item sidebar, related item, locale, settings, admin, and LLM controls onto the v0 token system and shared custom select.
 - Harden Docker Compose startup with service restart policies, Postgres and Redis healthchecks, and health-gated backend dependencies.
 - Redesign LLM settings into a full-width form with provider-grouped API keys and per-key token limits.
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
+### Removed
+- Remove obsolete pre-v0 frontend components, legacy select primitives, the deprecated theme hook, and compile-excluded v0 reference pages after integration.
+
 ### Fixed
+- Fix duplicate top-level dashboard i18n namespaces so the v0 dashboard renders localized runtime strings without `next-intl` missing-message errors.
 - Fix Layer 1 UI layout consistency by normalizing shared controls to 44px touch targets, aligning inputs to h-12, and replacing raw chart colors with SIGMA design tokens.
 - Fix Layer 7 scheduled task and report coverage for report markdown attribution, Redis lock TTL behavior, scheduler timing assertions, and Finnhub index quote fallbacks.
 - Fix Layer 6 LLM analysis coverage for provider routing, current OpenAI-compatible base URLs, JSON summary output, retry handling, budget guards, and live usage logging.

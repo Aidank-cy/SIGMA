@@ -894,3 +894,21 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Executed SIGMA integration prompt phases 0, 1, and 2. Installed v0/shadcn dependencies, kept Tailwind CSS v3 with v0 CSS variables, preserved report markdown styles, copied reference pages as compile-excluded references, replaced the main shell navbar with the locale-aware v0 sidebar, wrapped locale layout with next-themes, and rebuilt the dashboard page on live SIGMA hooks with market indices, stats, search filters, infinite items, watchlists, trending keywords, and market overview data.
 - Timestamp: 2026-05-20T03:41:08Z
+
+### [UI Integration] v0 redesign phases 3-4
+- Status: COMPLETE
+- Files created: sigma-frontend/src/app/[locale]/(main)/markets/page.tsx, sigma-frontend/src/app/[locale]/(main)/news/page.tsx, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/app/[locale]/(main)/sync/page.tsx
+- Files modified: sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/components/markets/watchlist-tab.tsx, sigma-frontend/src/components/markets/sectors-tab.tsx, sigma-frontend/src/components/markets/market-summary.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/app/[locale]/(main)/items/[id]/page.tsx, sigma-frontend/src/app/[locale]/(main)/reports/[id]/page.tsx, sigma-frontend/src/app/[locale]/login/page.tsx, sigma-frontend/src/app/[locale]/register/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Files deleted: sigma-frontend/src/app/[locale]/(main)/watchlist/page.tsx, sigma-frontend/src/app/[locale]/(main)/reports/page.tsx
+- Tests: PASS
+- Notes: Executed SIGMA integration prompt phases 3 and 4. Added Markets, News, Analytics, and Sync pages on real hooks and localized copy; kept Settings, item detail, report detail, login, and register flows intact while moving them to the new design tokens; consolidated watchlist and report-list routes into Markets and Analytics. Ran `npm run build` after Markets, News, Analytics, Sync, Settings/token migration, and final route consolidation.
+- Timestamp: 2026-05-20T04:00:19Z
+
+### [UI Integration] v0 redesign phases 5-7
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/dashboard/custom-select.tsx
+- Files modified: sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-frontend/src/components/dashboard/sidebar.tsx, sigma-frontend/src/components/feed/ItemSidebar.tsx, sigma-frontend/src/app/[locale]/(main)/items/[id]/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/LocaleSwitcher.tsx, sigma-frontend/src/components/admin/AdminLogsPanel.tsx, sigma-frontend/src/components/admin/AdminSourcesPanel.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, CHANGELOG.md, .harness/progress.md
+- Files deleted: sigma-frontend/src/components/PageTransition.tsx, sigma-frontend/src/components/MarketTickerCarousel.tsx, sigma-frontend/src/components/charts/MarketIndexChart.tsx, sigma-frontend/src/components/feed/FeaturedStory.tsx, sigma-frontend/src/components/feed/ItemCard.tsx, sigma-frontend/src/components/sidebar/HomeSidebar.tsx, sigma-frontend/src/components/ui/Select.tsx, sigma-frontend/src/components/ui/CustomSelect.tsx, sigma-frontend/src/hooks/useTheme.ts, sigma-frontend/src/v0-pages/*
+- Tests: PARTIAL
+- Notes: Executed SIGMA integration prompt phases 5, 6, and 7. Completed zh/en message coverage, added mobile bottom navigation below the desktop sidebar breakpoint, migrated remaining legacy select/theme/detail/sidebar usages onto v0-compatible tokens, removed obsolete pre-v0 files, and fixed duplicate dashboard message namespaces. `npm run build` passed. Playwright verified clean desktop rendering for /zh/login, /zh/register, /zh, /zh/markets, and /zh/news before the tool usage limit blocked the remaining screenshots.
+- Timestamp: 2026-05-20T04:20:18Z

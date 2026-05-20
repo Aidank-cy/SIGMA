@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { TrendingUp, TrendingDown } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 const sectors = [
   { name: "Technology", change: 2.45, value: 85 },
@@ -28,12 +29,13 @@ const itemVariants = {
 }
 
 export function SectorsTab() {
+  const t = useTranslations("markets")
   const sortedSectors = [...sectors].sort((a, b) => b.change - a.change)
 
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Sector performance overview for today
+        {t("sectorsCaption")}
       </p>
 
       <motion.div
@@ -53,7 +55,7 @@ export function SectorsTab() {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-semibold text-foreground">{sector.name}</h3>
+                  <h3 className="font-semibold text-foreground">{t(`sectorNames.${sector.name.toLowerCase()}`)}</h3>
                   <span
                     className={`flex items-center gap-1 text-sm font-semibold ${
                       isPositive ? "text-chart-1" : "text-chart-2"
@@ -99,7 +101,7 @@ export function SectorsTab() {
         className="mt-8"
       >
         <h3 className="text-sm font-medium text-muted-foreground mb-4">
-          Market Cap Distribution
+          {t("marketCapDistribution")}
         </h3>
         <div className="grid grid-cols-6 gap-2 h-32">
           {sortedSectors.map((sector, index) => {
@@ -121,7 +123,7 @@ export function SectorsTab() {
                 }`}
               >
                 <span className="text-xs font-medium text-foreground truncate">
-                  {sector.name}
+                  {t(`sectorNames.${sector.name.toLowerCase()}`)}
                 </span>
                 <span
                   className={`text-sm font-bold ${

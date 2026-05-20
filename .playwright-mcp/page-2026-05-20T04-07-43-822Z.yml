@@ -1,0 +1,32 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e6]:
+      - generic:
+        - img
+      - button "语言" [ref=e7] [cursor=pointer]:
+        - generic [ref=e8]: 中文
+      - generic: 语言
+      - img
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - img [ref=e12]
+        - heading "创建 SIGMA 账号" [level=1] [ref=e14]
+        - paragraph [ref=e15]: 让市场情报更清晰
+        - paragraph [ref=e16]: 开始为你的关注列表收集结构化情报。
+      - generic [ref=e17]:
+        - generic [ref=e19]:
+          - textbox "显示名称" [ref=e20]
+          - generic: 显示名称
+        - generic [ref=e22]:
+          - textbox "邮箱" [ref=e23]
+          - generic: 邮箱
+        - generic [ref=e25]:
+          - textbox "密码" [ref=e26]
+          - generic: 密码
+        - generic [ref=e28]:
+          - textbox "确认密码" [ref=e29]
+          - generic: 确认密码
+        - button "创建账号" [ref=e30] [cursor=pointer]
+      - link "已有账号" [ref=e32] [cursor=pointer]:
+        - /url: /zh/login
+  - alert [ref=e33]

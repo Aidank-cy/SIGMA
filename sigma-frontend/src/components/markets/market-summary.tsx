@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { TrendingUp, TrendingDown, Activity, BarChart3 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 const summaryStats = [
   {
@@ -58,6 +59,7 @@ const itemVariants = {
 }
 
 export function MarketSummary() {
+  const t = useTranslations("markets")
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -66,7 +68,7 @@ export function MarketSummary() {
       className="bg-card border border-border rounded-xl p-6"
     >
       <h2 className="text-lg font-semibold text-foreground mb-5">
-        Market Summary
+        {t("marketSummary")}
       </h2>
 
       <motion.div
@@ -84,7 +86,7 @@ export function MarketSummary() {
           >
             <div className="flex items-center gap-2 mb-2">
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
-              <span className="text-xs text-muted-foreground">{stat.label}</span>
+              <span className="text-xs text-muted-foreground">{t(`summary.${stat.label}`)}</span>
             </div>
             <p className="text-xl font-bold text-foreground tabular-nums">
               {stat.value}

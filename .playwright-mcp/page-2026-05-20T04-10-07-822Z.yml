@@ -1,0 +1,140 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "SIGMA" [ref=e4] [cursor=pointer]:
+        - /url: /zh
+        - generic [ref=e7]: S
+      - generic [ref=e8]: 菜单
+      - navigation [ref=e9]:
+        - link "仪表盘" [ref=e11] [cursor=pointer]:
+          - /url: /zh
+          - img [ref=e13]
+        - link "市场" [ref=e19] [cursor=pointer]:
+          - /url: /zh/markets
+          - img [ref=e21]
+        - link "新闻" [ref=e25] [cursor=pointer]:
+          - /url: /zh/news
+          - img [ref=e27]
+        - link "分析" [ref=e31] [cursor=pointer]:
+          - /url: /zh/analytics
+          - img [ref=e33]
+        - link "同步" [ref=e36] [cursor=pointer]:
+          - /url: /zh/sync
+          - img [ref=e38]
+        - link "设置" [ref=e44] [cursor=pointer]:
+          - /url: /zh/settings
+          - img [ref=e46]
+      - generic [ref=e50]:
+        - button "切换为深色模式" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+        - button "退出" [ref=e58] [cursor=pointer]: A
+    - main [ref=e59]:
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - paragraph [ref=e62]: 工作区偏好
+          - heading "设置" [level=1] [ref=e63]
+          - paragraph [ref=e64]: 管理账户与平台偏好
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e68]:
+              - heading "个人资料" [level=2] [ref=e69]
+              - generic [ref=e71]:
+                - textbox "显示名称" [ref=e72]
+                - generic: 显示名称
+              - generic [ref=e74]:
+                - button "语言" [ref=e75] [cursor=pointer]:
+                  - generic [ref=e76]: 中文
+                - generic: 语言
+                - img
+            - generic [ref=e78]:
+              - heading "数据保留" [level=2] [ref=e79]
+              - generic [ref=e81]:
+                - button "7 天" [ref=e82] [cursor=pointer]
+                - button "30 天" [ref=e83] [cursor=pointer]: 30 天
+                - button "60 天" [ref=e85] [cursor=pointer]
+                - button "90 天" [ref=e86] [cursor=pointer]
+                - button "180 天" [ref=e87] [cursor=pointer]
+                - button "365 天" [ref=e88] [cursor=pointer]
+            - generic [ref=e91]:
+              - heading "LLM 配置" [level=2] [ref=e92]
+              - paragraph [ref=e93]: 选择 SIGMA 分析使用的模型、每日 Token 预算和成本保护。
+            - generic [ref=e96]:
+              - generic [ref=e97]:
+                - heading "修改密码" [level=2] [ref=e98]
+                - paragraph [ref=e99]: 先通过邮箱验证码验证，再设置新密码。
+              - button "修改密码" [ref=e100] [cursor=pointer]:
+                - img [ref=e101]
+                - text: 修改密码
+          - generic [ref=e104]:
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - heading "外观" [level=2] [ref=e108]
+                - paragraph [ref=e109]: 主题切换已移至顶部导航栏。
+              - generic [ref=e110]: 深色
+            - generic [ref=e112]:
+              - img [ref=e114]
+              - generic [ref=e117]:
+                - heading "数据新鲜度" [level=2] [ref=e118]
+                - paragraph [ref=e119]: 最近成功采集
+            - generic [ref=e121]:
+              - heading "信号趋势" [level=2] [ref=e122]
+              - paragraph [ref=e123]: 示例七日情报量。
+        - generic [ref=e126]:
+          - generic [ref=e127]:
+            - generic [ref=e128]:
+              - paragraph [ref=e129]: 管理员控制
+              - heading "管理工作区" [level=2] [ref=e130]
+              - paragraph [ref=e131]: 在同一个设置页面管理用户、采集数据源、系统模型配置和采集活动。
+            - generic [ref=e133]:
+              - button "总览" [ref=e134] [cursor=pointer]: 总览
+              - button "用户" [ref=e136] [cursor=pointer]
+              - button "数据源" [ref=e137] [cursor=pointer]
+              - button "LLM" [ref=e138] [cursor=pointer]
+              - button "日志" [ref=e139] [cursor=pointer]
+          - generic [ref=e140]:
+            - generic [ref=e141]:
+              - paragraph [ref=e142]: 运行控制
+              - heading "管理总览" [level=1] [ref=e143]
+            - generic [ref=e144]:
+              - generic [ref=e146]:
+                - generic [ref=e147]:
+                  - paragraph [ref=e148]: 用户
+                  - paragraph [ref=e149]: —
+                - img [ref=e151]
+              - generic [ref=e157]:
+                - generic [ref=e158]:
+                  - paragraph [ref=e159]: 数据源
+                  - paragraph [ref=e160]: —
+                - img [ref=e162]
+              - generic [ref=e170]:
+                - generic [ref=e171]:
+                  - paragraph [ref=e172]: 情报条目
+                  - paragraph [ref=e173]: —
+                - img [ref=e175]
+              - generic [ref=e180]:
+                - generic [ref=e181]:
+                  - paragraph [ref=e182]: 今日 Token
+                  - paragraph [ref=e183]: —
+                - img [ref=e185]
+            - generic [ref=e187]:
+              - generic [ref=e189]:
+                - heading "采集趋势" [level=2] [ref=e190]
+                - generic [ref=e191]: 每 30 秒刷新
+              - heading "近期活动" [level=2] [ref=e195]
+            - generic [ref=e196]:
+              - heading "数据源健康" [level=2] [ref=e198]
+              - table [ref=e200]:
+                - rowgroup [ref=e201]:
+                  - row "数据源 类型 最近成功 24小时成功率 状态" [ref=e202]:
+                    - columnheader "数据源" [ref=e203]
+                    - columnheader "类型" [ref=e204]
+                    - columnheader "最近成功" [ref=e205]
+                    - columnheader "24小时成功率" [ref=e206]
+                    - columnheader "状态" [ref=e207]
+                - rowgroup
+        - generic [ref=e209]:
+          - paragraph [ref=e210]: 没有更改
+          - button "保存" [disabled]:
+            - img
+            - text: 保存
+  - alert [ref=e211]

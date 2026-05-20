@@ -3,13 +3,14 @@
 import { Clock3, KeyRound, Save } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
+import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { AdminSettingsSection } from "@/components/admin/AdminSettingsSection";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { CustomSelect } from "@/components/ui/CustomSelect";
+import { CustomSelect } from "@/components/dashboard/custom-select";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentControl } from "@/components/ui/SegmentControl";
@@ -20,7 +21,6 @@ import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
 import { useLLMSettings } from "@/hooks/useLLMSettings";
 import { useReportConfig, useSettingsMutations } from "@/hooks/useSettings";
 import { useLastCollectionStats } from "@/hooks/useStats";
-import { useTheme } from "@/hooks/useTheme";
 import type { Category, LLMConfig, LLMUsageResponse, Locale, Market, ReportType, UserReportConfig } from "@/lib/types";
 
 const retentionOptions = [7, 30, 60, 90, 180, 365] as const;
@@ -49,7 +49,8 @@ export default function SettingsPage() {
   const lastCollection = useLastCollectionStats();
   const llmSettings = useLLMSettings();
   const { updateProfile, updateReportConfig, updateRetention } = useSettingsMutations();
-  const { isDark } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
   const [displayName, setDisplayName] = useState("");
   const [selectedLocale, setSelectedLocale] = useState<Locale>(defaultLocale);
   const [retentionDays, setRetentionDays] = useState(30);
@@ -140,10 +141,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <section className="flex flex-col gap-6 pb-24">
-      <header className="border-b border-sigma-line pb-6">
-        <p className="text-sm font-medium uppercase text-sigma-accent">{t("eyebrow")}</p>
-        <h1 className="mt-2 text-3xl font-semibold text-sigma-text sm:text-4xl">{t("title")}</h1>
+    <section className="flex flex-col gap-6 p-6 pb-24 lg:p-8">
+      <header className="border-b border-border pb-6">
+        <p className="text-sm font-medium uppercase text-primary">{t("eyebrow")}</p>
+        <h1 className="mt-2 text-3xl font-semibold text-foreground sm:text-4xl">{t("title")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
       </header>
 
       <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
@@ -184,8 +186,8 @@ export default function SettingsPage() {
             lastSuccess={lastCollection.data?.last_success ?? null}
           />
           <Card className="p-5">
-            <h2 className="text-base font-semibold text-sigma-text">{t("trend.title")}</h2>
-            <p className="mt-1 text-sm text-sigma-muted">{t("trend.caption")}</p>
+            <h2 className="text-base font-semibold text-foreground">{t("trend.title")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t("trend.caption")}</p>
             <div className="mt-5">
               <TrendLine
                 data={[
@@ -205,9 +207,9 @@ export default function SettingsPage() {
 
       {user?.role === "admin" ? <AdminSettingsSection /> : null}
 
-      <div className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-6xl rounded-full border border-sigma-line bg-sigma-elevated/95 p-2 shadow-apple backdrop-blur-xl">
+      <div className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-6xl rounded-full border border-border bg-card/95 p-2 shadow-apple backdrop-blur-xl">
         <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 px-3 text-sm font-medium text-sigma-muted">
+          <p className="min-w-0 px-3 text-sm font-medium text-muted-foreground">
             {hasChanges ? t("unsaved") : t("noChanges")}
           </p>
           <Button disabled={!hasChanges || user === null} isLoading={isSaving} onClick={handleSaveAll}>
@@ -246,8 +248,8 @@ function LLMConfigSection({
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="text-base font-semibold text-sigma-text">{t("title")}</h2>
-        <p className="mt-1 text-sm text-sigma-muted">{t("caption")}</p>
+        <h2 className="text-base font-semibold text-foreground">{t("title")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("caption")}</p>
       </div>
       <LLMSettingsPanel
         configData={configData}
@@ -276,9 +278,9 @@ function ProfileSection({
   return (
     <Card className="p-5">
       <div className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-sigma-text">{t("profile.title")}</h2>
+        <h2 className="text-base font-semibold text-foreground">{t("profile.title")}</h2>
         <Input
-          className="text-sigma-muted opacity-65 focus:text-sigma-text focus:opacity-100"
+          className="text-muted-foreground opacity-65 focus:text-foreground focus:opacity-100"
           label={t("profile.displayName")}
           onChange={(event) => onDisplayNameChange(event.target.value)}
           value={displayName}
@@ -303,7 +305,7 @@ function RetentionSection({ days, onChange }: { days: number; onChange: (days: n
   return (
     <Card className="p-5">
       <div className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-sigma-text">{t("retention.title")}</h2>
+        <h2 className="text-base font-semibold text-foreground">{t("retention.title")}</h2>
         <div className="overflow-x-auto pb-1">
           <SegmentControl
             activeId={String(days)}
@@ -328,7 +330,7 @@ function ReportConfigSection({
   return (
     <Card className="p-5">
       <div className="flex flex-col gap-5">
-        <h2 className="text-base font-semibold text-sigma-text">{t("reports.title")}</h2>
+        <h2 className="text-base font-semibold text-foreground">{t("reports.title")}</h2>
         <div className="overflow-x-auto pb-1">
           <SegmentControl
             activeId={payload.report_frequency}
@@ -362,7 +364,7 @@ function ReportConfigSection({
           options={categories.map((value) => ({ label: t(`categories.${value}`), value }))}
           values={payload.categories}
         />
-        <div className="flex items-center gap-3 text-sm font-medium text-sigma-text">
+        <div className="flex items-center gap-3 text-sm font-medium text-foreground">
           <ToggleSwitch
             checked={payload.is_active}
             label={t("reports.active")}
@@ -382,10 +384,10 @@ function ThemeSection({ isDark }: { isDark: boolean }) {
     <Card className="p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-sigma-text">{t("theme.title")}</h2>
-          <p className="mt-1 text-sm text-sigma-muted">{t("theme.caption")}</p>
+          <h2 className="text-base font-semibold text-foreground">{t("theme.title")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("theme.caption")}</p>
         </div>
-        <span className="rounded-full bg-sigma-elevated px-3 py-1 text-sm font-medium text-sigma-text">
+        <span className="rounded-full bg-card px-3 py-1 text-sm font-medium text-foreground">
           {isDark ? t("theme.dark") : t("theme.light")}
         </span>
       </div>
@@ -409,16 +411,16 @@ function DataFreshnessCard({ isLoading, lastSuccess }: { isLoading: boolean; las
   return (
     <Card className="p-5">
       <div className="flex items-start gap-3">
-        <span className="rounded-full bg-sigma-accent/10 p-2 text-sigma-accent">
+        <span className="rounded-full bg-primary/10 p-2 text-primary">
           <Clock3 className="h-4 w-4" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-sigma-text">{t("dataFreshness")}</h2>
-          <p className="mt-1 text-sm text-sigma-muted">{t("lastUpdated")}</p>
+          <h2 className="text-base font-semibold text-foreground">{t("dataFreshness")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("lastUpdated")}</p>
           {isLoading ? (
             <Skeleton className="mt-4 h-5 w-40" />
           ) : (
-            <p className="mt-4 text-sm font-medium text-sigma-text">{formatted}</p>
+            <p className="mt-4 text-sm font-medium text-foreground">{formatted}</p>
           )}
         </div>
       </div>
@@ -433,8 +435,8 @@ function PasswordSection({ onOpen }: { onOpen: () => void }) {
     <Card className="p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-sigma-text">{t("password.title")}</h2>
-          <p className="mt-1 text-sm text-sigma-muted">{t("password.caption")}</p>
+          <h2 className="text-base font-semibold text-foreground">{t("password.title")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("password.caption")}</p>
         </div>
         <Button onClick={onOpen} variant="secondary">
           <KeyRound className="h-4 w-4" aria-hidden />
@@ -514,9 +516,9 @@ function PasswordResetModal({ email, isOpen, onClose }: { email: string; isOpen:
           ]}
           onChange={() => undefined}
         />
-        <p className="rounded-2xl bg-sigma-surface px-4 py-3 text-sm text-sigma-muted">{t("password.devHint")}</p>
+        <p className="rounded-2xl bg-card px-4 py-3 text-sm text-muted-foreground">{t("password.devHint")}</p>
         {feedback ? (
-          <p className={feedback.type === "success" ? "text-sm font-medium text-sigma-success" : "text-sm font-medium text-sigma-danger"}>
+          <p className={feedback.type === "success" ? "text-sm font-medium text-chart-1" : "text-sm font-medium text-destructive"}>
             {feedback.message}
           </p>
         ) : null}
@@ -589,14 +591,14 @@ function ToggleSet({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-sigma-text">{label}</p>
+      <p className="text-sm font-medium text-foreground">{label}</p>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <button
             className={
               values.includes(option.value)
-                ? "min-h-11 rounded-full bg-sigma-text px-3 py-2 text-sm font-medium text-sigma-bg"
-                : "min-h-11 rounded-full border border-sigma-line px-3 py-2 text-sm font-medium text-sigma-muted hover:text-sigma-text"
+                ? "min-h-11 rounded-full bg-foreground px-3 py-2 text-sm font-medium text-background"
+                : "min-h-11 rounded-full border border-border px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             }
             key={option.value}
             onClick={() => onToggle(option.value)}

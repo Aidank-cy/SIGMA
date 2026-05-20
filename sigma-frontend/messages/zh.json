@@ -166,6 +166,123 @@
     "viewPortfolio": "查看完整持仓",
     "empty": "暂无数据。"
   },
+  "markets": {
+    "title": "市场",
+    "subtitle": "实时行情与关注组合追踪",
+    "indices": "指数",
+    "watchlist": "关注列表",
+    "sectors": "板块",
+    "addStock": "添加标的",
+    "viewPortfolio": "查看完整持仓",
+    "marketSummary": "市场概览",
+    "empty": "暂无市场指数数据。",
+    "emptyWatchlist": "尚未创建关注列表。",
+    "watchlistCount": "{count} 个关注列表",
+    "items": "条目",
+    "allMarkets": "全部市场",
+    "sectorsCaption": "今日板块表现概览",
+    "marketCapDistribution": "市值分布",
+    "sectorNames": {
+      "technology": "科技",
+      "healthcare": "医疗健康",
+      "finance": "金融",
+      "energy": "能源",
+      "consumer": "消费",
+      "industrial": "工业"
+    },
+    "summary": {
+      "Advancing": "上涨",
+      "Declining": "下跌",
+      "Unchanged": "持平",
+      "52-Week Highs": "52 周新高",
+      "52-Week Lows": "52 周新低",
+      "Most Active": "最活跃"
+    }
+  },
+  "news": {
+    "title": "新闻",
+    "subtitle": "来自全球金融数据源的情报流",
+    "searchPlaceholder": "搜索文章、主题、来源...",
+    "allMarkets": "全部市场",
+    "showing": "正在显示 {shown} / {total} 篇文章",
+    "sort": {
+      "latest": "最新",
+      "relevant": "最相关",
+      "discussed": "讨论最多"
+    }
+  },
+  "analytics": {
+    "title": "分析",
+    "subtitle": "情绪分析与情报报告",
+    "sentimentOverview": "情绪概览",
+    "sentimentTrend": "情绪趋势",
+    "articleVolume": "文章数量",
+    "sourceDistribution": "来源分布",
+    "reports": "情报报告",
+    "generateReport": "生成报告",
+    "topKeywords": "热门关键词",
+    "sentimentByCategory": "按类别情绪",
+    "articlesThisWeek": "本周文章",
+    "articleCount": "{count} 篇文章",
+    "reportMeta": "{count} 篇文章 · {minutes} 分钟阅读",
+    "readReport": "阅读报告",
+    "adminOnly": "生成报告需要管理员权限。",
+    "generationQueued": "报告生成已加入队列。",
+    "generationError": "无法加入报告生成队列。",
+    "categories": {
+      "politics": "政治",
+      "finance": "金融",
+      "technology": "科技",
+      "macro": "宏观"
+    },
+    "reportTypes": {
+      "daily": "日报",
+      "weekly": "周报",
+      "monthly": "月报"
+    }
+  },
+  "sync": {
+    "title": "同步",
+    "subtitle": "数据管线状态与采集管理",
+    "syncAll": "立即全部同步",
+    "activeSources": "活跃数据源",
+    "todayCollections": "今日采集",
+    "pipelineHealth": "管线健康度",
+    "recentActivity": "近期活动",
+    "scheduleOverview": "计划概览",
+    "syncNow": "立即同步",
+    "configure": "配置",
+    "lastSynced": "最近同步",
+    "unknown": "未知",
+    "ofTotal": "共 {total} 个",
+    "collectedToday": "今日已采集",
+    "activeRatio": "活跃比例",
+    "dataSources": "数据源",
+    "adminLogsOnly": "采集日志仅管理员可见。",
+    "collectedItems": "采集 {count} 条，用时 {duration} ms。",
+    "manual": "手动",
+    "active": "启用",
+    "paused": "暂停",
+    "category": "类别",
+    "market": "市场",
+    "syncQueued": "同步预览已完成。",
+    "sourceSynced": "数据源同步预览已完成。",
+    "syncError": "无法同步所选数据源。",
+    "adminOnly": "只有管理员可以启用或停用数据源。",
+    "sourceUpdated": "数据源已更新。",
+    "sourceUpdateError": "无法更新数据源。",
+    "filters": {
+      "all": "全部",
+      "success": "成功",
+      "fail": "失败",
+      "timeout": "超时"
+    },
+    "sourceTypes": {
+      "api": "API",
+      "rss": "RSS",
+      "scraper": "网页抓取"
+    }
+  },
   "itemDetail": {
     "breadcrumbHome": "首页",
     "breadcrumbCurrent": "情报详情",
@@ -269,6 +386,7 @@
   "settings": {
     "eyebrow": "工作区偏好",
     "title": "设置",
+    "subtitle": "管理账户与平台偏好",
     "save": "保存",
     "saved": "已保存。",
     "saveError": "无法保存：{sections}。",
@@ -302,6 +420,14 @@
       "eyebrow": "管理员控制",
       "title": "管理工作区",
       "caption": "在同一个设置页面管理用户、采集数据源、系统模型配置和采集活动。"
+    },
+    "sections": {
+      "profile": "个人资料",
+      "preferences": "偏好设置",
+      "notifications": "通知",
+      "llm": "LLM 配置",
+      "apikeys": "API 密钥",
+      "security": "安全"
     },
     "theme": {
       "title": "外观",
@@ -356,42 +482,6 @@
       "eu": "欧洲",
       "hk": "香港",
       "global": "全球"
-    }
-  },
-  "dashboard": {
-    "eyebrow": "市场情报中枢",
-    "title": "SIGMA",
-    "subtitle": "聚合政治、金融、科技和宏观经济信号，为全球股票市场生成可追踪的情报摘要与报告。",
-    "welcome": "欢迎使用 SIGMA，{name}",
-    "intro": "已认证工作区已准备好承载情报流、关注列表、报告和设置页面。",
-    "userFallback": "分析师",
-    "categories": {
-      "politics": "政治",
-      "finance": "金融",
-      "tech": "科技",
-      "macro": "宏观"
-    },
-    "metrics": {
-      "items": {
-        "label": "情报条目",
-        "value": "0",
-        "caption": "等待采集管线接入"
-      },
-      "reports": {
-        "label": "周期报告",
-        "value": "0",
-        "caption": "报告生成器尚未运行"
-      },
-      "sources": {
-        "label": "数据源",
-        "value": "0",
-        "caption": "将在后续阶段配置"
-      },
-      "config": {
-        "label": "系统配置",
-        "value": "0",
-        "caption": "使用 sigma.* 命名空间"
-      }
     }
   },
   "admin": {

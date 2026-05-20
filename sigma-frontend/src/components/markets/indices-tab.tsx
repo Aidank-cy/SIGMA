@@ -1,74 +1,11 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 import { TrendingUp, TrendingDown } from "lucide-react"
 import { AreaChart, Area, ResponsiveContainer } from "recharts"
 
-const indices = [
-  {
-    name: "S&P 500",
-    symbol: "SPX",
-    price: 5842.31,
-    change: 1.24,
-    data: [45, 52, 48, 61, 55, 72, 68, 85, 78, 92, 88, 95, 102, 98, 110],
-  },
-  {
-    name: "NASDAQ",
-    symbol: "IXIC",
-    price: 18432.65,
-    change: 1.87,
-    data: [30, 35, 42, 38, 55, 48, 62, 58, 75, 68, 82, 78, 90, 85, 95],
-  },
-  {
-    name: "DOW JONES",
-    symbol: "DJI",
-    price: 42156.89,
-    change: 0.78,
-    data: [55, 58, 52, 65, 60, 72, 68, 75, 70, 82, 78, 85, 80, 90, 88],
-  },
-  {
-    name: "RUSSELL 2000",
-    symbol: "RUT",
-    price: 2287.45,
-    change: -0.34,
-    data: [75, 72, 68, 70, 65, 62, 68, 64, 60, 58, 62, 55, 58, 52, 54],
-  },
-  {
-    name: "Japan 225",
-    symbol: "NI225",
-    price: 38742.12,
-    change: 0.92,
-    data: [40, 45, 48, 52, 48, 58, 55, 62, 58, 68, 65, 72, 68, 75, 78],
-  },
-  {
-    name: "SSE Composite",
-    symbol: "SSEC",
-    price: 3245.67,
-    change: -0.56,
-    data: [80, 78, 82, 76, 72, 75, 68, 72, 65, 68, 62, 65, 58, 60, 55],
-  },
-  {
-    name: "FTSE 100",
-    symbol: "FTSE",
-    price: 8456.23,
-    change: 0.45,
-    data: [50, 52, 55, 58, 54, 62, 58, 65, 62, 68, 65, 72, 68, 75, 72],
-  },
-  {
-    name: "DAX",
-    symbol: "DAX",
-    price: 18234.89,
-    change: 1.12,
-    data: [42, 48, 52, 58, 55, 65, 62, 72, 68, 78, 75, 82, 78, 88, 92],
-  },
-  {
-    name: "CAC 40",
-    symbol: "CAC",
-    price: 7856.34,
-    change: 0.67,
-    data: [48, 52, 48, 58, 55, 62, 58, 68, 65, 72, 68, 75, 72, 78, 82],
-  },
-]
+import { useMarketIndices } from "@/hooks/useMarketIndices"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -86,6 +23,28 @@ const itemVariants = {
 }
 
 export function IndicesTab() {
+  const t = useTranslations("markets")
+  const { data, isLoading } = useMarketIndices()
+  const indices = data?.indices ?? []
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div className="h-52 animate-pulse rounded-xl border border-border bg-card" key={index} />
+        ))}
+      </div>
+    )
+  }
+
+  if (indices.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
+        {t("empty")}
+      </div>
+    )
+  }
+
   return (
     <motion.div
       variants={containerVariants}
@@ -94,7 +53,8 @@ export function IndicesTab() {
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
     >
       {indices.map((index) => {
-        const isPositive = index.change >= 0
+        const isPositive = index.change_pct >= 0
+        const sparkline = index.sparkline_24h.length > 0 ? index.sparkline_24h : [index.value]
         const chartColor = isPositive
           ? "oklch(0.65 0.22 145)"
           : "oklch(0.6 0.22 25)"
@@ -121,7 +81,7 @@ export function IndicesTab() {
             {/* Price & Change */}
             <div className="flex items-baseline gap-3 mb-4">
               <span className="text-3xl font-bold tabular-nums text-foreground">
-                {index.price.toLocaleString("en-US", {
+                {index.value.toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
@@ -138,7 +98,7 @@ export function IndicesTab() {
                 )}
                 <span>
                   {isPositive ? "+" : ""}
-                  {index.change.toFixed(2)}%
+                  {index.change_pct.toFixed(2)}%
                 </span>
               </div>
             </div>
@@ -146,7 +106,7 @@ export function IndicesTab() {
             {/* Chart */}
             <div className="h-24 -mx-2">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={index.data.map((value) => ({ value }))}>
+                <AreaChart data={sparkline.map((value) => ({ value }))}>
                   <defs>
                     <linearGradient
                       id={`gradient-${index.symbol}`}

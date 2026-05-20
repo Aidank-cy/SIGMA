@@ -59,20 +59,20 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-sigma-bg px-4 py-10">
-      <div className="absolute inset-[-32px] animate-sigma-float opacity-[0.18] [background-image:linear-gradient(rgb(var(--sigma-line))_1px,transparent_1px),linear-gradient(90deg,rgb(var(--sigma-line))_1px,transparent_1px)] [background-size:48px_48px]" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
+      <div className="absolute inset-[-32px] opacity-[0.18] [background-image:linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] [background-size:48px_48px]" />
       <div className="absolute right-4 top-4 z-10">
         <LocaleSwitcher compact />
       </div>
 
-      <Card className="relative z-10 w-full max-w-md border-sigma-line/80 bg-sigma-surface/86 p-6 shadow-apple backdrop-blur-xl sm:p-8">
+      <Card className="relative z-10 w-full max-w-md border-border/80 bg-card/90 p-6 shadow-apple backdrop-blur-xl sm:p-8">
         <div className="mb-8 flex flex-col items-center text-center">
-          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-sigma-text text-sigma-bg">
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background">
             <BarChart3 className="h-6 w-6" aria-hidden />
           </span>
-          <h1 className="text-2xl font-semibold text-sigma-text">{t("login.title")}</h1>
-          <p className="mt-2 text-sm leading-6 text-sigma-muted">{t("tagline")}</p>
-          <p className="mt-1 text-sm leading-6 text-sigma-muted">{t("login.subtitle")}</p>
+          <h1 className="text-2xl font-semibold text-foreground">{t("login.title")}</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{t("tagline")}</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("login.subtitle")}</p>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -99,7 +99,7 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center">
           <Link
-            className="inline-flex min-h-11 items-center text-sm font-medium text-sigma-accent hover:text-sigma-text"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:text-foreground"
             href={`/${locale}/register`}
           >
             {t("login.registerLink")}
