@@ -912,3 +912,28 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PARTIAL
 - Notes: Executed SIGMA integration prompt phases 5, 6, and 7. Completed zh/en message coverage, added mobile bottom navigation below the desktop sidebar breakpoint, migrated remaining legacy select/theme/detail/sidebar usages onto v0-compatible tokens, removed obsolete pre-v0 files, and fixed duplicate dashboard message namespaces. `npm run build` passed. Playwright verified clean desktop rendering for /zh/login, /zh/register, /zh, /zh/markets, and /zh/news before the tool usage limit blocked the remaining screenshots.
 - Timestamp: 2026-05-20T04:20:18Z
+
+### [Maintenance] Root Playwright screenshot cleanup
+- Status: COMPLETE
+- Files created: none
+- Files modified: CHANGELOG.md, .harness/progress.md
+- Files deleted: sigma-zh-analytics-desktop.png, sigma-zh-dashboard-desktop-current.png, sigma-zh-dashboard-desktop-current2.png, sigma-zh-dashboard-desktop.png, sigma-zh-login-desktop-current.png, sigma-zh-login-desktop.png, sigma-zh-markets-desktop-current.png, sigma-zh-markets-desktop.png, sigma-zh-news-desktop-current.png, sigma-zh-news-desktop.png, sigma-zh-register-desktop-current.png, sigma-zh-register-desktop.png, sigma-zh-settings-desktop.png, sigma-zh-sync-desktop.png
+- Tests: NOT RUN
+- Notes: Removed only root-level Playwright verification screenshots with `git rm sigma-zh-*.png`; no files under v0-reference/public/ or sigma-frontend/public/ were deleted.
+- Timestamp: 2026-05-20T07:45:25Z
+
+### [Maintenance] Theme-aware sidebar glass
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/globals.css, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Made the v0 sidebar frosted glass and light-mode sidebar CSS variables theme-aware while preserving the existing dark-mode sidebar variables. Confirmed `sidebar.tsx` already keeps the desktop `frosted-glass` class and mobile `bg-card/95 backdrop-blur-xl` classes. Verified with the post-edit hook/frontend build and browser-computed style checks across light and dark sidebar theme toggles.
+- Timestamp: 2026-05-20T07:47:26Z
+
+### [UI Integration] Hero chart index badges and currency labels
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added symbol-based circular index badges beside hero chart index names and displayed the market currency code beside each price while preserving backend-driven market data.
+- Timestamp: 2026-05-20T07:58:30Z

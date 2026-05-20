@@ -9,6 +9,17 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import { useMarketIndices } from "@/hooks/useMarketIndices";
 import { cn } from "@/lib/utils";
 
+const INDEX_ICONS: Record<string, { letter: string; bg: string; text: string }> = {
+  SPX: { letter: "S&P", bg: "bg-red-500", text: "text-white" },
+  IXIC: { letter: "NQ", bg: "bg-blue-500", text: "text-white" },
+  DJI: { letter: "DJ", bg: "bg-blue-700", text: "text-white" },
+  SSE: { letter: "SSE", bg: "bg-red-600", text: "text-yellow-300" },
+  HSI: { letter: "HS", bg: "bg-teal-600", text: "text-white" },
+  N225: { letter: "N225", bg: "bg-rose-600", text: "text-white" },
+  FTSE: { letter: "FT", bg: "bg-blue-800", text: "text-white" },
+  DAX: { letter: "DAX", bg: "bg-yellow-500", text: "text-black" }
+};
+
 const timeRanges = ["1D", "1W", "1M", "3M", "1Y"];
 
 interface ChartPoint {
@@ -22,6 +33,7 @@ interface MarketChartData {
   name: string;
   price: number;
   symbol: string;
+  currency: string;
 }
 
 function generateChartData(points: number, value: number, positive: boolean): ChartPoint[] {
@@ -51,7 +63,14 @@ export function HeroChart() {
     const indices = data?.indices ?? [];
     if (indices.length === 0) {
       return [
-        { change: 0, data: generateChartData(60, 100, true), name: "SIGMA", price: 100, symbol: "SIGMA" }
+        {
+          change: 0,
+          data: generateChartData(60, 100, true),
+          name: "SIGMA",
+          price: 100,
+          symbol: "SIGMA",
+          currency: "USD"
+        }
       ];
     }
 
@@ -60,7 +79,8 @@ export function HeroChart() {
       data: toChartData(index.value, index.sparkline_24h, index.change_pct >= 0),
       name: index.name,
       price: index.value,
-      symbol: index.symbol
+      symbol: index.symbol,
+      currency: index.currency
     }));
   }, [data]);
   const [activeMarket, setActiveMarket] = useState(markets[0]?.name ?? "SIGMA");
@@ -140,23 +160,37 @@ export function HeroChart() {
               {t("live")}
             </span>
           </div>
-          <motion.h2
-            animate={{ opacity: 1, y: 0 }}
-            className="text-2xl font-bold text-foreground lg:text-3xl"
-            initial={{ opacity: 0, y: 10 }}
-            key={activeMarket}
-          >
-            {currentData?.name}
-          </motion.h2>
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                INDEX_ICONS[currentData?.symbol ?? ""]?.bg ?? "bg-primary",
+                INDEX_ICONS[currentData?.symbol ?? ""]?.text ?? "text-primary-foreground"
+              )}
+            >
+              {INDEX_ICONS[currentData?.symbol ?? ""]?.letter ?? currentData?.symbol?.slice(0, 2)}
+            </div>
+            <motion.h2
+              animate={{ opacity: 1, y: 0 }}
+              className="text-2xl font-bold text-foreground lg:text-3xl"
+              initial={{ opacity: 0, y: 10 }}
+              key={activeMarket}
+            >
+              {currentData?.name}
+            </motion.h2>
+          </div>
         </div>
 
         <div className="text-right">
           <motion.p
             animate={{ opacity: 1, scale: 1 }}
-            className="text-3xl font-bold tracking-normal text-foreground lg:text-4xl"
+            className="flex items-baseline gap-2 text-3xl font-bold tracking-normal text-foreground lg:text-4xl"
             initial={{ opacity: 0, scale: 0.95 }}
             key={`${activeMarket}-price`}
           >
+            <span className="text-lg font-semibold text-muted-foreground lg:text-xl">
+              {currentData?.currency}
+            </span>
             {currentData?.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </motion.p>
           <motion.div

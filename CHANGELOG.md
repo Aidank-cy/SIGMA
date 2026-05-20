@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add index logo badges and currency labels to the dashboard hero market chart.
 - Add v0 redesign Phase 0 foundations with shadcn-compatible UI components, next-themes, Tailwind v3 design tokens, and copied reference pages.
 - Add a locale-aware v0 sidebar shell with protected routing, live auth avatar logout, and theme controls.
 - Add a live-data dashboard page with market index charts, ticker cards, stats, search filters, infinite news feed, watchlist, trending keyword, and market overview panels.
@@ -27,8 +28,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ### Removed
 - Remove obsolete pre-v0 frontend components, legacy select primitives, the deprecated theme hook, and compile-excluded v0 reference pages after integration.
+- Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix the v0 sidebar frosted-glass background and light-mode sidebar tokens so theme toggles update the sidebar with the rest of the app.
 - Fix duplicate top-level dashboard i18n namespaces so the v0 dashboard renders localized runtime strings without `next-intl` missing-message errors.
 - Fix Layer 1 UI layout consistency by normalizing shared controls to 44px touch targets, aligning inputs to h-12, and replacing raw chart colors with SIGMA design tokens.
 - Fix Layer 7 scheduled task and report coverage for report markdown attribution, Redis lock TTL behavior, scheduler timing assertions, and Finnhub index quote fallbacks.
