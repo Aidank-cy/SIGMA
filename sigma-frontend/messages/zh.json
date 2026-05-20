@@ -37,6 +37,11 @@
     }
   },
   "nav": {
+    "dashboard": "仪表盘",
+    "markets": "市场",
+    "news": "新闻",
+    "analytics": "分析",
+    "sync": "同步",
     "home": "首页",
     "feed": "情报流",
     "watchlist": "关注列表",
@@ -47,6 +52,16 @@
     "menu": "菜单",
     "themeLight": "切换为浅色模式",
     "themeDark": "切换为深色模式"
+  },
+  "dashboard": {
+    "greeting": "早上好，{name}",
+    "subtitle": "以下是今日市场动态",
+    "lastUpdated": "最后更新",
+    "live": "实时",
+    "marketMovers": "市场热点",
+    "latestNews": "最新资讯",
+    "viewAll": "查看全部",
+    "swipeHint": "滑动或使用方向键切换"
   },
   "feed": {
     "eyebrow": "实时情报",
@@ -99,7 +114,8 @@
       "latestReport": "最新报告",
       "bullish": "{value}% 看多",
       "bearish": "{value}% 看空",
-      "none": "暂无"
+      "none": "暂无",
+      "new": "最新"
     },
     "sentiment": {
       "bullish": "看多",
@@ -140,6 +156,15 @@
       "hk": "香港",
       "global": "全球"
     }
+  },
+  "sidebar": {
+    "watchlist": "关注列表",
+    "trending": "热门话题",
+    "marketOverview": "市场概览",
+    "fearGreed": "恐惧与贪婪",
+    "volume": "成交量",
+    "viewPortfolio": "查看完整持仓",
+    "empty": "暂无数据。"
   },
   "itemDetail": {
     "breadcrumbHome": "首页",

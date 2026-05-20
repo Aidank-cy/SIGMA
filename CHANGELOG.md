@@ -7,10 +7,14 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add v0 redesign Phase 0 foundations with shadcn-compatible UI components, next-themes, Tailwind v3 design tokens, and copied reference pages.
+- Add a locale-aware v0 sidebar shell with protected routing, live auth avatar logout, and theme controls.
+- Add a live-data dashboard page with market index charts, ticker cards, stats, search filters, infinite news feed, watchlist, trending keyword, and market overview panels.
 - Add a custom design-system select dropdown that matches SIGMA's dark rounded menu styling.
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Preserve v0 reference pages as compile-excluded integration references while wiring production pages to tested SIGMA hooks and i18n.
 - Harden Docker Compose startup with service restart policies, Postgres and Redis healthchecks, and health-gated backend dependencies.
 - Redesign LLM settings into a full-width form with provider-grouped API keys and per-key token limits.
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.

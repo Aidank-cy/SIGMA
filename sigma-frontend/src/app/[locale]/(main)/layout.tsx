@@ -1,21 +1,16 @@
 import type { ReactNode } from "react";
 
-import { Navbar } from "@/components/Navbar";
-import { PageTransition } from "@/components/PageTransition";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Sidebar } from "@/components/dashboard/sidebar";
 
-interface MainLayoutProps {
-  children: ReactNode;
-}
-
-export default function MainLayout({ children }: MainLayoutProps) {
+export default function MainLayout({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-sigma-bg pb-20 md:pb-0">
-        <Navbar />
-        <PageTransition>
-          <main className="mx-auto w-full max-w-[1600px] px-3 py-8 sm:px-4 lg:px-6">{children}</main>
-        </PageTransition>
+      <div className="min-h-screen bg-background">
+        <Sidebar />
+        <main className="min-h-screen pb-20 transition-all duration-300 md:pl-20 md:pb-0">
+          {children}
+        </main>
       </div>
     </ProtectedRoute>
   );
