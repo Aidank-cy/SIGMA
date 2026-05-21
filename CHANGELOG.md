@@ -46,6 +46,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix intraday chart axis labels for all declared multi-session market breaks so one-hour lunch gaps merge into a single clean tick.
 - Fix LLM settings cache staleness and empty API key defaults when no config is returned.
 - Smooth shared segmented controls with a measured sliding indicator for admin and settings tabs.
 - Fix dashboard news card bookmarks with a client-side visual toggle.
