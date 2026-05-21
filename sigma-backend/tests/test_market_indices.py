@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 import pytest
+import httpx
 
 from app.api.v1.routes.market_indices import list_market_indices
 from app.scheduler.engine import add_market_indices_job, scheduler
@@ -65,6 +66,7 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     assert lengths["HSI"] == 332
     assert lengths["N225"] == 332
     assert all(len(index.sparkline_24h) == len(index.sparkline_times) for index in response.indices)
+    assert all(index.is_fallback_data is True for index in response.indices)
     assert {index.symbol: index.currency for index in response.indices}["SPX"] == "USD"
     assert {index.symbol: index.currency for index in response.indices}["SSE"] == "CNY"
     assert set(response.indices[0].sparkline_ranges) == {"5D", "1M", "3M", "1Y"}
@@ -77,6 +79,7 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     assert sse.sparkline_times[121].endswith("13:00:00+08:00")
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["symbol"] == "SPX"
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["currency"] == "USD"
+    assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["is_fallback_data"] is True
     assert "sparkline_ranges" in market_indices.decode_cached_payload(cache["payload"])["indices"][0]
 
 
@@ -164,6 +167,91 @@ def test_intraday_fallback_only_generates_elapsed_minutes_during_trading(
     assert points[0].timestamp.isoformat().endswith("09:30:00+08:00")
     assert points[-1].timestamp.isoformat().endswith("10:00:00+08:00")
     assert len(points) == 31
+    assert points == market_indices._fallback_intraday_series(sse, 3200.0, 1.0)
+    assert len({point.value for point in points}) > 10
+
+
+@pytest.mark.asyncio
+async def test_intraday_fetch_uses_yahoo_before_other_providers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Yahoo is the primary intraday source because it covers all configured indices."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    calls: list[str] = []
+    yahoo_points = [
+        market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3200.0),
+        market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 31, tzinfo=market_indices.BEIJING_TZ), 3201.0),
+    ]
+
+    async def fake_yahoo(_config: market_indices.IndexConfig) -> list[market_indices.IntradayPoint]:
+        calls.append("yahoo")
+        return yahoo_points
+
+    async def fake_finnhub(_config: market_indices.IndexConfig, _target_value: float) -> None:
+        calls.append("finnhub")
+        return None
+
+    async def fake_alpha(_config: market_indices.IndexConfig) -> None:
+        calls.append("alpha")
+        return None
+
+    monkeypatch.setattr(market_indices, "_fetch_yahoo_intraday_series", fake_yahoo)
+    monkeypatch.setattr(market_indices, "_fetch_finnhub_intraday_series", fake_finnhub)
+    monkeypatch.setattr(market_indices, "_fetch_alpha_vantage_intraday_series", fake_alpha)
+
+    result = await market_indices._fetch_intraday_series(sse, 3200.0)
+
+    assert result == yahoo_points
+    assert calls == ["yahoo"]
+
+
+@pytest.mark.asyncio
+async def test_yahoo_quote_uses_browser_headers_and_query2_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Yahoo chart requests send browser headers and retry query2 after query1 failures."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    calls: list[tuple[dict[str, str], str]] = []
+
+    class FakeAsyncClient:
+        def __init__(self, *, headers: dict[str, str], timeout: int) -> None:
+            self.headers = headers
+            self.timeout = timeout
+
+        async def __aenter__(self) -> "FakeAsyncClient":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def get(self, url: str, params: dict[str, str]) -> httpx.Response:
+            calls.append((self.headers, url))
+            request = httpx.Request("GET", url, params=params)
+            if "query1.finance.yahoo.com" in url:
+                return httpx.Response(403, request=request, text="Forbidden")
+            return httpx.Response(
+                200,
+                request=request,
+                json={
+                    "chart": {
+                        "result": [
+                            {
+                                "meta": {
+                                    "chartPreviousClose": 5900.0,
+                                    "regularMarketPrice": 6000.0,
+                                }
+                            }
+                        ],
+                        "error": None,
+                    }
+                },
+            )
+
+    monkeypatch.setattr(market_indices.httpx, "AsyncClient", FakeAsyncClient)
+
+    quote = await market_indices._fetch_yahoo_quote(spx)
+
+    assert quote is not None
+    assert quote.current == pytest.approx(6000.0)
+    assert quote.previous_close == pytest.approx(5900.0)
+    assert [url.split("/")[2] for _, url in calls] == ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]
+    assert all("Chrome/131.0.0.0" in headers["User-Agent"] for headers, _ in calls)
 
 
 def test_intraday_alignment_warns_when_forward_fill_ratio_is_high(caplog: pytest.LogCaptureFixture) -> None:
@@ -214,6 +302,7 @@ async def test_sparse_intraday_series_logs_warning(monkeypatch: pytest.MonkeyPat
     index = await market_indices._build_index(spx)
 
     assert len(index.sparkline_24h) == 2
+    assert index.is_fallback_data is False
     assert "SPX returned only 2 intraday chart points" in caplog.text
 
 

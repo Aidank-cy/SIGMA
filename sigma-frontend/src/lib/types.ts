@@ -22,6 +22,7 @@ export interface MarketIndex {
   market: Market;
   currency: string;
   is_trading: boolean;
+  is_fallback_data: boolean;
   trading_hours: TradingHours;
   sparkline_24h: number[];
   sparkline_times: string[];

@@ -37,6 +37,7 @@ class MarketIndex(BaseModel):
     market: str
     currency: str
     is_trading: bool
+    is_fallback_data: bool = False
     trading_hours: TradingHours
     sparkline_24h: list[float] = Field(default_factory=list)
     sparkline_times: list[str] = Field(default_factory=list)
