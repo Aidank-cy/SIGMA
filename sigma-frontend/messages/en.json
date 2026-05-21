@@ -50,6 +50,9 @@
     "settings": "Settings",
     "logout": "Sign out",
     "menu": "Menu",
+    "accountMenu": "Account menu",
+    "themeLightMode": "Light Mode",
+    "themeDarkMode": "Dark Mode",
     "themeLight": "Switch to light mode",
     "themeDark": "Switch to dark mode"
   },

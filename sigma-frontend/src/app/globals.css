@@ -106,7 +106,7 @@
 
   html:lang(en) body {
     font-size: 1rem;
-    font-weight: 475;
+    font-weight: 500;
   }
 
   html:lang(en) button,
@@ -121,6 +121,15 @@
   html:lang(en) .text-sm {
     font-size: 0.9375rem;
     line-height: 1.375rem;
+  }
+
+  html:lang(en) .text-xs {
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+  }
+
+  html:lang(en) .text-xs:not(.font-medium):not(.font-semibold):not(.font-bold):not(.font-extrabold):not(.font-black) {
+    font-weight: 500;
   }
 }
 

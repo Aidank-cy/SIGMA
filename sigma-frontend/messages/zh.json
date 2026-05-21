@@ -50,6 +50,9 @@
     "settings": "设置",
     "logout": "退出",
     "menu": "菜单",
+    "accountMenu": "账号菜单",
+    "themeLightMode": "浅色模式",
+    "themeDarkMode": "深色模式",
     "themeLight": "切换为浅色模式",
     "themeDark": "切换为深色模式"
   },
