@@ -18,6 +18,7 @@ class UserCreate(BaseModel):
         max_length=120,
         validation_alias=AliasChoices("display_name", "username"),
     )
+    locale: UserLocale = UserLocale.ZH
 
     @field_validator("password")
     @classmethod

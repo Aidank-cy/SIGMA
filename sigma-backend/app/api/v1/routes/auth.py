@@ -59,6 +59,7 @@ async def register(
         email=email,
         hashed_password=hash_password(payload.password),
         display_name=payload.display_name,
+        locale=payload.locale,
         role=role,
     )
     db.add(user)
@@ -203,6 +204,7 @@ def _issue_tokens(user: User, response: Response) -> TokenResponse:
         httponly=True,
         secure=False,
         samesite="lax",
+        path="/",
         max_age=60 * 60 * 24 * 7,
     )
     return TokenResponse(

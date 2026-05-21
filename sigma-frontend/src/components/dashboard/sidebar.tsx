@@ -110,7 +110,7 @@ export function Sidebar() {
           const Icon = item.icon;
 
           return (
-            <div className="relative" key={item.id}>
+            <div className="relative flex h-12 w-12 items-center justify-center" key={item.id}>
               <Link
                 aria-label={item.label}
                 className={cn(
@@ -177,7 +177,7 @@ export function Sidebar() {
           {accountMenuOpen ? (
             <motion.div
               animate={{ opacity: 1, x: 0, y: 0 }}
-              className="absolute bottom-0 left-full z-50 ml-3 w-44 rounded-xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-xl backdrop-blur-xl"
+              className="absolute bottom-0 left-full z-50 ml-3 w-44 rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl backdrop-blur-none"
               exit={{ opacity: 0, x: -8, y: 6 }}
               initial={{ opacity: 0, x: -8, y: 6 }}
               role="menu"
@@ -211,7 +211,7 @@ export function Sidebar() {
                 <LogOut className="h-4 w-4 text-muted-foreground" />
                 <span>{t("logout")}</span>
               </button>
-              <div className="absolute -left-1 bottom-4 h-2 w-2 rotate-45 border-b border-l border-border bg-popover/95" />
+              <div className="absolute -left-1 bottom-4 h-2 w-2 rotate-45 border-b border-l border-border bg-popover" />
             </motion.div>
           ) : null}
         </AnimatePresence>

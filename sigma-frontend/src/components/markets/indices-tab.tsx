@@ -19,14 +19,13 @@ import { isPreMarketClearWindow, previousCloseAxisDomain } from "@/lib/marketSes
 import type { Market, MarketIndex } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-type IndexRegion = "northAmerica" | "asia" | "hongKong" | "europe"
+type IndexRegion = "northAmerica" | "asia" | "europe"
 type RegionFilter = "all" | IndexRegion
 
-const regionOrder: IndexRegion[] = ["northAmerica", "asia", "hongKong", "europe"]
+const regionOrder: IndexRegion[] = ["northAmerica", "asia", "europe"]
 const regionMarkets: Record<IndexRegion, Market[]> = {
   northAmerica: ["us"],
-  asia: ["cn", "jp", "kr", "tw"],
-  hongKong: ["hk"],
+  asia: ["cn", "hk", "jp", "kr", "tw"],
   europe: ["eu"],
 }
 const marketRegionMap = Object.fromEntries(

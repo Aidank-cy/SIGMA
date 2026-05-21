@@ -29,7 +29,7 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { register } = useAuth();
   const { showToast } = useToast();
-  const locale = useLocale();
+  const locale = useLocale() as "zh" | "en";
   const router = useRouter();
   const t = useTranslations("auth");
 
@@ -58,7 +58,7 @@ export default function RegisterPage() {
     }
     setIsSubmitting(true);
     try {
-      await register({ display_name: displayName.trim(), email, password });
+      await register({ display_name: displayName.trim(), email, locale, password });
       showToast(t("register.success"), "success");
       router.push(`/${locale}/login`);
     } catch {
