@@ -99,15 +99,24 @@ export function marketIndicesRefetchInterval(indices: MarketIndex[] = [], now = 
   return anyMarketTrading(indices, now) ? MARKET_ACTIVE_REFETCH_INTERVAL_MS : MARKET_CLOSED_REFETCH_INTERVAL_MS;
 }
 
-export function sparklineAxisDomain(data?: Array<number | { value?: number | null }>): MarketAxisDomain {
-  if (!Array.isArray(data)) {
-    return ["dataMin - 10", "dataMax + 10"];
-  }
-  const values = data
+export function computeChartYDomain(
+  sparklineData: Array<number | { value?: number | null }> = [],
+  previousClose?: number | null
+): MarketAxisDomain {
+  const values = sparklineData
     .map((point) => (typeof point === "number" ? point : point?.value))
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-  if (values.length < 2) {
+  if (values.length === 0) {
+    if (typeof previousClose === "number" && Number.isFinite(previousClose) && previousClose > 0) {
+      const minRange = previousClose * 0.005;
+      return [previousClose - minRange / 2, previousClose + minRange / 2];
+    }
     return ["dataMin - 10", "dataMax + 10"];
+  }
+  if (values.length === 1) {
+    const value = values[0];
+    const minRange = Math.max(Math.abs(value), 1) * 0.005;
+    return [value - minRange / 2, value + minRange / 2];
   }
 
   const dataMin = Math.min(...values);
