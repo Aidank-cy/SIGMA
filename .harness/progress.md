@@ -1178,3 +1178,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Renamed the chart Y-axis helper to `computeChartYDomain`, passed previous-close values from Dashboard and Markets call sites, and anchored empty/pre-market chart domains around previous close while centering one-tick charts around the first valid price. Verified with focused backend market-index tests, Ruff, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-21T09:24:46Z
+
+### [Maintenance] Dashboard loading status and sidebar nav polish
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/app/[locale]/login/page.tsx, sigma-frontend/src/components/dashboard/sidebar.tsx, sigma-frontend/src/hooks/useMarketIndices.ts, sigma-frontend/messages/en.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Hid Dashboard last-updated and Live indicators behind a loading skeleton until market index data exists, shared the market-indices query fetcher so login can prefetch data during successful navigation, removed the redundant Settings item from desktop/mobile sidebar navigation, changed mobile nav to five columns, and updated the English logout label to Log out while leaving Chinese and registration copy unchanged. Verified with frontend production build, `git diff --check`, `./hooks/post-file-edit.sh`, and a local in-app browser smoke check for `/en/login`.
+- Timestamp: 2026-05-21T09:59:48Z

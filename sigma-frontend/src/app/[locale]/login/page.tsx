@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/components/AuthProvider";
+import { fetchMarketIndices, marketIndicesQueryKey } from "@/hooks/useMarketIndices";
 
 interface LoginErrors {
   email?: string;
@@ -25,6 +27,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const locale = useLocale();
   const router = useRouter();
   const t = useTranslations("auth");
@@ -49,6 +52,10 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       const authenticatedUser = await login({ email, password });
+      void queryClient.prefetchQuery({
+        queryKey: marketIndicesQueryKey,
+        queryFn: fetchMarketIndices
+      }).catch(() => undefined);
       showToast(t("login.success"), "success");
       router.push(`/${authenticatedUser.locale}`);
     } catch {

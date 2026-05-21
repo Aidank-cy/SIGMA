@@ -115,6 +115,7 @@ export default function DashboardPage() {
 
   const marketUpdatedAt = marketData && "updated_at" in marketData ? marketData.updated_at : null;
   const updatedAt = formatUpdatedAt(marketUpdatedAt) ?? t("live");
+  const hasMarketData = marketData !== undefined;
 
   return (
     <div className="flex min-h-screen">
@@ -131,15 +132,19 @@ export default function DashboardPage() {
             </h1>
             <p className="mt-1 text-muted-foreground">{t("subtitle")}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {t("lastUpdated")}: <span className="font-medium text-foreground">{updatedAt}</span>
-            </span>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-chart-1" />
-              <span className="text-xs font-medium text-chart-1">{t("live")}</span>
+          {hasMarketData ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">
+                {t("lastUpdated")}: <span className="font-medium text-foreground">{updatedAt}</span>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-chart-1" />
+                <span className="text-xs font-medium text-chart-1">{t("live")}</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="h-5 w-40 animate-pulse rounded-full bg-muted" />
+          )}
         </motion.div>
 
         <motion.section animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} transition={{ delay: 0.1, duration: 0.4 }}>
