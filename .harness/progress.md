@@ -977,3 +977,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Implemented Beijing-time timestamped per-minute market index series with real Finnhub/Alpha intraday fetches and fallback data, fixed lunch-break and cross-day hero chart axes, renamed watchlist creation, removed dark pie strokes, added dynamic dashboard chart loading and route skeletons, rebuilt sectors as a persisted drag-and-drop grid, added database cleanup, and removed the Alpha Vantage NEWS_SENTIMENT Layer 6 seed source. Verified with backend Ruff, full backend pytest, frontend build, focused market/seeds tests, and cleanup script compilation.
 - Timestamp: 2026-05-21T01:32:04Z
+
+### [Maintenance] Hero chart axis and sidebar menu polish
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/dashboard/sidebar.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Enlarged and bolded the sidebar MENU label, switched chart ranges from 1W to 5D in hero and indices controls, changed midnight/day-boundary ticks to day numbers, added lunch-gap axis labels, widened chart edge margins, and removed the swipe hint copy. Verified with `cd sigma-frontend && npm run build`.
+- Timestamp: 2026-05-21T02:12:22Z

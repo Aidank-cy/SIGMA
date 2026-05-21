@@ -9,7 +9,7 @@ import { AreaChart, Area, ResponsiveContainer } from "recharts"
 import { useMarketIndices } from "@/hooks/useMarketIndices"
 import { cn } from "@/lib/utils"
 
-const timeRanges = ["1D", "1W", "1M", "3M", "1Y"]
+const timeRanges = ["1D", "5D", "1M", "3M", "1Y"]
 
 const containerVariants = {
   hidden: { opacity: 0 },

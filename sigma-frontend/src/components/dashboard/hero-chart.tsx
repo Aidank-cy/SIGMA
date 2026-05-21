@@ -23,7 +23,7 @@ const INDEX_ICONS: Record<string, { letter: string; bg: string; text: string }> 
   TAIEX: { letter: "TW", bg: "bg-green-600", text: "text-white" }
 };
 
-const timeRanges = ["1D", "1W", "1M", "3M", "1Y"];
+const timeRanges = ["1D", "5D", "1M", "3M", "1Y"];
 
 interface ChartPoint {
   time: number;
@@ -83,12 +83,27 @@ function formatShortDate(timestamp: string): string {
   return `${month}/${day}`;
 }
 
-function buildChartTicks(points: ChartPoint[]): number[] {
+function buildChartTicks(points: ChartPoint[], activeRange: string): number[] {
   if (points.length === 0) {
     return [];
   }
   const ticks = new Set<number>([0, points.length - 1]);
-  points.forEach((point) => {
+  points.forEach((point, index) => {
+    if (index > 0) {
+      const prev = timeParts(points[index - 1].timestamp);
+      const cur = timeParts(point.timestamp);
+      const prevMin = prev.hour * 60 + prev.minute;
+      const curMin = cur.hour * 60 + cur.minute;
+      if (prev.date === cur.date && curMin - prevMin > 60) {
+        ticks.add(point.time);
+      }
+      if (activeRange === "5D" && prev.date !== cur.date) {
+        ticks.add(point.time);
+      }
+    }
+    if (activeRange === "5D") {
+      return;
+    }
     const { minute } = timeParts(point.timestamp);
     if (minute === 0 || minute === 30) {
       ticks.add(point.time);
@@ -104,12 +119,33 @@ function dayBoundaryTicks(points: ChartPoint[]): number[] {
 }
 
 function formatAxisTime(point: ChartPoint | undefined, previousPoint: ChartPoint | undefined): string {
-  if (!point) {
-    return "";
-  }
+  if (!point) return "";
   const parts = timeParts(point.timestamp);
   const crossedDay = previousPoint ? timeParts(previousPoint.timestamp).date !== parts.date : false;
-  return crossedDay || parts.time === "00:00" ? `${parts.time} ${formatShortDate(point.timestamp)}` : parts.time;
+  if (crossedDay || parts.time === "00:00") {
+    return String(Number(point.timestamp.slice(8, 10)));
+  }
+  if (previousPoint) {
+    const prevParts = timeParts(previousPoint.timestamp);
+    const prevMinutes = prevParts.hour * 60 + prevParts.minute;
+    const curMinutes = parts.hour * 60 + parts.minute;
+    if (parts.date === prevParts.date && curMinutes - prevMinutes > 60) {
+      return `${prevParts.time}/${parts.time}`;
+    }
+  }
+  return parts.time;
+}
+
+function formatRangeAxisTime(
+  point: ChartPoint | undefined,
+  previousPoint: ChartPoint | undefined,
+  activeRange: string
+): string {
+  if (!point) return "";
+  if (activeRange === "5D") {
+    return String(Number(point.timestamp.slice(8, 10)));
+  }
+  return formatAxisTime(point, previousPoint);
 }
 
 function formatTooltipTime(timestamp: string): string {
@@ -159,7 +195,7 @@ export function HeroChart() {
   const currentData = markets.find((market) => market.name === activeMarket) ?? markets[0];
   const isPositive = (currentData?.change ?? 0) >= 0;
   const chartData = currentData?.data ?? [];
-  const chartTicks = useMemo(() => buildChartTicks(chartData), [chartData]);
+  const chartTicks = useMemo(() => buildChartTicks(chartData, activeRange), [activeRange, chartData]);
   const boundaryTicks = useMemo(() => dayBoundaryTicks(chartData), [chartData]);
 
   const handlePrev = () => {
@@ -315,7 +351,7 @@ export function HeroChart() {
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <ResponsiveContainer height="100%" width="100%">
-              <AreaChart data={currentData?.data ?? []} margin={{ bottom: 4, left: 0, right: 0, top: 10 }}>
+              <AreaChart data={currentData?.data ?? []} margin={{ bottom: 4, left: 12, right: 12, top: 10 }}>
                 <defs>
                   <linearGradient id="colorPositive" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.35} />
@@ -334,7 +370,7 @@ export function HeroChart() {
                   tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
                   tickFormatter={(value) => {
                     const pointIndex = Number(value);
-                    return formatAxisTime(chartData[pointIndex], chartData[pointIndex - 1]);
+                    return formatRangeAxisTime(chartData[pointIndex], chartData[pointIndex - 1], activeRange);
                   }}
                   tickLine={false}
                   tickMargin={8}
@@ -382,9 +418,6 @@ export function HeroChart() {
           </motion.div>
         </AnimatePresence>
 
-        <div className="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2 text-xs text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100">
-          {t("swipeHint")}
-        </div>
       </motion.div>
 
       <div className="mb-2 mt-4 flex items-center justify-center gap-2">
