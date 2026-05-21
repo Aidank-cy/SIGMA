@@ -166,6 +166,25 @@ def test_intraday_fallback_only_generates_elapsed_minutes_during_trading(
     assert len(points) == 31
 
 
+def test_intraday_alignment_warns_when_forward_fill_ratio_is_high(caplog: pytest.LogCaptureFixture) -> None:
+    """Sparse provider candles are logged when alignment mostly forward-fills prices."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+
+    aligned = market_indices._align_intraday_points(
+        spx,
+        datetime(2026, 5, 18, tzinfo=market_indices.BEIJING_TZ).date(),
+        [
+            market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 5990.0),
+            market_indices.IntradayPoint(datetime(2026, 5, 18, 22, 0, tzinfo=market_indices.BEIJING_TZ), 6000.0),
+        ],
+    )
+
+    assert aligned is not None
+    assert len(aligned) == 31
+    assert "SPX intraday alignment forward-filled 93.5% of 31 chart points" in caplog.text
+
+
 @pytest.mark.asyncio
 async def test_sparse_intraday_series_logs_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     """Sparse intraday provider data is visible in logs before charts flatten out."""

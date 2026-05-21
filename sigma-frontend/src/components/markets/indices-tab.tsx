@@ -15,7 +15,7 @@ import {
   marketChartRanges,
   toMarketChartData,
 } from "@/lib/marketChart"
-import { isPreMarketClearWindow, previousCloseAxisDomain } from "@/lib/marketSessions"
+import { isPreMarketClearWindow, sparklineAxisDomain } from "@/lib/marketSessions"
 import type { Market, MarketIndex } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -249,7 +249,7 @@ export function IndicesTab() {
                             padding={{ left: 12, right: 12 }}
                             type="number"
                           />
-                          <YAxis domain={previousCloseAxisDomain(chartData)} hide />
+                          <YAxis domain={sparklineAxisDomain(chartData)} hide />
                           <Area
                             animationDuration={450}
                             dataKey="value"
