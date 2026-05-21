@@ -614,11 +614,25 @@ def _align_intraday_points(
     aligned: list[IntradayPoint] = []
     last_value = first_value
     latest_point_time = max(values_by_minute)
+    forward_filled_count = 0
     for timestamp in _trading_minutes(config, session_date):
         if timestamp > latest_point_time:
             break
-        last_value = values_by_minute.get(timestamp, last_value)
+        next_value = values_by_minute.get(timestamp)
+        if next_value is None:
+            forward_filled_count += 1
+        else:
+            last_value = next_value
         aligned.append(IntradayPoint(timestamp=timestamp, value=last_value))
+    if aligned:
+        forward_fill_ratio = forward_filled_count / len(aligned)
+        if forward_fill_ratio > 0.3:
+            LOGGER.warning(
+                "%s intraday alignment forward-filled %.1f%% of %s chart points; upstream data may be too sparse.",
+                config.symbol,
+                forward_fill_ratio * 100,
+                len(aligned),
+            )
     return aligned or None
 
 

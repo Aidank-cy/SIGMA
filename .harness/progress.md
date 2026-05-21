@@ -1162,3 +1162,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Expanded Dashboard and Markets chart side margins/padding so X-axis edge labels are not clipped, kept market Area charts on linear interpolation, switched remaining shared line/area charts to linear interpolation, switched Y-axis domains to visible chart data min/max with proportional padding, logged sparse intraday series under 30 points, redirected protected routes to the user's stored locale before rendering, and raised English font-normal/font-medium utility weights. Verified with focused backend market-index tests, Ruff, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-21T08:47:15Z
+
+### [Maintenance] Market chart Y-axis density
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/lib/marketSessions.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Replaced the legacy previous-close Y-axis helper with sparkline-data-based domain scaling that uses a 0.5% minimum range for flat sessions and 15% padding for normal movement, confirmed Dashboard and Markets Area charts render linearly, and added backend warnings when more than 30% of aligned intraday points are forward-filled. Verified with focused market-index tests, Ruff, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-21T08:59:28Z
