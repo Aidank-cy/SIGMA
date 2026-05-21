@@ -4,14 +4,19 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 import { TrendingUp, TrendingDown } from "lucide-react"
-import { AreaChart, Area, ResponsiveContainer, YAxis } from "recharts"
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis } from "recharts"
 
 import { useMarketClock } from "@/hooks/useMarketClock"
 import { useMarketIndices } from "@/hooks/useMarketIndices"
+import {
+  buildCompactChartTicks,
+  formatRangeAxisTime,
+  marketChartRanges,
+  spansMultipleDays,
+  toMarketChartData,
+} from "@/lib/marketChart"
 import { isPreMarketClearWindow, previousCloseAxisDomain } from "@/lib/marketSessions"
 import { cn } from "@/lib/utils"
-
-const timeRanges = ["1D", "5D", "1M", "3M", "1Y"]
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -56,7 +61,7 @@ export function IndicesTab() {
   return (
     <div className="space-y-5">
       <div className="flex w-fit items-center justify-center gap-1 rounded-xl bg-muted/50 p-1.5">
-        {timeRanges.map((range) => (
+        {marketChartRanges.map((range) => (
           <button
             className={cn(
               "relative rounded-lg px-5 py-2 text-sm font-medium transition-all duration-200",
@@ -86,7 +91,16 @@ export function IndicesTab() {
       >
         {indices.map((index) => {
           const isPositive = index.change_pct >= 0
-          const sparkline = index.sparkline_24h.length > 0 ? index.sparkline_24h : [index.value]
+          const chartData = toMarketChartData(index, activeRange)
+          const chartTimeZone = index.trading_hours.timezone
+          const chartTicks = buildCompactChartTicks(
+            chartData,
+            activeRange,
+            index.trading_hours.sessions,
+            chartTimeZone,
+            activeRange === "5D" ? 5 : 4
+          )
+          const chartHasMultipleDays = spansMultipleDays(chartData, chartTimeZone)
           const isAwaitingOpen = isPreMarketClearWindow(index.trading_hours, now)
           const displayChangePct = isAwaitingOpen ? 0 : index.change_pct
           const chartColor = isPositive
@@ -144,14 +158,14 @@ export function IndicesTab() {
               </div>
 
               {/* Chart */}
-              <div className="h-24 -mx-2">
+              <div className="-mx-2 h-28">
                 {isAwaitingOpen ? (
                   <div className="mx-2 flex h-full items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">
                     {t("awaitingMarketOpen")}
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={sparkline.map((value) => ({ value }))}>
+                    <AreaChart data={chartData} margin={{ bottom: 14, left: 8, right: 8, top: 2 }}>
                       <defs>
                         <linearGradient
                           id={`gradient-${index.symbol}-${activeRange}`}
@@ -164,6 +178,28 @@ export function IndicesTab() {
                           <stop offset="100%" stopColor={chartColorFaded} stopOpacity={0} />
                         </linearGradient>
                       </defs>
+                      <XAxis
+                        axisLine={false}
+                        dataKey="time"
+                        height={20}
+                        interval={0}
+                        minTickGap={0}
+                        tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
+                        tickFormatter={(value) => {
+                          const pointIndex = Number(value)
+                          return formatRangeAxisTime(
+                            chartData[pointIndex],
+                            chartData[pointIndex - 1],
+                            activeRange,
+                            chartHasMultipleDays,
+                            index.trading_hours.sessions,
+                            chartTimeZone
+                          )
+                        }}
+                        tickLine={false}
+                        tickMargin={6}
+                        ticks={chartTicks}
+                      />
                       <YAxis domain={previousCloseAxisDomain(index.previous_close)} hide />
                       <Area
                         animationDuration={450}
