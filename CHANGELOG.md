@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add a bold closed-market indicator dot to dashboard hero chart status badges.
 - Add previous-close values to market index API responses so frontend charts can anchor their Y-axis ranges around the prior session close.
 - Add timestamped per-minute intraday market index series with Beijing-time trading sessions and real-data candle fetches.
 - Add a database cleanup script that removes collected content, reports, watchlists, logs, and non-admin/test users.
