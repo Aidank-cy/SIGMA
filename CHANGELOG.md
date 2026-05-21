@@ -25,6 +25,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Replace runtime demo market summaries, sector performance, watchlist trend sparklines, settings trends, analytics sentiment trends, and empty LLM provider charts with live-data-derived values or N/A states.
 - Rename portfolio detail links to describe full market details in English and Chinese.
 - Refine the hero chart range controls and X-axis labels with a 5D option, day-only midnight labels, lunch-gap separators, and unclipped edge labels.
 - Increase the sidebar menu label weight and size for better navigation legibility.
@@ -41,11 +42,13 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Removed
+- Remove the standalone demo data seeding script and its demo-content tests.
 - Remove the Layer 6 Alpha Vantage sentiment seed source while keeping Layer 5 collection sources active.
 - Remove obsolete pre-v0 frontend components, legacy select primitives, the deprecated theme hook, and compile-excluded v0 reference pages after integration.
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Add frontend and backend warnings whenever emergency generated chart or market-index fallback data is displayed.
 - Fix intraday chart axis labels for all declared multi-session market breaks so one-hour lunch gaps merge into a single clean tick.
 - Fix LLM settings cache staleness and empty API key defaults when no config is returned.
 - Smooth shared segmented controls with a measured sliding indicator for admin and settings tabs.

@@ -166,15 +166,6 @@ export function LLMSettingsPanel({
       }
     }
 
-    if (usageByProvider.size === 0) {
-      return [
-        { color: chartColors[0], name: `${t("providers.anthropic")} 55%`, tokens: 55 },
-        { color: chartColors[1], name: `${t("providers.openai")} 25%`, tokens: 25 },
-        { color: chartColors[2], name: `${t("providers.deepseek")} 12%`, tokens: 12 },
-        { color: chartColors[3], name: `${t("providers.gemini")} 8%`, tokens: 8 }
-      ];
-    }
-
     const totalTokens = Array.from(usageByProvider.values()).reduce((total, tokens) => total + tokens, 0);
     return Array.from(usageByProvider.entries()).map(([provider, tokens], index) => {
       const providerName = providers.includes(provider as LLMConfig["provider"])
@@ -314,7 +305,13 @@ export function LLMSettingsPanel({
             <section className="grid gap-4 xl:grid-cols-2">
               <Card className="p-5">
                 <h3 className="text-lg font-semibold text-foreground">{t("providerUsageDistribution")}</h3>
-                <ProviderUsageDistributionChart data={providerDistributionData} />
+                {providerDistributionData.length > 0 ? (
+                  <ProviderUsageDistributionChart data={providerDistributionData} />
+                ) : (
+                  <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                    {t("noUsageData")}
+                  </div>
+                )}
               </Card>
               <Card className="space-y-4 p-5">
                 <div>

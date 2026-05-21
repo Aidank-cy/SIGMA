@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
+import { useItems } from "@/hooks/useItems";
 import { useLLMSettings } from "@/hooks/useLLMSettings";
 import { useReportConfig, useSettingsMutations } from "@/hooks/useSettings";
 import { useLastCollectionStats } from "@/hooks/useStats";
@@ -41,6 +42,25 @@ const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((mo
   ssr: false
 });
 
+function buildSevenDayTrend(items: Array<{ published_at: string }>, t: (key: string, values?: Record<string, number>) => string) {
+  const counts = new Map<string, number>();
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const date = new Date();
+    date.setDate(date.getDate() - offset);
+    counts.set(date.toISOString().slice(0, 10), 0);
+  }
+  items.forEach((item) => {
+    const key = item.published_at.slice(0, 10);
+    if (counts.has(key)) {
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  });
+  return Array.from(counts.entries()).map(([day, value], index) => ({
+    label: index === 6 ? t("trend.today") : t("trend.day", { count: 6 - index }),
+    value
+  }));
+}
+
 export default function SettingsPage() {
   const t = useTranslations("settings");
   const locale = useLocale() as Locale;
@@ -49,6 +69,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { data: reportConfig, isLoading } = useReportConfig();
+  const trendItems = useItems({ page_size: 100 });
   const lastCollection = useLastCollectionStats();
   const llmSettings = useLLMSettings();
   const { updateProfile, updateReportConfig, updateRetention } = useSettingsMutations();
@@ -94,6 +115,10 @@ export default function SettingsPage() {
     [displayName, profileBaseline, reportBaseline, reportPayload, retentionBaseline, retentionDays, selectedLocale]
   );
   const hasChanges = Object.values(dirty).some(Boolean);
+  const sevenDayTrend = useMemo(
+    () => buildSevenDayTrend(trendItems.data?.pages.flatMap((page) => page.items) ?? [], t),
+    [t, trendItems.data]
+  );
 
   async function handleSaveAll() {
     if (!hasChanges || user === null) {
@@ -199,15 +224,7 @@ export default function SettingsPage() {
             <p className="mt-1 text-sm text-muted-foreground">{t("trend.caption")}</p>
             <div className="mt-5">
               <TrendLine
-                data={[
-                  { label: t("trend.day", { count: 6 }), value: 9 },
-                  { label: t("trend.day", { count: 5 }), value: 12 },
-                  { label: t("trend.day", { count: 4 }), value: 10 },
-                  { label: t("trend.day", { count: 3 }), value: 18 },
-                  { label: t("trend.day", { count: 2 }), value: 16 },
-                  { label: t("trend.day", { count: 1 }), value: 23 },
-                  { label: t("trend.today"), value: 21 }
-                ]}
+                data={sevenDayTrend}
               />
             </div>
           </Card>
