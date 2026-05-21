@@ -1066,3 +1066,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added a static 8px black dot immediately after the closed-market badge text while preserving the existing green pulsing Live indicator without an extra dot. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
 - Timestamp: 2026-05-21T06:41:20Z
+
+### [Maintenance] Markets index currency and pre-market change display
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added backend-provided currency labels before each Markets index card value and changed the one-hour pre-open clear window to show a neutral `0.00%` change without green/red trend styling. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
+- Timestamp: 2026-05-21T06:44:09Z

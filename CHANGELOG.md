@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add currency labels to Markets index card prices.
 - Add a bold closed-market indicator dot to dashboard hero chart status badges.
 - Add previous-close values to market index API responses so frontend charts can anchor their Y-axis ranges around the prior session close.
 - Add timestamped per-minute intraday market index series with Beijing-time trading sessions and real-data candle fetches.
@@ -27,6 +28,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Show neutral `0.00%` Markets index changes during pre-market clear windows.
 - Return market-index responses with their `updated_at` timestamp and show the Dashboard last-updated value as exact `HH:mm:ss` time.
 - Shorten market-index polling and backend cache freshness to roughly 15 seconds while any configured market is trading, and slow closed-market polling to roughly 120 seconds.
 - Replace runtime demo market summaries, sector performance, watchlist trend sparklines, settings trends, analytics sentiment trends, and empty LLM provider charts with live-data-derived values or N/A states.
