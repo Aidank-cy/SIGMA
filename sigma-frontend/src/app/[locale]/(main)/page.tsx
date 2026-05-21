@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
@@ -51,6 +51,22 @@ function getGreetingKey(): GreetingKey {
   return "greetingNight";
 }
 
+function formatUpdatedAt(timestamp: string | null | undefined): string | null {
+  if (!timestamp) {
+    return null;
+  }
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    second: "2-digit"
+  }).format(date);
+}
+
 function ChartSkeleton() {
   return <div className="h-[408px] rounded-2xl border border-border bg-card/70 animate-pulse lg:h-[488px]" />;
 }
@@ -77,7 +93,6 @@ function StatsSkeleton() {
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
-  const locale = useLocale();
   const { user } = useAuth();
   const { data: marketData } = useMarketIndices();
   const [category, setCategory] = useState<Category | "">("");
@@ -99,12 +114,7 @@ export default function DashboardPage() {
   }, []);
 
   const marketUpdatedAt = marketData && "updated_at" in marketData ? marketData.updated_at : null;
-  const updatedAt = marketUpdatedAt
-    ? new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
-        Math.round((new Date(marketUpdatedAt).getTime() - Date.now()) / 60000),
-        "minute"
-      )
-    : t("live");
+  const updatedAt = formatUpdatedAt(marketUpdatedAt) ?? t("live");
 
   return (
     <div className="flex min-h-screen">

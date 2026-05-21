@@ -29,7 +29,8 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
 
     response = await list_market_indices()
 
-    assert {index.symbol for index in response} == {
+    assert response.updated_at == datetime(2026, 5, 18, 22, 30, tzinfo=UTC)
+    assert {index.symbol for index in response.indices} == {
         "SPX",
         "IXIC",
         "DJI",
@@ -41,15 +42,15 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
         "KOSPI",
         "TAIEX",
     }
-    lengths = {index.symbol: len(index.sparkline_24h) for index in response}
+    lengths = {index.symbol: len(index.sparkline_24h) for index in response.indices}
     assert lengths["SSE"] == 242
     assert lengths["HSI"] == 332
     assert lengths["N225"] == 332
-    assert all(len(index.sparkline_24h) == len(index.sparkline_times) for index in response)
-    assert {index.symbol: index.currency for index in response}["SPX"] == "USD"
-    assert {index.symbol: index.currency for index in response}["SSE"] == "CNY"
-    assert all(index.previous_close > 0 for index in response)
-    sse = next(index for index in response if index.symbol == "SSE")
+    assert all(len(index.sparkline_24h) == len(index.sparkline_times) for index in response.indices)
+    assert {index.symbol: index.currency for index in response.indices}["SPX"] == "USD"
+    assert {index.symbol: index.currency for index in response.indices}["SSE"] == "CNY"
+    assert all(index.previous_close > 0 for index in response.indices)
+    sse = next(index for index in response.indices if index.symbol == "SSE")
     assert [session.open for session in sse.trading_hours.sessions] == ["09:30", "13:00"]
     assert sse.sparkline_times[0].endswith("09:30:00+08:00")
     assert sse.sparkline_times[120].endswith("11:30:00+08:00")

@@ -1,13 +1,12 @@
 from fastapi import APIRouter
 
-from app.schemas.market import MarketIndex
+from app.schemas.market import MarketIndicesResponse
 from app.services.market_indices import get_market_indices
 
 router = APIRouter()
 
 
-@router.get("", response_model=list[MarketIndex])
-async def list_market_indices() -> list[MarketIndex]:
+@router.get("", response_model=MarketIndicesResponse)
+async def list_market_indices() -> MarketIndicesResponse:
     """Return current major global market indices."""
-    response = await get_market_indices()
-    return response.indices
+    return await get_market_indices()
