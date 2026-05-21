@@ -9,16 +9,16 @@ import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YA
 import { useMarketClock } from "@/hooks/useMarketClock";
 import { useMarketIndices } from "@/hooks/useMarketIndices";
 import {
+  buildChartBoundaryTicks,
   buildChartTicks,
-  dayBoundaryTicks,
-  formatRangeAxisTime,
+  buildChartXAxisDomain,
+  formatRangeAxisTick,
   formatTooltipTime,
   marketChartRanges,
-  spansMultipleDays,
   toMarketChartDataByRange,
   type MarketChartPoint
 } from "@/lib/marketChart";
-import { isPreMarketClearWindow, isTradingHoursActive, previousCloseAxisDomain } from "@/lib/marketSessions";
+import { isTradingHoursActive, previousCloseAxisDomain } from "@/lib/marketSessions";
 import type { MarketIndex } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,6 @@ interface MarketChartData {
   previousClose: number;
   symbol: string;
   currency: string;
-  isPreOpenClear: boolean;
   isTrading: boolean;
   tradingHours: MarketIndex["trading_hours"];
 }
@@ -58,7 +57,7 @@ export function HeroChart() {
   const markets = useMemo<MarketChartData[]>(() => {
     const indices = data?.indices ?? [];
     return indices.map((index) => {
-      const dataByRange = toMarketChartDataByRange(index);
+      const dataByRange = toMarketChartDataByRange(index, now);
       return {
         change: index.change_pct,
         data: dataByRange["1D"] ?? [],
@@ -68,7 +67,6 @@ export function HeroChart() {
         previousClose: index.previous_close,
         symbol: index.symbol,
         currency: index.currency,
-        isPreOpenClear: isPreMarketClearWindow(index.trading_hours, now),
         isTrading: index.is_trading || isTradingHoursActive(index.trading_hours, now),
         tradingHours: index.trading_hours
       };
@@ -92,16 +90,15 @@ export function HeroChart() {
   const chartSessions = currentData?.tradingHours.sessions ?? [];
   const chartTimeZone = currentData?.tradingHours.timezone ?? "Asia/Shanghai";
   const chartTicks = useMemo(
-    () => buildChartTicks(chartData, activeRange, chartSessions, chartTimeZone),
-    [activeRange, chartData, chartSessions, chartTimeZone]
+    () => buildChartTicks(activeRange, chartSessions, chartTimeZone, now),
+    [activeRange, chartSessions, chartTimeZone, now]
   );
-  const chartHasMultipleDays = useMemo(() => spansMultipleDays(chartData, chartTimeZone), [chartData, chartTimeZone]);
-  const boundaryTicks = useMemo(() => dayBoundaryTicks(chartData, chartTimeZone), [chartData, chartTimeZone]);
+  const xAxisDomain = useMemo(() => buildChartXAxisDomain(activeRange, chartSessions), [activeRange, chartSessions]);
+  const boundaryTicks = useMemo(() => buildChartBoundaryTicks(activeRange), [activeRange]);
   const yAxisDomain = useMemo(
     () => previousCloseAxisDomain(currentData?.previousClose),
     [currentData?.previousClose]
   );
-  const showAwaitingOpen = Boolean(currentData?.isPreOpenClear);
 
   const handlePrev = () => {
     const currentIndex = markets.findIndex((market) => market.name === activeMarket);
@@ -293,11 +290,6 @@ export function HeroChart() {
             style={{ opacity: isDragging ? chartOpacity : 1 }}
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            {showAwaitingOpen ? (
-              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">
-                {chartT("awaitingMarketOpen")}
-              </div>
-            ) : (
             <ResponsiveContainer height="100%" width="100%">
               <AreaChart data={chartData} margin={{ bottom: 14, left: 30, right: 30, top: 10 }}>
                 <defs>
@@ -311,25 +303,18 @@ export function HeroChart() {
                   </linearGradient>
                 </defs>
                 <XAxis
+                  allowDataOverflow={false}
                   axisLine={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.28 }}
                   dataKey="time"
+                  domain={xAxisDomain}
                   interval={0}
                   minTickGap={0}
                   tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
-                  tickFormatter={(value) => {
-                    const pointIndex = Number(value);
-                    return formatRangeAxisTime(
-                      chartData[pointIndex],
-                      chartData[pointIndex - 1],
-                      activeRange,
-                      chartHasMultipleDays,
-                      chartSessions,
-                      chartTimeZone
-                    );
-                  }}
+                  tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now)}
                   tickLine={false}
                   tickMargin={12}
                   ticks={chartTicks}
+                  type="number"
                 />
                 <YAxis axisLine={false} domain={yAxisDomain} hide tickLine={false} />
                 {boundaryTicks.map((tick) => (
@@ -370,7 +355,6 @@ export function HeroChart() {
                 />
               </AreaChart>
             </ResponsiveContainer>
-            )}
           </motion.div>
         </AnimatePresence>
 

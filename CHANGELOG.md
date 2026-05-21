@@ -31,6 +31,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Rework Dashboard and Markets index chart X-axes around fixed intraday sessions, sliding 5D day regions, and rolling date windows.
 - Increase Dashboard and Markets chart X-axis label size and weight.
 - Switch market index charts to linear interpolation and tighten previous-close Y-axis windows to +/- 250.
 - Increase English UI body weight and small-text sizing for better global readability.

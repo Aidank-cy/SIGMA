@@ -10,9 +10,9 @@ import { useMarketClock } from "@/hooks/useMarketClock"
 import { useMarketIndices } from "@/hooks/useMarketIndices"
 import {
   buildCompactChartTicks,
-  formatRangeAxisTime,
+  buildChartXAxisDomain,
+  formatRangeAxisTick,
   marketChartRanges,
-  spansMultipleDays,
   toMarketChartData,
 } from "@/lib/marketChart"
 import { isPreMarketClearWindow, previousCloseAxisDomain } from "@/lib/marketSessions"
@@ -155,16 +155,16 @@ export function IndicesTab() {
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
               {group.indices.map((index) => {
                 const isPositive = index.change_pct >= 0
-                const chartData = toMarketChartData(index, activeRange)
+                const chartData = toMarketChartData(index, activeRange, now)
                 const chartTimeZone = index.trading_hours.timezone
                 const chartTicks = buildCompactChartTicks(
-                  chartData,
                   activeRange,
                   index.trading_hours.sessions,
                   chartTimeZone,
-                  activeRange === "5D" ? 5 : 4
+                  activeRange === "5D" ? 5 : 4,
+                  now
                 )
-                const chartHasMultipleDays = spansMultipleDays(chartData, chartTimeZone)
+                const xAxisDomain = buildChartXAxisDomain(activeRange, index.trading_hours.sessions)
                 const isAwaitingOpen = isPreMarketClearWindow(index.trading_hours, now)
                 const displayChangePct = isAwaitingOpen ? 0 : index.change_pct
                 const chartColor = isPositive
@@ -220,59 +220,46 @@ export function IndicesTab() {
                     </div>
 
                     <div className="-mx-2 h-28">
-                      {isAwaitingOpen ? (
-                        <div className="mx-2 flex h-full items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">
-                          {t("awaitingMarketOpen")}
-                        </div>
-                      ) : (
-                        <ResponsiveContainer height="100%" width="100%">
-                          <AreaChart data={chartData} margin={{ bottom: 18, left: 8, right: 8, top: 2 }}>
-                            <defs>
-                              <linearGradient
-                                id={`gradient-${index.symbol}-${activeRange}`}
-                                x1="0"
-                                x2="0"
-                                y1="0"
-                                y2="1"
-                              >
-                                <stop offset="0%" stopColor={chartColor} stopOpacity={0.3} />
-                                <stop offset="100%" stopColor={chartColorFaded} stopOpacity={0} />
-                              </linearGradient>
-                            </defs>
-                            <XAxis
-                              axisLine={false}
-                              dataKey="time"
-                              height={24}
-                              interval={0}
-                              minTickGap={0}
-                              tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
-                              tickFormatter={(value) => {
-                                const pointIndex = Number(value)
-                                return formatRangeAxisTime(
-                                  chartData[pointIndex],
-                                  chartData[pointIndex - 1],
-                                  activeRange,
-                                  chartHasMultipleDays,
-                                  index.trading_hours.sessions,
-                                  chartTimeZone
-                                )
-                              }}
-                              tickLine={false}
-                              tickMargin={8}
-                              ticks={chartTicks}
-                            />
-                            <YAxis domain={previousCloseAxisDomain(index.previous_close)} hide />
-                            <Area
-                              animationDuration={450}
-                              dataKey="value"
-                              fill={`url(#gradient-${index.symbol}-${activeRange})`}
-                              stroke={chartColor}
-                              strokeWidth={2}
-                              type="linear"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      )}
+                      <ResponsiveContainer height="100%" width="100%">
+                        <AreaChart data={chartData} margin={{ bottom: 18, left: 8, right: 8, top: 2 }}>
+                          <defs>
+                            <linearGradient
+                              id={`gradient-${index.symbol}-${activeRange}`}
+                              x1="0"
+                              x2="0"
+                              y1="0"
+                              y2="1"
+                            >
+                              <stop offset="0%" stopColor={chartColor} stopOpacity={0.3} />
+                              <stop offset="100%" stopColor={chartColorFaded} stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis
+                            allowDataOverflow={false}
+                            axisLine={false}
+                            dataKey="time"
+                            domain={xAxisDomain}
+                            height={24}
+                            interval={0}
+                            minTickGap={0}
+                            tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
+                            tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now)}
+                            tickLine={false}
+                            tickMargin={8}
+                            ticks={chartTicks}
+                            type="number"
+                          />
+                          <YAxis domain={previousCloseAxisDomain(index.previous_close)} hide />
+                          <Area
+                            animationDuration={450}
+                            dataKey="value"
+                            fill={`url(#gradient-${index.symbol}-${activeRange})`}
+                            stroke={chartColor}
+                            strokeWidth={2}
+                            type="linear"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </div>
                   </motion.div>
                 )

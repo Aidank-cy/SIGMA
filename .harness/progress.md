@@ -1130,3 +1130,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Moved the closed-market black status dot to the left side of the Market closed label and removed the trailing dot while keeping the Live badge layout unchanged. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
 - Timestamp: 2026-05-21T07:43:37Z
+
+### [Maintenance] Market chart fixed time regions
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Reworked shared market chart data to use fixed 1D session-minute X-axis regions, one-hour pre-open 1D clearing with labels preserved, five sliding 5D day slots, and rolling calendar windows for 1M/3M/1Y. Verified with `cd sigma-frontend && npm run build` and `./hooks/post-file-edit.sh`, including the frontend production build.
+- Timestamp: 2026-05-21T07:53:42Z
