@@ -1050,3 +1050,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added previous-close market index payloads, active-session-aware 15-second market polling/cache freshness, 120-second closed-market polling, elapsed-only intraday fallback generation during live sessions, one-hour pre-open empty states, and previous close +/- 500 chart domains that expand for out-of-range intraday data. Confirmed LLM usage cards and charts use backend data with zero/empty states and no demo distribution fallback.
 - Timestamp: 2026-05-21T05:53:26Z
+
+### [Maintenance] Dashboard market updated timestamp
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/api/v1/routes/market_indices.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/app/[locale]/(main)/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Changed `/api/v1/market-indices` to return the full market index response object including `updated_at`, made the Dashboard header render that timestamp as exact 24-hour `HH:mm:ss` time, and kept the hook compatible with legacy bare-array responses.
+- Timestamp: 2026-05-21T06:04:38Z

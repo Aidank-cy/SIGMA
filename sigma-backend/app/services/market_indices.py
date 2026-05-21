@@ -86,7 +86,7 @@ async def refresh_market_indices(force: bool = False) -> MarketIndicesResponse:
         return MarketIndicesResponse.model_validate_json(cached)
 
     indices = [await _build_index(config) for config in INDEX_CONFIGS]
-    response = MarketIndicesResponse(indices=indices, updated_at=datetime.now(UTC))
+    response = MarketIndicesResponse(indices=indices, updated_at=_now_utc())
     await _cache_set(response.model_dump_json())
     return response
 
