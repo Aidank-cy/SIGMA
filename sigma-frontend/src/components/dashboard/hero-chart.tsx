@@ -39,6 +39,7 @@ interface MarketChartData {
   price: number;
   symbol: string;
   currency: string;
+  tradingHours: MarketIndex["trading_hours"];
 }
 
 function generateChartData(points: number, value: number, positive: boolean): ChartPoint[] {
@@ -59,6 +60,26 @@ function generateChartData(points: number, value: number, positive: boolean): Ch
   });
 }
 
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function dateTimeFormatter(timeZone: string): Intl.DateTimeFormat {
+  const cached = dateTimeFormatters.get(timeZone);
+  if (cached) {
+    return cached;
+  }
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone,
+    year: "numeric"
+  });
+  dateTimeFormatters.set(timeZone, formatter);
+  return formatter;
+}
+
 function toChartData(index: MarketIndex): ChartPoint[] {
   const sparkline = index.sparkline_24h;
   const timestamps = index.sparkline_times ?? [];
@@ -68,43 +89,72 @@ function toChartData(index: MarketIndex): ChartPoint[] {
   return generateChartData(60, index.value || 100, index.change_pct >= 0);
 }
 
-function timeParts(timestamp: string): { date: string; hour: number; minute: number; time: string } {
-  const time = timestamp.slice(11, 16);
+function timeParts(timestamp: string, timeZone = "Asia/Shanghai"): { date: string; hour: number; minute: number; time: string } {
+  const parts = dateTimeFormatter(timeZone).formatToParts(new Date(timestamp));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const normalizedHour = values.hour === "24" ? "00" : values.hour;
+  const time = `${normalizedHour}:${values.minute}`;
   return {
-    date: timestamp.slice(0, 10),
-    hour: Number(time.slice(0, 2)),
-    minute: Number(time.slice(3, 5)),
+    date: `${values.year}-${values.month}-${values.day}`,
+    hour: Number(normalizedHour),
+    minute: Number(values.minute),
     time
   };
 }
 
-function formatShortDate(timestamp: string): string {
-  const month = Number(timestamp.slice(5, 7));
-  const day = Number(timestamp.slice(8, 10));
+function formatShortDate(timestamp: string, timeZone = "Asia/Shanghai"): string {
+  const parts = timeParts(timestamp, timeZone);
+  const month = Number(parts.date.slice(5, 7));
+  const day = Number(parts.date.slice(8, 10));
   return `${month}/${day}`;
 }
 
-function spansMultipleDays(points: ChartPoint[]): boolean {
-  return new Set(points.map((point) => timeParts(point.timestamp).date)).size > 1;
+function spansMultipleDays(points: ChartPoint[], timeZone = "Asia/Shanghai"): boolean {
+  return new Set(points.map((point) => timeParts(point.timestamp, timeZone).date)).size > 1;
 }
 
-function buildIntradayChartTicks(points: ChartPoint[]): number[] {
+function isSessionBreak(
+  previousPoint: ChartPoint | undefined,
+  point: ChartPoint | undefined,
+  sessions: MarketIndex["trading_hours"]["sessions"] = [],
+  timeZone = "Asia/Shanghai"
+): boolean {
+  if (!previousPoint || !point || sessions.length < 2) {
+    return false;
+  }
+  const previousParts = timeParts(previousPoint.timestamp, timeZone);
+  const currentParts = timeParts(point.timestamp, timeZone);
+  if (previousParts.date !== currentParts.date) {
+    return false;
+  }
+  return sessions.some((session, index) => {
+    const nextSession = sessions[index + 1];
+    return Boolean(nextSession && previousParts.time === session.close && currentParts.time === nextSession.open);
+  });
+}
+
+function buildIntradayChartTicks(
+  points: ChartPoint[],
+  sessions: MarketIndex["trading_hours"]["sessions"] = [],
+  timeZone = "Asia/Shanghai"
+): number[] {
   if (points.length === 0) {
     return [];
   }
   const ticks = new Set<number>([0, points.length - 1]);
   points.forEach((point, index) => {
     if (index > 0) {
-      const prev = timeParts(points[index - 1].timestamp);
-      const cur = timeParts(point.timestamp);
+      const previousPoint = points[index - 1];
+      const prev = timeParts(previousPoint.timestamp, timeZone);
+      const cur = timeParts(point.timestamp, timeZone);
       const prevMin = prev.hour * 60 + prev.minute;
       const curMin = cur.hour * 60 + cur.minute;
-      if (prev.date === cur.date && curMin - prevMin > 60) {
+      if (isSessionBreak(previousPoint, point, sessions, timeZone) || (prev.date === cur.date && curMin - prevMin > 60)) {
         ticks.add(point.time);
-        ticks.delete(points[index - 1].time);
+        ticks.delete(previousPoint.time);
       }
     }
-    const { minute } = timeParts(point.timestamp);
+    const { minute } = timeParts(point.timestamp, timeZone);
     if (minute === 0 || minute === 30) {
       ticks.add(point.time);
     }
@@ -112,7 +162,7 @@ function buildIntradayChartTicks(points: ChartPoint[]): number[] {
   return Array.from(ticks).sort((left, right) => left - right);
 }
 
-function buildMultiDayChartTicks(points: ChartPoint[], activeRange: string): number[] {
+function buildMultiDayChartTicks(points: ChartPoint[], activeRange: string, timeZone = "Asia/Shanghai"): number[] {
   const ticks = new Set<number>([points[0].time]);
   let tradingDayIndex = 0;
 
@@ -121,15 +171,15 @@ function buildMultiDayChartTicks(points: ChartPoint[], activeRange: string): num
       return;
     }
 
-    const prev = timeParts(points[index - 1].timestamp);
-    const cur = timeParts(point.timestamp);
+    const prev = timeParts(points[index - 1].timestamp, timeZone);
+    const cur = timeParts(point.timestamp, timeZone);
     if (prev.date === cur.date) {
       return;
     }
 
     tradingDayIndex += 1;
-    const curMonth = point.timestamp.slice(5, 7);
-    const prevMonth = points[index - 1].timestamp.slice(5, 7);
+    const curMonth = cur.date.slice(5, 7);
+    const prevMonth = prev.date.slice(5, 7);
 
     if (activeRange === "5D") {
       ticks.add(point.time);
@@ -145,34 +195,44 @@ function buildMultiDayChartTicks(points: ChartPoint[], activeRange: string): num
   return Array.from(ticks).sort((left, right) => left - right);
 }
 
-function buildChartTicks(points: ChartPoint[], activeRange: string): number[] {
+function buildChartTicks(
+  points: ChartPoint[],
+  activeRange: string,
+  sessions: MarketIndex["trading_hours"]["sessions"] = [],
+  timeZone = "Asia/Shanghai"
+): number[] {
   if (points.length === 0) {
     return [];
   }
-  if (activeRange === "1D" || !spansMultipleDays(points)) {
-    return buildIntradayChartTicks(points);
+  if (activeRange === "1D" || !spansMultipleDays(points, timeZone)) {
+    return buildIntradayChartTicks(points, sessions, timeZone);
   }
-  return buildMultiDayChartTicks(points, activeRange);
+  return buildMultiDayChartTicks(points, activeRange, timeZone);
 }
 
-function dayBoundaryTicks(points: ChartPoint[]): number[] {
+function dayBoundaryTicks(points: ChartPoint[], timeZone = "Asia/Shanghai"): number[] {
   return points
-    .filter((point, index) => index > 0 && timeParts(points[index - 1].timestamp).date !== timeParts(point.timestamp).date)
+    .filter((point, index) => index > 0 && timeParts(points[index - 1].timestamp, timeZone).date !== timeParts(point.timestamp, timeZone).date)
     .map((point) => point.time);
 }
 
-function formatAxisTime(point: ChartPoint | undefined, previousPoint: ChartPoint | undefined): string {
+function formatAxisTime(
+  point: ChartPoint | undefined,
+  previousPoint: ChartPoint | undefined,
+  sessions: MarketIndex["trading_hours"]["sessions"] = [],
+  timeZone = "Asia/Shanghai"
+): string {
   if (!point) return "";
-  const parts = timeParts(point.timestamp);
-  const crossedDay = previousPoint ? timeParts(previousPoint.timestamp).date !== parts.date : false;
+  const parts = timeParts(point.timestamp, timeZone);
+  const crossedDay = previousPoint ? timeParts(previousPoint.timestamp, timeZone).date !== parts.date : false;
   if (crossedDay || parts.time === "00:00") {
-    return String(Number(point.timestamp.slice(8, 10)));
+    return String(Number(parts.date.slice(8, 10)));
   }
   if (previousPoint) {
-    const prevParts = timeParts(previousPoint.timestamp);
+    const prevParts = timeParts(previousPoint.timestamp, timeZone);
     const prevMinutes = prevParts.hour * 60 + prevParts.minute;
     const curMinutes = parts.hour * 60 + parts.minute;
-    if (parts.date === prevParts.date && curMinutes - prevMinutes > 60) {
+    if (isSessionBreak(previousPoint, point, sessions, timeZone) || (parts.date === prevParts.date && curMinutes - prevMinutes > 60)) {
       return `${prevParts.time}/${parts.time}`;
     }
   }
@@ -183,22 +243,24 @@ function formatRangeAxisTime(
   point: ChartPoint | undefined,
   previousPoint: ChartPoint | undefined,
   activeRange: string,
-  hasMultipleDays: boolean
+  hasMultipleDays: boolean,
+  sessions: MarketIndex["trading_hours"]["sessions"] = [],
+  timeZone = "Asia/Shanghai"
 ): string {
   if (!point) return "";
   if (!hasMultipleDays) {
-    return formatAxisTime(point, previousPoint);
+    return formatAxisTime(point, previousPoint, sessions, timeZone);
   }
   if (activeRange === "5D" || activeRange === "1M") {
-    return String(Number(point.timestamp.slice(8, 10)));
+    return String(Number(timeParts(point.timestamp, timeZone).date.slice(8, 10)));
   }
   if (activeRange === "3M") {
-    return formatShortDate(point.timestamp);
+    return formatShortDate(point.timestamp, timeZone);
   }
   if (activeRange === "1Y") {
-    return monthLabels[Number(point.timestamp.slice(5, 7)) - 1] ?? formatShortDate(point.timestamp);
+    return monthLabels[Number(timeParts(point.timestamp, timeZone).date.slice(5, 7)) - 1] ?? formatShortDate(point.timestamp, timeZone);
   }
-  return formatAxisTime(point, previousPoint);
+  return formatAxisTime(point, previousPoint, sessions, timeZone);
 }
 
 function formatTooltipTime(timestamp: string): string {
@@ -218,7 +280,13 @@ export function HeroChart() {
           name: "SIGMA",
           price: 100,
           symbol: "SIGMA",
-          currency: "USD"
+          currency: "USD",
+          tradingHours: {
+            close: "16:00",
+            open: "09:30",
+            sessions: [{ close: "16:00", open: "09:30" }],
+            timezone: "Asia/Shanghai"
+          }
         }
       ];
     }
@@ -229,7 +297,8 @@ export function HeroChart() {
       name: index.name,
       price: index.value,
       symbol: index.symbol,
-      currency: index.currency
+      currency: index.currency,
+      tradingHours: index.trading_hours
     }));
   }, [data]);
   const [activeMarket, setActiveMarket] = useState(markets[0]?.name ?? "SIGMA");
@@ -248,9 +317,14 @@ export function HeroChart() {
   const currentData = markets.find((market) => market.name === activeMarket) ?? markets[0];
   const isPositive = (currentData?.change ?? 0) >= 0;
   const chartData = currentData?.data ?? [];
-  const chartTicks = useMemo(() => buildChartTicks(chartData, activeRange), [activeRange, chartData]);
-  const chartHasMultipleDays = useMemo(() => spansMultipleDays(chartData), [chartData]);
-  const boundaryTicks = useMemo(() => dayBoundaryTicks(chartData), [chartData]);
+  const chartSessions = currentData?.tradingHours.sessions ?? [];
+  const chartTimeZone = currentData?.tradingHours.timezone ?? "Asia/Shanghai";
+  const chartTicks = useMemo(
+    () => buildChartTicks(chartData, activeRange, chartSessions, chartTimeZone),
+    [activeRange, chartData, chartSessions, chartTimeZone]
+  );
+  const chartHasMultipleDays = useMemo(() => spansMultipleDays(chartData, chartTimeZone), [chartData, chartTimeZone]);
+  const boundaryTicks = useMemo(() => dayBoundaryTicks(chartData, chartTimeZone), [chartData, chartTimeZone]);
 
   const handlePrev = () => {
     const currentIndex = markets.findIndex((market) => market.name === activeMarket);
@@ -446,7 +520,9 @@ export function HeroChart() {
                       chartData[pointIndex],
                       chartData[pointIndex - 1],
                       activeRange,
-                      chartHasMultipleDays
+                      chartHasMultipleDays,
+                      chartSessions,
+                      chartTimeZone
                     );
                   }}
                   tickLine={false}

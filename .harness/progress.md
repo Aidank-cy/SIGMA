@@ -1025,3 +1025,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Disabled stale LLM config and usage query caching, made LLM API key defaults null-safe when config is missing or empty, and replaced segmented-control indicator positioning with an offset-measured sliding indicator. Verified with `cd sigma-frontend && npm run build`.
 - Timestamp: 2026-05-21T03:16:20Z
+
+### [Maintenance] Multi-session chart axis labels
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Replaced duration-only lunch-gap detection with session-boundary detection so declared multi-session markets merge break labels such as HSI 12:00/13:00 and N225 11:30/12:30 without retaining the adjacent close tick. Frontend build and post-edit hook passed; browser loaded the local app but stopped at the protected login screen without a backend session.
+- Timestamp: 2026-05-21T05:24:16Z
