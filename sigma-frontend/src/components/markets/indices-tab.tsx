@@ -65,7 +65,8 @@ export function IndicesTab() {
           >
             {activeRange === range ? (
               <motion.div
-                className="absolute inset-0 rounded-lg bg-background shadow-sm"
+                className="absolute inset-0 rounded-lg border border-border bg-card shadow-md"
+                layoutId="indicesTimeRange"
                 transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
               />
             ) : null}

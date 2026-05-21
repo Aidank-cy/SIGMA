@@ -45,6 +45,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix market index display loading and active range selector contrast on the dashboard and Markets page.
 - Fix dashboard hero chart axes so Beijing-time 30-minute ticks skip market breaks and mark cross-day boundaries.
 - Fix dark-mode pie chart slice borders in Analytics.
 - Fix the SIGMA sidebar logo to follow foreground color in light and dark themes.

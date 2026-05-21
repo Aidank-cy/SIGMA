@@ -28,7 +28,7 @@ export interface MarketIndex {
 
 export interface MarketIndicesResponse {
   indices: MarketIndex[];
-  updated_at: string;
+  updated_at?: string;
 }
 
 export type Sentiment = "bullish" | "bearish" | "neutral";
