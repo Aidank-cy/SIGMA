@@ -88,6 +88,7 @@ export function IndicesTab() {
           const isPositive = index.change_pct >= 0
           const sparkline = index.sparkline_24h.length > 0 ? index.sparkline_24h : [index.value]
           const isAwaitingOpen = isPreMarketClearWindow(index.trading_hours, now)
+          const displayChangePct = isAwaitingOpen ? 0 : index.change_pct
           const chartColor = isPositive
             ? "oklch(0.65 0.22 145)"
             : "oklch(0.6 0.22 25)"
@@ -112,26 +113,32 @@ export function IndicesTab() {
               </div>
 
               {/* Price & Change */}
-              <div className="flex items-baseline gap-3 mb-4">
-                <span className="text-3xl font-bold tabular-nums text-foreground">
-                  {index.value.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
+              <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <div className="flex min-w-0 items-baseline gap-2">
+                  <span className="shrink-0 text-sm font-semibold text-muted-foreground">
+                    {index.currency}
+                  </span>
+                  <span className="text-3xl font-bold tabular-nums text-foreground">
+                    {index.value.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
                 <div
-                  className={`flex items-center gap-1 text-sm font-semibold ${
-                    isPositive ? "text-chart-1" : "text-chart-2"
-                  }`}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1 text-sm font-semibold",
+                    isAwaitingOpen ? "text-muted-foreground" : isPositive ? "text-chart-1" : "text-chart-2"
+                  )}
                 >
-                  {isPositive ? (
+                  {isAwaitingOpen ? null : isPositive ? (
                     <TrendingUp className="w-4 h-4" />
                   ) : (
                     <TrendingDown className="w-4 h-4" />
                   )}
                   <span>
-                    {isPositive ? "+" : ""}
-                    {index.change_pct.toFixed(2)}%
+                    {!isAwaitingOpen && isPositive ? "+" : ""}
+                    {displayChangePct.toFixed(2)}%
                   </span>
                 </div>
               </div>
