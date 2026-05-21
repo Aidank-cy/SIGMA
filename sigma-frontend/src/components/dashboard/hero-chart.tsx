@@ -154,7 +154,7 @@ function formatTooltipTime(timestamp: string): string {
 
 export function HeroChart() {
   const t = useTranslations("dashboard");
-  const { data } = useMarketIndices();
+  const { data, isLoading } = useMarketIndices();
   const markets = useMemo<MarketChartData[]>(() => {
     const indices = data?.indices ?? [];
     if (indices.length === 0) {
@@ -238,6 +238,24 @@ export function HeroChart() {
   });
 
   const chartOpacity = useTransform(dragX, [-100, 0, 100], [0.5, 1, 0.5]);
+
+  if (isLoading) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 lg:p-8">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="space-y-4">
+            <div className="h-7 w-28 animate-pulse rounded-lg bg-muted" />
+            <div className="h-10 w-64 max-w-full animate-pulse rounded-lg bg-muted" />
+          </div>
+          <div className="space-y-3">
+            <div className="h-10 w-36 animate-pulse rounded-lg bg-muted" />
+            <div className="ml-auto h-5 w-20 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+        <div className="h-56 animate-pulse rounded-xl bg-muted/60 lg:h-72" />
+      </div>
+    );
+  }
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 lg:p-8">
@@ -451,7 +469,8 @@ export function HeroChart() {
           >
             {activeRange === range ? (
               <motion.div
-                className="absolute inset-0 rounded-lg bg-background shadow-sm"
+                className="absolute inset-0 rounded-lg border border-border bg-card shadow-md"
+                layoutId="heroTimeRange"
                 transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
               />
             ) : null}

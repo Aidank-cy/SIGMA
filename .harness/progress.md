@@ -985,3 +985,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Enlarged and bolded the sidebar MENU label, switched chart ranges from 1W to 5D in hero and indices controls, changed midnight/day-boundary ticks to day numbers, added lunch-gap axis labels, widened chart edge margins, and removed the swipe hint copy. Verified with `cd sigma-frontend && npm run build`.
 - Timestamp: 2026-05-21T02:12:22Z
+
+### [Maintenance] Market index display and selector contrast
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/hooks/useMarketIndices.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Confirmed `/api/v1/market-indices` returns index data and backend logs show 200 responses, normalized the frontend hook for both bare-array and wrapped response shapes, replaced the hero chart's loading-time SIGMA placeholder with a skeleton, and made the hero/indices range selector active pills visible with separate layout IDs.
+- Timestamp: 2026-05-21T02:16:05Z
