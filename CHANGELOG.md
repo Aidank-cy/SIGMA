@@ -31,6 +31,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Increase English UI body weight and small-text sizing for better global readability.
 - Show neutral `0.00%` Markets index changes during pre-market clear windows.
 - Return market-index responses with their `updated_at` timestamp and show the Dashboard last-updated value as exact `HH:mm:ss` time.
 - Shorten market-index polling and backend cache freshness to roughly 15 seconds while any configured market is trading, and slow closed-market polling to roughly 120 seconds.

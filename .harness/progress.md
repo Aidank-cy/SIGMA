@@ -1098,3 +1098,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Grouped Markets index cards into North America, Asia, Hong Kong, and Europe sections from the backend market field and added an all/region filter bar with localized labels.
 - Timestamp: 2026-05-21T07:04:31Z
+
+### [Maintenance] English global font legibility
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/globals.css, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Scoped English locale typography to a heavier 475 body weight, inherited form-control font weight, and raised English `.text-sm` from 14px to 15px via the CSS utility layer while leaving Chinese locale sizing unchanged. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
+- Timestamp: 2026-05-21T07:08:41Z
