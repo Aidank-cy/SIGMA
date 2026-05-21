@@ -1122,3 +1122,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Increased Dashboard and Markets chart X-axis tick labels to 13px/600 and added bottom chart margin, tick margin, and small-card axis height so larger labels have room to render.
 - Timestamp: 2026-05-21T07:39:50Z
+
+### [Maintenance] Dashboard closed-market badge dot placement
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Moved the closed-market black status dot to the left side of the Market closed label and removed the trailing dot while keeping the Live badge layout unchanged. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
+- Timestamp: 2026-05-21T07:43:37Z
