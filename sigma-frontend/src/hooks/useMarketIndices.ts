@@ -6,6 +6,8 @@ import { apiFetch } from "@/lib/api";
 import { marketIndicesRefetchInterval } from "@/lib/marketSessions";
 import type { MarketIndex, MarketIndicesResponse } from "@/lib/types";
 
+export const marketIndicesQueryKey = ["market-indices"] as const;
+
 function normalizeMarketIndices(response: MarketIndex[] | MarketIndicesResponse): MarketIndicesResponse {
   if (Array.isArray(response)) {
     return { indices: response, updated_at: "" };
@@ -16,13 +18,15 @@ function normalizeMarketIndices(response: MarketIndex[] | MarketIndicesResponse)
   };
 }
 
+export async function fetchMarketIndices(): Promise<MarketIndicesResponse> {
+  const response = await apiFetch<MarketIndex[] | MarketIndicesResponse>("/market-indices");
+  return normalizeMarketIndices(response);
+}
+
 export function useMarketIndices() {
   const query = useQuery({
-    queryKey: ["market-indices"],
-    queryFn: async () => {
-      const response = await apiFetch<MarketIndex[] | MarketIndicesResponse>("/market-indices");
-      return normalizeMarketIndices(response);
-    },
+    queryKey: marketIndicesQueryKey,
+    queryFn: fetchMarketIndices,
     refetchInterval: (query) => marketIndicesRefetchInterval(query.state.data?.indices ?? [])
   });
 

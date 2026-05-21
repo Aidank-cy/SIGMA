@@ -66,8 +66,7 @@ export function Sidebar() {
     { icon: LineChart, label: t("markets"), id: "markets", href: `/${locale}/markets` },
     { icon: Newspaper, label: t("news"), id: "news", href: `/${locale}/news` },
     { icon: BarChart3, label: t("analytics"), id: "analytics", href: `/${locale}/analytics` },
-    { icon: RefreshCw, label: t("sync"), id: "sync", href: `/${locale}/sync` },
-    { icon: Settings, label: t("settings"), id: "settings", href: `/${locale}/settings` }
+    { icon: RefreshCw, label: t("sync"), id: "sync", href: `/${locale}/sync` }
   ];
 
   const getActiveId = () => {
@@ -217,7 +216,7 @@ export function Sidebar() {
         </AnimatePresence>
       </div>
     </motion.aside>
-    <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-6 gap-1 rounded-2xl border border-border bg-card/95 p-1 shadow-apple backdrop-blur-xl md:hidden">
+    <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 gap-1 rounded-2xl border border-border bg-card/95 p-1 shadow-apple backdrop-blur-xl md:hidden">
       {navItems.map((item) => {
         const isActive = activeId === item.id;
         const Icon = item.icon;
