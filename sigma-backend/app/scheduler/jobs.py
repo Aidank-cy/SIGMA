@@ -17,9 +17,11 @@ from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, IntelligenceCategory, Market, ReportType
 from app.models.user_report_config import UserReportConfig
-from app.services.market_indices import any_market_trading_now, refresh_market_indices
+from app.services.market_indices import any_market_trading_now, refresh_historical_data_job, refresh_market_indices
 from app.utils.event_hooks import notify_new_items
 from app.utils.redis_lock import acquire_lock, release_lock
+
+__all__ = ["refresh_historical_data_job"]
 
 
 async def collect_from_source(

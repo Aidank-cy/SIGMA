@@ -73,9 +73,10 @@ function ChartSkeleton() {
 
 function TickerSkeleton() {
   return (
-    <div className="flex gap-3 overflow-hidden px-8 py-2">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div className="h-[118px] min-w-[190px] rounded-xl border border-border bg-card/70 animate-pulse" key={index} />
+    <div className="h-full rounded-xl border border-border bg-card/70 p-4">
+      <div className="mb-4 h-6 w-32 animate-pulse rounded bg-muted" />
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div className="mb-3 h-14 rounded-lg bg-muted/60 animate-pulse" key={index} />
       ))}
     </div>
   );
@@ -130,11 +131,11 @@ export default function DashboardPage() {
             <h1 className="text-balance text-2xl font-bold text-foreground lg:text-3xl">
               {t(greetingKey, { name: user?.display_name ?? "SIGMA" })}
             </h1>
-            <p className="mt-1 text-muted-foreground">{t("subtitle")}</p>
+            <p className="mt-1 text-foreground/60">{t("subtitle")}</p>
           </div>
           {hasMarketData ? (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-foreground/55">
                 {t("lastUpdated")}: <span className="font-medium text-foreground">{updatedAt}</span>
               </span>
               <div className="flex items-center gap-1.5">
@@ -147,13 +148,18 @@ export default function DashboardPage() {
           )}
         </motion.div>
 
-        <motion.section animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} transition={{ delay: 0.1, duration: 0.4 }}>
-          <HeroChart />
-        </motion.section>
-
-        <motion.section animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} transition={{ delay: 0.2, duration: 0.4 }}>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">{t("marketMovers")}</h2>
-          <TickerCarousel />
+        <motion.section
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col gap-6 lg:flex-row"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+        >
+          <div className="lg:w-3/4">
+            <HeroChart />
+          </div>
+          <div className="lg:w-1/4">
+            <TickerCarousel />
+          </div>
         </motion.section>
 
         <motion.section animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} transition={{ delay: 0.3, duration: 0.4 }}>

@@ -1,13 +1,25 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
+import { Sparkline } from "@/components/ui/Sparkline";
+import { useMarketClock } from "@/hooks/useMarketClock";
 import { useMarketIndices } from "@/hooks/useMarketIndices";
+import { isPreMarketClearWindow } from "@/lib/marketSessions";
 import { cn } from "@/lib/utils";
 
 const warnedTickerFallbacks = new Set<string>();
+const currencySymbols: Record<string, string> = {
+  CNY: "¥",
+  EUR: "€",
+  GBP: "£",
+  HKD: "HK$",
+  JPY: "¥",
+  KRW: "₩",
+  TWD: "NT$",
+  USD: "$"
+};
 
 function fallbackSparkline(value: number, positive: boolean, symbol: string) {
   if (!warnedTickerFallbacks.has(symbol)) {
@@ -23,155 +35,79 @@ function fallbackSparkline(value: number, positive: boolean, symbol: string) {
   });
 }
 
-function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const points = data
-    .map((value, index) => {
-      const x = (index / (data.length - 1)) * 64;
-      const y = 22 - ((value - min) / range) * 18;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <svg className="overflow-visible" height="26" width="64">
-      <polyline
-        fill="none"
-        points={points}
-        stroke={positive ? "oklch(0.65 0.22 145)" : "oklch(0.6 0.22 25)"}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
-}
-
 export function TickerCarousel() {
+  const t = useTranslations("dashboard");
   const { data } = useMarketIndices();
-  const tickers = (data?.indices ?? []).map((index) => ({
-    change: index.change_pct,
-    name: index.name,
-    price: index.value,
-    sparkline: index.sparkline_24h.length > 1
-      ? index.sparkline_24h
-      : fallbackSparkline(index.value, index.change_pct >= 0, index.symbol),
-    symbol: index.symbol
-  }));
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const checkScroll = () => {
-    if (scrollRef.current) {
-      const { clientWidth, scrollLeft, scrollWidth } = scrollRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  };
-
-  useEffect(() => {
-    const element = scrollRef.current;
-    if (element) {
-      element.addEventListener("scroll", checkScroll);
-      checkScroll();
-      return () => element.removeEventListener("scroll", checkScroll);
-    }
-  }, [tickers.length]);
-
-  const scroll = (direction: "left" | "right") => {
-    scrollRef.current?.scrollBy({
-      behavior: "smooth",
-      left: direction === "left" ? -320 : 320
-    });
-  };
-
-  if (tickers.length === 0) {
-    return null;
-  }
+  const now = useMarketClock();
+  const tickers = (data?.indices ?? []).map((index) => {
+    const isPreMarket = isPreMarketClearWindow(index.trading_hours, now);
+    const sparkline = isPreMarket
+      ? Array.from({ length: 12 }).map(() => index.value)
+      : index.sparkline_24h.length > 1
+        ? index.sparkline_24h
+        : fallbackSparkline(index.value, index.change_pct >= 0, index.symbol);
+    return {
+      change: index.change_pct,
+      currency: index.currency,
+      isPreMarket,
+      name: index.name,
+      price: index.value,
+      sparkline: sparkline.map((value) => ({ value })),
+      symbol: index.symbol
+    };
+  });
 
   return (
-    <div className="group relative">
-      <button
-        aria-label="Scroll left"
-        className={cn(
-          "absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2.5 text-foreground shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-muted",
-          canScrollLeft ? "opacity-100" : "pointer-events-none opacity-0"
-        )}
-        onClick={() => scroll("left")}
-        type="button"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </button>
-      <button
-        aria-label="Scroll right"
-        className={cn(
-          "absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full border border-border bg-background/95 p-2.5 text-foreground shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-muted",
-          canScrollRight ? "opacity-100" : "pointer-events-none opacity-0"
-        )}
-        onClick={() => scroll("right")}
-        type="button"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
+    <section className="h-full max-h-[488px] rounded-xl border border-border bg-card p-4">
+      <h2 className="mb-4 text-lg font-semibold text-foreground">{t("marketMovers")}</h2>
 
-      <div
-        className={cn(
-          "pointer-events-none absolute bottom-0 left-0 top-0 z-[5] w-16 bg-gradient-to-r from-background to-transparent transition-opacity",
-          canScrollLeft ? "opacity-100" : "opacity-0"
-        )}
-      />
-      <div
-        className={cn(
-          "pointer-events-none absolute bottom-0 right-0 top-0 z-[5] w-16 bg-gradient-to-l from-background to-transparent transition-opacity",
-          canScrollRight ? "opacity-100" : "opacity-0"
-        )}
-      />
+      {tickers.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-foreground/60">
+          {t("empty")}
+        </div>
+      ) : (
+        <div className="max-h-[424px] space-y-1 overflow-y-auto pr-1">
+          {tickers.map((ticker, index) => {
+            const isPositive = ticker.change >= 0;
+            const lineColor = ticker.isPreMarket
+              ? "oklch(0.45 0.01 270)"
+              : isPositive
+                ? "oklch(0.65 0.22 145)"
+                : "oklch(0.6 0.22 25)";
 
-      <div className="hide-scrollbar flex gap-3 overflow-x-auto scroll-smooth px-8 py-2" ref={scrollRef}>
-        {tickers.map((ticker, index) => {
-          const isPositive = ticker.change >= 0;
-          return (
-            <motion.div
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="group/card min-w-[190px] flex-shrink-0 cursor-pointer rounded-xl border border-border bg-card p-4 transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              key={ticker.symbol}
-              transition={{ delay: index * 0.04, duration: 0.3 }}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            >
-              <div className="mb-3 flex items-start justify-between">
-                <div>
-                  <p className="text-base font-bold text-foreground transition-colors group-hover/card:text-primary">
-                    {ticker.symbol}
-                  </p>
-                  <p className="max-w-[85px] truncate text-xs text-muted-foreground">{ticker.name}</p>
+            return (
+              <motion.div
+                animate={{ opacity: 1, x: 0 }}
+                className="grid grid-cols-[minmax(0,1fr)_56px_minmax(70px,auto)] items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-muted/50"
+                initial={{ opacity: 0, x: 12 }}
+                key={ticker.symbol}
+                transition={{ delay: index * 0.04, duration: 0.25 }}
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-foreground">{ticker.name}</p>
+                  <p className="truncate text-xs font-medium text-foreground/55">{ticker.symbol}</p>
                 </div>
-                <Sparkline data={ticker.sparkline} positive={isPositive} />
-              </div>
-              <div className="flex items-end justify-between">
-                <p className="text-lg font-bold text-foreground">
-                  {ticker.price.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
-                </p>
-                <div
-                  className={cn(
-                    "flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold",
-                    isPositive ? "bg-chart-1/10 text-chart-1" : "bg-chart-2/10 text-chart-2"
-                  )}
-                >
-                  {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  <span>
-                    {isPositive ? "+" : ""}
-                    {ticker.change.toFixed(2)}%
+
+                <div className="flex justify-center">
+                  <Sparkline color={lineColor} data={ticker.sparkline} height={20} width={48} />
+                </div>
+
+                <p className="text-right text-sm font-bold tabular-nums text-foreground">
+                  <span className="mr-1 text-xs font-semibold text-foreground/55">
+                    {currencySymbols[ticker.currency] ?? ticker.currency}
                   </span>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-    </div>
+                  <span className={cn(ticker.price >= 100000 && "text-xs")}>
+                    {ticker.price.toLocaleString("en-US", {
+                      maximumFractionDigits: 2,
+                      minimumFractionDigits: 2
+                    })}
+                  </span>
+                </p>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }

@@ -87,8 +87,8 @@ export function HeroChart() {
   const currentData = markets.find((market) => market.name === activeMarket) ?? markets[0];
   const isPositive = (currentData?.change ?? 0) >= 0;
   const chartData = currentData?.dataByRange[activeRange] ?? currentData?.data ?? [];
-  const chartSessions = currentData?.tradingHours.sessions ?? [];
-  const chartTimeZone = currentData?.tradingHours.timezone ?? "Asia/Shanghai";
+  const chartSessions = currentData?.tradingHours.beijing_sessions ?? currentData?.tradingHours.sessions ?? [];
+  const chartTimeZone = "Asia/Shanghai";
   const chartTicks = useMemo(
     () => buildChartTicks(activeRange, chartSessions, chartTimeZone, now),
     [activeRange, chartSessions, chartTimeZone, now]
@@ -196,7 +196,9 @@ export function HeroChart() {
                   currentData?.isTrading ? "animate-pulse bg-chart-1" : "bg-black"
                 )}
               />
-              {currentData?.isTrading ? t("live") : chartT("closed")}
+              <span className={cn(!currentData?.isTrading && "font-semibold")}>
+                {currentData?.isTrading ? t("live") : chartT("closed")}
+              </span>
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -310,7 +312,7 @@ export function HeroChart() {
                   interval={0}
                   minTickGap={0}
                   tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
-                  tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now)}
+                  tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now, chartSessions)}
                   tickLine={false}
                   tickMargin={12}
                   ticks={chartTicks}

@@ -9,6 +9,7 @@ export type Locale = "zh" | "en";
 export interface TradingHours {
   open: string;
   close: string;
+  beijing_sessions?: Array<{ open: string; close: string }>;
   sessions: Array<{ open: string; close: string }>;
   timezone: string;
 }

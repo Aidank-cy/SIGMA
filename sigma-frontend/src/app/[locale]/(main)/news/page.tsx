@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useInView } from "framer-motion"
 import { ArrowUpRight, Bookmark, BookmarkCheck, Check, ChevronDown, Clock, LayoutGrid, List, Loader2, Search, X } from "lucide-react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
@@ -196,13 +197,13 @@ function GridNewsCard({
         <h3 className="mb-2 line-clamp-2 font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
           {item.title}
         </h3>
-        <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+        <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-foreground/60">
           {item.summary ?? t("summaryFallback")}
         </p>
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex min-w-0 items-center gap-2 text-xs text-foreground/55">
             <span className="truncate font-semibold text-foreground/80">{item.source_name}</span>
-            <span className="text-muted-foreground/50">|</span>
+            <span className="text-foreground/35">|</span>
             <span className="flex shrink-0 items-center gap-1">
               <Clock className="h-3 w-3" />
               {time}
@@ -250,12 +251,12 @@ function ListNewsCard({
           <h3 className="mb-1 line-clamp-1 font-semibold text-foreground transition-colors group-hover:text-primary">
             {item.title}
           </h3>
-          <p className="line-clamp-1 text-sm text-muted-foreground">{item.summary ?? t("summaryFallback")}</p>
-          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <p className="line-clamp-1 text-sm text-foreground/60">{item.summary ?? t("summaryFallback")}</p>
+          <div className="mt-2 flex items-center gap-2 text-xs text-foreground/55">
             <span className="font-semibold text-foreground/80">{item.source_name}</span>
-            <span className="text-muted-foreground/50">|</span>
+            <span className="text-foreground/35">|</span>
             <span>{time}</span>
-            <span className="text-muted-foreground/50">|</span>
+            <span className="text-foreground/35">|</span>
             <span>{t(`categories.${item.category}`)}</span>
           </div>
         </Link>
@@ -313,8 +314,11 @@ function LoadingSkeleton({ viewMode }: { viewMode: ViewMode }) {
 export default function NewsPage() {
   const t = useTranslations("news")
   const feedT = useTranslations("feed")
+  const searchParams = useSearchParams()
+  const keywordParam = searchParams.get("keyword") ?? ""
+  const dateFromParam = searchParams.get("date_from") ?? undefined
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState(keywordParam)
   const [activeCategory, setActiveCategory] = useState<Category | "">("")
   const [activeMarket, setActiveMarket] = useState<Market | "">("")
   const [sortBy, setSortBy] = useState("latest")
@@ -325,11 +329,12 @@ export default function NewsPage() {
   const filters = useMemo<ItemFilters>(
     () => ({
       category: activeCategory || undefined,
+      date_from: dateFromParam,
       keyword: searchQuery.trim() || undefined,
       market: activeMarket || undefined,
       page_size: 18
     }),
-    [activeCategory, activeMarket, searchQuery]
+    [activeCategory, activeMarket, dateFromParam, searchQuery]
   )
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useItems(filters)
   const items = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data])
@@ -340,6 +345,10 @@ export default function NewsPage() {
       fetchNextPage()
     }
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, isLoadMoreInView])
+
+  useEffect(() => {
+    setSearchQuery(keywordParam)
+  }, [keywordParam])
 
   const handleToggleBookmark = useCallback((id: string) => {
     setBookmarked((current) => {
@@ -355,7 +364,7 @@ export default function NewsPage() {
       <motion.div animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-4" initial={{ opacity: 0, y: 20 }}>
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
+          <p className="mt-1 text-sm text-foreground/60">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
           <motion.button
@@ -447,7 +456,7 @@ export default function NewsPage() {
       {isLoading ? (
         <LoadingSkeleton viewMode={viewMode} />
       ) : items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-sm text-foreground/60">
           {feedT("empty")}
         </div>
       ) : (
@@ -470,7 +479,7 @@ export default function NewsPage() {
 
       <div className="py-8" ref={loadMoreRef}>
         {isFetchingNextPage && <LoadingSkeleton viewMode={viewMode} />}
-        <motion.div animate={{ opacity: 1 }} className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground" initial={{ opacity: 0 }}>
+        <motion.div animate={{ opacity: 1 }} className="mt-6 flex items-center justify-center gap-2 text-sm text-foreground/55" initial={{ opacity: 0 }}>
           {isFetchingNextPage && <Loader2 className="h-4 w-4 animate-spin" />}
           <span>{t("showing", { shown: items.length, total })}</span>
         </motion.div>

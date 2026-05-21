@@ -25,7 +25,7 @@ export default function MarketsPage() {
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-        <p className="mt-1 text-muted-foreground">{t("subtitle")}</p>
+        <p className="mt-1 text-foreground/60">{t("subtitle")}</p>
       </motion.div>
 
       <motion.div

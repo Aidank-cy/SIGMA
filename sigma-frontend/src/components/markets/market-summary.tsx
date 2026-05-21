@@ -18,12 +18,12 @@ const summaryIcons = {
 }
 
 const summaryColors = {
-  "52-Week Highs": "text-muted-foreground",
-  "52-Week Lows": "text-muted-foreground",
+  "52-Week Highs": "text-foreground/55",
+  "52-Week Lows": "text-foreground/55",
   Advancing: "text-chart-1",
   Declining: "text-chart-2",
-  "Most Active": "text-muted-foreground",
-  Unchanged: "text-muted-foreground"
+  "Most Active": "text-foreground/55",
+  Unchanged: "text-foreground/55"
 }
 
 const containerVariants = {
@@ -66,7 +66,7 @@ export function MarketSummary() {
     >
       <div className="mb-5 flex flex-col gap-1">
         <h2 className="text-lg font-semibold text-foreground">{t("marketSummary")}</h2>
-        <p className="text-sm text-muted-foreground">{t("marketSummaryCaption")}</p>
+        <p className="text-sm text-foreground/70">{t("marketSummaryCaption")}</p>
       </div>
 
       <motion.div
@@ -86,7 +86,7 @@ export function MarketSummary() {
             >
               <div className="mb-2 flex items-center gap-2">
                 <Icon className={`h-4 w-4 ${summaryColors[key]}`} />
-                <span className="text-xs text-muted-foreground">{t(`summary.${key}`)}</span>
+                <span className="text-xs text-foreground/55">{t(`summary.${key}`)}</span>
               </div>
               <p className="text-xl font-bold tabular-nums text-foreground">{values[key]}</p>
             </motion.div>

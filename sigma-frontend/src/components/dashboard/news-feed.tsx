@@ -109,13 +109,13 @@ function NewsCard({
             {item.title}
           </h3>
         </Link>
-        <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+        <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-foreground/60">
           {item.summary ?? t("summaryFallback")}
         </p>
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex min-w-0 items-center gap-2 text-xs text-foreground/55">
             <span className="truncate font-semibold text-foreground/80">{item.source_name || t("sourceFallback")}</span>
-            <span className="text-muted-foreground/50">|</span>
+            <span className="text-foreground/35">|</span>
             <span className="flex shrink-0 items-center gap-1">
               <Clock className="h-3 w-3" />
               {relativeTime(item.published_at, locale)}

@@ -130,6 +130,8 @@ def test_scheduler_registers_market_indices_job() -> None:
 
     assert scheduler.get_job("market-indices:refresh") is not None
     assert scheduler.get_job("market-indices:refresh").trigger.interval.total_seconds() == 15
+    assert scheduler.get_job("market-indices:historical") is not None
+    assert scheduler.get_job("market-indices:historical").trigger.interval.total_seconds() == 10
     scheduler.remove_all_jobs()
 
     add_report_jobs()

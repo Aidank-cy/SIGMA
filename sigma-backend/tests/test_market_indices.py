@@ -46,7 +46,7 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     monkeypatch.setattr(market_indices, "_cache_set", fake_cache_set)
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
     monkeypatch.setattr(market_indices, "_fetch_intraday_series", fake_intraday)
-    monkeypatch.setattr(market_indices, "_fetch_historical_ranges", fake_historical)
+    monkeypatch.setattr(market_indices, "_read_cached_historical_ranges", fake_historical)
     monkeypatch.setattr(market_indices.asyncio, "sleep", fake_sleep)
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
 
@@ -78,6 +78,9 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     assert all(index.previous_close > 0 for index in response.indices)
     sse = next(index for index in response.indices if index.symbol == "SSE")
     assert [session.open for session in sse.trading_hours.sessions] == ["09:30", "13:00"]
+    spx = next(index for index in response.indices if index.symbol == "SPX")
+    assert spx.trading_hours.beijing_sessions[0].open == "21:30"
+    assert spx.trading_hours.beijing_sessions[0].close == "04:00"
     assert sse.sparkline_times[0].endswith("09:30:00+08:00")
     assert sse.sparkline_times[120].endswith("11:30:00+08:00")
     assert sse.sparkline_times[121].endswith("13:00:00+08:00")
@@ -132,7 +135,7 @@ async def test_finnhub_index_quote_uses_scaled_proxy_when_index_requires_subscri
 
 @pytest.mark.asyncio
 async def test_index_quote_uses_fallback_provider_after_configured_providers_miss(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Global indices can refresh when Finnhub and Alpha do not cover the symbol."""
+    """Global indices can refresh when Yahoo, Finnhub, and Alpha do not cover the symbol."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
 
     async def fake_empty_quote(_config: market_indices.IndexConfig) -> None:
@@ -141,6 +144,7 @@ async def test_index_quote_uses_fallback_provider_after_configured_providers_mis
     async def fake_stooq_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
         return market_indices.IndexQuote(current=3200.0, change_pct=1.5, previous_close=3152.71)
 
+    monkeypatch.setattr(market_indices, "_fetch_yahoo_quote", fake_empty_quote)
     monkeypatch.setattr(market_indices, "_fetch_finnhub_quote", fake_empty_quote)
     monkeypatch.setattr(market_indices, "_fetch_alpha_vantage_quote", fake_empty_quote)
     monkeypatch.setattr(market_indices, "_fetch_stooq_quote", fake_stooq_quote)
@@ -200,11 +204,31 @@ async def test_intraday_fetch_uses_yahoo_before_other_providers(monkeypatch: pyt
     monkeypatch.setattr(market_indices, "_fetch_yahoo_intraday_series", fake_yahoo)
     monkeypatch.setattr(market_indices, "_fetch_finnhub_intraday_series", fake_finnhub)
     monkeypatch.setattr(market_indices, "_fetch_alpha_vantage_intraday_series", fake_alpha)
+    monkeypatch.setattr(market_indices, "_is_trading", lambda _config: True)
 
     result = await market_indices._fetch_intraday_series(sse, 3200.0)
 
     assert result == yahoo_points
     assert calls == ["yahoo"]
+
+
+@pytest.mark.asyncio
+async def test_intraday_fetch_skips_providers_when_market_is_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Closed markets do not call intraday providers during refresh cycles."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    calls: list[str] = []
+
+    async def fake_yahoo(_config: market_indices.IndexConfig) -> None:
+        calls.append("yahoo")
+        return None
+
+    monkeypatch.setattr(market_indices, "_is_trading", lambda _config: False)
+    monkeypatch.setattr(market_indices, "_fetch_yahoo_intraday_series", fake_yahoo)
+
+    result = await market_indices._fetch_intraday_series(sse, 3200.0)
+
+    assert result is None
+    assert calls == []
 
 
 @pytest.mark.asyncio
@@ -340,41 +364,31 @@ async def test_historical_cache_round_trips_daily_points(monkeypatch: pytest.Mon
 
 
 @pytest.mark.asyncio
-async def test_historical_ranges_populate_cache_from_one_year_yahoo_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The first historical range request fetches 1Y once and stores it for reuse."""
+async def test_cached_historical_ranges_fallback_without_yahoo_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Historical ranges only read Redis and fall back without fetching Yahoo."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
-    stored: list[market_indices.IntradayPoint] = []
-    yahoo_points = [
-        market_indices.IntradayPoint(datetime(2026, 5, 16, 4, 0, tzinfo=market_indices.BEIJING_TZ), 5900.0),
-        market_indices.IntradayPoint(datetime(2026, 5, 19, 4, 0, tzinfo=market_indices.BEIJING_TZ), 6000.0),
-    ]
 
     async def fake_get_cached(_symbol: str) -> None:
         return None
 
-    async def fake_set_cached(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
-        stored.extend(points)
-
     async def fake_yahoo(_config: market_indices.IndexConfig, provider_range: str) -> list[market_indices.IntradayPoint]:
         calls.append(provider_range)
-        return yahoo_points
+        return []
 
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
     monkeypatch.setattr(market_indices, "_get_cached_historical", fake_get_cached)
-    monkeypatch.setattr(market_indices, "_set_cached_historical", fake_set_cached)
     monkeypatch.setattr(market_indices, "_fetch_yahoo_historical_series", fake_yahoo)
 
-    ranges = await market_indices._fetch_historical_ranges(spx, 6000.0, 1.0)
+    ranges = await market_indices._read_cached_historical_ranges(spx, 6000.0, 1.0)
 
-    assert calls == ["1y"]
-    assert stored == yahoo_points
-    assert ranges["5D"].values == [5900.0, 6000.0]
+    assert calls == []
+    assert len(ranges["5D"].values) == 5
 
 
 @pytest.mark.asyncio
-async def test_historical_ranges_incrementally_append_new_completed_days(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Cached historical data updates with recent candles instead of refetching 1Y each cycle."""
+async def test_historical_job_incrementally_appends_new_completed_days(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The independent historical job updates stale caches with recent completed candles."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     cached_points = [
         market_indices.IntradayPoint(datetime(2026, 5, 15, 4, 0, tzinfo=market_indices.BEIJING_TZ), 5800.0),
@@ -397,16 +411,49 @@ async def test_historical_ranges_incrementally_append_new_completed_days(monkeyp
         calls.append(provider_range)
         return recent_points
 
+    async def fake_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
     monkeypatch.setattr(market_indices, "_get_cached_historical", fake_get_cached)
     monkeypatch.setattr(market_indices, "_set_cached_historical", fake_set_cached)
     monkeypatch.setattr(market_indices, "_fetch_yahoo_historical_series", fake_yahoo)
+    monkeypatch.setattr(market_indices.asyncio, "sleep", fake_sleep)
 
-    ranges = await market_indices._fetch_historical_ranges(spx, 6000.0, 1.0)
+    await market_indices.refresh_historical_data_job()
 
     assert calls == ["5d"]
     assert [point.value for point in stored] == [5800.0, 5900.0, 6000.0]
-    assert ranges["5D"].values == [5800.0, 5900.0, 6000.0]
+
+
+@pytest.mark.asyncio
+async def test_historical_job_rate_limits_trading_fetches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Trading markets have independent 30-second historical fetch timers."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    cached_points = [
+        market_indices.IntradayPoint(datetime(2026, 5, 14, 4, 0, tzinfo=market_indices.BEIJING_TZ), 5800.0),
+    ]
+    calls: list[str] = []
+
+    async def fake_get_cached(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return cached_points
+
+    async def fake_yahoo(_config: market_indices.IndexConfig, provider_range: str) -> None:
+        calls.append(provider_range)
+        return None
+
+    market_indices._historical_last_fetch.clear()
+    monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_indices, "_get_cached_historical", fake_get_cached)
+    monkeypatch.setattr(market_indices, "_fetch_yahoo_historical_series", fake_yahoo)
+
+    await market_indices.refresh_historical_data_job()
+    await market_indices.refresh_historical_data_job()
+
+    assert calls == ["5d"]
+    market_indices._historical_last_fetch.clear()
 
 
 def test_historical_point_dates_use_exchange_timezone() -> None:
@@ -431,8 +478,27 @@ def test_historical_cache_trim_keeps_recent_one_year_buffer() -> None:
     trimmed = market_indices._trim_historical_points(points)
 
     assert len(trimmed) == market_indices.MAX_HISTORICAL_POINTS
-    assert trimmed[0] == points[10]
+    assert trimmed[0] == points[18]
     assert trimmed[-1] == points[-1]
+
+
+def test_intraday_alignment_filters_lunch_break_points() -> None:
+    """Provider candles inside declared market breaks are discarded before alignment."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+
+    aligned = market_indices._align_intraday_points(
+        sse,
+        datetime(2026, 5, 18, tzinfo=market_indices.BEIJING_TZ).date(),
+        [
+            market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3200.0),
+            market_indices.IntradayPoint(datetime(2026, 5, 18, 12, 0, tzinfo=market_indices.BEIJING_TZ), 9999.0),
+            market_indices.IntradayPoint(datetime(2026, 5, 18, 13, 0, tzinfo=market_indices.BEIJING_TZ), 3210.0),
+        ],
+    )
+
+    assert aligned is not None
+    assert all(not point.timestamp.isoformat().endswith("12:00:00+08:00") for point in aligned)
+    assert all(point.value != 9999.0 for point in aligned)
 
 
 def test_intraday_alignment_warns_when_forward_fill_ratio_is_high(caplog: pytest.LogCaptureFixture) -> None:
@@ -477,7 +543,7 @@ async def test_sparse_intraday_series_logs_warning(monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
     monkeypatch.setattr(market_indices, "_fetch_intraday_series", fake_intraday)
-    monkeypatch.setattr(market_indices, "_fetch_historical_ranges", fake_historical)
+    monkeypatch.setattr(market_indices, "_read_cached_historical_ranges", fake_historical)
     caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
 
     index = await market_indices._build_index(spx)
@@ -525,4 +591,7 @@ def test_scheduler_registers_market_indices_job() -> None:
     job = scheduler.get_job("market-indices:refresh")
     assert job is not None
     assert str(job.trigger) == "interval[0:00:15]"
+    historical_job = scheduler.get_job("market-indices:historical")
+    assert historical_job is not None
+    assert str(historical_job.trigger) == "interval[0:00:10]"
     scheduler.remove_all_jobs()

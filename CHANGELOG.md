@@ -7,6 +7,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add Beijing-time trading sessions to market-index API responses so chart axes can render in UTC+8 consistently.
+- Add an independent per-market historical data refresh job with Redis cache reads decoupled from live quote refreshes.
 - Add a market-index `is_fallback_data` flag so clients can distinguish generated chart data from provider data.
 - Add a sidebar avatar popup for Settings, theme switching, and logout.
 - Add region sections and filtering to Markets index cards.
@@ -33,6 +35,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Decouple market-index historical Redis updates into a rate-limited background scheduler and trim cached daily candles to one trading year.
+- Keep live market-index polling at the 15-second active cadence while running historical refreshes independently.
+- Render Dashboard and Markets chart X-axes in Beijing time across all markets.
+- Redesign Dashboard Market Movers into a vertical list beside the hero chart and remove the duplicate sidebar market overview.
 - Cache historical market-index daily ranges in Redis and update them incrementally instead of refetching full 1Y Yahoo data every refresh.
 - Space market-index refresh requests between configured indices and reuse a bounded Yahoo HTTP client to reduce rate-limit bursts.
 - Prefer Yahoo Finance with browser headers and query2 retry for market-index intraday charts, using Finnhub and Alpha Vantage as backups.
@@ -73,6 +79,12 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Improve dark-mode secondary text contrast across Dashboard, Markets, and News surfaces.
+- Link dashboard trending topics and stat cards to their filtered News, Analytics, and Sync destinations.
+- Filter intraday candles and chart points that fall inside declared midday market breaks.
+- Compress 1-day market chart axes across midday breaks and preserve merged break labels such as `11:30/13:00`.
+- Make the Dashboard hero chart closed-market badge text semibold.
+- Shift sidebar hover tooltips and their carets upward to align with icon centers.
 - Log detailed market-index provider failures instead of silently swallowing Yahoo, Finnhub, Alpha Vantage, and Stooq request errors.
 - Hide Dashboard last-updated and Live indicators until market index data has loaded and prefetch market indices during login routing.
 - Anchor empty and first-tick market chart Y-axis domains to previous close or the first valid price before live data fills in.

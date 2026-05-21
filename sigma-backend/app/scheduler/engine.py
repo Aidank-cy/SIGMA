@@ -16,6 +16,7 @@ from app.scheduler.jobs import (
     generate_scheduled_reports,
     refresh_market_indices_job,
 )
+from app.services.market_indices import refresh_historical_data_job
 
 scheduler = AsyncIOScheduler(timezone="UTC")
 
@@ -127,6 +128,14 @@ def add_market_indices_job(job_func: Callable[..., object] = refresh_market_indi
         job_func,
         trigger=IntervalTrigger(seconds=15, timezone="UTC"),
         id="market-indices:refresh",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        refresh_historical_data_job,
+        trigger=IntervalTrigger(seconds=10, timezone="UTC"),
+        id="market-indices:historical",
         replace_existing=True,
         max_instances=1,
         coalesce=True,

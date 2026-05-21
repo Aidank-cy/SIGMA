@@ -1202,3 +1202,19 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added a long-lived Redis cache for historical market-index daily candles, changed 5D/1M/3M/1Y range building to read cached data and append recent completed daily candles instead of refetching full 1Y Yahoo data each refresh, capped cached history at 260 points, reused a bounded Yahoo HTTP client with existing browser headers, and spaced per-index refresh work by 600ms to reduce request bursts. Verified with focused market-index tests, backend Ruff, full backend tests, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-21T11:12:29Z
+
+### [Maintenance] Market data pipeline and midday break chart fixes
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/scheduler/engine.py, sigma-backend/tests/test_market_indices.py, sigma-backend/tests/test_scheduler.py, sigma-frontend/src/lib/marketSessions.ts, sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/dashboard/sidebar.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Trimmed cached historical candles to 252 trading days, kept active market polling/scheduler cadence at 15 seconds, skipped intraday provider calls for closed markets, filtered raw intraday candles inside lunch breaks, compressed 1D chart axes across declared session breaks with merged boundary labels, bolded the Dashboard closed-market badge text, and shifted sidebar hover tooltips upward. Verified with backend Ruff, focused market-index tests, full backend tests, and frontend production build.
+- Timestamp: 2026-05-21T11:48:00Z
+
+### [Maintenance] Beijing-time charts and dashboard navigation polish
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/schemas/market.py, sigma-backend/app/services/market_indices.py, sigma-backend/app/scheduler/engine.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_market_indices.py, sigma-backend/tests/test_scheduler.py, sigma-frontend/src/lib/types.ts, sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/lib/marketSessions.ts, sigma-frontend/src/app/globals.css, sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/app/[locale]/(main)/news/page.tsx, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/app/[locale]/(main)/markets/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/dashboard/news-feed.tsx, sigma-frontend/src/components/dashboard/right-sidebar.tsx, sigma-frontend/src/components/dashboard/stats-row.tsx, sigma-frontend/src/components/dashboard/ticker-carousel.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/components/markets/market-summary.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added Beijing-session API fields, rendered market chart axes in Asia/Shanghai, moved historical Yahoo range fetching into an independent per-market scheduler job, kept live market refresh cadence at 15 seconds, improved dark-mode secondary text contrast across dashboard and top-level page captions, redesigned Market Movers as a vertical dashboard column, removed the sidebar market overview, and wired trending topics/stat cards to filtered destinations. Verified with frontend production build, backend Ruff via python3, focused backend market/scheduler tests, `git diff --check`, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-21T13:02:43Z

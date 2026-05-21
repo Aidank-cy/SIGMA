@@ -17,6 +17,7 @@ class TradingHours(BaseModel):
     close: str
     timezone: str
     sessions: list[TradingSession] = Field(min_length=1)
+    beijing_sessions: list[TradingSession] = Field(default_factory=list)
 
 
 class MarketSparkline(BaseModel):

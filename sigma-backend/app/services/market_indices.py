@@ -20,7 +20,9 @@ ACTIVE_CACHE_TTL_SECONDS = 15
 CLOSED_CACHE_TTL_SECONDS = 120
 HISTORICAL_CACHE_KEY = "sigma:historical:{symbol}"
 HISTORICAL_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30
-MAX_HISTORICAL_POINTS = 260
+MAX_HISTORICAL_POINTS = 252
+HISTORICAL_TRADING_FETCH_INTERVAL_SECONDS = 30
+HISTORICAL_CLOSED_FETCH_DELAY_SECONDS = 2.5
 MARKET_INDEX_REFRESH_DELAY_SECONDS = 0.6
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 LOGGER = logging.getLogger(__name__)
@@ -33,6 +35,7 @@ YAHOO_HEADERS = {
     ),
 }
 _yahoo_client: httpx.AsyncClient | None = None
+_historical_last_fetch: dict[str, datetime] = {}
 HISTORICAL_RANGES: dict[str, int] = {
     "5D": 5,
     "1M": 22,
@@ -149,7 +152,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
             config.symbol,
             len(intraday),
         )
-    sparkline_ranges = await _fetch_historical_ranges(config, value, change_pct)
+    sparkline_ranges = await _read_cached_historical_ranges(config, value, change_pct)
 
     return MarketIndex(
         symbol=config.symbol,
@@ -168,6 +171,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
                 TradingSession(open=session_open.strftime("%H:%M"), close=session_close.strftime("%H:%M"))
                 for session_open, session_close in config.sessions
             ],
+            beijing_sessions=_sessions_to_beijing(config),
         ),
         sparkline_24h=[round(point.value, 2) for point in intraday],
         sparkline_times=[point.timestamp.isoformat() for point in intraday],
@@ -177,16 +181,16 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
 
 
 async def _fetch_index_quote(config: IndexConfig) -> IndexQuote | None:
+    quote = await _fetch_yahoo_quote(config)
+    if quote is not None:
+        return quote
     quote = await _fetch_finnhub_quote(config)
     if quote is not None:
         return quote
     quote = await _fetch_alpha_vantage_quote(config)
     if quote is not None:
         return quote
-    quote = await _fetch_stooq_quote(config)
-    if quote is not None:
-        return quote
-    return await _fetch_yahoo_quote(config)
+    return await _fetch_stooq_quote(config)
 
 
 async def _fetch_finnhub_quote(config: IndexConfig) -> IndexQuote | None:
@@ -391,6 +395,9 @@ def _get_yahoo_client() -> httpx.AsyncClient:
 
 
 async def _fetch_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
+    if not _is_trading(config):
+        return None
+
     yahoo_series = await _fetch_yahoo_intraday_series(config)
     if yahoo_series is not None:
         return yahoo_series
@@ -552,12 +559,12 @@ async def _fetch_yahoo_intraday_series(config: IndexConfig) -> list[IntradayPoin
         epoch = _as_float(timestamp)
         if value is None or epoch is None or value <= 0:
             continue
-        points.append(
-            IntradayPoint(
-                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
-                value=value,
-            )
+        point = IntradayPoint(
+            timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
+            value=value,
         )
+        if _is_within_session(point.timestamp, config):
+            points.append(point)
 
     if not points:
         return None
@@ -565,29 +572,12 @@ async def _fetch_yahoo_intraday_series(config: IndexConfig) -> list[IntradayPoin
     return _align_intraday_points(config, session_date, points)
 
 
-async def _fetch_historical_ranges(
+async def _read_cached_historical_ranges(
     config: IndexConfig,
     value: float,
     change_pct: float,
 ) -> dict[str, MarketSparkline]:
     cached = await _get_cached_historical(config.symbol)
-    if cached is None:
-        full_series = await _fetch_yahoo_historical_series(config, "1y")
-        if full_series:
-            cached = _trim_historical_points(_filter_completed_historical_points(config, full_series))
-            await _set_cached_historical(config.symbol, cached)
-    else:
-        latest_cached_date = _historical_point_date(config, cached[-1]) if cached else None
-        latest_completed_date = _latest_completed_session_date(config)
-        if latest_cached_date is not None and latest_cached_date < latest_completed_date:
-            recent = await _fetch_yahoo_historical_series(config, "5d")
-            if recent:
-                completed_recent = _filter_completed_historical_points(config, recent)
-                cached_dates = {_historical_point_date(config, point) for point in cached}
-                new_points = [point for point in completed_recent if _historical_point_date(config, point) not in cached_dates]
-                if new_points:
-                    cached = _trim_historical_points([*cached, *new_points])
-                    await _set_cached_historical(config.symbol, cached)
 
     ranges: dict[str, MarketSparkline] = {}
     for range_key, fallback_points in HISTORICAL_RANGES.items():
@@ -604,6 +594,75 @@ async def _fetch_historical_ranges(
             times=[point.timestamp.isoformat() for point in series],
         )
     return ranges
+
+
+async def refresh_historical_data_job() -> None:
+    """Fetch historical market data independently from live quote refreshes."""
+    now_beijing = _now_utc().astimezone(BEIJING_TZ)
+
+    for config in INDEX_CONFIGS:
+        symbol = config.symbol
+        cached = await _get_cached_historical(symbol)
+        if cached is not None:
+            latest_cached_date = _historical_point_date(config, cached[-1]) if cached else None
+            latest_completed = _latest_completed_session_date(config)
+            if latest_cached_date is not None and latest_cached_date >= latest_completed:
+                continue
+
+        market_status = _market_status_beijing(config, now_beijing)
+        if market_status == "not_opened":
+            continue
+        if market_status == "trading":
+            last_fetch = _historical_last_fetch.get(symbol)
+            now_utc = _now_utc()
+            if last_fetch is not None and (now_utc - last_fetch).total_seconds() < HISTORICAL_TRADING_FETCH_INTERVAL_SECONDS:
+                continue
+            await _incremental_historical_fetch(config, cached)
+            _historical_last_fetch[symbol] = _now_utc()
+            continue
+
+        if cached is None:
+            full_series = await _fetch_yahoo_historical_series(config, "1y")
+            if full_series:
+                points = _trim_historical_points(_filter_completed_historical_points(config, full_series))
+                await _set_cached_historical(symbol, points)
+                LOGGER.info("Fetched full 1Y historical data for %s (%d points)", symbol, len(points))
+            await asyncio.sleep(HISTORICAL_CLOSED_FETCH_DELAY_SECONDS)
+        else:
+            await _incremental_historical_fetch(config, cached)
+            await asyncio.sleep(HISTORICAL_CLOSED_FETCH_DELAY_SECONDS)
+
+
+async def _incremental_historical_fetch(config: IndexConfig, cached: list[IntradayPoint] | None) -> None:
+    """Fetch recent daily candles and merge missing completed sessions into cache."""
+    recent = await _fetch_yahoo_historical_series(config, "5d")
+    if not recent:
+        return
+    completed_recent = _filter_completed_historical_points(config, recent)
+    if cached is None:
+        await _set_cached_historical(config.symbol, _trim_historical_points(completed_recent))
+        return
+
+    cached_dates = {_historical_point_date(config, point) for point in cached}
+    new_points = [point for point in completed_recent if _historical_point_date(config, point) not in cached_dates]
+    if new_points:
+        merged = _trim_historical_points([*cached, *new_points])
+        await _set_cached_historical(config.symbol, merged)
+        LOGGER.info("Updated historical cache for %s with %d new points", config.symbol, len(new_points))
+
+
+def _market_status_beijing(config: IndexConfig, now_beijing: datetime) -> str:
+    """Return not_opened, trading, or closed using the market clock observed from Beijing."""
+    local_now = now_beijing.astimezone(ZoneInfo(config.timezone))
+    if local_now.weekday() >= 5:
+        return "closed"
+
+    current = local_now.time().replace(tzinfo=None)
+    if any(_time_in_session(current, session_open, session_close) for session_open, session_close in config.sessions):
+        return "trading"
+    if any(current < session_open for session_open, _session_close in config.sessions):
+        return "not_opened"
+    return "closed"
 
 
 async def _fetch_yahoo_historical_series(
@@ -673,7 +732,42 @@ def _is_trading(config: IndexConfig, now: datetime | None = None) -> bool:
     if active_now.weekday() >= 5:
         return False
     current = active_now.time().replace(tzinfo=None)
-    return any(session_open <= current < session_close for session_open, session_close in config.sessions)
+    return any(_time_in_session(current, session_open, session_close) for session_open, session_close in config.sessions)
+
+
+def _is_within_session(timestamp: datetime, config: IndexConfig) -> bool:
+    local = timestamp.astimezone(ZoneInfo(config.timezone))
+    if local.weekday() >= 5:
+        return False
+    current = local.time().replace(tzinfo=None)
+    return any(_time_in_session(current, session_open, session_close) for session_open, session_close in config.sessions)
+
+
+def _time_in_session(current: time, session_open: time, session_close: time) -> bool:
+    if session_close <= session_open:
+        return current >= session_open or current < session_close
+    return session_open <= current < session_close
+
+
+def _sessions_to_beijing(config: IndexConfig) -> list[TradingSession]:
+    """Convert a market's latest exchange sessions to Beijing wall-clock labels."""
+    session_date = _latest_session_date(config)
+    zone = ZoneInfo(config.timezone)
+    beijing_sessions: list[TradingSession] = []
+    for session_open, session_close in config.sessions:
+        open_local = datetime.combine(session_date, session_open, tzinfo=zone)
+        close_local = datetime.combine(session_date, session_close, tzinfo=zone)
+        if session_close <= session_open:
+            close_local += timedelta(days=1)
+        open_beijing = open_local.astimezone(BEIJING_TZ)
+        close_beijing = close_local.astimezone(BEIJING_TZ)
+        beijing_sessions.append(
+            TradingSession(
+                open=open_beijing.strftime("%H:%M"),
+                close=close_beijing.strftime("%H:%M"),
+            )
+        )
+    return beijing_sessions
 
 
 def _fallback_intraday_series(config: IndexConfig, value: float, change_pct: float) -> list[IntradayPoint]:
@@ -712,11 +806,15 @@ def _align_intraday_points(
     if not points:
         return None
 
+    session_points = [point for point in points if _is_within_session(point.timestamp, config)]
+    if not session_points:
+        return None
+
     values_by_minute = {
         point.timestamp.astimezone(BEIJING_TZ).replace(second=0, microsecond=0): point.value
-        for point in points
+        for point in session_points
     }
-    first_value = next((point.value for point in sorted(points, key=lambda item: item.timestamp)), None)
+    first_value = next((point.value for point in sorted(session_points, key=lambda item: item.timestamp)), None)
     if first_value is None:
         return None
 

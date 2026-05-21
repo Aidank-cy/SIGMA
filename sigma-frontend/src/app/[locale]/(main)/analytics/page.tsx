@@ -232,7 +232,7 @@ export default function AnalyticsPage() {
       <motion.div animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" initial={{ opacity: 0, y: -10 }}>
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+          <p className="text-sm text-foreground/60">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-1 rounded-xl bg-muted/50 p-1">
           {timeRanges.map((range) => (
@@ -344,7 +344,7 @@ export default function AnalyticsPage() {
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className="space-y-4" id="intelligence-reports">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">{t("reports")}</h2>
           <motion.button

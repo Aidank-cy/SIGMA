@@ -179,7 +179,7 @@ export default function SettingsPage() {
       <header className="border-b border-border pb-6">
         <p className="text-sm font-medium uppercase text-primary">{t("eyebrow")}</p>
         <h1 className="mt-2 text-3xl font-semibold text-foreground sm:text-4xl">{t("title")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
+        <p className="mt-2 text-sm text-foreground/60">{t("subtitle")}</p>
       </header>
 
       <div className="grid gap-5 xl:grid-cols-[1fr_360px]">

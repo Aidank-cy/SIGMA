@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Database, FileText, Newspaper, TrendingUp } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo } from "react";
 
@@ -38,11 +39,13 @@ function relativeTime(value: string, locale: string): string {
 export function StatsRow() {
   const t = useTranslations("feed.stats");
   const locale = useLocale();
+  const router = useRouter();
   const todayStart = useMemo(() => {
     const date = new Date();
     date.setHours(0, 0, 0, 0);
     return date.toISOString();
   }, []);
+  const todayISO = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), []);
   const { data: todayData } = useItems({ date_from: todayStart, page_size: 1 });
   const { data: sentiment } = useSentimentStats();
   const { data: sourcesData } = useSources();
@@ -54,21 +57,25 @@ export function StatsRow() {
     {
       change: `+${todayData?.pages[0]?.items.length ?? 0}`,
       label: t("todayArticles"),
+      target: `/${locale}/news?date_from=${encodeURIComponent(todayISO)}`,
       value: String(todayData?.pages[0]?.total ?? 0)
     },
     {
       change: `${bullishPct >= 50 ? "+" : "-"}${Math.abs(bullishPct - 50).toFixed(0)}%`,
       label: t("marketSentiment"),
+      target: `/${locale}/analytics`,
       value: bullishPct >= 50 ? t("bullish", { value: bullishPct }) : t("bearish", { value: 100 - bullishPct })
     },
     {
       change: String(activeSources),
       label: t("activeSources"),
+      target: `/${locale}/sync`,
       value: String(activeSources)
     },
     {
       change: latestReport ? t("new") : t("none"),
       label: t("latestReport"),
+      target: `/${locale}/analytics#intelligence-reports`,
       value: latestReport ? relativeTime(latestReport.generated_at, locale) : t("none")
     }
   ];
@@ -87,6 +94,15 @@ export function StatsRow() {
             )}
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             key={stat.label}
+            onClick={() => router.push(stat.target)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                router.push(stat.target);
+              }
+            }}
+            role="button"
+            tabIndex={0}
             transition={{ delay: index * 0.08, duration: 0.35 }}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
           >
@@ -106,7 +122,7 @@ export function StatsRow() {
             <p className="mb-1 text-2xl font-bold text-foreground transition-colors group-hover:text-primary">
               {stat.value}
             </p>
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
+            <p className="text-sm text-foreground/60">{stat.label}</p>
           </motion.div>
         );
       })}

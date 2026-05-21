@@ -155,15 +155,16 @@ export function IndicesTab() {
               {group.indices.map((index) => {
                 const isPositive = index.change_pct >= 0
                 const chartData = toMarketChartData(index, activeRange, now)
-                const chartTimeZone = index.trading_hours.timezone
+                const chartSessions = index.trading_hours.beijing_sessions ?? index.trading_hours.sessions
+                const chartTimeZone = "Asia/Shanghai"
                 const chartTicks = buildCompactChartTicks(
                   activeRange,
-                  index.trading_hours.sessions,
+                  chartSessions,
                   chartTimeZone,
                   activeRange === "5D" ? 5 : 4,
                   now
                 )
-                const xAxisDomain = buildChartXAxisDomain(activeRange, index.trading_hours.sessions)
+                const xAxisDomain = buildChartXAxisDomain(activeRange, chartSessions)
                 const isAwaitingOpen = isPreMarketClearWindow(index.trading_hours, now)
                 const displayChangePct = isAwaitingOpen ? 0 : index.change_pct
                 const chartColor = isPositive
@@ -242,7 +243,9 @@ export function IndicesTab() {
                             interval={0}
                             minTickGap={0}
                             tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
-                            tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now)}
+                            tickFormatter={(value) =>
+                              formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now, chartSessions)
+                            }
                             tickLine={false}
                             tickMargin={8}
                             ticks={chartTicks}

@@ -143,13 +143,13 @@ export function Sidebar() {
                 {isHovered && !isActive ? (
                   <motion.div
                     animate={{ opacity: 1, x: 0 }}
-                    className="absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg border border-border bg-popover px-3 py-1.5 text-sm font-medium text-popover-foreground shadow-xl"
+                    className="absolute left-full top-1/2 z-50 ml-3 -translate-y-[60%] whitespace-nowrap rounded-lg border border-border bg-popover px-3 py-1.5 text-sm font-medium text-popover-foreground shadow-xl"
                     exit={{ opacity: 0, x: -10 }}
                     initial={{ opacity: 0, x: -10 }}
                     transition={{ duration: 0.15 }}
                   >
                     {item.label}
-                    <div className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-border bg-popover" />
+                    <div className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-[60%] rotate-45 border-b border-l border-border bg-popover" />
                   </motion.div>
                 ) : null}
               </AnimatePresence>
