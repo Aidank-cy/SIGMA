@@ -1058,3 +1058,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Changed `/api/v1/market-indices` to return the full market index response object including `updated_at`, made the Dashboard header render that timestamp as exact 24-hour `HH:mm:ss` time, and kept the hook compatible with legacy bare-array responses.
 - Timestamp: 2026-05-21T06:04:38Z
+
+### [Maintenance] Dashboard closed-market status indicator
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added a static 8px black dot immediately after the closed-market badge text while preserving the existing green pulsing Live indicator without an extra dot. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
+- Timestamp: 2026-05-21T06:41:20Z
