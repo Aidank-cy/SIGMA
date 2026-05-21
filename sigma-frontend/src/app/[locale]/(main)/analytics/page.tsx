@@ -275,7 +275,7 @@ export default function AnalyticsPage() {
                   <stop offset="100%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <Area dataKey="sentiment" fill="url(#sentimentGradient)" stroke="oklch(0.65 0.22 145)" strokeWidth={2} type="monotone" />
+              <Area dataKey="sentiment" fill="url(#sentimentGradient)" stroke="oklch(0.65 0.22 145)" strokeWidth={2} type="linear" />
               <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
             </AreaChart>
           </ResponsiveContainer>

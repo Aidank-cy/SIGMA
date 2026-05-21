@@ -123,6 +123,12 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
         value = intraday[-1].value
         first_value = intraday[0].value
         change_pct = ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
+    if len(intraday) < 30:
+        LOGGER.warning(
+            "%s returned only %s intraday chart points; charts may appear undersampled.",
+            config.symbol,
+            len(intraday),
+        )
     sparkline_ranges = await _fetch_historical_ranges(config, value, change_pct)
 
     return MarketIndex(

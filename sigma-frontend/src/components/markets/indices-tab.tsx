@@ -220,7 +220,7 @@ export function IndicesTab() {
 
                     <div className="-mx-2 h-28">
                       <ResponsiveContainer height="100%" width="100%">
-                        <AreaChart data={chartData} margin={{ bottom: 18, left: 8, right: 8, top: 2 }}>
+                        <AreaChart data={chartData} margin={{ bottom: 18, left: 26, right: 26, top: 2 }}>
                           <defs>
                             <linearGradient
                               id={`gradient-${index.symbol}-${activeRange}`}
@@ -246,9 +246,10 @@ export function IndicesTab() {
                             tickLine={false}
                             tickMargin={8}
                             ticks={chartTicks}
+                            padding={{ left: 12, right: 12 }}
                             type="number"
                           />
-                          <YAxis domain={previousCloseAxisDomain(index.previous_close)} hide />
+                          <YAxis domain={previousCloseAxisDomain(chartData)} hide />
                           <Area
                             animationDuration={450}
                             dataKey="value"

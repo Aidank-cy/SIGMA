@@ -166,6 +166,38 @@ def test_intraday_fallback_only_generates_elapsed_minutes_during_trading(
     assert len(points) == 31
 
 
+@pytest.mark.asyncio
+async def test_sparse_intraday_series_logs_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    """Sparse intraday provider data is visible in logs before charts flatten out."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+
+    async def fake_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
+        return market_indices.IndexQuote(current=6000.0, change_pct=1.0, previous_close=5940.0)
+
+    async def fake_intraday(_config: market_indices.IndexConfig, _value: float) -> list[market_indices.IntradayPoint]:
+        return [
+            market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 5990.0),
+            market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 31, tzinfo=market_indices.BEIJING_TZ), 6000.0),
+        ]
+
+    async def fake_historical(
+        _config: market_indices.IndexConfig,
+        _value: float,
+        _change_pct: float,
+    ) -> dict[str, market_indices.MarketSparkline]:
+        return {}
+
+    monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
+    monkeypatch.setattr(market_indices, "_fetch_intraday_series", fake_intraday)
+    monkeypatch.setattr(market_indices, "_fetch_historical_ranges", fake_historical)
+    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+
+    index = await market_indices._build_index(spx)
+
+    assert len(index.sparkline_24h) == 2
+    assert "SPX returned only 2 intraday chart points" in caplog.text
+
+
 def test_historical_fallback_generates_weekday_daily_points(monkeypatch: pytest.MonkeyPatch) -> None:
     """Generated range fallbacks provide date-spanning data for multi-day chart ticks."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")

@@ -96,8 +96,8 @@ export function HeroChart() {
   const xAxisDomain = useMemo(() => buildChartXAxisDomain(activeRange, chartSessions), [activeRange, chartSessions]);
   const boundaryTicks = useMemo(() => buildChartBoundaryTicks(activeRange), [activeRange]);
   const yAxisDomain = useMemo(
-    () => previousCloseAxisDomain(currentData?.previousClose),
-    [currentData?.previousClose]
+    () => previousCloseAxisDomain(chartData),
+    [chartData]
   );
 
   const handlePrev = () => {
@@ -291,7 +291,7 @@ export function HeroChart() {
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <ResponsiveContainer height="100%" width="100%">
-              <AreaChart data={chartData} margin={{ bottom: 14, left: 30, right: 30, top: 10 }}>
+              <AreaChart data={chartData} margin={{ bottom: 14, left: 50, right: 50, top: 10 }}>
                 <defs>
                   <linearGradient id="colorPositive" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.35} />
@@ -314,6 +314,7 @@ export function HeroChart() {
                   tickLine={false}
                   tickMargin={12}
                   ticks={chartTicks}
+                  padding={{ left: 18, right: 18 }}
                   type="number"
                 />
                 <YAxis axisLine={false} domain={yAxisDomain} hide tickLine={false} />
