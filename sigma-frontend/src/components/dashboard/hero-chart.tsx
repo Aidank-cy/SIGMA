@@ -25,6 +25,7 @@ const INDEX_ICONS: Record<string, { letter: string; bg: string; text: string }> 
 
 const timeRanges = ["1D", "5D", "1M", "3M", "1Y"];
 const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const warnedChartFallbacks = new Set<string>();
 
 interface ChartPoint {
   time: number;
@@ -42,7 +43,19 @@ interface MarketChartData {
   tradingHours: MarketIndex["trading_hours"];
 }
 
-function generateChartData(points: number, value: number, positive: boolean): ChartPoint[] {
+function warnChartFallback(key: string, message: string): void {
+  if (warnedChartFallbacks.has(key)) {
+    return;
+  }
+  warnedChartFallbacks.add(key);
+  console.warn(message);
+}
+
+function generateChartData(points: number, value: number, positive: boolean, label = "market index"): ChartPoint[] {
+  warnChartFallback(
+    label,
+    `SIGMA is displaying generated fallback chart data for ${label} because the API response did not include a usable sparkline.`
+  );
   const floor = value * 0.975;
   const ceiling = value * 1.025;
   let current = positive ? value * 0.985 : value * 1.015;
@@ -86,7 +99,7 @@ function toChartData(index: MarketIndex): ChartPoint[] {
   if (sparkline.length > 1 && timestamps.length === sparkline.length) {
     return sparkline.map((point, pointIndex) => ({ time: pointIndex, timestamp: timestamps[pointIndex], value: point }));
   }
-  return generateChartData(60, index.value || 100, index.change_pct >= 0);
+  return generateChartData(60, index.value || 100, index.change_pct >= 0, index.symbol);
 }
 
 function timeParts(timestamp: string, timeZone = "Asia/Shanghai"): { date: string; hour: number; minute: number; time: string } {
@@ -269,28 +282,10 @@ function formatTooltipTime(timestamp: string): string {
 
 export function HeroChart() {
   const t = useTranslations("dashboard");
+  const chartT = useTranslations("feed.chart");
   const { data, isLoading } = useMarketIndices();
   const markets = useMemo<MarketChartData[]>(() => {
     const indices = data?.indices ?? [];
-    if (indices.length === 0) {
-      return [
-        {
-          change: 0,
-          data: generateChartData(60, 100, true),
-          name: "SIGMA",
-          price: 100,
-          symbol: "SIGMA",
-          currency: "USD",
-          tradingHours: {
-            close: "16:00",
-            open: "09:30",
-            sessions: [{ close: "16:00", open: "09:30" }],
-            timezone: "Asia/Shanghai"
-          }
-        }
-      ];
-    }
-
     return indices.map((index) => ({
       change: index.change_pct,
       data: toChartData(index),
@@ -381,6 +376,16 @@ export function HeroChart() {
           </div>
         </div>
         <div className="h-56 animate-pulse rounded-xl bg-muted/60 lg:h-72" />
+      </div>
+    );
+  }
+
+  if (!currentData) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 lg:p-8">
+        <div className="flex h-56 items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground lg:h-72">
+          {chartT("empty")}
+        </div>
       </div>
     );
   }

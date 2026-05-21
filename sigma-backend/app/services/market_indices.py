@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 import math
 import os
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ from app.utils.redis_lock import create_redis_client
 CACHE_KEY = "sigma:market-indices"
 CACHE_TTL_SECONDS = 60
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -88,10 +90,19 @@ def any_market_trading_now(now: datetime | None = None) -> bool:
 
 async def _build_index(config: IndexConfig) -> MarketIndex:
     quote = await _fetch_index_quote(config)
+    if quote is None:
+        LOGGER.warning(
+            "Using last-resort fallback quote for %s because live market data providers returned no quote.",
+            config.symbol,
+        )
     value = quote[0] if quote is not None else config.fallback_value
     change_pct = quote[1] if quote is not None else config.fallback_change_pct
     intraday = await _fetch_intraday_series(config, value)
     if intraday is None:
+        LOGGER.warning(
+            "Using generated fallback intraday series for %s because live intraday providers returned no candles.",
+            config.symbol,
+        )
         intraday = _fallback_intraday_series(config, value, change_pct)
     elif quote is None and intraday:
         value = intraday[-1].value
@@ -144,6 +155,11 @@ async def _fetch_finnhub_quote(config: IndexConfig) -> tuple[float, float] | Non
         proxy_quote = await _fetch_finnhub_symbol_quote(config.finnhub_proxy_symbol, token)
         if proxy_quote is not None:
             _, change_pct = proxy_quote
+            LOGGER.warning(
+                "Using Finnhub proxy %s scaled from fallback base value for %s because the direct index quote is unavailable.",
+                config.finnhub_proxy_symbol,
+                config.symbol,
+            )
             return config.fallback_value * (1 + change_pct / 100), change_pct
     return None
 
@@ -157,6 +173,12 @@ async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> tuple[float, f
             )
             response.raise_for_status()
             payload = response.json()
+    except httpx.HTTPStatusError as exc:
+        LOGGER.warning("Finnhub quote request for %s failed with status %s.", symbol, exc.response.status_code)
+        return None
+    except httpx.HTTPError as exc:
+        LOGGER.warning("Finnhub quote request for %s failed: %s.", symbol, type(exc).__name__)
+        return None
     except Exception:
         return None
 
@@ -179,7 +201,17 @@ async def _fetch_alpha_vantage_quote(config: IndexConfig) -> tuple[float, float]
             )
             response.raise_for_status()
             payload = response.json().get("Global Quote", {})
+    except httpx.HTTPStatusError as exc:
+        LOGGER.warning("Alpha Vantage quote request for %s failed with status %s.", config.symbol, exc.response.status_code)
+        return None
+    except httpx.HTTPError as exc:
+        LOGGER.warning("Alpha Vantage quote request for %s failed: %s.", config.symbol, type(exc).__name__)
+        return None
     except Exception:
+        return None
+
+    if not payload:
+        LOGGER.warning("Alpha Vantage quote response for %s did not include Global Quote data.", config.symbol)
         return None
 
     current = _as_float(payload.get("05. price"))
@@ -289,6 +321,12 @@ async def _fetch_finnhub_candles(
             )
             response.raise_for_status()
             payload = response.json()
+    except httpx.HTTPStatusError as exc:
+        LOGGER.warning("Finnhub candle request for %s failed with status %s.", symbol, exc.response.status_code)
+        return None
+    except httpx.HTTPError as exc:
+        LOGGER.warning("Finnhub candle request for %s failed: %s.", symbol, type(exc).__name__)
+        return None
     except Exception:
         return None
 
@@ -332,11 +370,18 @@ async def _fetch_alpha_vantage_intraday_series(config: IndexConfig) -> list[Intr
             )
             response.raise_for_status()
             payload = response.json()
+    except httpx.HTTPStatusError as exc:
+        LOGGER.warning("Alpha Vantage intraday request for %s failed with status %s.", config.symbol, exc.response.status_code)
+        return None
+    except httpx.HTTPError as exc:
+        LOGGER.warning("Alpha Vantage intraday request for %s failed: %s.", config.symbol, type(exc).__name__)
+        return None
     except Exception:
         return None
 
     series = payload.get("Time Series (1min)")
     if not isinstance(series, dict):
+        LOGGER.warning("Alpha Vantage intraday response for %s did not include 1-minute time series data.", config.symbol)
         return None
 
     zone = ZoneInfo(config.timezone)

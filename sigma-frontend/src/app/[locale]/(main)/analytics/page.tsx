@@ -66,6 +66,29 @@ function buildDailyVolume(items: ItemSummary[], locale: string) {
   }))
 }
 
+function buildDailySentiment(items: ItemSummary[], locale: string) {
+  const buckets = new Map<string, { bullish: number; total: number }>()
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const date = new Date()
+    date.setDate(date.getDate() - offset)
+    buckets.set(date.toISOString().slice(0, 10), { bullish: 0, total: 0 })
+  }
+  items.forEach((item) => {
+    const key = item.published_at.slice(0, 10)
+    const bucket = buckets.get(key)
+    if (!bucket) return
+    bucket.total += 1
+    if (inferSentiment(item) === "bullish") {
+      bucket.bullish += 1
+    }
+  })
+  return Array.from(buckets.entries()).map(([day, bucket]) => ({
+    day: new Intl.DateTimeFormat(locale, { weekday: "short" }).format(new Date(`${day}T00:00:00Z`)),
+    sentiment: bucket.total > 0 ? Math.round((bucket.bullish / bucket.total) * 100) : 0,
+    total: bucket.total
+  }))
+}
+
 function buildSourceData(items: ItemSummary[]) {
   const counts = new Map<string, number>()
   items.forEach((item) => counts.set(item.source_name, (counts.get(item.source_name) ?? 0) + 1))
@@ -149,9 +172,11 @@ export default function AnalyticsPage() {
   const items = useMemo(() => itemQuery.data?.pages.flatMap((page) => page.items) ?? [], [itemQuery.data])
   const reports = useMemo(() => reportsQuery.data?.pages.flatMap((page) => page.items) ?? [], [reportsQuery.data])
   const sentimentData = useMemo(() => {
-    const bullish = Math.round(sentiment.data?.bullish_pct ?? 0)
     const itemSentiments = items.map(inferSentiment)
-    const bearish = itemSentiments.length > 0 ? Math.round((itemSentiments.filter((value) => value === "bearish").length / itemSentiments.length) * 100) : Math.max(0, 100 - bullish - 20)
+    const bullish = itemSentiments.length > 0
+      ? Math.round((itemSentiments.filter((value) => value === "bullish").length / itemSentiments.length) * 100)
+      : Math.round(sentiment.data?.bullish_pct ?? 0)
+    const bearish = itemSentiments.length > 0 ? Math.round((itemSentiments.filter((value) => value === "bearish").length / itemSentiments.length) * 100) : 0
     const neutral = Math.max(0, 100 - bullish - bearish)
     return [
       { color: "oklch(0.65 0.22 145)", name: feedT("sentiment.bullish"), value: bullish },
@@ -160,10 +185,14 @@ export default function AnalyticsPage() {
     ]
   }, [feedT, items, sentiment.data?.bullish_pct])
   const bullishValue = sentimentData[0]?.value ?? 0
-  const trendData = useMemo(
-    () => buildDailyVolume(items, locale).map((point, index) => ({ day: point.day, sentiment: Math.max(0, Math.min(100, bullishValue + index - 3)) })),
-    [bullishValue, items, locale]
-  )
+  const trendData = useMemo(() => buildDailySentiment(items, locale), [items, locale])
+  const trendChange = useMemo(() => {
+    const observed = trendData.filter((point) => point.total > 0)
+    if (observed.length < 2) {
+      return null
+    }
+    return observed[observed.length - 1].sentiment - observed[0].sentiment
+  }, [trendData])
   const volumeData = useMemo(() => buildDailyVolume(items, locale), [items, locale])
   const sourceData = useMemo(() => buildSourceData(items), [items])
   const categoryData = useMemo(() => buildCategoryRows(items, feedT), [feedT, items])
@@ -250,7 +279,11 @@ export default function AnalyticsPage() {
               <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
             </AreaChart>
           </ResponsiveContainer>
-          <TrendLabel positive value="+4.2%" />
+          {trendChange === null ? (
+            <p className="mt-2 text-sm text-muted-foreground">{t("notAvailable")}</p>
+          ) : (
+            <TrendLabel positive={trendChange >= 0} value={`${trendChange >= 0 ? "+" : ""}${trendChange}%`} />
+          )}
         </MetricCard>
 
         <MetricCard title={t("articleVolume")}>

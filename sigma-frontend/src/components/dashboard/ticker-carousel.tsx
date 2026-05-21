@@ -7,7 +7,15 @@ import { useEffect, useRef, useState } from "react";
 import { useMarketIndices } from "@/hooks/useMarketIndices";
 import { cn } from "@/lib/utils";
 
-function fallbackSparkline(value: number, positive: boolean) {
+const warnedTickerFallbacks = new Set<string>();
+
+function fallbackSparkline(value: number, positive: boolean, symbol: string) {
+  if (!warnedTickerFallbacks.has(symbol)) {
+    warnedTickerFallbacks.add(symbol);
+    console.warn(
+      `SIGMA is displaying a generated ticker sparkline for ${symbol} because the API response did not include enough live sparkline points.`
+    );
+  }
   return Array.from({ length: 12 }).map((_, index) => {
     const drift = positive ? index * value * 0.001 : -index * value * 0.001;
     const wave = Math.sin(index) * value * 0.002;
@@ -49,7 +57,7 @@ export function TickerCarousel() {
     price: index.value,
     sparkline: index.sparkline_24h.length > 1
       ? index.sparkline_24h
-      : fallbackSparkline(index.value, index.change_pct >= 0),
+      : fallbackSparkline(index.value, index.change_pct >= 0, index.symbol),
     symbol: index.symbol
   }));
   const scrollRef = useRef<HTMLDivElement>(null);

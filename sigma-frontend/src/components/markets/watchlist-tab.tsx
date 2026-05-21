@@ -3,7 +3,7 @@
 import { useState } from "react"
 import type { FormEvent } from "react"
 import { motion } from "framer-motion"
-import { Star, Plus, TrendingUp, TrendingDown, X } from "lucide-react"
+import { Star, Plus, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 
 import { useWatchlistMutations, useWatchlists } from "@/hooks/useWatchlists"
@@ -22,35 +22,6 @@ const containerVariants = {
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-}
-
-function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  const range = max - min || 1
-  const height = 24
-  const width = 64
-
-  const points = data
-    .map((value, i) => {
-      const x = (i / (data.length - 1)) * width
-      const y = height - ((value - min) / range) * height
-      return `${x},${y}`
-    })
-    .join(" ")
-
-  return (
-    <svg width={width} height={height} className="overflow-visible">
-      <polyline
-        points={points}
-        fill="none"
-        stroke={positive ? "oklch(0.65 0.22 145)" : "oklch(0.6 0.22 25)"}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
 }
 
 export function WatchlistTab() {
@@ -154,15 +125,7 @@ export function WatchlistTab() {
         className="space-y-2"
       >
         {watchlists.map((watchlist: Watchlist) => {
-          const isPositive = watchlist.item_count >= 0
           const isStarred = starred.has(watchlist.id)
-          const sparkline = [
-            Math.max(1, watchlist.item_count - 4),
-            Math.max(1, watchlist.item_count - 2),
-            Math.max(1, watchlist.item_count - 3),
-            Math.max(1, watchlist.item_count),
-            Math.max(1, watchlist.item_count + 1)
-          ]
 
           return (
             <motion.div
@@ -188,26 +151,13 @@ export function WatchlistTab() {
 
               {/* Change Badge */}
               <div className="min-w-[80px]">
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    isPositive
-                      ? "bg-chart-1/10 text-chart-1"
-                      : "bg-chart-2/10 text-chart-2"
-                  }`}
-                >
-                  {isPositive ? (
-                    <TrendingUp className="w-3 h-3" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3" />
-                  )}
-                  {isPositive ? "+" : ""}
-                  {watchlist.keywords.length}
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                  {t("keywordCount", { count: watchlist.keywords.length })}
                 </span>
               </div>
 
-              {/* Sparkline */}
-              <div className="flex-1 flex justify-center">
-                <Sparkline data={sparkline} positive={isPositive} />
+              <div className="flex flex-1 justify-center">
+                <span className="text-xs font-medium text-muted-foreground">{t("notAvailable")}</span>
               </div>
 
               {/* Star Button */}

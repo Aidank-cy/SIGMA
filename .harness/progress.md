@@ -1033,3 +1033,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Replaced duration-only lunch-gap detection with session-boundary detection so declared multi-session markets merge break labels such as HSI 12:00/13:00 and N225 11:30/12:30 without retaining the adjacent close tick. Frontend build and post-edit hook passed; browser loaded the local app but stopped at the protected login screen without a backend session.
 - Timestamp: 2026-05-21T05:24:16Z
+
+### [Maintenance] Real-data-only runtime cleanup
+- Status: COMPLETE
+- Files created: none
+- Files removed: sigma-backend/scripts/seed_demo_data.py
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_seeds.py, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/dashboard/ticker-carousel.tsx, sigma-frontend/src/components/markets/market-summary.tsx, sigma-frontend/src/components/markets/sectors-tab.tsx, sigma-frontend/src/components/markets/watchlist-tab.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Removed runtime demo values from market summaries, sector cards, watchlist trend sparklines, settings trend charts, analytics sentiment trends, and empty LLM provider charts; kept emergency chart/index fallbacks with console/backend warnings. API keys are present in `.env`, but live smoke tests show Finnhub returns 401 and Alpha Vantage returns informational responses instead of quote payloads. Verified backend Ruff, full backend pytest, frontend build, post-edit hook, and an escalated market-index refresh that returned quotes while warning about generated intraday fallbacks.
+- Timestamp: 2026-05-21T05:41:25Z
