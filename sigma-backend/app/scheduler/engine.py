@@ -122,10 +122,10 @@ def add_report_jobs(
 
 
 def add_market_indices_job(job_func: Callable[..., object] = refresh_market_indices_job) -> None:
-    """Register the one-minute market indices cache refresh job."""
+    """Register the near-real-time market indices cache refresh job."""
     scheduler.add_job(
         job_func,
-        trigger=IntervalTrigger(seconds=60, timezone="UTC"),
+        trigger=IntervalTrigger(seconds=15, timezone="UTC"),
         id="market-indices:refresh",
         replace_existing=True,
         max_instances=1,

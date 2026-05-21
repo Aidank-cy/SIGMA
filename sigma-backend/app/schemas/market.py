@@ -25,12 +25,13 @@ class MarketIndex(BaseModel):
     symbol: str
     name: str
     value: float
+    previous_close: float
     change_pct: float
     market: str
     currency: str
     is_trading: bool
     trading_hours: TradingHours
-    sparkline_24h: list[float] = Field(min_length=2)
+    sparkline_24h: list[float] = Field(default_factory=list)
     sparkline_times: list[str] = Field(default_factory=list)
 
 

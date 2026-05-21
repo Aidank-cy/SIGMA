@@ -123,13 +123,13 @@ def test_scheduler_registers_cleanup_job() -> None:
 
 
 def test_scheduler_registers_market_indices_job() -> None:
-    """Scheduler registers market indices refresh separately."""
+    """Scheduler registers near-real-time market indices refresh separately."""
     scheduler.remove_all_jobs()
 
     add_market_indices_job()
 
     assert scheduler.get_job("market-indices:refresh") is not None
-    assert scheduler.get_job("market-indices:refresh").trigger.interval.total_seconds() == 60
+    assert scheduler.get_job("market-indices:refresh").trigger.interval.total_seconds() == 15
     scheduler.remove_all_jobs()
 
     add_report_jobs()

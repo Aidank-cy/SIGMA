@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add previous-close values to market index API responses so frontend charts can anchor their Y-axis ranges around the prior session close.
 - Add timestamped per-minute intraday market index series with Beijing-time trading sessions and real-data candle fetches.
 - Add a database cleanup script that removes collected content, reports, watchlists, logs, and non-admin/test users.
 - Add persisted drag-and-drop region ordering for the Markets sectors grid.
@@ -25,6 +26,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Shorten market-index polling and backend cache freshness to roughly 15 seconds while any configured market is trading, and slow closed-market polling to roughly 120 seconds.
 - Replace runtime demo market summaries, sector performance, watchlist trend sparklines, settings trends, analytics sentiment trends, and empty LLM provider charts with live-data-derived values or N/A states.
 - Rename portfolio detail links to describe full market details in English and Chinese.
 - Refine the hero chart range controls and X-axis labels with a 5D option, day-only midnight labels, lunch-gap separators, and unclipped edge labels.
@@ -48,6 +50,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Clear dashboard and Markets chart panels during the one-hour pre-open window and anchor their Y-axis domains to previous close +/- 500 points while expanding for out-of-range intraday moves.
 - Add frontend and backend warnings whenever emergency generated chart or market-index fallback data is displayed.
 - Fix intraday chart axis labels for all declared multi-session market breaks so one-hour lunch gaps merge into a single clean tick.
 - Fix LLM settings cache staleness and empty API key defaults when no config is returned.

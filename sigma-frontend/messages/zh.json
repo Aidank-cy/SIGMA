@@ -80,6 +80,8 @@
     "viewMore": "查看更多",
     "chart": {
       "autoRotate": "自动",
+      "awaitingMarketOpen": "等待开盘...",
+      "closed": "市场休市",
       "empty": "暂无市场指数数据。",
       "loading": "正在加载市场指数数据。",
       "majorIndices": "主要指数",
@@ -182,6 +184,7 @@
     "viewPortfolio": "查看完整情况",
     "marketSummary": "市场概览",
     "marketSummaryCaption": "上涨、下跌和持平数量来自实时市场指数 API。尚无后端接口的广度字段显示为 N/A。",
+    "awaitingMarketOpen": "等待开盘...",
     "empty": "暂无市场指数数据。",
     "emptyWatchlist": "尚未创建关注列表。",
     "watchlistCount": "{count} 个关注列表",
@@ -707,7 +710,7 @@
       "tokenTrend": "14 天 Token 趋势",
       "usageByFunction": "按功能统计",
       "providerUsageDistribution": "Provider Usage Distribution",
-      "noUsageData": "N/A",
+      "noUsageData": "暂无使用数据。",
       "dailyTokenBudget": "Daily Token Budget",
       "dailyTokenBudgetCaption": "{tokens} of {limit} tokens used today.",
       "providers": {

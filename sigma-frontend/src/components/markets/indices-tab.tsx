@@ -4,9 +4,11 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 import { TrendingUp, TrendingDown } from "lucide-react"
-import { AreaChart, Area, ResponsiveContainer } from "recharts"
+import { AreaChart, Area, ResponsiveContainer, YAxis } from "recharts"
 
+import { useMarketClock } from "@/hooks/useMarketClock"
 import { useMarketIndices } from "@/hooks/useMarketIndices"
+import { isPreMarketClearWindow, previousCloseAxisDomain } from "@/lib/marketSessions"
 import { cn } from "@/lib/utils"
 
 const timeRanges = ["1D", "5D", "1M", "3M", "1Y"]
@@ -29,6 +31,7 @@ const itemVariants = {
 export function IndicesTab() {
   const t = useTranslations("markets")
   const { data, isLoading } = useMarketIndices()
+  const now = useMarketClock()
   const [activeRange, setActiveRange] = useState("1D")
   const indices = data?.indices ?? []
 
@@ -84,6 +87,7 @@ export function IndicesTab() {
         {indices.map((index) => {
           const isPositive = index.change_pct >= 0
           const sparkline = index.sparkline_24h.length > 0 ? index.sparkline_24h : [index.value]
+          const isAwaitingOpen = isPreMarketClearWindow(index.trading_hours, now)
           const chartColor = isPositive
             ? "oklch(0.65 0.22 145)"
             : "oklch(0.6 0.22 25)"
@@ -134,29 +138,37 @@ export function IndicesTab() {
 
               {/* Chart */}
               <div className="h-24 -mx-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={sparkline.map((value) => ({ value }))}>
-                    <defs>
-                      <linearGradient
-                        id={`gradient-${index.symbol}-${activeRange}`}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop offset="0%" stopColor={chartColor} stopOpacity={0.3} />
-                        <stop offset="100%" stopColor={chartColorFaded} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke={chartColor}
-                      strokeWidth={2}
-                      fill={`url(#gradient-${index.symbol}-${activeRange})`}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {isAwaitingOpen ? (
+                  <div className="mx-2 flex h-full items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">
+                    {t("awaitingMarketOpen")}
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sparkline.map((value) => ({ value }))}>
+                      <defs>
+                        <linearGradient
+                          id={`gradient-${index.symbol}-${activeRange}`}
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop offset="0%" stopColor={chartColor} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={chartColorFaded} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <YAxis domain={previousCloseAxisDomain(index.previous_close)} hide />
+                      <Area
+                        animationDuration={450}
+                        type="monotone"
+                        dataKey="value"
+                        stroke={chartColor}
+                        strokeWidth={2}
+                        fill={`url(#gradient-${index.symbol}-${activeRange})`}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </motion.div>
           )

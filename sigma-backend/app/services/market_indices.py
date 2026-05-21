@@ -14,7 +14,8 @@ from app.schemas.market import MarketIndex, MarketIndicesResponse, TradingHours,
 from app.utils.redis_lock import create_redis_client
 
 CACHE_KEY = "sigma:market-indices"
-CACHE_TTL_SECONDS = 60
+ACTIVE_CACHE_TTL_SECONDS = 15
+CLOSED_CACHE_TTL_SECONDS = 120
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +50,13 @@ class IntradayPoint:
     value: float
 
 
+@dataclass(frozen=True)
+class IndexQuote:
+    current: float
+    change_pct: float
+    previous_close: float
+
+
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
     IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "SPY", "^spx", 5842.15, 0.41, "USD"),
     IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "QQQ", "^ndq", 18352.04, 0.56, "USD"),
@@ -66,7 +74,7 @@ INDEX_CONFIGS: tuple[IndexConfig, ...] = (
 async def get_market_indices() -> MarketIndicesResponse:
     """Return cached market indices or refresh them when missing."""
     cached = await _cache_get()
-    if cached is not None:
+    if cached is not None and _cached_payload_is_fresh(cached):
         return MarketIndicesResponse.model_validate_json(cached)
     return await refresh_market_indices(force=True)
 
@@ -74,7 +82,7 @@ async def get_market_indices() -> MarketIndicesResponse:
 async def refresh_market_indices(force: bool = False) -> MarketIndicesResponse:
     """Refresh index quotes and cache them for ticker consumers."""
     cached = await _cache_get()
-    if cached is not None and not force and not any_market_trading_now():
+    if cached is not None and not force and _cached_payload_is_fresh(cached):
         return MarketIndicesResponse.model_validate_json(cached)
 
     indices = [await _build_index(config) for config in INDEX_CONFIGS]
@@ -95,8 +103,9 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
             "Using last-resort fallback quote for %s because live market data providers returned no quote.",
             config.symbol,
         )
-    value = quote[0] if quote is not None else config.fallback_value
-    change_pct = quote[1] if quote is not None else config.fallback_change_pct
+    value = quote.current if quote is not None else config.fallback_value
+    change_pct = quote.change_pct if quote is not None else config.fallback_change_pct
+    previous_close = quote.previous_close if quote is not None else _previous_close_from_change(value, change_pct)
     intraday = await _fetch_intraday_series(config, value)
     if intraday is None:
         LOGGER.warning(
@@ -113,6 +122,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
         symbol=config.symbol,
         name=config.name,
         value=round(value, 2),
+        previous_close=round(previous_close, 2),
         change_pct=round(change_pct, 2),
         market=config.market,
         currency=config.currency,
@@ -131,7 +141,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
     )
 
 
-async def _fetch_index_quote(config: IndexConfig) -> tuple[float, float] | None:
+async def _fetch_index_quote(config: IndexConfig) -> IndexQuote | None:
     quote = await _fetch_finnhub_quote(config)
     if quote is not None:
         return quote
@@ -144,7 +154,7 @@ async def _fetch_index_quote(config: IndexConfig) -> tuple[float, float] | None:
     return await _fetch_yahoo_quote(config)
 
 
-async def _fetch_finnhub_quote(config: IndexConfig) -> tuple[float, float] | None:
+async def _fetch_finnhub_quote(config: IndexConfig) -> IndexQuote | None:
     token = os.getenv("FINNHUB_KEY", "")
     if not token:
         return None
@@ -154,17 +164,18 @@ async def _fetch_finnhub_quote(config: IndexConfig) -> tuple[float, float] | Non
     if config.finnhub_proxy_symbol:
         proxy_quote = await _fetch_finnhub_symbol_quote(config.finnhub_proxy_symbol, token)
         if proxy_quote is not None:
-            _, change_pct = proxy_quote
+            change_pct = proxy_quote.change_pct
+            current = config.fallback_value * (1 + change_pct / 100)
             LOGGER.warning(
                 "Using Finnhub proxy %s scaled from fallback base value for %s because the direct index quote is unavailable.",
                 config.finnhub_proxy_symbol,
                 config.symbol,
             )
-            return config.fallback_value * (1 + change_pct / 100), change_pct
+            return IndexQuote(current=current, change_pct=change_pct, previous_close=config.fallback_value)
     return None
 
 
-async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> tuple[float, float] | None:
+async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> IndexQuote | None:
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             response = await client.get(
@@ -186,10 +197,10 @@ async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> tuple[float, f
     previous = _as_float(payload.get("pc"))
     if current is None or previous is None or current <= 0 or previous <= 0:
         return None
-    return current, ((current - previous) / previous) * 100
+    return IndexQuote(current=current, change_pct=((current - previous) / previous) * 100, previous_close=previous)
 
 
-async def _fetch_alpha_vantage_quote(config: IndexConfig) -> tuple[float, float] | None:
+async def _fetch_alpha_vantage_quote(config: IndexConfig) -> IndexQuote | None:
     token = os.getenv("ALPHAVANTAGE_KEY", "")
     if not token:
         return None
@@ -215,14 +226,19 @@ async def _fetch_alpha_vantage_quote(config: IndexConfig) -> tuple[float, float]
         return None
 
     current = _as_float(payload.get("05. price"))
+    previous = _as_float(payload.get("08. previous close"))
     change_text = str(payload.get("10. change percent", "")).removesuffix("%")
     change_pct = _as_float(change_text)
     if current is None or change_pct is None or current <= 0:
         return None
-    return current, change_pct
+    return IndexQuote(
+        current=current,
+        change_pct=change_pct,
+        previous_close=previous if previous is not None and previous > 0 else _previous_close_from_change(current, change_pct),
+    )
 
 
-async def _fetch_stooq_quote(config: IndexConfig) -> tuple[float, float] | None:
+async def _fetch_stooq_quote(config: IndexConfig) -> IndexQuote | None:
     if config.stooq_symbol is None:
         return None
     try:
@@ -242,10 +258,10 @@ async def _fetch_stooq_quote(config: IndexConfig) -> tuple[float, float] | None:
     previous = _as_float(rows[0].get("Prev"))
     if current is None or previous is None or current <= 0 or previous <= 0:
         return None
-    return current, ((current - previous) / previous) * 100
+    return IndexQuote(current=current, change_pct=((current - previous) / previous) * 100, previous_close=previous)
 
 
-async def _fetch_yahoo_quote(config: IndexConfig) -> tuple[float, float] | None:
+async def _fetch_yahoo_quote(config: IndexConfig) -> IndexQuote | None:
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             response = await client.get(
@@ -266,7 +282,7 @@ async def _fetch_yahoo_quote(config: IndexConfig) -> tuple[float, float] | None:
     previous = _as_float(meta.get("chartPreviousClose")) or _as_float(meta.get("previousClose"))
     if current is None or previous is None or current <= 0 or previous <= 0:
         return None
-    return current, ((current - previous) / previous) * 100
+    return IndexQuote(current=current, change_pct=((current - previous) / previous) * 100, previous_close=previous)
 
 
 async def _fetch_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
@@ -449,7 +465,7 @@ async def _fetch_yahoo_intraday_series(config: IndexConfig) -> list[IntradayPoin
 
 
 def _is_trading(config: IndexConfig, now: datetime | None = None) -> bool:
-    active_now = now.astimezone(ZoneInfo(config.timezone)) if now else datetime.now(ZoneInfo(config.timezone))
+    active_now = (now or _now_utc()).astimezone(ZoneInfo(config.timezone))
     if active_now.weekday() >= 5:
         return False
     current = active_now.time().replace(tzinfo=None)
@@ -458,9 +474,11 @@ def _is_trading(config: IndexConfig, now: datetime | None = None) -> bool:
 
 def _fallback_intraday_series(config: IndexConfig, value: float, change_pct: float) -> list[IntradayPoint]:
     """Generate fallback prices over the exchange's actual trading minutes."""
-    timestamps = _trading_minutes(config, _latest_session_date(config))
+    timestamps = _elapsed_trading_minutes(config, _latest_session_date(config))
     num_points = len(timestamps)
     start = value / (1 + change_pct / 100) if change_pct != -100 else value
+    if num_points <= 1:
+        return [IntradayPoint(timestamp=timestamps[0], value=round(value, 2))]
     points: list[float] = []
     for index in range(num_points):
         progress = index / (num_points - 1)
@@ -490,10 +508,13 @@ def _align_intraday_points(
 
     aligned: list[IntradayPoint] = []
     last_value = first_value
+    latest_point_time = max(values_by_minute)
     for timestamp in _trading_minutes(config, session_date):
+        if timestamp > latest_point_time:
+            break
         last_value = values_by_minute.get(timestamp, last_value)
         aligned.append(IntradayPoint(timestamp=timestamp, value=last_value))
-    return aligned if len(aligned) > 1 else None
+    return aligned or None
 
 
 def _trading_minutes(config: IndexConfig, session_date: date) -> list[datetime]:
@@ -521,13 +542,48 @@ def _session_utc_bounds(config: IndexConfig, session_date: date) -> tuple[dateti
 
 
 def _latest_session_date(config: IndexConfig, now: datetime | None = None) -> date:
-    local_now = now.astimezone(ZoneInfo(config.timezone)) if now else datetime.now(ZoneInfo(config.timezone))
+    local_now = (now or _now_utc()).astimezone(ZoneInfo(config.timezone))
     session_date = local_now.date()
     if local_now.time().replace(tzinfo=None) < config.open_time:
         session_date -= timedelta(days=1)
     while session_date.weekday() >= 5:
         session_date -= timedelta(days=1)
     return session_date
+
+
+def _elapsed_trading_minutes(config: IndexConfig, session_date: date, now: datetime | None = None) -> list[datetime]:
+    timestamps = _trading_minutes(config, session_date)
+    local_now = (now or _now_utc()).astimezone(ZoneInfo(config.timezone))
+    if local_now.date() != session_date or local_now.time().replace(tzinfo=None) >= config.close_time:
+        return timestamps
+    cutoff = local_now.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
+    elapsed = [timestamp for timestamp in timestamps if timestamp <= cutoff]
+    return elapsed or timestamps[:1]
+
+
+def _previous_close_from_change(value: float, change_pct: float) -> float:
+    if change_pct == -100:
+        return value
+    previous = value / (1 + change_pct / 100)
+    return previous if previous > 0 else value
+
+
+def _market_cache_ttl_seconds(now: datetime | None = None) -> int:
+    return ACTIVE_CACHE_TTL_SECONDS if any_market_trading_now(now) else CLOSED_CACHE_TTL_SECONDS
+
+
+def _cached_payload_is_fresh(value: str, now: datetime | None = None) -> bool:
+    try:
+        response = MarketIndicesResponse.model_validate_json(value)
+    except Exception:
+        return False
+    current = now or _now_utc()
+    age = current - response.updated_at
+    return age <= timedelta(seconds=_market_cache_ttl_seconds(current))
+
+
+def _now_utc() -> datetime:
+    return datetime.now(UTC)
 
 
 def _as_float(value: object) -> float | None:
@@ -551,7 +607,7 @@ async def _cache_get() -> str | None:
 async def _cache_set(value: str) -> None:
     client = create_redis_client()
     try:
-        await client.set(CACHE_KEY, value, ex=CACHE_TTL_SECONDS)
+        await client.set(CACHE_KEY, value, ex=_market_cache_ttl_seconds())
     except Exception:
         return
     finally:

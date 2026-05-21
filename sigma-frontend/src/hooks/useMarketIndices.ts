@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
+import { marketIndicesRefetchInterval } from "@/lib/marketSessions";
 import type { MarketIndex, MarketIndicesResponse } from "@/lib/types";
 
 function normalizeMarketIndices(response: MarketIndex[] | MarketIndicesResponse): MarketIndicesResponse {
@@ -22,7 +23,7 @@ export function useMarketIndices() {
       const response = await apiFetch<MarketIndex[] | MarketIndicesResponse>("/market-indices");
       return normalizeMarketIndices(response);
     },
-    refetchInterval: 60_000
+    refetchInterval: (query) => marketIndicesRefetchInterval(query.state.data?.indices ?? [])
   });
 
   return {

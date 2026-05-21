@@ -1042,3 +1042,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Removed runtime demo values from market summaries, sector cards, watchlist trend sparklines, settings trend charts, analytics sentiment trends, and empty LLM provider charts; kept emergency chart/index fallbacks with console/backend warnings. API keys are present in `.env`, but live smoke tests show Finnhub returns 401 and Alpha Vantage returns informational responses instead of quote payloads. Verified backend Ruff, full backend pytest, frontend build, post-edit hook, and an escalated market-index refresh that returned quotes while warning about generated intraday fallbacks.
 - Timestamp: 2026-05-21T05:41:25Z
+
+### [Maintenance] Real-time market chart freshness
+- Status: COMPLETE
+- Files created: sigma-frontend/src/hooks/useMarketClock.ts, sigma-frontend/src/lib/marketSessions.ts
+- Files modified: sigma-backend/app/scheduler/engine.py, sigma-backend/app/schemas/market.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/hooks/useMarketIndices.ts, sigma-frontend/src/lib/types.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added previous-close market index payloads, active-session-aware 15-second market polling/cache freshness, 120-second closed-market polling, elapsed-only intraday fallback generation during live sessions, one-hour pre-open empty states, and previous close +/- 500 chart domains that expand for out-of-range intraday data. Confirmed LLM usage cards and charts use backend data with zero/empty states and no demo distribution fallback.
+- Timestamp: 2026-05-21T05:53:26Z
