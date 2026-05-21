@@ -60,6 +60,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Place the dashboard closed-market status dot before the badge text.
 - Clear dashboard and Markets chart panels during the one-hour pre-open window and anchor their Y-axis domains to previous close +/- 500 points while expanding for out-of-range intraday moves.
 - Add frontend and backend warnings whenever emergency generated chart or market-index fallback data is displayed.
 - Fix intraday chart axis labels for all declared multi-session market breaks so one-hour lunch gaps merge into a single clean tick.

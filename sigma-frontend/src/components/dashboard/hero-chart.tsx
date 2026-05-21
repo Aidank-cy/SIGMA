@@ -196,20 +196,10 @@ export function HeroChart() {
               <span
                 className={cn(
                   "h-1.5 w-1.5 rounded-full",
-                  currentData?.isTrading ? "animate-pulse bg-chart-1" : "bg-muted-foreground/50"
+                  currentData?.isTrading ? "animate-pulse bg-chart-1" : "bg-black"
                 )}
               />
-              {currentData?.isTrading ? (
-                t("live")
-              ) : (
-                <>
-                  {chartT("closed")}
-                  <span
-                    aria-hidden="true"
-                    className="h-2 w-2 rounded-full bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.55)]"
-                  />
-                </>
-              )}
+              {currentData?.isTrading ? t("live") : chartT("closed")}
             </span>
           </div>
           <div className="flex items-center gap-3">
