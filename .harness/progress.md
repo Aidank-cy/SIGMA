@@ -1082,3 +1082,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Extended market index responses with timestamped historical sparkline ranges from Yahoo daily chart data, sliced 1Y data for 5D/1M/3M/1Y, added generated date-spanning fallbacks with warnings, and switched the Dashboard hero chart to use the selected range data so date/month X-axis labels render outside 1D. Verified with backend Ruff, focused market-index tests, and frontend production build.
 - Timestamp: 2026-05-21T06:52:05Z
+
+### [Maintenance] Markets index chart range axes
+- Status: COMPLETE
+- Files created: sigma-frontend/src/lib/marketChart.ts
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Shared Dashboard market chart range-data and axis formatting helpers with Markets, made the Markets index range selector switch chart data, and added compact X-axis labels with 3-5 ticks on each small index chart. Verified with `cd sigma-frontend && npm run build`.
+- Timestamp: 2026-05-21T06:58:52Z
