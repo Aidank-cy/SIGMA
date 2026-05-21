@@ -32,6 +32,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Move Hang Seng into the Asia Markets index region and remove the standalone Hong Kong group.
 - Increase English body and caption-level text weight and size for better small-label readability.
 - Rework Dashboard and Markets index chart X-axes around fixed intraday sessions, sliding 5D day regions, and rolling date windows.
 - Increase Dashboard and Markets chart X-axis label size and weight.
@@ -63,6 +64,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix cross-locale authentication by issuing site-wide refresh cookies and redirecting login to the user's stored locale.
+- Make the sidebar avatar popup opaque and align nav hover tooltips with their icons.
 - Place the dashboard closed-market status dot before the badge text.
 - Clear dashboard and Markets chart panels during the one-hour pre-open window and anchor their Y-axis domains to previous close +/- 500 points while expanding for out-of-range intraday moves.
 - Add frontend and backend warnings whenever emergency generated chart or market-index fallback data is displayed.

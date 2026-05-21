@@ -63,6 +63,22 @@ def test_register_accepts_username_alias(client: TestClient) -> None:
     assert payload["access_token"]
 
 
+def test_register_preserves_requested_locale(client: TestClient) -> None:
+    """Registration stores the locale submitted by the active frontend locale."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "display_name": "English User",
+            "email": "en-user@example.com",
+            "locale": "en",
+            "password": "StrongPass1",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["locale"] == "en"
+
+
 def test_register_second_is_user(client: TestClient) -> None:
     """Subsequent registered users receive user role."""
     register_user(client, "admin@example.com")
@@ -86,6 +102,7 @@ def test_login_success(client: TestClient) -> None:
     assert payload["refresh_token"]
     assert payload["token_type"] == "bearer"
     assert "refresh_token" in response.cookies
+    assert "Path=/" in response.headers["set-cookie"]
 
 
 def test_login_wrong_password_401(client: TestClient) -> None:

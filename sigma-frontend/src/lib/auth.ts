@@ -20,6 +20,7 @@ export interface LoginPayload {
 export interface RegisterPayload {
   display_name: string;
   email: string;
+  locale: "zh" | "en";
   password: string;
 }
 
@@ -33,10 +34,12 @@ export async function loginRequest(payload: LoginPayload): Promise<User> {
 }
 
 export async function registerRequest(payload: RegisterPayload): Promise<User> {
-  return apiFetch<User>("/auth/register", {
+  const user = await apiFetch<User>("/auth/register", {
     body: JSON.stringify(payload),
     method: "POST"
   });
+  setAccessToken(null);
+  return user;
 }
 
 export async function currentUserRequest(retryOnUnauthorized = true): Promise<User> {

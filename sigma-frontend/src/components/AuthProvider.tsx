@@ -15,7 +15,7 @@ import type { LoginPayload, RegisterPayload, User } from "@/lib/auth";
 
 interface AuthContextValue {
   isLoading: boolean;
-  login: (payload: LoginPayload) => Promise<void>;
+  login: (payload: LoginPayload) => Promise<User>;
   logout: () => void;
   register: (payload: RegisterPayload) => Promise<void>;
   user: User | null;
@@ -46,6 +46,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const authenticatedUser = await loginRequest(payload);
       setUser(authenticatedUser);
+      return authenticatedUser;
     } finally {
       setIsLoading(false);
     }

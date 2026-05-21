@@ -1146,3 +1146,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Raised English body text to 500 weight, enlarged English `.text-xs` captions to 13px while preserving explicit bold weights, and replaced the desktop sidebar logout/theme buttons with an animated avatar menu for Settings, theme mode, and logout. Verified with `cd sigma-frontend && npm run build` and `./hooks/post-file-edit.sh`; local dev-server browser smoke was unavailable because the stale server returned an empty response.
 - Timestamp: 2026-05-21T08:04:52Z
+
+### [Maintenance] Cross-locale auth and market/sidebar polish
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/api/v1/routes/auth.py, sigma-backend/app/schemas/auth.py, sigma-backend/tests/test_auth.py, sigma-frontend/src/lib/auth.ts, sigma-frontend/src/components/AuthProvider.tsx, sigma-frontend/src/app/[locale]/login/page.tsx, sigma-frontend/src/app/[locale]/register/page.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/components/dashboard/sidebar.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added site-wide auth refresh cookies, persisted registration locale, redirected login to the authenticated user's profile locale, confirmed next-intl middleware already respects explicit locale paths and token storage remains locale-independent, moved HSI into Asia, and made the sidebar account popup opaque with icon-aligned hover tooltips. Verified with focused backend auth tests, Ruff, frontend production build, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-21T08:39:02Z

@@ -48,9 +48,9 @@ export default function LoginPage() {
     }
     setIsSubmitting(true);
     try {
-      await login({ email, password });
+      const authenticatedUser = await login({ email, password });
       showToast(t("login.success"), "success");
-      router.push(`/${locale}`);
+      router.push(`/${authenticatedUser.locale}`);
     } catch {
       showToast(t("login.error"), "error");
     } finally {
