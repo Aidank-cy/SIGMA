@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add a market-index `is_fallback_data` flag so clients can distinguish generated chart data from provider data.
 - Add a sidebar avatar popup for Settings, theme switching, and logout.
 - Add region sections and filtering to Markets index cards.
 - Add compact X-axis labels to Markets index charts using the selected market chart range.
@@ -32,6 +33,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Prefer Yahoo Finance with browser headers and query2 retry for market-index intraday charts, using Finnhub and Alpha Vantage as backups.
+- Replace generated intraday sine-wave fallbacks with deterministic random-walk fallback data.
 - Remove the redundant Settings item from the sidebar and mobile nav while keeping Settings in the avatar menu.
 - Rename the English logout action from "Sign out" to "Log out".
 - Switch remaining shared line/area charts to linear interpolation instead of spline smoothing.
@@ -68,6 +71,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Log detailed market-index provider failures instead of silently swallowing Yahoo, Finnhub, Alpha Vantage, and Stooq request errors.
 - Hide Dashboard last-updated and Live indicators until market index data has loaded and prefetch market indices during login routing.
 - Anchor empty and first-tick market chart Y-axis domains to previous close or the first valid price before live data fills in.
 - Fix market chart Y-axis scaling with sparkline-based domains, proportional flat-day protection, and sparse forward-fill warnings.

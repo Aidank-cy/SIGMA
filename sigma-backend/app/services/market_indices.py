@@ -3,6 +3,7 @@ import json
 import logging
 import math
 import os
+import random
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from urllib.parse import quote as quote_path
@@ -18,6 +19,14 @@ ACTIVE_CACHE_TTL_SECONDS = 15
 CLOSED_CACHE_TTL_SECONDS = 120
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 LOGGER = logging.getLogger(__name__)
+YAHOO_CHART_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
+YAHOO_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/131.0.0.0 Safari/537.36"
+    ),
+}
 HISTORICAL_RANGES: dict[str, int] = {
     "5D": 5,
     "1M": 22,
@@ -113,6 +122,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
     change_pct = quote.change_pct if quote is not None else config.fallback_change_pct
     previous_close = quote.previous_close if quote is not None else _previous_close_from_change(value, change_pct)
     intraday = await _fetch_intraday_series(config, value)
+    is_fallback_data = intraday is None
     if intraday is None:
         LOGGER.warning(
             "Using generated fallback intraday series for %s because live intraday providers returned no candles.",
@@ -152,6 +162,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
         sparkline_24h=[round(point.value, 2) for point in intraday],
         sparkline_times=[point.timestamp.isoformat() for point in intraday],
         sparkline_ranges=sparkline_ranges,
+        is_fallback_data=is_fallback_data,
     )
 
 
@@ -204,7 +215,8 @@ async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> IndexQuote | N
     except httpx.HTTPError as exc:
         LOGGER.warning("Finnhub quote request for %s failed: %s.", symbol, type(exc).__name__)
         return None
-    except Exception:
+    except Exception as exc:
+        LOGGER.warning("Finnhub quote request for %s failed: %s: %s.", symbol, type(exc).__name__, exc)
         return None
 
     current = _as_float(payload.get("c"))
@@ -232,7 +244,8 @@ async def _fetch_alpha_vantage_quote(config: IndexConfig) -> IndexQuote | None:
     except httpx.HTTPError as exc:
         LOGGER.warning("Alpha Vantage quote request for %s failed: %s.", config.symbol, type(exc).__name__)
         return None
-    except Exception:
+    except Exception as exc:
+        LOGGER.warning("Alpha Vantage quote request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc)
         return None
 
     if not payload:
@@ -262,7 +275,14 @@ async def _fetch_stooq_quote(config: IndexConfig) -> IndexQuote | None:
                 params={"e": "csv", "f": "sd2t2ohlcvp", "h": "", "s": config.stooq_symbol},
             )
             response.raise_for_status()
-    except Exception:
+    except httpx.HTTPStatusError as exc:
+        LOGGER.warning("Stooq quote request for %s failed with status %s.", config.symbol, exc.response.status_code)
+        return None
+    except httpx.HTTPError as exc:
+        LOGGER.warning("Stooq quote request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc)
+        return None
+    except Exception as exc:
+        LOGGER.warning("Stooq quote request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc)
         return None
 
     rows = list(csv.DictReader(response.text.splitlines()))
@@ -276,16 +296,7 @@ async def _fetch_stooq_quote(config: IndexConfig) -> IndexQuote | None:
 
 
 async def _fetch_yahoo_quote(config: IndexConfig) -> IndexQuote | None:
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            response = await client.get(
-                f"https://query1.finance.yahoo.com/v8/finance/chart/{quote_path(config.finnhub_symbol, safe='')}"
-            )
-            response.raise_for_status()
-            result = response.json().get("chart", {}).get("result", [None])[0]
-    except Exception:
-        return None
-
+    result = await _fetch_yahoo_chart_result(config, params={}, purpose="quote")
     if not isinstance(result, dict):
         return None
     meta = result.get("meta", {})
@@ -299,14 +310,73 @@ async def _fetch_yahoo_quote(config: IndexConfig) -> IndexQuote | None:
     return IndexQuote(current=current, change_pct=((current - previous) / previous) * 100, previous_close=previous)
 
 
+async def _fetch_yahoo_chart_result(
+    config: IndexConfig,
+    params: dict[str, str],
+    purpose: str,
+) -> dict[str, object] | None:
+    symbol_path = quote_path(config.finnhub_symbol, safe="")
+    async with httpx.AsyncClient(timeout=8, headers=YAHOO_HEADERS) as client:
+        for host in YAHOO_CHART_HOSTS:
+            url = f"https://{host}/v8/finance/chart/{symbol_path}"
+            try:
+                response = await client.get(url, params=params)
+                response.raise_for_status()
+                payload = response.json()
+            except httpx.HTTPStatusError as exc:
+                LOGGER.warning(
+                    "Yahoo %s chart request for %s via %s failed: HTTP %s - %s",
+                    purpose,
+                    config.finnhub_symbol,
+                    host,
+                    exc.response.status_code,
+                    exc.response.text[:200],
+                )
+                continue
+            except httpx.HTTPError as exc:
+                LOGGER.warning(
+                    "Yahoo %s chart request for %s via %s failed: %s: %s",
+                    purpose,
+                    config.finnhub_symbol,
+                    host,
+                    type(exc).__name__,
+                    exc,
+                )
+                continue
+            except Exception as exc:
+                LOGGER.warning(
+                    "Yahoo %s chart request for %s via %s failed: %s: %s",
+                    purpose,
+                    config.finnhub_symbol,
+                    host,
+                    type(exc).__name__,
+                    exc,
+                )
+                continue
+
+            chart = payload.get("chart")
+            if not isinstance(chart, dict):
+                LOGGER.warning("Yahoo %s chart response for %s via %s did not include chart data.", purpose, config.finnhub_symbol, host)
+                continue
+            error = chart.get("error")
+            if error:
+                LOGGER.warning("Yahoo %s chart response for %s via %s returned error: %s", purpose, config.finnhub_symbol, host, error)
+                continue
+            result = chart.get("result")
+            if isinstance(result, list) and result and isinstance(result[0], dict):
+                return result[0]
+            LOGGER.warning("Yahoo %s chart response for %s via %s did not include result data.", purpose, config.finnhub_symbol, host)
+    return None
+
+
 async def _fetch_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
+    yahoo_series = await _fetch_yahoo_intraday_series(config)
+    if yahoo_series is not None:
+        return yahoo_series
     finnhub_series = await _fetch_finnhub_intraday_series(config, target_value)
     if finnhub_series is not None:
         return finnhub_series
-    alpha_series = await _fetch_alpha_vantage_intraday_series(config)
-    if alpha_series is not None:
-        return alpha_series
-    return await _fetch_yahoo_intraday_series(config)
+    return await _fetch_alpha_vantage_intraday_series(config)
 
 
 async def _fetch_finnhub_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
@@ -357,7 +427,8 @@ async def _fetch_finnhub_candles(
     except httpx.HTTPError as exc:
         LOGGER.warning("Finnhub candle request for %s failed: %s.", symbol, type(exc).__name__)
         return None
-    except Exception:
+    except Exception as exc:
+        LOGGER.warning("Finnhub candle request for %s failed: %s: %s.", symbol, type(exc).__name__, exc)
         return None
 
     if payload.get("s") != "ok":
@@ -406,7 +477,8 @@ async def _fetch_alpha_vantage_intraday_series(config: IndexConfig) -> list[Intr
     except httpx.HTTPError as exc:
         LOGGER.warning("Alpha Vantage intraday request for %s failed: %s.", config.symbol, type(exc).__name__)
         return None
-    except Exception:
+    except Exception as exc:
+        LOGGER.warning("Alpha Vantage intraday request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc)
         return None
 
     series = payload.get("Time Series (1min)")
@@ -435,17 +507,11 @@ async def _fetch_alpha_vantage_intraday_series(config: IndexConfig) -> list[Intr
 
 
 async def _fetch_yahoo_intraday_series(config: IndexConfig) -> list[IntradayPoint] | None:
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            response = await client.get(
-                f"https://query1.finance.yahoo.com/v8/finance/chart/{quote_path(config.finnhub_symbol, safe='')}",
-                params={"includePrePost": "false", "interval": "1m", "range": "1d"},
-            )
-            response.raise_for_status()
-            result = response.json().get("chart", {}).get("result", [None])[0]
-    except Exception:
-        return None
-
+    result = await _fetch_yahoo_chart_result(
+        config,
+        params={"includePrePost": "false", "interval": "1m", "range": "1d"},
+        purpose="intraday",
+    )
     if not isinstance(result, dict):
         return None
     timestamps = result.get("timestamp")
@@ -505,17 +571,11 @@ async def _fetch_yahoo_historical_series(
     config: IndexConfig,
     provider_range: str,
 ) -> list[IntradayPoint] | None:
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            response = await client.get(
-                f"https://query1.finance.yahoo.com/v8/finance/chart/{quote_path(config.finnhub_symbol, safe='')}",
-                params={"includePrePost": "false", "interval": "1d", "range": provider_range},
-            )
-            response.raise_for_status()
-            result = response.json().get("chart", {}).get("result", [None])[0]
-    except Exception:
-        return None
-
+    result = await _fetch_yahoo_chart_result(
+        config,
+        params={"includePrePost": "false", "interval": "1d", "range": provider_range},
+        purpose=f"historical {provider_range}",
+    )
     if not isinstance(result, dict):
         return None
     timestamps = result.get("timestamp")
@@ -579,16 +639,26 @@ def _is_trading(config: IndexConfig, now: datetime | None = None) -> bool:
 
 def _fallback_intraday_series(config: IndexConfig, value: float, change_pct: float) -> list[IntradayPoint]:
     """Generate fallback prices over the exchange's actual trading minutes."""
-    timestamps = _elapsed_trading_minutes(config, _latest_session_date(config))
+    session_date = _latest_session_date(config)
+    timestamps = _elapsed_trading_minutes(config, session_date)
     num_points = len(timestamps)
+    if num_points == 0:
+        return []
     start = value / (1 + change_pct / 100) if change_pct != -100 else value
     if num_points <= 1:
         return [IntradayPoint(timestamp=timestamps[0], value=round(value, 2))]
+
+    rng = random.Random(f"{config.symbol}:{session_date.isoformat()}")
+    current = start
+    volatility = value * 0.0003
+    lower_bound = value * 0.95
+    upper_bound = value * 1.05
     points: list[float] = []
     for index in range(num_points):
-        progress = index / (num_points - 1)
-        curve = math.sin(progress * math.pi * 2) * value * 0.0008
-        points.append(round(start + (value - start) * progress + curve, 2))
+        drift = ((value - current) / max(num_points - index, 1)) * 0.5
+        current += drift + rng.gauss(0, volatility)
+        current = max(lower_bound, min(upper_bound, current))
+        points.append(round(current, 2))
     return [
         IntradayPoint(timestamp=timestamp, value=point)
         for timestamp, point in zip(timestamps, points, strict=True)

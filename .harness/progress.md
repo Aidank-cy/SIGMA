@@ -1186,3 +1186,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Hid Dashboard last-updated and Live indicators behind a loading skeleton until market index data exists, shared the market-indices query fetcher so login can prefetch data during successful navigation, removed the redundant Settings item from desktop/mobile sidebar navigation, changed mobile nav to five columns, and updated the English logout label to Log out while leaving Chinese and registration copy unchanged. Verified with frontend production build, `git diff --check`, `./hooks/post-file-edit.sh`, and a local in-app browser smoke check for `/en/login`.
 - Timestamp: 2026-05-21T09:59:48Z
+
+### [Maintenance] Market index real-data pipeline
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/schemas/market.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/lib/types.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Moved Yahoo Finance to the front of the intraday provider chain, added browser-like Yahoo User-Agent headers with query1/query2 retry, logged provider request failures with status/body context, replaced smooth generated sine-wave intraday fallbacks with deterministic random-walk data, and exposed `is_fallback_data` in backend and frontend market index types. Verified with focused market-index tests, backend Ruff, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`. A live Yahoo probe from this environment reached Yahoo but returned `Too Many Requests`, so live response validation was rate-limited here.
+- Timestamp: 2026-05-21T10:54:42Z
