@@ -38,6 +38,7 @@ interface ChartPoint {
 interface MarketChartData {
   change: number;
   data: ChartPoint[];
+  dataByRange: Record<string, ChartPoint[]>;
   name: string;
   price: number;
   previousClose: number;
@@ -78,6 +79,33 @@ function generateChartData(points: number, value: number, positive: boolean, lab
   });
 }
 
+function generateRangeChartData(activeRange: string, value: number, positive: boolean, label = "market index"): ChartPoint[] {
+  const pointCounts: Record<string, number> = { "5D": 5, "1M": 22, "3M": 66, "1Y": 252 };
+  const points = pointCounts[activeRange] ?? 22;
+  warnChartFallback(
+    `${label}-${activeRange}`,
+    `SIGMA is displaying generated fallback ${activeRange} chart data for ${label} because the API response did not include a usable historical sparkline.`
+  );
+  const end = new Date();
+  let currentDate = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 8, 0, 0));
+  const dates: Date[] = [];
+  while (dates.length < points) {
+    if (currentDate.getUTCDay() !== 0 && currentDate.getUTCDay() !== 6) {
+      dates.push(new Date(currentDate));
+    }
+    currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
+  }
+  dates.reverse();
+
+  const start = positive ? value * 0.985 : value * 1.015;
+  return dates.map((date, index) => {
+    const progress = points <= 1 ? 1 : index / (points - 1);
+    const wave = Math.sin(progress * Math.PI * 4) * value * 0.003;
+    const pointValue = start + (value - start) * progress + wave;
+    return { time: index, timestamp: date.toISOString(), value: Math.round(pointValue * 100) / 100 };
+  });
+}
+
 const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
 
 function dateTimeFormatter(timeZone: string): Intl.DateTimeFormat {
@@ -98,7 +126,17 @@ function dateTimeFormatter(timeZone: string): Intl.DateTimeFormat {
   return formatter;
 }
 
-function toChartData(index: MarketIndex): ChartPoint[] {
+function toChartData(index: MarketIndex, activeRange = "1D"): ChartPoint[] {
+  if (activeRange !== "1D") {
+    const range = index.sparkline_ranges?.[activeRange];
+    const rangeValues = range?.values ?? [];
+    const rangeTimes = range?.times ?? [];
+    if (rangeValues.length > 0 && rangeTimes.length === rangeValues.length) {
+      return rangeValues.map((point, pointIndex) => ({ time: pointIndex, timestamp: rangeTimes[pointIndex], value: point }));
+    }
+    return generateRangeChartData(activeRange, index.value || 100, index.change_pct >= 0, index.symbol);
+  }
+
   const sparkline = index.sparkline_24h;
   const timestamps = index.sparkline_times ?? [];
   if (sparkline.length > 0 && timestamps.length === sparkline.length) {
@@ -269,10 +307,10 @@ function formatRangeAxisTime(
   if (!hasMultipleDays) {
     return formatAxisTime(point, previousPoint, sessions, timeZone);
   }
-  if (activeRange === "5D" || activeRange === "1M") {
+  if (activeRange === "5D") {
     return String(Number(timeParts(point.timestamp, timeZone).date.slice(8, 10)));
   }
-  if (activeRange === "3M") {
+  if (activeRange === "1M" || activeRange === "3M") {
     return formatShortDate(point.timestamp, timeZone);
   }
   if (activeRange === "1Y") {
@@ -290,23 +328,27 @@ export function HeroChart() {
   const chartT = useTranslations("feed.chart");
   const { data, isLoading } = useMarketIndices();
   const now = useMarketClock();
+  const [activeRange, setActiveRange] = useState("1D");
   const markets = useMemo<MarketChartData[]>(() => {
     const indices = data?.indices ?? [];
-    return indices.map((index) => ({
-      change: index.change_pct,
-      data: toChartData(index),
-      name: index.name,
-      price: index.value,
-      previousClose: index.previous_close,
-      symbol: index.symbol,
-      currency: index.currency,
-      isPreOpenClear: isPreMarketClearWindow(index.trading_hours, now),
-      isTrading: index.is_trading || isTradingHoursActive(index.trading_hours, now),
-      tradingHours: index.trading_hours
-    }));
+    return indices.map((index) => {
+      const dataByRange = Object.fromEntries(timeRanges.map((range) => [range, toChartData(index, range)]));
+      return {
+        change: index.change_pct,
+        data: dataByRange["1D"] ?? [],
+        dataByRange,
+        name: index.name,
+        price: index.value,
+        previousClose: index.previous_close,
+        symbol: index.symbol,
+        currency: index.currency,
+        isPreOpenClear: isPreMarketClearWindow(index.trading_hours, now),
+        isTrading: index.is_trading || isTradingHoursActive(index.trading_hours, now),
+        tradingHours: index.trading_hours
+      };
+    });
   }, [data, now]);
   const [activeMarket, setActiveMarket] = useState(markets[0]?.name ?? "SIGMA");
-  const [activeRange, setActiveRange] = useState("1D");
   const [direction, setDirection] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -320,7 +362,7 @@ export function HeroChart() {
 
   const currentData = markets.find((market) => market.name === activeMarket) ?? markets[0];
   const isPositive = (currentData?.change ?? 0) >= 0;
-  const chartData = currentData?.data ?? [];
+  const chartData = currentData?.dataByRange[activeRange] ?? currentData?.data ?? [];
   const chartSessions = currentData?.tradingHours.sessions ?? [];
   const chartTimeZone = currentData?.tradingHours.timezone ?? "Asia/Shanghai";
   const chartTicks = useMemo(
@@ -541,7 +583,7 @@ export function HeroChart() {
               </div>
             ) : (
             <ResponsiveContainer height="100%" width="100%">
-              <AreaChart data={currentData?.data ?? []} margin={{ bottom: 4, left: 30, right: 30, top: 10 }}>
+              <AreaChart data={chartData} margin={{ bottom: 4, left: 30, right: 30, top: 10 }}>
                 <defs>
                   <linearGradient id="colorPositive" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.35} />

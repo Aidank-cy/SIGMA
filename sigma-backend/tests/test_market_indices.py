@@ -22,9 +22,27 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     async def fake_quote(_config: market_indices.IndexConfig) -> None:
         return None
 
+    async def fake_intraday(_config: market_indices.IndexConfig, _value: float) -> None:
+        return None
+
+    async def fake_historical(
+        _config: market_indices.IndexConfig,
+        value: float,
+        _change_pct: float,
+    ) -> dict[str, market_indices.MarketSparkline]:
+        return {
+            range_key: market_indices.MarketSparkline(
+                values=[value, value + 1],
+                times=["2026-05-18T16:00:00+08:00", "2026-05-19T16:00:00+08:00"],
+            )
+            for range_key in market_indices.HISTORICAL_RANGES
+        }
+
     monkeypatch.setattr(market_indices, "_cache_get", fake_cache_get)
     monkeypatch.setattr(market_indices, "_cache_set", fake_cache_set)
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
+    monkeypatch.setattr(market_indices, "_fetch_intraday_series", fake_intraday)
+    monkeypatch.setattr(market_indices, "_fetch_historical_ranges", fake_historical)
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
 
     response = await list_market_indices()
@@ -49,6 +67,8 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     assert all(len(index.sparkline_24h) == len(index.sparkline_times) for index in response.indices)
     assert {index.symbol: index.currency for index in response.indices}["SPX"] == "USD"
     assert {index.symbol: index.currency for index in response.indices}["SSE"] == "CNY"
+    assert set(response.indices[0].sparkline_ranges) == {"5D", "1M", "3M", "1Y"}
+    assert response.indices[0].sparkline_ranges["5D"].times[0] == "2026-05-18T16:00:00+08:00"
     assert all(index.previous_close > 0 for index in response.indices)
     sse = next(index for index in response.indices if index.symbol == "SSE")
     assert [session.open for session in sse.trading_hours.sessions] == ["09:30", "13:00"]
@@ -57,6 +77,7 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     assert sse.sparkline_times[121].endswith("13:00:00+08:00")
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["symbol"] == "SPX"
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["currency"] == "USD"
+    assert "sparkline_ranges" in market_indices.decode_cached_payload(cache["payload"])["indices"][0]
 
 
 def test_market_trading_hours_are_timezone_aware() -> None:
@@ -143,6 +164,18 @@ def test_intraday_fallback_only_generates_elapsed_minutes_during_trading(
     assert points[0].timestamp.isoformat().endswith("09:30:00+08:00")
     assert points[-1].timestamp.isoformat().endswith("10:00:00+08:00")
     assert len(points) == 31
+
+
+def test_historical_fallback_generates_weekday_daily_points(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Generated range fallbacks provide date-spanning data for multi-day chart ticks."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
+
+    points = market_indices._fallback_historical_series(spx, 6000.0, 2.0, 5)
+
+    assert len(points) == 5
+    assert points[0].timestamp.date() < points[-1].timestamp.date()
+    assert all(point.value > 0 for point in points)
 
 
 @pytest.mark.asyncio

@@ -25,6 +25,7 @@ export interface MarketIndex {
   trading_hours: TradingHours;
   sparkline_24h: number[];
   sparkline_times: string[];
+  sparkline_ranges?: Record<string, { values: number[]; times: string[] }>;
 }
 
 export interface MarketIndicesResponse {

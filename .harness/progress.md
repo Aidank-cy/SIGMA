@@ -1074,3 +1074,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added backend-provided currency labels before each Markets index card value and changed the one-hour pre-open clear window to show a neutral `0.00%` change without green/red trend styling. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
 - Timestamp: 2026-05-21T06:44:09Z
+
+### [Maintenance] Dashboard multi-range historical index labels
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/schemas/market.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/lib/types.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Extended market index responses with timestamped historical sparkline ranges from Yahoo daily chart data, sliced 1Y data for 5D/1M/3M/1Y, added generated date-spanning fallbacks with warnings, and switched the Dashboard hero chart to use the selected range data so date/month X-axis labels render outside 1D. Verified with backend Ruff, focused market-index tests, and frontend production build.
+- Timestamp: 2026-05-21T06:52:05Z

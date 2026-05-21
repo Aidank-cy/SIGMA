@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from app.schemas.market import MarketIndex, MarketIndicesResponse, TradingHours, TradingSession
+from app.schemas.market import MarketIndex, MarketIndicesResponse, MarketSparkline, TradingHours, TradingSession
 from app.utils.redis_lock import create_redis_client
 
 CACHE_KEY = "sigma:market-indices"
@@ -18,6 +18,12 @@ ACTIVE_CACHE_TTL_SECONDS = 15
 CLOSED_CACHE_TTL_SECONDS = 120
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 LOGGER = logging.getLogger(__name__)
+HISTORICAL_RANGES: dict[str, int] = {
+    "5D": 5,
+    "1M": 22,
+    "3M": 66,
+    "1Y": 252,
+}
 
 
 @dataclass(frozen=True)
@@ -117,6 +123,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
         value = intraday[-1].value
         first_value = intraday[0].value
         change_pct = ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
+    sparkline_ranges = await _fetch_historical_ranges(config, value, change_pct)
 
     return MarketIndex(
         symbol=config.symbol,
@@ -138,6 +145,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
         ),
         sparkline_24h=[round(point.value, 2) for point in intraday],
         sparkline_times=[point.timestamp.isoformat() for point in intraday],
+        sparkline_ranges=sparkline_ranges,
     )
 
 
@@ -464,6 +472,97 @@ async def _fetch_yahoo_intraday_series(config: IndexConfig) -> list[IntradayPoin
     return _align_intraday_points(config, session_date, points)
 
 
+async def _fetch_historical_ranges(
+    config: IndexConfig,
+    value: float,
+    change_pct: float,
+) -> dict[str, MarketSparkline]:
+    ranges: dict[str, MarketSparkline] = {}
+    historical_series = await _fetch_yahoo_historical_series(config, "1y")
+    for range_key, fallback_points in HISTORICAL_RANGES.items():
+        series = historical_series[-fallback_points:] if historical_series else None
+        if not series:
+            LOGGER.warning(
+                "Using generated fallback %s historical series for %s because Yahoo returned no daily candles.",
+                range_key,
+                config.symbol,
+            )
+            series = _fallback_historical_series(config, value, change_pct, fallback_points)
+        ranges[range_key] = MarketSparkline(
+            values=[round(point.value, 2) for point in series],
+            times=[point.timestamp.isoformat() for point in series],
+        )
+    return ranges
+
+
+async def _fetch_yahoo_historical_series(
+    config: IndexConfig,
+    provider_range: str,
+) -> list[IntradayPoint] | None:
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            response = await client.get(
+                f"https://query1.finance.yahoo.com/v8/finance/chart/{quote_path(config.finnhub_symbol, safe='')}",
+                params={"includePrePost": "false", "interval": "1d", "range": provider_range},
+            )
+            response.raise_for_status()
+            result = response.json().get("chart", {}).get("result", [None])[0]
+    except Exception:
+        return None
+
+    if not isinstance(result, dict):
+        return None
+    timestamps = result.get("timestamp")
+    indicators = result.get("indicators", {})
+    if not isinstance(timestamps, list) or not isinstance(indicators, dict):
+        return None
+    quote_payload = indicators.get("quote", [None])[0]
+    if not isinstance(quote_payload, dict):
+        return None
+    closes = quote_payload.get("close")
+    if not isinstance(closes, list) or len(closes) != len(timestamps):
+        return None
+
+    points: list[IntradayPoint] = []
+    for timestamp, close in zip(timestamps, closes, strict=False):
+        value = _as_float(close)
+        epoch = _as_float(timestamp)
+        if value is None or epoch is None or value <= 0:
+            continue
+        points.append(
+            IntradayPoint(
+                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
+                value=value,
+            )
+        )
+    return points or None
+
+
+def _fallback_historical_series(
+    config: IndexConfig,
+    value: float,
+    change_pct: float,
+    points: int,
+) -> list[IntradayPoint]:
+    session_dates = _latest_session_dates(config, points)
+    start = value / (1 + change_pct / 100) if change_pct != -100 else value
+    if len(session_dates) <= 1:
+        return [IntradayPoint(timestamp=_session_close_timestamp(config, session_dates[0]), value=value)]
+
+    series: list[IntradayPoint] = []
+    for index, session_date in enumerate(session_dates):
+        progress = index / (len(session_dates) - 1)
+        wave = math.sin(progress * math.pi * 4) * value * 0.003
+        price = start + (value - start) * progress + wave
+        series.append(
+            IntradayPoint(
+                timestamp=_session_close_timestamp(config, session_date),
+                value=round(price, 2),
+            )
+        )
+    return series
+
+
 def _is_trading(config: IndexConfig, now: datetime | None = None) -> bool:
     active_now = (now or _now_utc()).astimezone(ZoneInfo(config.timezone))
     if active_now.weekday() >= 5:
@@ -549,6 +648,24 @@ def _latest_session_date(config: IndexConfig, now: datetime | None = None) -> da
     while session_date.weekday() >= 5:
         session_date -= timedelta(days=1)
     return session_date
+
+
+def _latest_session_dates(config: IndexConfig, count: int, now: datetime | None = None) -> list[date]:
+    session_date = _latest_session_date(config, now)
+    dates: list[date] = []
+    while len(dates) < count:
+        if session_date.weekday() < 5:
+            dates.append(session_date)
+        session_date -= timedelta(days=1)
+    return list(reversed(dates))
+
+
+def _session_close_timestamp(config: IndexConfig, session_date: date) -> datetime:
+    zone = ZoneInfo(config.timezone)
+    timestamp = datetime.combine(session_date, config.close_time, tzinfo=zone)
+    if config.close_time <= config.open_time:
+        timestamp += timedelta(days=1)
+    return timestamp.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
 
 
 def _elapsed_trading_minutes(config: IndexConfig, session_date: date, now: datetime | None = None) -> list[datetime]:
