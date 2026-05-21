@@ -6,7 +6,9 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import { useMarketClock } from "@/hooks/useMarketClock";
 import { useMarketIndices } from "@/hooks/useMarketIndices";
+import { isPreMarketClearWindow, isTradingHoursActive, previousCloseAxisDomain } from "@/lib/marketSessions";
 import type { MarketIndex } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -38,8 +40,11 @@ interface MarketChartData {
   data: ChartPoint[];
   name: string;
   price: number;
+  previousClose: number;
   symbol: string;
   currency: string;
+  isPreOpenClear: boolean;
+  isTrading: boolean;
   tradingHours: MarketIndex["trading_hours"];
 }
 
@@ -96,7 +101,7 @@ function dateTimeFormatter(timeZone: string): Intl.DateTimeFormat {
 function toChartData(index: MarketIndex): ChartPoint[] {
   const sparkline = index.sparkline_24h;
   const timestamps = index.sparkline_times ?? [];
-  if (sparkline.length > 1 && timestamps.length === sparkline.length) {
+  if (sparkline.length > 0 && timestamps.length === sparkline.length) {
     return sparkline.map((point, pointIndex) => ({ time: pointIndex, timestamp: timestamps[pointIndex], value: point }));
   }
   return generateChartData(60, index.value || 100, index.change_pct >= 0, index.symbol);
@@ -284,6 +289,7 @@ export function HeroChart() {
   const t = useTranslations("dashboard");
   const chartT = useTranslations("feed.chart");
   const { data, isLoading } = useMarketIndices();
+  const now = useMarketClock();
   const markets = useMemo<MarketChartData[]>(() => {
     const indices = data?.indices ?? [];
     return indices.map((index) => ({
@@ -291,11 +297,14 @@ export function HeroChart() {
       data: toChartData(index),
       name: index.name,
       price: index.value,
+      previousClose: index.previous_close,
       symbol: index.symbol,
       currency: index.currency,
+      isPreOpenClear: isPreMarketClearWindow(index.trading_hours, now),
+      isTrading: index.is_trading || isTradingHoursActive(index.trading_hours, now),
       tradingHours: index.trading_hours
     }));
-  }, [data]);
+  }, [data, now]);
   const [activeMarket, setActiveMarket] = useState(markets[0]?.name ?? "SIGMA");
   const [activeRange, setActiveRange] = useState("1D");
   const [direction, setDirection] = useState(0);
@@ -320,6 +329,11 @@ export function HeroChart() {
   );
   const chartHasMultipleDays = useMemo(() => spansMultipleDays(chartData, chartTimeZone), [chartData, chartTimeZone]);
   const boundaryTicks = useMemo(() => dayBoundaryTicks(chartData, chartTimeZone), [chartData, chartTimeZone]);
+  const yAxisDomain = useMemo(
+    () => previousCloseAxisDomain(currentData?.previousClose),
+    [currentData?.previousClose]
+  );
+  const showAwaitingOpen = Boolean(currentData?.isPreOpenClear);
 
   const handlePrev = () => {
     const currentIndex = markets.findIndex((market) => market.name === activeMarket);
@@ -405,9 +419,19 @@ export function HeroChart() {
             <span className="rounded-lg bg-muted px-2.5 py-1 text-sm font-medium text-muted-foreground">
               {currentData?.symbol}
             </span>
-            <span className="flex items-center gap-1.5 rounded-full bg-chart-1/10 px-2.5 py-1 text-xs text-chart-1">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-chart-1" />
-              {t("live")}
+            <span
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs",
+                currentData?.isTrading ? "bg-chart-1/10 text-chart-1" : "bg-muted text-muted-foreground"
+              )}
+            >
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  currentData?.isTrading ? "animate-pulse bg-chart-1" : "bg-muted-foreground/50"
+                )}
+              />
+              {currentData?.isTrading ? t("live") : chartT("closed")}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -501,6 +525,11 @@ export function HeroChart() {
             style={{ opacity: isDragging ? chartOpacity : 1 }}
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
+            {showAwaitingOpen ? (
+              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">
+                {chartT("awaitingMarketOpen")}
+              </div>
+            ) : (
             <ResponsiveContainer height="100%" width="100%">
               <AreaChart data={currentData?.data ?? []} margin={{ bottom: 4, left: 30, right: 30, top: 10 }}>
                 <defs>
@@ -534,7 +563,7 @@ export function HeroChart() {
                   tickMargin={8}
                   ticks={chartTicks}
                 />
-                <YAxis axisLine={false} domain={["dataMin - 10", "dataMax + 10"]} hide tickLine={false} />
+                <YAxis axisLine={false} domain={yAxisDomain} hide tickLine={false} />
                 {boundaryTicks.map((tick) => (
                   <ReferenceLine
                     ifOverflow="extendDomain"
@@ -573,6 +602,7 @@ export function HeroChart() {
                 />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </motion.div>
         </AnimatePresence>
 

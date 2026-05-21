@@ -17,6 +17,7 @@ export interface MarketIndex {
   symbol: string;
   name: string;
   value: number;
+  previous_close: number;
   change_pct: number;
   market: Market;
   currency: string;

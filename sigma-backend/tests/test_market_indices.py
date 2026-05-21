@@ -25,6 +25,7 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     monkeypatch.setattr(market_indices, "_cache_get", fake_cache_get)
     monkeypatch.setattr(market_indices, "_cache_set", fake_cache_set)
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
 
     response = await list_market_indices()
 
@@ -47,6 +48,7 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     assert all(len(index.sparkline_24h) == len(index.sparkline_times) for index in response)
     assert {index.symbol: index.currency for index in response}["SPX"] == "USD"
     assert {index.symbol: index.currency for index in response}["SSE"] == "CNY"
+    assert all(index.previous_close > 0 for index in response)
     sse = next(index for index in response if index.symbol == "SSE")
     assert [session.open for session in sse.trading_hours.sessions] == ["09:30", "13:00"]
     assert sse.sparkline_times[0].endswith("09:30:00+08:00")
@@ -81,18 +83,21 @@ async def test_finnhub_index_quote_uses_scaled_proxy_when_index_requires_subscri
     calls: list[str] = []
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
 
-    async def fake_symbol_quote(symbol: str, _token: str) -> tuple[float, float] | None:
+    async def fake_symbol_quote(symbol: str, _token: str) -> market_indices.IndexQuote | None:
         calls.append(symbol)
         if symbol == spx.finnhub_symbol:
             return None
-        return 550.0, 2.0
+        return market_indices.IndexQuote(current=550.0, change_pct=2.0, previous_close=540.0)
 
     monkeypatch.setenv("FINNHUB_KEY", "token")
     monkeypatch.setattr(market_indices, "_fetch_finnhub_symbol_quote", fake_symbol_quote)
 
     quote = await market_indices._fetch_finnhub_quote(spx)
 
-    assert quote == pytest.approx((spx.fallback_value * 1.02, 2.0))
+    assert quote is not None
+    assert quote.current == pytest.approx(spx.fallback_value * 1.02)
+    assert quote.change_pct == pytest.approx(2.0)
+    assert quote.previous_close == pytest.approx(spx.fallback_value)
     assert calls == [spx.finnhub_symbol, spx.finnhub_proxy_symbol]
 
 
@@ -104,14 +109,39 @@ async def test_index_quote_uses_fallback_provider_after_configured_providers_mis
     async def fake_empty_quote(_config: market_indices.IndexConfig) -> None:
         return None
 
-    async def fake_stooq_quote(_config: market_indices.IndexConfig) -> tuple[float, float]:
-        return 3200.0, 1.5
+    async def fake_stooq_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
+        return market_indices.IndexQuote(current=3200.0, change_pct=1.5, previous_close=3152.71)
 
     monkeypatch.setattr(market_indices, "_fetch_finnhub_quote", fake_empty_quote)
     monkeypatch.setattr(market_indices, "_fetch_alpha_vantage_quote", fake_empty_quote)
     monkeypatch.setattr(market_indices, "_fetch_stooq_quote", fake_stooq_quote)
 
-    assert await market_indices._fetch_index_quote(sse) == (3200.0, 1.5)
+    quote = await market_indices._fetch_index_quote(sse)
+
+    assert quote is not None
+    assert quote.current == pytest.approx(3200.0)
+    assert quote.change_pct == pytest.approx(1.5)
+    assert quote.previous_close == pytest.approx(3152.71)
+
+
+def test_market_cache_ttl_shortens_during_trading() -> None:
+    """Market-index cache freshness uses a shorter TTL during live sessions."""
+    assert market_indices._market_cache_ttl_seconds(datetime(2026, 5, 18, 14, 0, tzinfo=UTC)) == 15
+    assert market_indices._market_cache_ttl_seconds(datetime(2026, 5, 18, 22, 30, tzinfo=UTC)) == 120
+
+
+def test_intraday_fallback_only_generates_elapsed_minutes_during_trading(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Generated emergency intraday series does not pre-fill the rest of an active session."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 2, 0, tzinfo=UTC))
+
+    points = market_indices._fallback_intraday_series(sse, 3200.0, 1.0)
+
+    assert points[0].timestamp.isoformat().endswith("09:30:00+08:00")
+    assert points[-1].timestamp.isoformat().endswith("10:00:00+08:00")
+    assert len(points) == 31
 
 
 @pytest.mark.asyncio
@@ -132,10 +162,12 @@ async def test_refresh_job_skips_when_all_markets_closed(monkeypatch: pytest.Mon
 
 
 def test_scheduler_registers_market_indices_job() -> None:
-    """Scheduler registers one refresh job for the ticker strip cache."""
+    """Scheduler registers a near-real-time refresh job for the ticker strip cache."""
     scheduler.remove_all_jobs()
 
     add_market_indices_job()
 
-    assert scheduler.get_job("market-indices:refresh") is not None
+    job = scheduler.get_job("market-indices:refresh")
+    assert job is not None
+    assert str(job.trigger) == "interval[0:00:15]"
     scheduler.remove_all_jobs()

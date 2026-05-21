@@ -80,6 +80,8 @@
     "viewMore": "View more",
     "chart": {
       "autoRotate": "Auto",
+      "awaitingMarketOpen": "Awaiting market open...",
+      "closed": "Market closed",
       "empty": "No market index data.",
       "loading": "Loading market index data.",
       "majorIndices": "Major indices",
@@ -182,6 +184,7 @@
     "viewPortfolio": "View full details",
     "marketSummary": "Market summary",
     "marketSummaryCaption": "Advancing, declining, and unchanged counts come from the live market index API. Breadth fields without a backend endpoint show N/A.",
+    "awaitingMarketOpen": "Awaiting market open...",
     "empty": "No market index data is available yet.",
     "emptyWatchlist": "No watchlists have been created yet.",
     "watchlistCount": "{count, plural, =0 {No watchlists} one {# watchlist} other {# watchlists}}",
@@ -707,7 +710,7 @@
       "tokenTrend": "14-day token trend",
       "usageByFunction": "Usage by function",
       "providerUsageDistribution": "Provider Usage Distribution",
-      "noUsageData": "N/A",
+      "noUsageData": "No usage data yet.",
       "dailyTokenBudget": "Daily Token Budget",
       "dailyTokenBudgetCaption": "{tokens} of {limit} tokens used today.",
       "providers": {
