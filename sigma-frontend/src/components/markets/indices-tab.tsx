@@ -268,7 +268,7 @@ export function IndicesTab() {
                               fill={`url(#gradient-${index.symbol}-${activeRange})`}
                               stroke={chartColor}
                               strokeWidth={2}
-                              type="monotone"
+                              type="linear"
                             />
                           </AreaChart>
                         </ResponsiveContainer>

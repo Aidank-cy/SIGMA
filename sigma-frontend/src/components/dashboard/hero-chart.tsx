@@ -376,7 +376,7 @@ export function HeroChart() {
                   fill={isPositive ? "url(#colorPositive)" : "url(#colorNegative)"}
                   stroke={isPositive ? "oklch(0.65 0.22 145)" : "oklch(0.6 0.22 25)"}
                   strokeWidth={2.5}
-                  type="monotone"
+                  type="linear"
                 />
               </AreaChart>
             </ResponsiveContainer>
