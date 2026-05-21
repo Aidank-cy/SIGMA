@@ -25,6 +25,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Refine the hero chart range controls and X-axis labels with a 5D option, day-only midnight labels, lunch-gap separators, and unclipped edge labels.
+- Increase the sidebar menu label weight and size for better navigation legibility.
 - Redesign Markets sectors from accordions into a responsive region grid.
 - Dynamically load heavy dashboard chart modules and prefetch sidebar navigation links for smoother page transitions.
 - Standardize interactive control motion around spring-based transitions.

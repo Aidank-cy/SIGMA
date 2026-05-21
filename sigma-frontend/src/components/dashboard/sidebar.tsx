@@ -69,7 +69,7 @@ export function Sidebar() {
         </motion.div>
       </Link>
 
-      <span className="mb-4 text-[10px] uppercase tracking-widest text-sidebar-foreground/50">
+      <span className="mb-4 text-xs font-bold uppercase tracking-widest text-sidebar-foreground/50">
         {t("menu")}
       </span>
 
