@@ -1114,3 +1114,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Changed Dashboard and Markets index Area charts from monotone spline smoothing to linear point-to-point rendering and tightened the default previous-close Y-axis window from +/- 500 to +/- 250. Ticker carousel sparklines already use raw SVG polylines. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
 - Timestamp: 2026-05-21T07:37:12Z
+
+### [Maintenance] Chart X-axis label legibility
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Increased Dashboard and Markets chart X-axis tick labels to 13px/600 and added bottom chart margin, tick margin, and small-card axis height so larger labels have room to render.
+- Timestamp: 2026-05-21T07:39:50Z

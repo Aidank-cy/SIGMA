@@ -309,7 +309,7 @@ export function HeroChart() {
               </div>
             ) : (
             <ResponsiveContainer height="100%" width="100%">
-              <AreaChart data={chartData} margin={{ bottom: 4, left: 30, right: 30, top: 10 }}>
+              <AreaChart data={chartData} margin={{ bottom: 14, left: 30, right: 30, top: 10 }}>
                 <defs>
                   <linearGradient id="colorPositive" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.35} />
@@ -325,7 +325,7 @@ export function HeroChart() {
                   dataKey="time"
                   interval={0}
                   minTickGap={0}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
                   tickFormatter={(value) => {
                     const pointIndex = Number(value);
                     return formatRangeAxisTime(
@@ -338,7 +338,7 @@ export function HeroChart() {
                     );
                   }}
                   tickLine={false}
-                  tickMargin={8}
+                  tickMargin={12}
                   ticks={chartTicks}
                 />
                 <YAxis axisLine={false} domain={yAxisDomain} hide tickLine={false} />

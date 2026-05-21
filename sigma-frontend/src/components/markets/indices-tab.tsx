@@ -226,7 +226,7 @@ export function IndicesTab() {
                         </div>
                       ) : (
                         <ResponsiveContainer height="100%" width="100%">
-                          <AreaChart data={chartData} margin={{ bottom: 14, left: 8, right: 8, top: 2 }}>
+                          <AreaChart data={chartData} margin={{ bottom: 18, left: 8, right: 8, top: 2 }}>
                             <defs>
                               <linearGradient
                                 id={`gradient-${index.symbol}-${activeRange}`}
@@ -242,10 +242,10 @@ export function IndicesTab() {
                             <XAxis
                               axisLine={false}
                               dataKey="time"
-                              height={20}
+                              height={24}
                               interval={0}
                               minTickGap={0}
-                              tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
+                              tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
                               tickFormatter={(value) => {
                                 const pointIndex = Number(value)
                                 return formatRangeAxisTime(
@@ -258,7 +258,7 @@ export function IndicesTab() {
                                 )
                               }}
                               tickLine={false}
-                              tickMargin={6}
+                              tickMargin={8}
                               ticks={chartTicks}
                             />
                             <YAxis domain={previousCloseAxisDomain(index.previous_close)} hide />
