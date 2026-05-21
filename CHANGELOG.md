@@ -66,6 +66,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Anchor empty and first-tick market chart Y-axis domains to previous close or the first valid price before live data fills in.
 - Fix market chart Y-axis scaling with sparkline-based domains, proportional flat-day protection, and sparse forward-fill warnings.
 - Fix Dashboard and Markets chart edge-label spacing and scale Y-axis domains from visible chart data with proportional padding.
 - Redirect authenticated pages to the user's stored locale before rendering locale-scoped content.

@@ -1170,3 +1170,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Replaced the legacy previous-close Y-axis helper with sparkline-data-based domain scaling that uses a 0.5% minimum range for flat sessions and 15% padding for normal movement, confirmed Dashboard and Markets Area charts render linearly, and added backend warnings when more than 30% of aligned intraday points are forward-filled. Verified with focused market-index tests, Ruff, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-21T08:59:28Z
+
+### [Maintenance] Market chart previous-close domain fallback
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/lib/marketSessions.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Renamed the chart Y-axis helper to `computeChartYDomain`, passed previous-close values from Dashboard and Markets call sites, and anchored empty/pre-market chart domains around previous close while centering one-tick charts around the first valid price. Verified with focused backend market-index tests, Ruff, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-21T09:24:46Z

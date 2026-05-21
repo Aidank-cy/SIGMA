@@ -18,7 +18,7 @@ import {
   toMarketChartDataByRange,
   type MarketChartPoint
 } from "@/lib/marketChart";
-import { isTradingHoursActive, sparklineAxisDomain } from "@/lib/marketSessions";
+import { computeChartYDomain, isTradingHoursActive } from "@/lib/marketSessions";
 import type { MarketIndex } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -96,8 +96,8 @@ export function HeroChart() {
   const xAxisDomain = useMemo(() => buildChartXAxisDomain(activeRange, chartSessions), [activeRange, chartSessions]);
   const boundaryTicks = useMemo(() => buildChartBoundaryTicks(activeRange), [activeRange]);
   const yAxisDomain = useMemo(
-    () => sparklineAxisDomain(chartData),
-    [chartData]
+    () => computeChartYDomain(chartData, currentData?.previousClose),
+    [chartData, currentData?.previousClose]
   );
 
   const handlePrev = () => {
