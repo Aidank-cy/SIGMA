@@ -1090,3 +1090,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Shared Dashboard market chart range-data and axis formatting helpers with Markets, made the Markets index range selector switch chart data, and added compact X-axis labels with 3-5 ticks on each small index chart. Verified with `cd sigma-frontend && npm run build`.
 - Timestamp: 2026-05-21T06:58:52Z
+
+### [Maintenance] Markets index region grouping
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Grouped Markets index cards into North America, Asia, Hong Kong, and Europe sections from the backend market field and added an all/region filter bar with localized labels.
+- Timestamp: 2026-05-21T07:04:31Z
