@@ -213,7 +213,7 @@ export default function AnalyticsPage() {
               onClick={() => setTimeRange(range)}
               type="button"
             >
-              {timeRange === range && <motion.div className="absolute inset-0 rounded-lg bg-primary" layoutId="analyticsTimeRange" transition={{ bounce: 0.2, duration: 0.4, type: "spring" }} />}
+              {timeRange === range && <motion.div className="absolute inset-0 rounded-lg bg-primary" transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }} />}
               <span className="relative z-10">{range}</span>
             </button>
           ))}
@@ -225,7 +225,7 @@ export default function AnalyticsPage() {
           <div className="relative flex items-center justify-center">
             <ResponsiveContainer height={120} width={120}>
               <PieChart>
-                <Pie data={sentimentData} dataKey="value" innerRadius={40} outerRadius={55} paddingAngle={2}>
+                <Pie data={sentimentData} dataKey="value" innerRadius={40} outerRadius={55} paddingAngle={2} stroke="none">
                   {sentimentData.map((entry) => <Cell fill={entry.color} key={entry.name} />)}
                 </Pie>
               </PieChart>
@@ -269,7 +269,7 @@ export default function AnalyticsPage() {
         <MetricCard title={t("sourceDistribution")}>
           <ResponsiveContainer height={80} width="100%">
             <PieChart>
-              <Pie data={sourceData} dataKey="value" innerRadius={25} outerRadius={40} paddingAngle={2}>
+              <Pie data={sourceData} dataKey="value" innerRadius={25} outerRadius={40} paddingAngle={2} stroke="none">
                 {sourceData.map((entry) => <Cell fill={entry.color} key={entry.name} />)}
               </Pie>
             </PieChart>

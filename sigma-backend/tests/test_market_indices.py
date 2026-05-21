@@ -40,9 +40,18 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
         "KOSPI",
         "TAIEX",
     }
-    assert all(len(index.sparkline_24h) == 480 for index in response)
+    lengths = {index.symbol: len(index.sparkline_24h) for index in response}
+    assert lengths["SSE"] == 242
+    assert lengths["HSI"] == 332
+    assert lengths["N225"] == 332
+    assert all(len(index.sparkline_24h) == len(index.sparkline_times) for index in response)
     assert {index.symbol: index.currency for index in response}["SPX"] == "USD"
     assert {index.symbol: index.currency for index in response}["SSE"] == "CNY"
+    sse = next(index for index in response if index.symbol == "SSE")
+    assert [session.open for session in sse.trading_hours.sessions] == ["09:30", "13:00"]
+    assert sse.sparkline_times[0].endswith("09:30:00+08:00")
+    assert sse.sparkline_times[120].endswith("11:30:00+08:00")
+    assert sse.sparkline_times[121].endswith("13:00:00+08:00")
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["symbol"] == "SPX"
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["currency"] == "USD"
 
@@ -53,6 +62,15 @@ def test_market_trading_hours_are_timezone_aware() -> None:
 
     assert market_indices._is_trading(ny_market, datetime(2026, 5, 18, 14, 0, tzinfo=UTC)) is True
     assert market_indices._is_trading(ny_market, datetime(2026, 5, 17, 14, 0, tzinfo=UTC)) is False
+
+
+def test_market_trading_hours_respect_lunch_breaks() -> None:
+    """Lunch breaks are omitted from configured active trading minutes."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+
+    assert market_indices._is_trading(sse, datetime(2026, 5, 18, 3, 0, tzinfo=UTC)) is True
+    assert market_indices._is_trading(sse, datetime(2026, 5, 18, 4, 0, tzinfo=UTC)) is False
+    assert market_indices._is_trading(sse, datetime(2026, 5, 18, 5, 0, tzinfo=UTC)) is True
 
 
 @pytest.mark.asyncio

@@ -451,7 +451,7 @@ export default function NewsPage() {
           {feedT("empty")}
         </div>
       ) : (
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           {viewMode === "grid" ? (
             <motion.div animate={{ opacity: 1 }} className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" exit={{ opacity: 0 }} initial={{ opacity: 0 }} key="grid">
               {items.map((item, index) => (

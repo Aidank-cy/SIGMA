@@ -61,10 +61,10 @@ export function Sidebar() {
       initial={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      <Link aria-label="SIGMA" className="mb-8" href={`/${locale}`}>
+      <Link aria-label="SIGMA" className="mb-8" href={`/${locale}`} prefetch>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sidebar-primary/90 shadow-lg shadow-sidebar-primary/20">
-            <span className="text-lg font-bold text-sidebar-primary-foreground">S</span>
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-foreground bg-transparent">
+            <span className="text-lg font-bold text-foreground">S</span>
           </div>
         </motion.div>
       </Link>
@@ -92,6 +92,7 @@ export function Sidebar() {
                 href={item.href}
                 onMouseEnter={() => setHoveredId(item.id)}
                 onMouseLeave={() => setHoveredId(null)}
+                prefetch
               >
                 <motion.span
                   className="flex h-full w-full items-center justify-center"
@@ -104,8 +105,7 @@ export function Sidebar() {
                 {isActive ? (
                   <motion.div
                     className="absolute -left-6 h-6 w-1 rounded-r-full bg-sidebar-primary"
-                    layoutId="activeIndicator"
-                    transition={{ damping: 30, stiffness: 300, type: "spring" }}
+                    transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
                   />
                 ) : null}
               </Link>
@@ -167,6 +167,7 @@ export function Sidebar() {
             )}
             href={item.href}
             key={item.id}
+            prefetch
           >
             <Icon className="h-4 w-4" aria-hidden />
             <span className="max-w-full truncate">{item.label}</span>

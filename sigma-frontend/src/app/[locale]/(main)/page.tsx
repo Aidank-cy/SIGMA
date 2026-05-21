@@ -1,18 +1,29 @@
 "use client";
 
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
-import { HeroChart } from "@/components/dashboard/hero-chart";
 import { NewsFeed } from "@/components/dashboard/news-feed";
 import { RightSidebar } from "@/components/dashboard/right-sidebar";
 import { SearchBar } from "@/components/dashboard/search-bar";
-import { StatsRow } from "@/components/dashboard/stats-row";
-import { TickerCarousel } from "@/components/dashboard/ticker-carousel";
 import { useMarketIndices } from "@/hooks/useMarketIndices";
 import type { Category, ItemFilters, Market } from "@/lib/types";
+
+const HeroChart = dynamic(() => import("@/components/dashboard/hero-chart").then((mod) => mod.HeroChart), {
+  loading: () => <ChartSkeleton />,
+  ssr: false
+});
+const StatsRow = dynamic(() => import("@/components/dashboard/stats-row").then((mod) => mod.StatsRow), {
+  loading: () => <StatsSkeleton />,
+  ssr: false
+});
+const TickerCarousel = dynamic(() => import("@/components/dashboard/ticker-carousel").then((mod) => mod.TickerCarousel), {
+  loading: () => <TickerSkeleton />,
+  ssr: false
+});
 
 type GreetingKey =
   | "greetingMorning"
@@ -38,6 +49,30 @@ function getGreetingKey(): GreetingKey {
     return "greetingEvening";
   }
   return "greetingNight";
+}
+
+function ChartSkeleton() {
+  return <div className="h-[408px] rounded-2xl border border-border bg-card/70 animate-pulse lg:h-[488px]" />;
+}
+
+function TickerSkeleton() {
+  return (
+    <div className="flex gap-3 overflow-hidden px-8 py-2">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div className="h-[118px] min-w-[190px] rounded-xl border border-border bg-card/70 animate-pulse" key={index} />
+      ))}
+    </div>
+  );
+}
+
+function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div className="h-[154px] rounded-xl border border-border bg-card/70 animate-pulse" key={index} />
+      ))}
+    </div>
+  );
 }
 
 export default function DashboardPage() {

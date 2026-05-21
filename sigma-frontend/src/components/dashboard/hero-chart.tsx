@@ -4,9 +4,10 @@ import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "
 import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { useMarketIndices } from "@/hooks/useMarketIndices";
+import type { MarketIndex } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const INDEX_ICONS: Record<string, { letter: string; bg: string; text: string }> = {
@@ -23,10 +24,10 @@ const INDEX_ICONS: Record<string, { letter: string; bg: string; text: string }> 
 };
 
 const timeRanges = ["1D", "1W", "1M", "3M", "1Y"];
-const MARKET_OPEN_MINUTES = 21 * 60 + 30;
 
 interface ChartPoint {
   time: number;
+  timestamp: string;
   value: number;
 }
 
@@ -48,45 +49,71 @@ function generateChartData(points: number, value: number, positive: boolean): Ch
     const wave = Math.sin(index / 4) * value * 0.0025;
     const drift = positive ? index * value * 0.00018 : -index * value * 0.00018;
     current = Math.min(ceiling, Math.max(floor, current + wave + drift));
-    return { time: index, value: Math.round(current * 100) / 100 };
+    const totalMinutes = 9 * 60 + 30 + index;
+    const day = totalMinutes >= 24 * 60 ? "02" : "01";
+    const hour = Math.floor((totalMinutes % (24 * 60)) / 60);
+    const minute = totalMinutes % 60;
+    const timestamp = `2026-01-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+08:00`;
+    return { time: index, timestamp, value: Math.round(current * 100) / 100 };
   });
 }
 
-function toChartData(value: number, sparkline: number[] | undefined, positive: boolean): ChartPoint[] {
-  if (sparkline && sparkline.length > 1) {
-    return sparkline.map((point, index) => ({ time: index, value: point }));
+function toChartData(index: MarketIndex): ChartPoint[] {
+  const sparkline = index.sparkline_24h;
+  const timestamps = index.sparkline_times ?? [];
+  if (sparkline.length > 1 && timestamps.length === sparkline.length) {
+    return sparkline.map((point, pointIndex) => ({ time: pointIndex, timestamp: timestamps[pointIndex], value: point }));
   }
-  return generateChartData(60, value || 100, positive);
+  return generateChartData(60, index.value || 100, index.change_pct >= 0);
 }
 
-function getChartDate(pointIndex: number): Date {
-  const date = new Date();
-  date.setHours(0, MARKET_OPEN_MINUTES + pointIndex, 0, 0);
-  return date;
+function timeParts(timestamp: string): { date: string; hour: number; minute: number; time: string } {
+  const time = timestamp.slice(11, 16);
+  return {
+    date: timestamp.slice(0, 10),
+    hour: Number(time.slice(0, 2)),
+    minute: Number(time.slice(3, 5)),
+    time
+  };
 }
 
-function formatChartTime(pointIndex: number): string {
-  const date = getChartDate(pointIndex);
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+function formatShortDate(timestamp: string): string {
+  const month = Number(timestamp.slice(5, 7));
+  const day = Number(timestamp.slice(8, 10));
+  return `${month}/${day}`;
 }
 
-function formatUtcOffset(date: Date): string {
-  const offsetMinutes = -date.getTimezoneOffset();
-  const sign = offsetMinutes >= 0 ? "+" : "-";
-  const absoluteMinutes = Math.abs(offsetMinutes);
-  const hours = Math.floor(absoluteMinutes / 60);
-  const minutes = absoluteMinutes % 60;
-  return minutes === 0
-    ? `UTC${sign}${hours}`
-    : `UTC${sign}${hours}:${String(minutes).padStart(2, "0")}`;
+function buildChartTicks(points: ChartPoint[]): number[] {
+  if (points.length === 0) {
+    return [];
+  }
+  const ticks = new Set<number>([0, points.length - 1]);
+  points.forEach((point) => {
+    const { minute } = timeParts(point.timestamp);
+    if (minute === 0 || minute === 30) {
+      ticks.add(point.time);
+    }
+  });
+  return Array.from(ticks).sort((left, right) => left - right);
 }
 
-function formatTooltipTime(pointIndex: number): string {
-  const date = getChartDate(pointIndex);
-  const day = date.getDate();
-  const month = new Intl.DateTimeFormat("en-US", { month: "short" }).format(date);
-  const year = String(date.getFullYear()).slice(-2);
-  return `${day} ${month} '${year} ${formatChartTime(pointIndex)} ${formatUtcOffset(date)}`;
+function dayBoundaryTicks(points: ChartPoint[]): number[] {
+  return points
+    .filter((point, index) => index > 0 && timeParts(points[index - 1].timestamp).date !== timeParts(point.timestamp).date)
+    .map((point) => point.time);
+}
+
+function formatAxisTime(point: ChartPoint | undefined, previousPoint: ChartPoint | undefined): string {
+  if (!point) {
+    return "";
+  }
+  const parts = timeParts(point.timestamp);
+  const crossedDay = previousPoint ? timeParts(previousPoint.timestamp).date !== parts.date : false;
+  return crossedDay || parts.time === "00:00" ? `${parts.time} ${formatShortDate(point.timestamp)}` : parts.time;
+}
+
+function formatTooltipTime(timestamp: string): string {
+  return `${formatShortDate(timestamp)} ${timeParts(timestamp).time} Beijing (UTC+8)`;
 }
 
 export function HeroChart() {
@@ -109,7 +136,7 @@ export function HeroChart() {
 
     return indices.map((index) => ({
       change: index.change_pct,
-      data: toChartData(index.value, index.sparkline_24h, index.change_pct >= 0),
+      data: toChartData(index),
       name: index.name,
       price: index.value,
       symbol: index.symbol,
@@ -131,6 +158,9 @@ export function HeroChart() {
 
   const currentData = markets.find((market) => market.name === activeMarket) ?? markets[0];
   const isPositive = (currentData?.change ?? 0) >= 0;
+  const chartData = currentData?.data ?? [];
+  const chartTicks = useMemo(() => buildChartTicks(chartData), [chartData]);
+  const boundaryTicks = useMemo(() => dayBoundaryTicks(chartData), [chartData]);
 
   const handlePrev = () => {
     const currentIndex = markets.findIndex((market) => market.name === activeMarket);
@@ -274,7 +304,7 @@ export function HeroChart() {
         ref={containerRef}
         style={{ x: dragX }}
       >
-        <AnimatePresence initial={false} mode="wait">
+        <AnimatePresence initial={false} mode="sync">
           <motion.div
             animate={{ opacity: 1, x: 0 }}
             className="absolute inset-0"
@@ -299,25 +329,39 @@ export function HeroChart() {
                 <XAxis
                   axisLine={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.28 }}
                   dataKey="time"
-                  interval="preserveStartEnd"
-                  minTickGap={60}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-                  tickFormatter={(value) => formatChartTime(Number(value))}
+                  interval={0}
+                  minTickGap={0}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                  tickFormatter={(value) => {
+                    const pointIndex = Number(value);
+                    return formatAxisTime(chartData[pointIndex], chartData[pointIndex - 1]);
+                  }}
                   tickLine={false}
                   tickMargin={8}
+                  ticks={chartTicks}
                 />
                 <YAxis axisLine={false} domain={["dataMin - 10", "dataMax + 10"]} hide tickLine={false} />
+                {boundaryTicks.map((tick) => (
+                  <ReferenceLine
+                    ifOverflow="extendDomain"
+                    key={tick}
+                    stroke="var(--muted-foreground)"
+                    strokeDasharray="3 5"
+                    strokeOpacity={0.24}
+                    x={tick}
+                  />
+                ))}
                 <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
-                      const pointIndex = Number(payload[0].payload?.time ?? 0);
+                      const timestamp = String(payload[0].payload?.timestamp ?? "");
                       return (
                         <div className="rounded-xl bg-foreground px-4 py-3 text-background shadow-xl dark:border dark:border-border dark:bg-card dark:text-card-foreground">
                           <p className="text-base font-bold">
                             {Number(payload[0].value ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                           </p>
                           <p className="mt-1 text-xs font-medium text-background/70 dark:text-muted-foreground">
-                            {formatTooltipTime(pointIndex)}
+                            {formatTooltipTime(timestamp)}
                           </p>
                         </div>
                       );
@@ -375,8 +419,7 @@ export function HeroChart() {
             {activeRange === range ? (
               <motion.div
                 className="absolute inset-0 rounded-lg bg-background shadow-sm"
-                layoutId="timeRange"
-                transition={{ damping: 30, stiffness: 400, type: "spring" }}
+                transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
               />
             ) : null}
             <span className="relative z-10">{range}</span>

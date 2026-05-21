@@ -2,16 +2,17 @@ import json
 import math
 import os
 from dataclasses import dataclass
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
 
-from app.schemas.market import MarketIndex, MarketIndicesResponse, TradingHours
+from app.schemas.market import MarketIndex, MarketIndicesResponse, TradingHours, TradingSession
 from app.utils.redis_lock import create_redis_client
 
 CACHE_KEY = "sigma:market-indices"
 CACHE_TTL_SECONDS = 60
+BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 
 
 @dataclass(frozen=True)
@@ -20,8 +21,7 @@ class IndexConfig:
     name: str
     market: str
     timezone: str
-    open_time: time
-    close_time: time
+    sessions: tuple[tuple[time, time], ...]
     finnhub_symbol: str
     finnhub_proxy_symbol: str | None
     alpha_symbol: str
@@ -29,18 +29,32 @@ class IndexConfig:
     fallback_change_pct: float
     currency: str
 
+    @property
+    def open_time(self) -> time:
+        return self.sessions[0][0]
+
+    @property
+    def close_time(self) -> time:
+        return self.sessions[-1][1]
+
+
+@dataclass(frozen=True)
+class IntradayPoint:
+    timestamp: datetime
+    value: float
+
 
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
-    IndexConfig("SPX", "S&P 500", "us", "America/New_York", time(9, 30), time(16, 0), "^GSPC", "SPY", "SPY", 5842.15, 0.41, "USD"),
-    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", time(9, 30), time(16, 0), "^IXIC", "QQQ", "QQQ", 18352.04, 0.56, "USD"),
-    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", time(9, 30), time(16, 0), "^DJI", "DIA", "DIA", 40218.33, 0.24, "USD"),
-    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", time(9, 30), time(15, 0), "000001.SS", None, "000001.SHH", 3138.92, -0.18, "CNY"),
-    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", time(9, 30), time(16, 0), "^HSI", None, "HSI", 19553.61, 0.32, "HKD"),
-    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", time(9, 0), time(15, 30), "^N225", None, "N225", 38570.76, -0.12, "JPY"),
-    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", time(8, 0), time(16, 30), "^FTSE", None, "FTSE", 8433.21, 0.21, "GBP"),
-    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", time(9, 0), time(17, 30), "^GDAXI", None, "DAX", 18772.85, 0.37, "EUR"),
-    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", time(9, 0), time(15, 30), "^KS11", None, "KS11", 2650.30, 0.45, "KRW"),
-    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", time(9, 0), time(13, 30), "^TWII", None, "TWII", 20500.15, 0.28, "TWD"),
+    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "SPY", 5842.15, 0.41, "USD"),
+    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "QQQ", 18352.04, 0.56, "USD"),
+    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "DIA", 40218.33, 0.24, "USD"),
+    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", None, "000001.SHH", 3138.92, -0.18, "CNY"),
+    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "HSI", 19553.61, 0.32, "HKD"),
+    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "N225", 38570.76, -0.12, "JPY"),
+    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", None, "FTSE", 8433.21, 0.21, "GBP"),
+    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", None, "DAX", 18772.85, 0.37, "EUR"),
+    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", None, "KS11", 2650.30, 0.45, "KRW"),
+    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", None, "TWII", 20500.15, 0.28, "TWD"),
 )
 
 
@@ -73,6 +87,14 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
     quote = await _fetch_index_quote(config)
     value = quote[0] if quote is not None else config.fallback_value
     change_pct = quote[1] if quote is not None else config.fallback_change_pct
+    intraday = await _fetch_intraday_series(config, value)
+    if intraday is None:
+        intraday = _fallback_intraday_series(config, value, change_pct)
+    elif quote is None and intraday:
+        value = intraday[-1].value
+        first_value = intraday[0].value
+        change_pct = ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
+
     return MarketIndex(
         symbol=config.symbol,
         name=config.name,
@@ -85,8 +107,13 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
             open=config.open_time.strftime("%H:%M"),
             close=config.close_time.strftime("%H:%M"),
             timezone=config.timezone,
+            sessions=[
+                TradingSession(open=session_open.strftime("%H:%M"), close=session_close.strftime("%H:%M"))
+                for session_open, session_close in config.sessions
+            ],
         ),
-        sparkline_24h=_sparkline(value, change_pct),
+        sparkline_24h=[round(point.value, 2) for point in intraday],
+        sparkline_times=[point.timestamp.isoformat() for point in intraday],
     )
 
 
@@ -154,28 +181,205 @@ async def _fetch_alpha_vantage_quote(config: IndexConfig) -> tuple[float, float]
     return current, change_pct
 
 
+async def _fetch_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
+    finnhub_series = await _fetch_finnhub_intraday_series(config, target_value)
+    if finnhub_series is not None:
+        return finnhub_series
+    return await _fetch_alpha_vantage_intraday_series(config)
+
+
+async def _fetch_finnhub_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
+    token = os.getenv("FINNHUB_KEY", "")
+    if not token:
+        return None
+
+    session_date = _latest_session_date(config)
+    start, end = _session_utc_bounds(config, session_date)
+    direct = await _fetch_finnhub_candles(config.finnhub_symbol, token, start, end)
+    if direct is not None:
+        return _align_intraday_points(config, session_date, direct)
+    if not config.finnhub_proxy_symbol:
+        return None
+    proxy = await _fetch_finnhub_candles(config.finnhub_proxy_symbol, token, start, end)
+    if proxy is None:
+        return None
+    aligned = _align_intraday_points(config, session_date, proxy)
+    if not aligned or aligned[-1].value <= 0:
+        return None
+    scale = target_value / aligned[-1].value
+    return [IntradayPoint(timestamp=point.timestamp, value=point.value * scale) for point in aligned]
+
+
+async def _fetch_finnhub_candles(
+    symbol: str,
+    token: str,
+    start: datetime,
+    end: datetime,
+) -> list[IntradayPoint] | None:
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            response = await client.get(
+                "https://finnhub.io/api/v1/stock/candle",
+                params={
+                    "from": int(start.timestamp()),
+                    "resolution": "1",
+                    "symbol": symbol,
+                    "to": int(end.timestamp()),
+                    "token": token,
+                },
+            )
+            response.raise_for_status()
+            payload = response.json()
+    except Exception:
+        return None
+
+    if payload.get("s") != "ok":
+        return None
+    closes = payload.get("c")
+    timestamps = payload.get("t")
+    if not isinstance(closes, list) or not isinstance(timestamps, list) or len(closes) != len(timestamps):
+        return None
+
+    points: list[IntradayPoint] = []
+    for timestamp, close in zip(timestamps, closes, strict=False):
+        value = _as_float(close)
+        epoch = _as_float(timestamp)
+        if value is None or epoch is None or value <= 0:
+            continue
+        points.append(
+            IntradayPoint(
+                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
+                value=value,
+            )
+        )
+    return points or None
+
+
+async def _fetch_alpha_vantage_intraday_series(config: IndexConfig) -> list[IntradayPoint] | None:
+    token = os.getenv("ALPHAVANTAGE_KEY", "")
+    if not token:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            response = await client.get(
+                "https://www.alphavantage.co/query",
+                params={
+                    "apikey": token,
+                    "function": "TIME_SERIES_INTRADAY",
+                    "interval": "1min",
+                    "outputsize": "compact",
+                    "symbol": config.alpha_symbol,
+                },
+            )
+            response.raise_for_status()
+            payload = response.json()
+    except Exception:
+        return None
+
+    series = payload.get("Time Series (1min)")
+    if not isinstance(series, dict):
+        return None
+
+    zone = ZoneInfo(config.timezone)
+    points: list[IntradayPoint] = []
+    for timestamp, values in series.items():
+        if not isinstance(values, dict):
+            continue
+        value = _as_float(values.get("4. close"))
+        if value is None or value <= 0:
+            continue
+        try:
+            local_timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=zone)
+        except ValueError:
+            continue
+        points.append(IntradayPoint(timestamp=local_timestamp.astimezone(BEIJING_TZ), value=value))
+
+    if not points:
+        return None
+    session_date = _latest_session_date(config)
+    return _align_intraday_points(config, session_date, points)
+
+
 def _is_trading(config: IndexConfig, now: datetime | None = None) -> bool:
     active_now = now.astimezone(ZoneInfo(config.timezone)) if now else datetime.now(ZoneInfo(config.timezone))
     if active_now.weekday() >= 5:
         return False
     current = active_now.time().replace(tzinfo=None)
-    return config.open_time <= current < config.close_time
+    return any(session_open <= current < session_close for session_open, session_close in config.sessions)
 
 
-def _sparkline(value: float, change_pct: float) -> list[float]:
-    """Generate per-minute price points for one trading day.
-
-    480 points covers an 8-hour session at 1-minute resolution. The
-    frontend resamples these values to each exchange's trading window.
-    """
-    num_points = 480
+def _fallback_intraday_series(config: IndexConfig, value: float, change_pct: float) -> list[IntradayPoint]:
+    """Generate fallback prices over the exchange's actual trading minutes."""
+    timestamps = _trading_minutes(config, _latest_session_date(config))
+    num_points = len(timestamps)
     start = value / (1 + change_pct / 100) if change_pct != -100 else value
     points: list[float] = []
     for index in range(num_points):
         progress = index / (num_points - 1)
         curve = math.sin(progress * math.pi * 2) * value * 0.0008
         points.append(round(start + (value - start) * progress + curve, 2))
-    return points
+    return [
+        IntradayPoint(timestamp=timestamp, value=point)
+        for timestamp, point in zip(timestamps, points, strict=True)
+    ]
+
+
+def _align_intraday_points(
+    config: IndexConfig,
+    session_date: date,
+    points: list[IntradayPoint],
+) -> list[IntradayPoint] | None:
+    if not points:
+        return None
+
+    values_by_minute = {
+        point.timestamp.astimezone(BEIJING_TZ).replace(second=0, microsecond=0): point.value
+        for point in points
+    }
+    first_value = next((point.value for point in sorted(points, key=lambda item: item.timestamp)), None)
+    if first_value is None:
+        return None
+
+    aligned: list[IntradayPoint] = []
+    last_value = first_value
+    for timestamp in _trading_minutes(config, session_date):
+        last_value = values_by_minute.get(timestamp, last_value)
+        aligned.append(IntradayPoint(timestamp=timestamp, value=last_value))
+    return aligned if len(aligned) > 1 else None
+
+
+def _trading_minutes(config: IndexConfig, session_date: date) -> list[datetime]:
+    zone = ZoneInfo(config.timezone)
+    timestamps: list[datetime] = []
+    for session_open, session_close in config.sessions:
+        start = datetime.combine(session_date, session_open, tzinfo=zone)
+        end = datetime.combine(session_date, session_close, tzinfo=zone)
+        if session_close <= session_open:
+            end += timedelta(days=1)
+        current = start
+        while current <= end:
+            timestamps.append(current.astimezone(BEIJING_TZ).replace(second=0, microsecond=0))
+            current += timedelta(minutes=1)
+    return timestamps
+
+
+def _session_utc_bounds(config: IndexConfig, session_date: date) -> tuple[datetime, datetime]:
+    zone = ZoneInfo(config.timezone)
+    start = datetime.combine(session_date, config.sessions[0][0], tzinfo=zone)
+    end = datetime.combine(session_date, config.sessions[-1][1], tzinfo=zone)
+    if config.sessions[-1][1] <= config.sessions[0][0]:
+        end += timedelta(days=1)
+    return start.astimezone(UTC), end.astimezone(UTC)
+
+
+def _latest_session_date(config: IndexConfig, now: datetime | None = None) -> date:
+    local_now = now.astimezone(ZoneInfo(config.timezone)) if now else datetime.now(ZoneInfo(config.timezone))
+    session_date = local_now.date()
+    if local_now.time().replace(tzinfo=None) < config.open_time:
+        session_date -= timedelta(days=1)
+    while session_date.weekday() >= 5:
+        session_date -= timedelta(days=1)
+    return session_date
 
 
 def _as_float(value: object) -> float | None:

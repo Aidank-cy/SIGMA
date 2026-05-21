@@ -7,13 +7,13 @@ from app.models.enums import IntelligenceCategory, Market, SourceType
 from scripts.seed_demo_data import ITEM_SPECS, article_body, summary_for
 
 
-async def test_seed_data_sources_creates_eight_sources(db_session: AsyncSession) -> None:
-    """Seed helper inserts eight MVP system sources into an empty table."""
+async def test_seed_data_sources_creates_seven_sources(db_session: AsyncSession) -> None:
+    """Seed helper inserts seven Layer 5 system sources into an empty table."""
     created = await seed_data_sources(db_session)
     total = await db_session.scalar(select(func.count()).select_from(DataSource))
 
-    assert created == 8
-    assert total == 8
+    assert created == 7
+    assert total == 7
 
 
 async def test_seed_data_sources_replaces_obsolete_reuters_feed(db_session: AsyncSession) -> None:
@@ -64,6 +64,18 @@ async def test_seed_data_sources_updates_yahoo_mapping(db_session: AsyncSession)
     assert source is not None
     assert source.config["field_mapping"]["content"] == "title"
     assert source.config["headers"]["User-Agent"] == "SIGMACollector/1.0"
+
+
+async def test_seed_data_sources_removes_layer_six_sentiment_source(db_session: AsyncSession) -> None:
+    """Seed sync deletes the old Alpha Vantage NEWS_SENTIMENT source."""
+    db_session.add(_system_source("Alpha Vantage News", {"function": "NEWS_SENTIMENT"}, source_type=SourceType.API))
+    await db_session.commit()
+
+    created = await seed_data_sources(db_session)
+    source = await db_session.scalar(select(DataSource).where(DataSource.name == "Alpha Vantage News"))
+
+    assert created == 7
+    assert source is None
 
 
 def test_demo_item_specs_include_content_length_variety_per_market() -> None:

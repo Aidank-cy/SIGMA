@@ -1,7 +1,9 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.collectors.base import DEFAULT_USER_AGENT
+from app.models.collected_item import CollectedItem
+from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
 from app.models.enums import IntelligenceCategory, Market, SourceType
 
@@ -27,6 +29,11 @@ async def _sync_existing_seed_sources(db: AsyncSession) -> None:
     seed_sources = {str(seed["name"]): seed for seed in SEED_SOURCES}
     sources = await db.scalars(select(DataSource).where(DataSource.is_system.is_(True)))
     for source in sources:
+        if source.name in LAYER_6_SEED_SOURCE_NAMES:
+            await db.execute(delete(CollectorLog).where(CollectorLog.source_id == source.id))
+            await db.execute(delete(CollectedItem).where(CollectedItem.source_id == source.id))
+            await db.delete(source)
+            continue
         seed_name = OBSOLETE_SEED_SOURCE_NAMES.get(source.name, source.name)
         if source.name not in OBSOLETE_SEED_SOURCE_NAMES and seed_name not in SYNC_SEED_SOURCE_NAMES:
             continue
@@ -50,6 +57,7 @@ OBSOLETE_SEED_SOURCE_NAMES = {
     "NewsAPI Business": "BBC Business RSS",
 }
 SYNC_SEED_SOURCE_NAMES = {"Yahoo Finance News", "BBC Business RSS", "Dow Jones Markets RSS"}
+LAYER_6_SEED_SOURCE_NAMES = {"Alpha Vantage News"}
 
 
 SEED_SOURCES: list[dict[str, object]] = [
@@ -72,27 +80,6 @@ SEED_SOURCES: list[dict[str, object]] = [
                 "content": "title",
                 "content_url": "link",
                 "published_at": "providerPublishTime",
-            },
-        },
-    },
-    {
-        "name": "Alpha Vantage News",
-        "source_type": SourceType.API,
-        "category": IntelligenceCategory.FINANCE,
-        "market": Market.US,
-        "schedule_cron": "*/30 * * * *",
-        "max_execution_seconds": 120,
-        "is_system": True,
-        "config": {
-            "base_url": "https://www.alphavantage.co",
-            "endpoint": "/query",
-            "params": {"function": "NEWS_SENTIMENT", "apikey": "$ENV:ALPHAVANTAGE_KEY"},
-            "response_path": "feed",
-            "field_mapping": {
-                "title": "title",
-                "content": "summary",
-                "content_url": "url",
-                "published_at": "time_published",
             },
         },
     },

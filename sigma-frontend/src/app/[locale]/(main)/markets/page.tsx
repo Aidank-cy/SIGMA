@@ -44,7 +44,6 @@ export default function MarketsPage() {
             {activeTab === tab && (
               <motion.div
                 className="absolute inset-0 rounded-lg border border-border bg-card shadow-sm"
-                layoutId="marketsActiveTab"
                 transition={{ damping: 30, stiffness: 400, type: "spring" }}
               />
             )}
@@ -55,7 +54,7 @@ export default function MarketsPage() {
         ))}
       </motion.div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         <motion.div
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}

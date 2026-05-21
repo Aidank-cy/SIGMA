@@ -3,12 +3,20 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+class TradingSession(BaseModel):
+    """One continuous exchange trading session."""
+
+    open: str
+    close: str
+
+
 class TradingHours(BaseModel):
     """Exchange trading window for an index."""
 
     open: str
     close: str
     timezone: str
+    sessions: list[TradingSession] = Field(min_length=1)
 
 
 class MarketIndex(BaseModel):
@@ -23,6 +31,7 @@ class MarketIndex(BaseModel):
     is_trading: bool
     trading_hours: TradingHours
     sparkline_24h: list[float] = Field(min_length=2)
+    sparkline_times: list[str] = Field(default_factory=list)
 
 
 class MarketIndicesResponse(BaseModel):

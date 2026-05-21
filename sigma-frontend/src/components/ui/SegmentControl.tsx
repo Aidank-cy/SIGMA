@@ -40,7 +40,7 @@ export function SegmentControl({ activeId, className, items, onChange }: Segment
                 <motion.div
                   className="absolute inset-0 rounded-full bg-primary shadow-apple-soft"
                   layoutId="tab-indicator"
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
                 />
               ) : null}
               <span className="relative z-10 whitespace-nowrap">{item.label}</span>

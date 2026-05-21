@@ -131,7 +131,7 @@ export function WatchlistTab() {
           type="button"
         >
           <Plus className="w-4 h-4" />
-          {t("addStock")}
+          {t("addWatchlist")}
         </motion.button>
       </div>
 

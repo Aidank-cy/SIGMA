@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
@@ -132,8 +133,15 @@ export function CustomSelect({
             isOpen ? "rotate-180" : ""
           )}
         />
+        <AnimatePresence>
         {isOpen ? (
-          <div className={cn("absolute left-0 z-30 w-full rounded-2xl border border-border bg-popover p-2 shadow-apple", isStacked ? "top-full mt-2" : "top-14")}>
+          <motion.div
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className={cn("absolute left-0 z-30 w-full rounded-2xl border border-border bg-popover p-2 shadow-apple", isStacked ? "top-full mt-2" : "top-14")}
+            exit={{ opacity: 0, scale: 0.98, y: -6 }}
+            initial={{ opacity: 0, scale: 0.98, y: -6 }}
+            transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
+          >
             <div aria-label={label} className="space-y-1" role="listbox">
               {options.map((option) => {
                 const isSelected = option.value === value;
@@ -157,8 +165,9 @@ export function CustomSelect({
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         ) : null}
+        </AnimatePresence>
       </div>
       {error ? <p className="px-1 text-xs font-medium text-destructive">{error}</p> : null}
     </div>

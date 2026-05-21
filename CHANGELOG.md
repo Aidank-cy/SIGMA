@@ -7,6 +7,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add timestamped per-minute intraday market index series with Beijing-time trading sessions and real-data candle fetches.
+- Add a database cleanup script that removes collected content, reports, watchlists, logs, and non-admin/test users.
+- Add persisted drag-and-drop region ordering for the Markets sectors grid.
+- Add route loading states for the main authenticated pages.
 - Add admin LLM provider distribution and daily token budget visualizations backed by provider and model usage rollups.
 - Add Markets index range controls, Korea and Taiwan index coverage, watchlist creation from Markets, and region-grouped sector sections.
 - Add visible hero chart time labels, richer price tooltips, and browser-time dashboard greetings.
@@ -21,6 +25,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Redesign Markets sectors from accordions into a responsive region grid.
+- Dynamically load heavy dashboard chart modules and prefetch sidebar navigation links for smoother page transitions.
+- Standardize interactive control motion around spring-based transitions.
 - Improve Settings form spacing, animated segmented controls, and global toggle contrast.
 - Preserve v0 reference pages as compile-excluded integration references while wiring production pages to tested SIGMA hooks and i18n.
 - Consolidate watchlist and report-list workflows into the new Markets and Analytics pages while preserving item and report detail routes.
@@ -31,10 +38,15 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Removed
+- Remove the Layer 6 Alpha Vantage sentiment seed source while keeping Layer 5 collection sources active.
 - Remove obsolete pre-v0 frontend components, legacy select primitives, the deprecated theme hook, and compile-excluded v0 reference pages after integration.
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix dashboard hero chart axes so Beijing-time 30-minute ticks skip market breaks and mark cross-day boundaries.
+- Fix dark-mode pie chart slice borders in Analytics.
+- Fix the SIGMA sidebar logo to follow foreground color in light and dark themes.
+- Rename the watchlist creation button to match its actual watchlist behavior.
 - Fix admin log filter alignment, design-token colors, and date range constraints.
 - Fix Sync source card settings actions so they open the Settings admin sources panel.
 - Fix the v0 sidebar frosted-glass background and light-mode sidebar tokens so theme toggles update the sidebar with the rest of the app.
