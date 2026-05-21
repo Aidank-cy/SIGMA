@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import json
 import logging
@@ -17,6 +18,10 @@ from app.utils.redis_lock import create_redis_client
 CACHE_KEY = "sigma:market-indices"
 ACTIVE_CACHE_TTL_SECONDS = 15
 CLOSED_CACHE_TTL_SECONDS = 120
+HISTORICAL_CACHE_KEY = "sigma:historical:{symbol}"
+HISTORICAL_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30
+MAX_HISTORICAL_POINTS = 260
+MARKET_INDEX_REFRESH_DELAY_SECONDS = 0.6
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 LOGGER = logging.getLogger(__name__)
 YAHOO_CHART_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
@@ -27,6 +32,7 @@ YAHOO_HEADERS = {
         "Chrome/131.0.0.0 Safari/537.36"
     ),
 }
+_yahoo_client: httpx.AsyncClient | None = None
 HISTORICAL_RANGES: dict[str, int] = {
     "5D": 5,
     "1M": 22,
@@ -100,7 +106,11 @@ async def refresh_market_indices(force: bool = False) -> MarketIndicesResponse:
     if cached is not None and not force and _cached_payload_is_fresh(cached):
         return MarketIndicesResponse.model_validate_json(cached)
 
-    indices = [await _build_index(config) for config in INDEX_CONFIGS]
+    indices: list[MarketIndex] = []
+    for index, config in enumerate(INDEX_CONFIGS):
+        indices.append(await _build_index(config))
+        if index < len(INDEX_CONFIGS) - 1:
+            await asyncio.sleep(MARKET_INDEX_REFRESH_DELAY_SECONDS)
     response = MarketIndicesResponse(indices=indices, updated_at=_now_utc())
     await _cache_set(response.model_dump_json())
     return response
@@ -316,57 +326,68 @@ async def _fetch_yahoo_chart_result(
     purpose: str,
 ) -> dict[str, object] | None:
     symbol_path = quote_path(config.finnhub_symbol, safe="")
-    async with httpx.AsyncClient(timeout=8, headers=YAHOO_HEADERS) as client:
-        for host in YAHOO_CHART_HOSTS:
-            url = f"https://{host}/v8/finance/chart/{symbol_path}"
-            try:
-                response = await client.get(url, params=params)
-                response.raise_for_status()
-                payload = response.json()
-            except httpx.HTTPStatusError as exc:
-                LOGGER.warning(
-                    "Yahoo %s chart request for %s via %s failed: HTTP %s - %s",
-                    purpose,
-                    config.finnhub_symbol,
-                    host,
-                    exc.response.status_code,
-                    exc.response.text[:200],
-                )
-                continue
-            except httpx.HTTPError as exc:
-                LOGGER.warning(
-                    "Yahoo %s chart request for %s via %s failed: %s: %s",
-                    purpose,
-                    config.finnhub_symbol,
-                    host,
-                    type(exc).__name__,
-                    exc,
-                )
-                continue
-            except Exception as exc:
-                LOGGER.warning(
-                    "Yahoo %s chart request for %s via %s failed: %s: %s",
-                    purpose,
-                    config.finnhub_symbol,
-                    host,
-                    type(exc).__name__,
-                    exc,
-                )
-                continue
+    client = _get_yahoo_client()
+    for host in YAHOO_CHART_HOSTS:
+        url = f"https://{host}/v8/finance/chart/{symbol_path}"
+        try:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            payload = response.json()
+        except httpx.HTTPStatusError as exc:
+            LOGGER.warning(
+                "Yahoo %s chart request for %s via %s failed: HTTP %s - %s",
+                purpose,
+                config.finnhub_symbol,
+                host,
+                exc.response.status_code,
+                exc.response.text[:200],
+            )
+            continue
+        except httpx.HTTPError as exc:
+            LOGGER.warning(
+                "Yahoo %s chart request for %s via %s failed: %s: %s",
+                purpose,
+                config.finnhub_symbol,
+                host,
+                type(exc).__name__,
+                exc,
+            )
+            continue
+        except Exception as exc:
+            LOGGER.warning(
+                "Yahoo %s chart request for %s via %s failed: %s: %s",
+                purpose,
+                config.finnhub_symbol,
+                host,
+                type(exc).__name__,
+                exc,
+            )
+            continue
 
-            chart = payload.get("chart")
-            if not isinstance(chart, dict):
-                LOGGER.warning("Yahoo %s chart response for %s via %s did not include chart data.", purpose, config.finnhub_symbol, host)
-                continue
-            error = chart.get("error")
-            if error:
-                LOGGER.warning("Yahoo %s chart response for %s via %s returned error: %s", purpose, config.finnhub_symbol, host, error)
-                continue
-            result = chart.get("result")
-            if isinstance(result, list) and result and isinstance(result[0], dict):
-                return result[0]
-            LOGGER.warning("Yahoo %s chart response for %s via %s did not include result data.", purpose, config.finnhub_symbol, host)
+        chart = payload.get("chart")
+        if not isinstance(chart, dict):
+            LOGGER.warning("Yahoo %s chart response for %s via %s did not include chart data.", purpose, config.finnhub_symbol, host)
+            continue
+        error = chart.get("error")
+        if error:
+            LOGGER.warning("Yahoo %s chart response for %s via %s returned error: %s", purpose, config.finnhub_symbol, host, error)
+            continue
+        result = chart.get("result")
+        if isinstance(result, list) and result and isinstance(result[0], dict):
+            return result[0]
+        LOGGER.warning("Yahoo %s chart response for %s via %s did not include result data.", purpose, config.finnhub_symbol, host)
     return None
+
+
+def _get_yahoo_client() -> httpx.AsyncClient:
+    global _yahoo_client
+    if _yahoo_client is None or _yahoo_client.is_closed:
+        _yahoo_client = httpx.AsyncClient(
+            timeout=10,
+            headers=YAHOO_HEADERS,
+            limits=httpx.Limits(max_connections=3),
+        )
+    return _yahoo_client
 
 
 async def _fetch_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
@@ -549,13 +570,31 @@ async def _fetch_historical_ranges(
     value: float,
     change_pct: float,
 ) -> dict[str, MarketSparkline]:
+    cached = await _get_cached_historical(config.symbol)
+    if cached is None:
+        full_series = await _fetch_yahoo_historical_series(config, "1y")
+        if full_series:
+            cached = _trim_historical_points(_filter_completed_historical_points(config, full_series))
+            await _set_cached_historical(config.symbol, cached)
+    else:
+        latest_cached_date = _historical_point_date(config, cached[-1]) if cached else None
+        latest_completed_date = _latest_completed_session_date(config)
+        if latest_cached_date is not None and latest_cached_date < latest_completed_date:
+            recent = await _fetch_yahoo_historical_series(config, "5d")
+            if recent:
+                completed_recent = _filter_completed_historical_points(config, recent)
+                cached_dates = {_historical_point_date(config, point) for point in cached}
+                new_points = [point for point in completed_recent if _historical_point_date(config, point) not in cached_dates]
+                if new_points:
+                    cached = _trim_historical_points([*cached, *new_points])
+                    await _set_cached_historical(config.symbol, cached)
+
     ranges: dict[str, MarketSparkline] = {}
-    historical_series = await _fetch_yahoo_historical_series(config, "1y")
     for range_key, fallback_points in HISTORICAL_RANGES.items():
-        series = historical_series[-fallback_points:] if historical_series else None
+        series = cached[-fallback_points:] if cached else None
         if not series:
             LOGGER.warning(
-                "Using generated fallback %s historical series for %s because Yahoo returned no daily candles.",
+                "Using generated fallback %s historical series for %s because no cached daily candles are available.",
                 range_key,
                 config.symbol,
             )
@@ -819,6 +858,100 @@ async def _cache_set(value: str) -> None:
         return
     finally:
         await client.aclose()
+
+
+async def _get_cached_historical(symbol: str) -> list[IntradayPoint] | None:
+    client = create_redis_client()
+    try:
+        raw = await client.get(HISTORICAL_CACHE_KEY.format(symbol=symbol))
+    except Exception as exc:
+        LOGGER.warning("Historical cache read for %s failed: %s: %s", symbol, type(exc).__name__, exc)
+        return None
+    finally:
+        await client.aclose()
+    if raw is None:
+        return None
+    return _deserialize_historical(raw)
+
+
+async def _set_cached_historical(symbol: str, points: list[IntradayPoint]) -> None:
+    client = create_redis_client()
+    try:
+        await client.set(
+            HISTORICAL_CACHE_KEY.format(symbol=symbol),
+            _serialize_historical(points),
+            ex=HISTORICAL_CACHE_TTL_SECONDS,
+        )
+    except Exception as exc:
+        LOGGER.warning("Historical cache write for %s failed: %s: %s", symbol, type(exc).__name__, exc)
+    finally:
+        await client.aclose()
+
+
+def _serialize_historical(points: list[IntradayPoint]) -> str:
+    return json.dumps(
+        [
+            {
+                "t": int(point.timestamp.timestamp()),
+                "v": round(point.value, 6),
+            }
+            for point in points
+        ],
+        separators=(",", ":"),
+    )
+
+
+def _deserialize_historical(value: object) -> list[IntradayPoint] | None:
+    try:
+        raw = value.decode() if isinstance(value, bytes) else str(value)
+        payload = json.loads(raw)
+    except (UnicodeDecodeError, TypeError, ValueError):
+        return None
+    if not isinstance(payload, list):
+        return None
+
+    points: list[IntradayPoint] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        epoch = _as_float(item.get("t"))
+        point_value = _as_float(item.get("v"))
+        if epoch is None or point_value is None or point_value <= 0:
+            continue
+        points.append(
+            IntradayPoint(
+                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
+                value=point_value,
+            )
+        )
+    return points or None
+
+
+def _trim_historical_points(points: list[IntradayPoint]) -> list[IntradayPoint]:
+    return sorted(points, key=lambda point: point.timestamp)[-MAX_HISTORICAL_POINTS:]
+
+
+def _filter_completed_historical_points(config: IndexConfig, points: list[IntradayPoint]) -> list[IntradayPoint]:
+    latest_completed_date = _latest_completed_session_date(config)
+    return [
+        point
+        for point in _trim_historical_points(points)
+        if _historical_point_date(config, point) <= latest_completed_date
+    ]
+
+
+def _historical_point_date(config: IndexConfig, point: IntradayPoint) -> date:
+    return point.timestamp.astimezone(ZoneInfo(config.timezone)).date()
+
+
+def _latest_completed_session_date(config: IndexConfig, now: datetime | None = None) -> date:
+    local_now = (now or _now_utc()).astimezone(ZoneInfo(config.timezone))
+    session_date = _latest_session_date(config, now)
+    if local_now.date() == session_date and local_now.time().replace(tzinfo=None) < config.close_time:
+        session_date -= timedelta(days=1)
+        while session_date.weekday() >= 5:
+            session_date -= timedelta(days=1)
+    return session_date
 
 
 def decode_cached_payload(value: str) -> dict[str, object]:
