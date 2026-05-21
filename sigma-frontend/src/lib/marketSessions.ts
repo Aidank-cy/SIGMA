@@ -5,6 +5,7 @@ export const MARKET_CLOSED_REFETCH_INTERVAL_MS = 120_000;
 
 export type MarketAxisDomain =
   | [string, string]
+  | [number, number]
   | [(dataMin: number) => number, (dataMax: number) => number];
 
 interface ZonedParts {
@@ -101,12 +102,32 @@ export function marketIndicesRefetchInterval(indices: MarketIndex[] = [], now = 
   return anyMarketTrading(indices, now) ? MARKET_ACTIVE_REFETCH_INTERVAL_MS : MARKET_CLOSED_REFETCH_INTERVAL_MS;
 }
 
-export function previousCloseAxisDomain(previousClose?: number | null, range = 250): MarketAxisDomain {
-  if (typeof previousClose !== "number" || !Number.isFinite(previousClose) || previousClose <= 0) {
+export function previousCloseAxisDomain(
+  dataOrPreviousClose?: number | null | Array<number | { value?: number | null }>,
+  range = 250
+): MarketAxisDomain {
+  if (Array.isArray(dataOrPreviousClose)) {
+    const values = dataOrPreviousClose
+      .map((point) => (typeof point === "number" ? point : point?.value))
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    if (values.length < 2) {
+      return ["dataMin - 10", "dataMax + 10"];
+    }
+    const dataMin = Math.min(...values);
+    const dataMax = Math.max(...values);
+    const spread = dataMax - dataMin;
+    if (spread <= 0) {
+      return [dataMin - 10, dataMax + 10];
+    }
+    const padding = Math.max(spread * 0.18, Math.abs((dataMin + dataMax) / 2) * 0.0005, 1);
+    return [dataMin - padding, dataMax + padding];
+  }
+
+  if (typeof dataOrPreviousClose !== "number" || !Number.isFinite(dataOrPreviousClose) || dataOrPreviousClose <= 0) {
     return ["dataMin - 10", "dataMax + 10"];
   }
-  const floor = previousClose - range;
-  const ceiling = previousClose + range;
+  const floor = dataOrPreviousClose - range;
+  const ceiling = dataOrPreviousClose + range;
   return [
     (dataMin: number) => Math.min(dataMin, floor),
     (dataMax: number) => Math.max(dataMax, ceiling)

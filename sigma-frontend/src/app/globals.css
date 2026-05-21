@@ -131,6 +131,14 @@
   html:lang(en) .text-xs:not(.font-medium):not(.font-semibold):not(.font-bold):not(.font-extrabold):not(.font-black) {
     font-weight: 500;
   }
+
+  html:lang(en) .font-normal:not(.font-medium):not(.font-semibold):not(.font-bold):not(.font-extrabold):not(.font-black) {
+    font-weight: 500;
+  }
+
+  html:lang(en) .font-medium:not(.font-semibold):not(.font-bold):not(.font-extrabold):not(.font-black) {
+    font-weight: 600;
+  }
 }
 
 ::selection {

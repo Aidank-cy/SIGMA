@@ -99,7 +99,7 @@ export function DailyUsageSparkline({ data }: { data: DailyUsagePoint[] }) {
     <div className="h-16">
       <ResponsiveContainer height="100%" width="100%">
         <LineChart data={data}>
-          <Line dataKey="tokens" dot={false} stroke="var(--chart-3)" strokeWidth={2} type="monotone" />
+          <Line dataKey="tokens" dot={false} stroke="var(--chart-3)" strokeWidth={2} type="linear" />
           <Tooltip formatter={(value: number) => value.toLocaleString()} />
         </LineChart>
       </ResponsiveContainer>

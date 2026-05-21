@@ -1154,3 +1154,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added site-wide auth refresh cookies, persisted registration locale, redirected login to the authenticated user's profile locale, confirmed next-intl middleware already respects explicit locale paths and token storage remains locale-independent, moved HSI into Asia, and made the sidebar account popup opaque with icon-aligned hover tooltips. Verified with focused backend auth tests, Ruff, frontend production build, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-21T08:39:02Z
+
+### [Maintenance] Chart axis, locale sync, and English text weight
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/lib/marketSessions.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/components/ProtectedRoute.tsx, sigma-frontend/src/app/globals.css, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/components/charts/LLMUsageCharts.tsx, sigma-frontend/src/components/charts/TrendLine.tsx, sigma-frontend/src/components/ui/Sparkline.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded Dashboard and Markets chart side margins/padding so X-axis edge labels are not clipped, kept market Area charts on linear interpolation, switched remaining shared line/area charts to linear interpolation, switched Y-axis domains to visible chart data min/max with proportional padding, logged sparse intraday series under 30 points, redirected protected routes to the user's stored locale before rendering, and raised English font-normal/font-medium utility weights. Verified with focused backend market-index tests, Ruff, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-21T08:47:15Z

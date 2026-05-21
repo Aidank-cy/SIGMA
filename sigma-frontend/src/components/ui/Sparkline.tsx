@@ -36,7 +36,7 @@ export function Sparkline({
             stroke={stroke}
             strokeLinecap="round"
             strokeWidth={1.5}
-            type="monotone"
+            type="linear"
           />
         </LineChart>
       </ResponsiveContainer>

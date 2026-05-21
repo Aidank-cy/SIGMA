@@ -52,7 +52,7 @@ export function TrendLine({ data, height = 280 }: TrendLineProps) {
             dot={false}
             stroke="rgb(var(--sigma-accent))"
             strokeWidth={2.5}
-            type="monotone"
+            type="linear"
           />
         </LineChart>
       </ResponsiveContainer>
