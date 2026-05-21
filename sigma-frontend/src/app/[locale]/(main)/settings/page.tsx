@@ -2,6 +2,7 @@
 
 import { Clock3, KeyRound, Save } from "lucide-react";
 import dynamic from "next/dynamic";
+import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
@@ -42,7 +43,9 @@ const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((mo
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
-  const defaultLocale = useLocale() as Locale;
+  const locale = useLocale() as Locale;
+  const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
   const { data: reportConfig, isLoading } = useReportConfig();
@@ -52,10 +55,10 @@ export default function SettingsPage() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
   const [displayName, setDisplayName] = useState("");
-  const [selectedLocale, setSelectedLocale] = useState<Locale>(defaultLocale);
+  const [selectedLocale, setSelectedLocale] = useState<Locale>(locale);
   const [retentionDays, setRetentionDays] = useState(30);
   const [reportPayload, setReportPayload] = useState<UserReportConfig>(defaultReportConfig);
-  const [profileBaseline, setProfileBaseline] = useState({ displayName: "", locale: defaultLocale });
+  const [profileBaseline, setProfileBaseline] = useState({ displayName: "", locale });
   const [retentionBaseline, setRetentionBaseline] = useState(30);
   const [reportBaseline, setReportBaseline] = useState<UserReportConfig>(defaultReportConfig);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
@@ -65,13 +68,13 @@ export default function SettingsPage() {
     if (!user) {
       return;
     }
-    const nextLocale = user.locale ?? defaultLocale;
+    const nextLocale = user.locale ?? locale;
     setDisplayName(user.display_name);
     setSelectedLocale(nextLocale);
     setRetentionDays(user.data_retention_days);
     setProfileBaseline({ displayName: user.display_name, locale: nextLocale });
     setRetentionBaseline(user.data_retention_days);
-  }, [defaultLocale, user]);
+  }, [locale, user]);
 
   useEffect(() => {
     if (!reportConfig) {
@@ -104,6 +107,12 @@ export default function SettingsPage() {
         run: async () => {
           await updateProfile.mutateAsync({ display_name: displayName, locale: selectedLocale });
           setProfileBaseline({ displayName, locale: selectedLocale });
+          // Redirect to new locale if language changed.
+          if (selectedLocale !== locale) {
+            const newPath = pathname.replace(/^\/(zh|en)/, `/${selectedLocale}`);
+            router.replace(newPath);
+            return;
+          }
         }
       });
     }

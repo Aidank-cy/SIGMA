@@ -1,8 +1,10 @@
+import csv
 import json
 import math
 import os
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
+from urllib.parse import quote as quote_path
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -25,6 +27,7 @@ class IndexConfig:
     finnhub_symbol: str
     finnhub_proxy_symbol: str | None
     alpha_symbol: str
+    stooq_symbol: str | None
     fallback_value: float
     fallback_change_pct: float
     currency: str
@@ -45,16 +48,16 @@ class IntradayPoint:
 
 
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
-    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "SPY", 5842.15, 0.41, "USD"),
-    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "QQQ", 18352.04, 0.56, "USD"),
-    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "DIA", 40218.33, 0.24, "USD"),
-    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", None, "000001.SHH", 3138.92, -0.18, "CNY"),
-    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "HSI", 19553.61, 0.32, "HKD"),
-    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "N225", 38570.76, -0.12, "JPY"),
-    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", None, "FTSE", 8433.21, 0.21, "GBP"),
-    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", None, "DAX", 18772.85, 0.37, "EUR"),
-    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", None, "KS11", 2650.30, 0.45, "KRW"),
-    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", None, "TWII", 20500.15, 0.28, "TWD"),
+    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "SPY", "^spx", 5842.15, 0.41, "USD"),
+    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "QQQ", "^ndq", 18352.04, 0.56, "USD"),
+    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "DIA", "^dji", 40218.33, 0.24, "USD"),
+    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", None, "000001.SHH", "^shc", 3138.92, -0.18, "CNY"),
+    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "HSI", "^hsi", 19553.61, 0.32, "HKD"),
+    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "N225", "^nkx", 38570.76, -0.12, "JPY"),
+    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", None, "FTSE", "^ukx", 8433.21, 0.21, "GBP"),
+    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", None, "DAX", "^dax", 18772.85, 0.37, "EUR"),
+    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", None, "KS11", "^kospi", 2650.30, 0.45, "KRW"),
+    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", None, "TWII", "^twse", 20500.15, 0.28, "TWD"),
 )
 
 
@@ -121,7 +124,13 @@ async def _fetch_index_quote(config: IndexConfig) -> tuple[float, float] | None:
     quote = await _fetch_finnhub_quote(config)
     if quote is not None:
         return quote
-    return await _fetch_alpha_vantage_quote(config)
+    quote = await _fetch_alpha_vantage_quote(config)
+    if quote is not None:
+        return quote
+    quote = await _fetch_stooq_quote(config)
+    if quote is not None:
+        return quote
+    return await _fetch_yahoo_quote(config)
 
 
 async def _fetch_finnhub_quote(config: IndexConfig) -> tuple[float, float] | None:
@@ -181,11 +190,61 @@ async def _fetch_alpha_vantage_quote(config: IndexConfig) -> tuple[float, float]
     return current, change_pct
 
 
+async def _fetch_stooq_quote(config: IndexConfig) -> tuple[float, float] | None:
+    if config.stooq_symbol is None:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            response = await client.get(
+                "https://stooq.com/q/l/",
+                params={"e": "csv", "f": "sd2t2ohlcvp", "h": "", "s": config.stooq_symbol},
+            )
+            response.raise_for_status()
+    except Exception:
+        return None
+
+    rows = list(csv.DictReader(response.text.splitlines()))
+    if not rows:
+        return None
+    current = _as_float(rows[0].get("Close"))
+    previous = _as_float(rows[0].get("Prev"))
+    if current is None or previous is None or current <= 0 or previous <= 0:
+        return None
+    return current, ((current - previous) / previous) * 100
+
+
+async def _fetch_yahoo_quote(config: IndexConfig) -> tuple[float, float] | None:
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            response = await client.get(
+                f"https://query1.finance.yahoo.com/v8/finance/chart/{quote_path(config.finnhub_symbol, safe='')}"
+            )
+            response.raise_for_status()
+            result = response.json().get("chart", {}).get("result", [None])[0]
+    except Exception:
+        return None
+
+    if not isinstance(result, dict):
+        return None
+    meta = result.get("meta", {})
+    if not isinstance(meta, dict):
+        return None
+
+    current = _as_float(meta.get("regularMarketPrice"))
+    previous = _as_float(meta.get("chartPreviousClose")) or _as_float(meta.get("previousClose"))
+    if current is None or previous is None or current <= 0 or previous <= 0:
+        return None
+    return current, ((current - previous) / previous) * 100
+
+
 async def _fetch_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
     finnhub_series = await _fetch_finnhub_intraday_series(config, target_value)
     if finnhub_series is not None:
         return finnhub_series
-    return await _fetch_alpha_vantage_intraday_series(config)
+    alpha_series = await _fetch_alpha_vantage_intraday_series(config)
+    if alpha_series is not None:
+        return alpha_series
+    return await _fetch_yahoo_intraday_series(config)
 
 
 async def _fetch_finnhub_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
@@ -293,6 +352,50 @@ async def _fetch_alpha_vantage_intraday_series(config: IndexConfig) -> list[Intr
         except ValueError:
             continue
         points.append(IntradayPoint(timestamp=local_timestamp.astimezone(BEIJING_TZ), value=value))
+
+    if not points:
+        return None
+    session_date = _latest_session_date(config)
+    return _align_intraday_points(config, session_date, points)
+
+
+async def _fetch_yahoo_intraday_series(config: IndexConfig) -> list[IntradayPoint] | None:
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            response = await client.get(
+                f"https://query1.finance.yahoo.com/v8/finance/chart/{quote_path(config.finnhub_symbol, safe='')}",
+                params={"includePrePost": "false", "interval": "1m", "range": "1d"},
+            )
+            response.raise_for_status()
+            result = response.json().get("chart", {}).get("result", [None])[0]
+    except Exception:
+        return None
+
+    if not isinstance(result, dict):
+        return None
+    timestamps = result.get("timestamp")
+    indicators = result.get("indicators", {})
+    if not isinstance(timestamps, list) or not isinstance(indicators, dict):
+        return None
+    quote_payload = indicators.get("quote", [None])[0]
+    if not isinstance(quote_payload, dict):
+        return None
+    closes = quote_payload.get("close")
+    if not isinstance(closes, list) or len(closes) != len(timestamps):
+        return None
+
+    points: list[IntradayPoint] = []
+    for timestamp, close in zip(timestamps, closes, strict=False):
+        value = _as_float(close)
+        epoch = _as_float(timestamp)
+        if value is None or epoch is None or value <= 0:
+            continue
+        points.append(
+            IntradayPoint(
+                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
+                value=value,
+            )
+        )
 
     if not points:
         return None

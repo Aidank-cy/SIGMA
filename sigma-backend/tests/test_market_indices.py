@@ -97,6 +97,24 @@ async def test_finnhub_index_quote_uses_scaled_proxy_when_index_requires_subscri
 
 
 @pytest.mark.asyncio
+async def test_index_quote_uses_fallback_provider_after_configured_providers_miss(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Global indices can refresh when Finnhub and Alpha do not cover the symbol."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+
+    async def fake_empty_quote(_config: market_indices.IndexConfig) -> None:
+        return None
+
+    async def fake_stooq_quote(_config: market_indices.IndexConfig) -> tuple[float, float]:
+        return 3200.0, 1.5
+
+    monkeypatch.setattr(market_indices, "_fetch_finnhub_quote", fake_empty_quote)
+    monkeypatch.setattr(market_indices, "_fetch_alpha_vantage_quote", fake_empty_quote)
+    monkeypatch.setattr(market_indices, "_fetch_stooq_quote", fake_stooq_quote)
+
+    assert await market_indices._fetch_index_quote(sse) == (3200.0, 1.5)
+
+
+@pytest.mark.asyncio
 async def test_refresh_job_skips_when_all_markets_closed(monkeypatch: pytest.MonkeyPatch) -> None:
     """Scheduler job avoids API refresh work when every market is closed."""
     called = False

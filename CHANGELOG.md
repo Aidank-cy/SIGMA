@@ -25,6 +25,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Rename portfolio detail links to describe full market details in English and Chinese.
 - Refine the hero chart range controls and X-axis labels with a 5D option, day-only midnight labels, lunch-gap separators, and unclipped edge labels.
 - Increase the sidebar menu label weight and size for better navigation legibility.
 - Redesign Markets sectors from accordions into a responsive region grid.
@@ -45,6 +46,14 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix LLM settings cache staleness and empty API key defaults when no config is returned.
+- Smooth shared segmented controls with a measured sliding indicator for admin and settings tabs.
+- Fix dashboard news card bookmarks with a client-side visual toggle.
+- Fix global market index refresh coverage by falling back to Stooq quotes when Finnhub and Alpha Vantage do not return a symbol.
+- Fix hero chart X-axis labels across lunch breaks and longer ranges while increasing edge spacing.
+- Redirect Settings to the selected locale path after a successful language save.
+- Reset LLM settings to empty-key defaults when no config is returned and force LLM config queries to refetch fresh data.
+- Smooth segmented-control pill movement by keeping one animated indicator mounted across option changes.
 - Fix market index display loading and active range selector contrast on the dashboard and Markets page.
 - Fix dashboard hero chart axes so Beijing-time 30-minute ticks skip market breaks and mark cross-day boundaries.
 - Fix dark-mode pie chart slice borders in Analytics.

@@ -24,6 +24,7 @@ const INDEX_ICONS: Record<string, { letter: string; bg: string; text: string }> 
 };
 
 const timeRanges = ["1D", "5D", "1M", "3M", "1Y"];
+const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 interface ChartPoint {
   time: number;
@@ -83,7 +84,11 @@ function formatShortDate(timestamp: string): string {
   return `${month}/${day}`;
 }
 
-function buildChartTicks(points: ChartPoint[], activeRange: string): number[] {
+function spansMultipleDays(points: ChartPoint[]): boolean {
+  return new Set(points.map((point) => timeParts(point.timestamp).date)).size > 1;
+}
+
+function buildIntradayChartTicks(points: ChartPoint[]): number[] {
   if (points.length === 0) {
     return [];
   }
@@ -96,13 +101,8 @@ function buildChartTicks(points: ChartPoint[], activeRange: string): number[] {
       const curMin = cur.hour * 60 + cur.minute;
       if (prev.date === cur.date && curMin - prevMin > 60) {
         ticks.add(point.time);
+        ticks.delete(points[index - 1].time);
       }
-      if (activeRange === "5D" && prev.date !== cur.date) {
-        ticks.add(point.time);
-      }
-    }
-    if (activeRange === "5D") {
-      return;
     }
     const { minute } = timeParts(point.timestamp);
     if (minute === 0 || minute === 30) {
@@ -110,6 +110,49 @@ function buildChartTicks(points: ChartPoint[], activeRange: string): number[] {
     }
   });
   return Array.from(ticks).sort((left, right) => left - right);
+}
+
+function buildMultiDayChartTicks(points: ChartPoint[], activeRange: string): number[] {
+  const ticks = new Set<number>([points[0].time]);
+  let tradingDayIndex = 0;
+
+  points.forEach((point, index) => {
+    if (index === 0) {
+      return;
+    }
+
+    const prev = timeParts(points[index - 1].timestamp);
+    const cur = timeParts(point.timestamp);
+    if (prev.date === cur.date) {
+      return;
+    }
+
+    tradingDayIndex += 1;
+    const curMonth = point.timestamp.slice(5, 7);
+    const prevMonth = points[index - 1].timestamp.slice(5, 7);
+
+    if (activeRange === "5D") {
+      ticks.add(point.time);
+    } else if (activeRange === "1M" && tradingDayIndex % 3 === 0) {
+      ticks.add(point.time);
+    } else if (activeRange === "3M" && tradingDayIndex % 10 === 0) {
+      ticks.add(point.time);
+    } else if (activeRange === "1Y" && curMonth !== prevMonth) {
+      ticks.add(point.time);
+    }
+  });
+
+  return Array.from(ticks).sort((left, right) => left - right);
+}
+
+function buildChartTicks(points: ChartPoint[], activeRange: string): number[] {
+  if (points.length === 0) {
+    return [];
+  }
+  if (activeRange === "1D" || !spansMultipleDays(points)) {
+    return buildIntradayChartTicks(points);
+  }
+  return buildMultiDayChartTicks(points, activeRange);
 }
 
 function dayBoundaryTicks(points: ChartPoint[]): number[] {
@@ -139,11 +182,21 @@ function formatAxisTime(point: ChartPoint | undefined, previousPoint: ChartPoint
 function formatRangeAxisTime(
   point: ChartPoint | undefined,
   previousPoint: ChartPoint | undefined,
-  activeRange: string
+  activeRange: string,
+  hasMultipleDays: boolean
 ): string {
   if (!point) return "";
-  if (activeRange === "5D") {
+  if (!hasMultipleDays) {
+    return formatAxisTime(point, previousPoint);
+  }
+  if (activeRange === "5D" || activeRange === "1M") {
     return String(Number(point.timestamp.slice(8, 10)));
+  }
+  if (activeRange === "3M") {
+    return formatShortDate(point.timestamp);
+  }
+  if (activeRange === "1Y") {
+    return monthLabels[Number(point.timestamp.slice(5, 7)) - 1] ?? formatShortDate(point.timestamp);
   }
   return formatAxisTime(point, previousPoint);
 }
@@ -196,6 +249,7 @@ export function HeroChart() {
   const isPositive = (currentData?.change ?? 0) >= 0;
   const chartData = currentData?.data ?? [];
   const chartTicks = useMemo(() => buildChartTicks(chartData, activeRange), [activeRange, chartData]);
+  const chartHasMultipleDays = useMemo(() => spansMultipleDays(chartData), [chartData]);
   const boundaryTicks = useMemo(() => dayBoundaryTicks(chartData), [chartData]);
 
   const handlePrev = () => {
@@ -369,7 +423,7 @@ export function HeroChart() {
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <ResponsiveContainer height="100%" width="100%">
-              <AreaChart data={currentData?.data ?? []} margin={{ bottom: 4, left: 12, right: 12, top: 10 }}>
+              <AreaChart data={currentData?.data ?? []} margin={{ bottom: 4, left: 30, right: 30, top: 10 }}>
                 <defs>
                   <linearGradient id="colorPositive" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.35} />
@@ -388,7 +442,12 @@ export function HeroChart() {
                   tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
                   tickFormatter={(value) => {
                     const pointIndex = Number(value);
-                    return formatRangeAxisTime(chartData[pointIndex], chartData[pointIndex - 1], activeRange);
+                    return formatRangeAxisTime(
+                      chartData[pointIndex],
+                      chartData[pointIndex - 1],
+                      activeRange,
+                      chartHasMultipleDays
+                    );
                   }}
                   tickLine={false}
                   tickMargin={8}

@@ -169,7 +169,7 @@
     "marketOverview": "市场概览",
     "fearGreed": "恐惧与贪婪",
     "volume": "成交量",
-    "viewPortfolio": "查看完整持仓",
+    "viewPortfolio": "查看完整情况",
     "empty": "暂无数据。"
   },
   "markets": {
@@ -179,7 +179,7 @@
     "watchlist": "关注列表",
     "sectors": "板块",
     "addWatchlist": "创建关注列表",
-    "viewPortfolio": "查看完整持仓",
+    "viewPortfolio": "查看完整情况",
     "marketSummary": "市场概览",
     "empty": "暂无市场指数数据。",
     "emptyWatchlist": "尚未创建关注列表。",

@@ -766,6 +766,14 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Muted the Settings profile display-name input by default and restored full text color and opacity while focused or clicked for editing.
 - Timestamp: 2026-05-18T10:33:08Z
 
+### [Maintenance] Settings locale, LLM cache, and segment animation fixes
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/hooks/useLLMSettings.ts, sigma-frontend/src/hooks/useAdmin.ts, sigma-frontend/src/components/ui/SegmentControl.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Redirected Settings after locale saves, reset missing LLM config to empty-key defaults with fresh config refetches, and replaced remounting segment indicators with a single animated pill.
+- Timestamp: 2026-05-21T02:20:22Z
+
 ### [Maintenance] Offline frontend font build
 - Status: COMPLETE
 - Files created: none
@@ -993,3 +1001,27 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Confirmed `/api/v1/market-indices` returns index data and backend logs show 200 responses, normalized the frontend hook for both bare-array and wrapped response shapes, replaced the hero chart's loading-time SIGMA placeholder with a skeleton, and made the hero/indices range selector active pills visible with separate layout IDs.
 - Timestamp: 2026-05-21T02:16:05Z
+
+### [Maintenance] Hero chart range-axis label fixes
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Suppressed the tick immediately before same-day lunch gaps, added range-aware 5D/1M/3M/1Y X-axis ticks with intraday fallback for single-day data, and widened hero chart edge margins to reduce clipped labels. Verified with `cd sigma-frontend && npm run build`.
+- Timestamp: 2026-05-21T02:58:47Z
+
+### [Maintenance] News bookmarks, market labels, and index quote fallback
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/news-feed.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added client-side visual bookmark toggles for dashboard news cards, renamed full-portfolio labels to full-details wording, confirmed market API keys are configured and the frontend route is correct, and added a Stooq quote fallback for symbols that Finnhub/Alpha Vantage do not cover. The currently running Docker backend image does not bind-mount source files, so it needs a rebuild before the new backend fallback is visible there.
+- Timestamp: 2026-05-21T03:13:27Z
+
+### [Maintenance] LLM config cache and segment control smoothness
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/hooks/useLLMSettings.ts, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/ui/SegmentControl.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Disabled stale LLM config and usage query caching, made LLM API key defaults null-safe when config is missing or empty, and replaced segmented-control indicator positioning with an offset-measured sliding indicator. Verified with `cd sigma-frontend && npm run build`.
+- Timestamp: 2026-05-21T03:16:20Z

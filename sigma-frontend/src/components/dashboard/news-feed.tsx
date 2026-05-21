@@ -4,7 +4,7 @@ import { motion, useInView } from "framer-motion";
 import { ArrowUpRight, Bookmark, Clock } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useItems } from "@/hooks/useItems";
 import type { Category, ItemFilters, ItemSummary, Sentiment } from "@/lib/types";
@@ -42,7 +42,17 @@ function relativeTime(value: string, locale: string): string {
   return formatter.format(diffSeconds, "second");
 }
 
-function NewsCard({ index, item }: { index: number; item: ItemSummary }) {
+function NewsCard({
+  bookmarked,
+  index,
+  item,
+  onToggleBookmark
+}: {
+  bookmarked: boolean;
+  index: number;
+  item: ItemSummary;
+  onToggleBookmark: (itemId: string) => void;
+}) {
   const locale = useLocale();
   const t = useTranslations("feed");
   const ref = useRef(null);
@@ -75,12 +85,20 @@ function NewsCard({ index, item }: { index: number; item: ItemSummary }) {
           </span>
           <motion.button
             aria-label="Bookmark"
-            className="rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+            className={cn(
+              "rounded-full p-2 backdrop-blur-sm transition-colors",
+              bookmarked ? "bg-primary/80 text-primary-foreground" : "bg-black/30 text-white hover:bg-white/30"
+            )}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onToggleBookmark(item.id);
+            }}
             type="button"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
-            <Bookmark className="h-4 w-4" />
+            <Bookmark className="h-4 w-4" fill={bookmarked ? "currentColor" : "none"} />
           </motion.button>
         </div>
       </div>
@@ -121,8 +139,21 @@ export function NewsFeed({ filters }: { filters: ItemFilters }) {
   const feedT = useTranslations("feed");
   const locale = useLocale();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useItems(filters);
   const items = data?.pages.flatMap((page) => page.items) ?? [];
+
+  const handleToggleBookmark = (itemId: string) => {
+    setBookmarked((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -160,7 +191,13 @@ export function NewsFeed({ filters }: { filters: ItemFilters }) {
       ) : null}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
         {items.map((item, index) => (
-          <NewsCard index={index} item={item} key={item.id} />
+          <NewsCard
+            bookmarked={bookmarked.has(item.id)}
+            index={index}
+            item={item}
+            key={item.id}
+            onToggleBookmark={handleToggleBookmark}
+          />
         ))}
       </div>
       <div ref={sentinelRef} />

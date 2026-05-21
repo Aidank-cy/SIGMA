@@ -160,7 +160,8 @@ export function useAdminLLM() {
   const queryClient = useQueryClient();
   const config = useQuery({
     queryKey: ["admin", "llm", "config"],
-    queryFn: () => apiFetch<LLMConfig>("/admin/llm/config")
+    queryFn: () => apiFetch<LLMConfig>("/admin/llm/config"),
+    staleTime: 0
   });
   const usage = useQuery({
     queryKey: ["admin", "llm", "usage"],

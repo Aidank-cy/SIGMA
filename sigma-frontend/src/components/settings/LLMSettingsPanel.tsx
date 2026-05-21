@@ -91,14 +91,18 @@ export function LLMSettingsPanel({
     if (configData) {
       setForm({
         ...configData,
-        api_keys: configData.api_keys.map((entry) => ({
+        api_keys: (configData.api_keys ?? []).map((entry) => ({
           ...entry,
           provider: entry.provider || configData.provider,
           token_limit: entry.token_limit || 1_000_000
         }))
       });
+      return;
     }
-  }, [configData]);
+    if (!isConfigLoading) {
+      setForm({ ...defaultConfig, api_keys: [] });
+    }
+  }, [configData, isConfigLoading]);
 
   const totals = useMemo(() => {
     const now = new Date();

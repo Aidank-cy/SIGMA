@@ -169,7 +169,7 @@
     "marketOverview": "Market Overview",
     "fearGreed": "Fear & Greed",
     "volume": "Volume",
-    "viewPortfolio": "View Full Portfolio",
+    "viewPortfolio": "View full details",
     "empty": "No data yet."
   },
   "markets": {
@@ -179,7 +179,7 @@
     "watchlist": "Watchlist",
     "sectors": "Sectors",
     "addWatchlist": "Create Watchlist",
-    "viewPortfolio": "View full portfolio",
+    "viewPortfolio": "View full details",
     "marketSummary": "Market summary",
     "empty": "No market index data is available yet.",
     "emptyWatchlist": "No watchlists have been created yet.",
