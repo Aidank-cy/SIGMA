@@ -205,6 +205,13 @@
     "allMarkets": "All markets",
     "notAvailable": "N/A",
     "loadingValue": "...",
+    "indexRegionAll": "All regions",
+    "indexRegions": {
+      "northAmerica": "North America",
+      "asia": "Asia",
+      "hongKong": "Hong Kong",
+      "europe": "Europe"
+    },
     "sectorsCaption": "Live sector performance is not connected yet.",
     "sectorEndpointPending": "Live endpoint pending",
     "sectorLiveDataRequired": "Connect a sector breadth API to display live performance.",

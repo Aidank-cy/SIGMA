@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add region sections and filtering to Markets index cards.
 - Add compact X-axis labels to Markets index charts using the selected market chart range.
 - Add range-specific historical market index sparklines for Dashboard hero chart 5D, 1M, 3M, and 1Y labels.
 - Add currency labels to Markets index card prices.

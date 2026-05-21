@@ -205,6 +205,13 @@
     "allMarkets": "全部市场",
     "notAvailable": "N/A",
     "loadingValue": "...",
+    "indexRegionAll": "全部地区",
+    "indexRegions": {
+      "northAmerica": "北美",
+      "asia": "亚洲",
+      "hongKong": "香港",
+      "europe": "欧洲"
+    },
     "sectorsCaption": "实时板块表现尚未接入。",
     "sectorEndpointPending": "实时接口待接入",
     "sectorLiveDataRequired": "接入板块广度 API 后显示实时表现。",
