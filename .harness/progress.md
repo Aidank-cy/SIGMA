@@ -1138,3 +1138,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Reworked shared market chart data to use fixed 1D session-minute X-axis regions, one-hour pre-open 1D clearing with labels preserved, five sliding 5D day slots, and rolling calendar windows for 1M/3M/1Y. Verified with `cd sigma-frontend && npm run build` and `./hooks/post-file-edit.sh`, including the frontend production build.
 - Timestamp: 2026-05-21T07:53:42Z
+
+### [Maintenance] Sidebar account menu and small text legibility
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/globals.css, sigma-frontend/src/components/dashboard/sidebar.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Raised English body text to 500 weight, enlarged English `.text-xs` captions to 13px while preserving explicit bold weights, and replaced the desktop sidebar logout/theme buttons with an animated avatar menu for Settings, theme mode, and logout. Verified with `cd sigma-frontend && npm run build` and `./hooks/post-file-edit.sh`; local dev-server browser smoke was unavailable because the stale server returned an empty response.
+- Timestamp: 2026-05-21T08:04:52Z

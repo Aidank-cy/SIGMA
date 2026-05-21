@@ -5,6 +5,7 @@ import {
   BarChart3,
   LayoutDashboard,
   LineChart,
+  LogOut,
   Moon,
   Newspaper,
   RefreshCw,
@@ -14,24 +15,51 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 
 import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("nav");
   const { logout, user } = useAuth();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!accountMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (accountMenuRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setAccountMenuOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [accountMenuOpen]);
 
   const navItems = [
     { icon: LayoutDashboard, label: t("dashboard"), id: "dashboard", href: `/${locale}` },
@@ -51,7 +79,9 @@ export function Sidebar() {
 
   const activeId = getActiveId();
   const avatarLabel = user?.display_name?.charAt(0)?.toUpperCase() || "S";
-  const nextTheme = mounted && theme === "dark" ? "light" : "dark";
+  const isDark = mounted && resolvedTheme === "dark";
+  const nextTheme = isDark ? "light" : "dark";
+  const settingsHref = `/${locale}/settings`;
 
   return (
     <>
@@ -129,28 +159,62 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-auto flex flex-col items-center gap-3">
+      <div className="relative mt-auto flex flex-col items-center gap-3" ref={accountMenuRef}>
         <motion.button
-          aria-label={nextTheme === "light" ? t("themeLight") : t("themeDark")}
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-sidebar-foreground/60 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          onClick={() => setTheme(nextTheme)}
-          type="button"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {mounted && theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-        </motion.button>
-
-        <motion.button
-          aria-label={t("logout")}
+          aria-expanded={accountMenuOpen}
+          aria-haspopup="menu"
+          aria-label={t("accountMenu")}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sidebar-primary to-accent text-sm font-semibold text-white ring-2 ring-sidebar-border transition-all duration-200 hover:ring-sidebar-primary/50"
-          onClick={logout}
+          onClick={() => setAccountMenuOpen((open) => !open)}
           type="button"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
           {avatarLabel}
         </motion.button>
+
+        <AnimatePresence>
+          {accountMenuOpen ? (
+            <motion.div
+              animate={{ opacity: 1, x: 0, y: 0 }}
+              className="absolute bottom-0 left-full z-50 ml-3 w-44 rounded-xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-xl backdrop-blur-xl"
+              exit={{ opacity: 0, x: -8, y: 6 }}
+              initial={{ opacity: 0, x: -8, y: 6 }}
+              role="menu"
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            >
+              <Link
+                className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-popover-foreground transition-colors hover:bg-muted"
+                href={settingsHref}
+                onClick={() => setAccountMenuOpen(false)}
+                prefetch
+                role="menuitem"
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                <span>{t("settings")}</span>
+              </Link>
+              <button
+                className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold text-popover-foreground transition-colors hover:bg-muted"
+                onClick={() => setTheme(nextTheme)}
+                role="menuitem"
+                type="button"
+              >
+                {isDark ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
+                <span>{isDark ? t("themeDarkMode") : t("themeLightMode")}</span>
+              </button>
+              <button
+                className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold text-popover-foreground transition-colors hover:bg-muted"
+                onClick={logout}
+                role="menuitem"
+                type="button"
+              >
+                <LogOut className="h-4 w-4 text-muted-foreground" />
+                <span>{t("logout")}</span>
+              </button>
+              <div className="absolute -left-1 bottom-4 h-2 w-2 rotate-45 border-b border-l border-border bg-popover/95" />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
     </motion.aside>
     <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-6 gap-1 rounded-2xl border border-border bg-card/95 p-1 shadow-apple backdrop-blur-xl md:hidden">

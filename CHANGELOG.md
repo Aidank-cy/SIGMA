@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add a sidebar avatar popup for Settings, theme switching, and logout.
 - Add region sections and filtering to Markets index cards.
 - Add compact X-axis labels to Markets index charts using the selected market chart range.
 - Add range-specific historical market index sparklines for Dashboard hero chart 5D, 1M, 3M, and 1Y labels.
@@ -31,6 +32,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Increase English body and caption-level text weight and size for better small-label readability.
 - Rework Dashboard and Markets index chart X-axes around fixed intraday sessions, sliding 5D day regions, and rolling date windows.
 - Increase Dashboard and Markets chart X-axis label size and weight.
 - Switch market index charts to linear interpolation and tighten previous-close Y-axis windows to +/- 250.
