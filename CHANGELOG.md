@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add range-specific historical market index sparklines for Dashboard hero chart 5D, 1M, 3M, and 1Y labels.
 - Add currency labels to Markets index card prices.
 - Add a bold closed-market indicator dot to dashboard hero chart status badges.
 - Add previous-close values to market index API responses so frontend charts can anchor their Y-axis ranges around the prior session close.
