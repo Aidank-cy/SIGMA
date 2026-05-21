@@ -101,7 +101,7 @@ export function marketIndicesRefetchInterval(indices: MarketIndex[] = [], now = 
   return anyMarketTrading(indices, now) ? MARKET_ACTIVE_REFETCH_INTERVAL_MS : MARKET_CLOSED_REFETCH_INTERVAL_MS;
 }
 
-export function previousCloseAxisDomain(previousClose?: number | null, range = 500): MarketAxisDomain {
+export function previousCloseAxisDomain(previousClose?: number | null, range = 250): MarketAxisDomain {
   if (typeof previousClose !== "number" || !Number.isFinite(previousClose) || previousClose <= 0) {
     return ["dataMin - 10", "dataMax + 10"];
   }

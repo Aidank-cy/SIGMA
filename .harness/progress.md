@@ -1106,3 +1106,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Scoped English locale typography to a heavier 475 body weight, inherited form-control font weight, and raised English `.text-sm` from 14px to 15px via the CSS utility layer while leaving Chinese locale sizing unchanged. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
 - Timestamp: 2026-05-21T07:08:41Z
+
+### [Maintenance] Market chart interpolation and Y-axis range
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/lib/marketSessions.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Changed Dashboard and Markets index Area charts from monotone spline smoothing to linear point-to-point rendering and tightened the default previous-close Y-axis window from +/- 500 to +/- 250. Ticker carousel sparklines already use raw SVG polylines. Verified with `./hooks/post-file-edit.sh`, including the frontend production build.
+- Timestamp: 2026-05-21T07:37:12Z
