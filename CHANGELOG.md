@@ -33,6 +33,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Cache historical market-index daily ranges in Redis and update them incrementally instead of refetching full 1Y Yahoo data every refresh.
+- Space market-index refresh requests between configured indices and reuse a bounded Yahoo HTTP client to reduce rate-limit bursts.
 - Prefer Yahoo Finance with browser headers and query2 retry for market-index intraday charts, using Finnhub and Alpha Vantage as backups.
 - Replace generated intraday sine-wave fallbacks with deterministic random-walk fallback data.
 - Remove the redundant Settings item from the sidebar and mobile nav while keeping Settings in the avatar menu.

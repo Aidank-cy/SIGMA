@@ -1,7 +1,7 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-import pytest
 import httpx
+import pytest
 
 from app.api.v1.routes.market_indices import list_market_indices
 from app.scheduler.engine import add_market_indices_job, scheduler
@@ -39,11 +39,15 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
             for range_key in market_indices.HISTORICAL_RANGES
         }
 
+    async def fake_sleep(_seconds: float) -> None:
+        return None
+
     monkeypatch.setattr(market_indices, "_cache_get", fake_cache_get)
     monkeypatch.setattr(market_indices, "_cache_set", fake_cache_set)
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
     monkeypatch.setattr(market_indices, "_fetch_intraday_series", fake_intraday)
     monkeypatch.setattr(market_indices, "_fetch_historical_ranges", fake_historical)
+    monkeypatch.setattr(market_indices.asyncio, "sleep", fake_sleep)
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
 
     response = await list_market_indices()
@@ -210,15 +214,11 @@ async def test_yahoo_quote_uses_browser_headers_and_query2_retry(monkeypatch: py
     calls: list[tuple[dict[str, str], str]] = []
 
     class FakeAsyncClient:
-        def __init__(self, *, headers: dict[str, str], timeout: int) -> None:
+        def __init__(self, *, headers: dict[str, str], timeout: int, limits: httpx.Limits) -> None:
             self.headers = headers
             self.timeout = timeout
-
-        async def __aenter__(self) -> "FakeAsyncClient":
-            return self
-
-        async def __aexit__(self, *_args: object) -> None:
-            return None
+            self.limits = limits
+            self.is_closed = False
 
         async def get(self, url: str, params: dict[str, str]) -> httpx.Response:
             calls.append((self.headers, url))
@@ -244,6 +244,7 @@ async def test_yahoo_quote_uses_browser_headers_and_query2_retry(monkeypatch: py
             )
 
     monkeypatch.setattr(market_indices.httpx, "AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(market_indices, "_yahoo_client", None)
 
     quote = await market_indices._fetch_yahoo_quote(spx)
 
@@ -252,6 +253,186 @@ async def test_yahoo_quote_uses_browser_headers_and_query2_retry(monkeypatch: py
     assert quote.previous_close == pytest.approx(5900.0)
     assert [url.split("/")[2] for _, url in calls] == ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]
     assert all("Chrome/131.0.0.0" in headers["User-Agent"] for headers, _ in calls)
+
+
+@pytest.mark.asyncio
+async def test_refresh_market_indices_throttles_between_index_builds(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Refresh cycles space index builds so Yahoo requests are not sent in a burst."""
+    configs = market_indices.INDEX_CONFIGS[:3]
+    sleeps: list[float] = []
+
+    async def fake_cache_get() -> None:
+        return None
+
+    async def fake_cache_set(_value: str) -> None:
+        return None
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    async def fake_build_index(config: market_indices.IndexConfig) -> market_indices.MarketIndex:
+        return market_indices.MarketIndex(
+            symbol=config.symbol,
+            name=config.name,
+            value=100.0,
+            previous_close=99.0,
+            change_pct=1.0,
+            market=config.market,
+            currency=config.currency,
+            is_trading=False,
+            is_fallback_data=False,
+            trading_hours=market_indices.TradingHours(
+                open=config.open_time.strftime("%H:%M"),
+                close=config.close_time.strftime("%H:%M"),
+                timezone=config.timezone,
+                sessions=[
+                    market_indices.TradingSession(
+                        open=session_open.strftime("%H:%M"),
+                        close=session_close.strftime("%H:%M"),
+                    )
+                    for session_open, session_close in config.sessions
+                ],
+            ),
+        )
+
+    monkeypatch.setattr(market_indices, "INDEX_CONFIGS", configs)
+    monkeypatch.setattr(market_indices, "_cache_get", fake_cache_get)
+    monkeypatch.setattr(market_indices, "_cache_set", fake_cache_set)
+    monkeypatch.setattr(market_indices, "_build_index", fake_build_index)
+    monkeypatch.setattr(market_indices.asyncio, "sleep", fake_sleep)
+
+    response = await market_indices.refresh_market_indices(force=True)
+
+    assert [index.symbol for index in response.indices] == [config.symbol for config in configs]
+    assert sleeps == [
+        market_indices.MARKET_INDEX_REFRESH_DELAY_SECONDS,
+        market_indices.MARKET_INDEX_REFRESH_DELAY_SECONDS,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_historical_cache_round_trips_daily_points(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Historical daily candles are serialized into a long-lived Redis cache."""
+    stored: dict[str, str] = {}
+
+    class FakeRedis:
+        async def get(self, key: str) -> str | None:
+            return stored.get(key)
+
+        async def set(self, key: str, value: str, ex: int) -> None:
+            stored[key] = value
+            stored[f"{key}:ttl"] = str(ex)
+
+        async def aclose(self) -> None:
+            return None
+
+    monkeypatch.setattr(market_indices, "create_redis_client", FakeRedis)
+    points = [
+        market_indices.IntradayPoint(datetime(2026, 5, 18, 16, 0, tzinfo=market_indices.BEIJING_TZ), 6000.0),
+        market_indices.IntradayPoint(datetime(2026, 5, 19, 16, 0, tzinfo=market_indices.BEIJING_TZ), 6010.5),
+    ]
+
+    await market_indices._set_cached_historical("SPX", points)
+    cached = await market_indices._get_cached_historical("SPX")
+
+    assert cached == points
+    assert stored["sigma:historical:SPX:ttl"] == str(market_indices.HISTORICAL_CACHE_TTL_SECONDS)
+
+
+@pytest.mark.asyncio
+async def test_historical_ranges_populate_cache_from_one_year_yahoo_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The first historical range request fetches 1Y once and stores it for reuse."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    calls: list[str] = []
+    stored: list[market_indices.IntradayPoint] = []
+    yahoo_points = [
+        market_indices.IntradayPoint(datetime(2026, 5, 16, 4, 0, tzinfo=market_indices.BEIJING_TZ), 5900.0),
+        market_indices.IntradayPoint(datetime(2026, 5, 19, 4, 0, tzinfo=market_indices.BEIJING_TZ), 6000.0),
+    ]
+
+    async def fake_get_cached(_symbol: str) -> None:
+        return None
+
+    async def fake_set_cached(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+        stored.extend(points)
+
+    async def fake_yahoo(_config: market_indices.IndexConfig, provider_range: str) -> list[market_indices.IntradayPoint]:
+        calls.append(provider_range)
+        return yahoo_points
+
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
+    monkeypatch.setattr(market_indices, "_get_cached_historical", fake_get_cached)
+    monkeypatch.setattr(market_indices, "_set_cached_historical", fake_set_cached)
+    monkeypatch.setattr(market_indices, "_fetch_yahoo_historical_series", fake_yahoo)
+
+    ranges = await market_indices._fetch_historical_ranges(spx, 6000.0, 1.0)
+
+    assert calls == ["1y"]
+    assert stored == yahoo_points
+    assert ranges["5D"].values == [5900.0, 6000.0]
+
+
+@pytest.mark.asyncio
+async def test_historical_ranges_incrementally_append_new_completed_days(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Cached historical data updates with recent candles instead of refetching 1Y each cycle."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    cached_points = [
+        market_indices.IntradayPoint(datetime(2026, 5, 15, 4, 0, tzinfo=market_indices.BEIJING_TZ), 5800.0),
+        market_indices.IntradayPoint(datetime(2026, 5, 16, 4, 0, tzinfo=market_indices.BEIJING_TZ), 5900.0),
+    ]
+    recent_points = [
+        market_indices.IntradayPoint(datetime(2026, 5, 16, 4, 0, tzinfo=market_indices.BEIJING_TZ), 5900.0),
+        market_indices.IntradayPoint(datetime(2026, 5, 19, 4, 0, tzinfo=market_indices.BEIJING_TZ), 6000.0),
+    ]
+    calls: list[str] = []
+    stored: list[market_indices.IntradayPoint] = []
+
+    async def fake_get_cached(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return cached_points
+
+    async def fake_set_cached(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+        stored.extend(points)
+
+    async def fake_yahoo(_config: market_indices.IndexConfig, provider_range: str) -> list[market_indices.IntradayPoint]:
+        calls.append(provider_range)
+        return recent_points
+
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
+    monkeypatch.setattr(market_indices, "_get_cached_historical", fake_get_cached)
+    monkeypatch.setattr(market_indices, "_set_cached_historical", fake_set_cached)
+    monkeypatch.setattr(market_indices, "_fetch_yahoo_historical_series", fake_yahoo)
+
+    ranges = await market_indices._fetch_historical_ranges(spx, 6000.0, 1.0)
+
+    assert calls == ["5d"]
+    assert [point.value for point in stored] == [5800.0, 5900.0, 6000.0]
+    assert ranges["5D"].values == [5800.0, 5900.0, 6000.0]
+
+
+def test_historical_point_dates_use_exchange_timezone() -> None:
+    """Historical cache freshness compares sessions in each index exchange timezone."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    point = market_indices.IntradayPoint(datetime(2026, 5, 19, 4, 0, tzinfo=market_indices.BEIJING_TZ), 6000.0)
+
+    assert point.timestamp.date().isoformat() == "2026-05-19"
+    assert market_indices._historical_point_date(spx, point).isoformat() == "2026-05-18"
+
+
+def test_historical_cache_trim_keeps_recent_one_year_buffer() -> None:
+    """Historical cache is capped so one-year chart data does not grow forever."""
+    points = [
+        market_indices.IntradayPoint(
+            datetime(2025, 1, 1, 16, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(days=offset),
+            5000.0 + offset,
+        )
+        for offset in range(270)
+    ]
+
+    trimmed = market_indices._trim_historical_points(points)
+
+    assert len(trimmed) == market_indices.MAX_HISTORICAL_POINTS
+    assert trimmed[0] == points[10]
+    assert trimmed[-1] == points[-1]
 
 
 def test_intraday_alignment_warns_when_forward_fill_ratio_is_high(caplog: pytest.LogCaptureFixture) -> None:

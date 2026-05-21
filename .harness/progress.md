@@ -1194,3 +1194,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Moved Yahoo Finance to the front of the intraday provider chain, added browser-like Yahoo User-Agent headers with query1/query2 retry, logged provider request failures with status/body context, replaced smooth generated sine-wave intraday fallbacks with deterministic random-walk data, and exposed `is_fallback_data` in backend and frontend market index types. Verified with focused market-index tests, backend Ruff, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`. A live Yahoo probe from this environment reached Yahoo but returned `Too Many Requests`, so live response validation was rate-limited here.
 - Timestamp: 2026-05-21T10:54:42Z
+
+### [Maintenance] Yahoo historical cache and rate-limit control
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added a long-lived Redis cache for historical market-index daily candles, changed 5D/1M/3M/1Y range building to read cached data and append recent completed daily candles instead of refetching full 1Y Yahoo data each refresh, capped cached history at 260 points, reused a bounded Yahoo HTTP client with existing browser headers, and spaced per-index refresh work by 600ms to reduce request bursts. Verified with focused market-index tests, backend Ruff, full backend tests, frontend production build, `git diff --check`, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-21T11:12:29Z
