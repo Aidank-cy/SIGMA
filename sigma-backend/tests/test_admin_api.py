@@ -64,11 +64,18 @@ def test_admin_user_management_guards(client: TestClient) -> None:
     """Admins can manage other users but cannot modify themselves."""
     admin_token = _token(client, "admin-users@example.com")
     _token(client, "managed-user@example.com")
+    regular_token = _token(client, "plain-user@example.com")
     headers = _auth(admin_token)
 
+    all_users_response = client.get("/api/v1/admin/users?page=1&page_size=10", headers=headers)
     list_response = client.get("/api/v1/admin/users?q=managed", headers=headers)
     user_id = list_response.json()["items"][0]["id"]
     self_id = client.get("/api/v1/auth/me", headers=headers).json()["id"]
+    promote_response = client.put(
+        f"/api/v1/admin/users/{user_id}",
+        headers=headers,
+        json={"role": "admin"},
+    )
     update_response = client.put(
         f"/api/v1/admin/users/{user_id}",
         headers=headers,
@@ -80,13 +87,21 @@ def test_admin_user_management_guards(client: TestClient) -> None:
         json={"is_active": False},
     )
     delete_response = client.delete(f"/api/v1/admin/users/{user_id}", headers=headers)
+    forbidden_response = client.get("/api/v1/admin/users", headers=_auth(regular_token))
 
+    assert all_users_response.status_code == 200
+    assert all_users_response.json()["page"] == 1
+    assert all_users_response.json()["page_size"] == 10
+    assert all_users_response.json()["total"] == 3
     assert list_response.status_code == 200
     assert list_response.json()["total"] == 1
+    assert promote_response.status_code == 200
+    assert promote_response.json()["role"] == "admin"
     assert update_response.status_code == 200
     assert update_response.json()["is_active"] is False
     assert self_response.status_code == 403
     assert delete_response.status_code == 204
+    assert forbidden_response.status_code == 403
 
 
 def test_admin_source_preview_crud_stats_and_guards(client: TestClient, monkeypatch) -> None:
