@@ -82,6 +82,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix market candle cold-start, end-of-day downsampling, and range reads to use the upgraded 15-minute and 60-minute intervals.
 - Improve dark-mode secondary text contrast across Dashboard, Markets, and News surfaces.
 - Link dashboard trending topics and stat cards to their filtered News, Analytics, and Sync destinations.
 - Filter intraday candles and chart points that fall inside declared midday market breaks.

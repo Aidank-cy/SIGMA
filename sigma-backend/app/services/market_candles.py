@@ -84,16 +84,16 @@ async def _cold_start_fetch(config: IndexConfig, status: str) -> None:
 async def _cold_start_batch(config: IndexConfig, delay: float) -> None:
     symbol = config.symbol
 
-    daily_points = await _yahoo_fetch(config, interval="1d", range_="1y")
-    if daily_points:
-        await _pg_upsert_candles(symbol, "1d", daily_points)
-        LOGGER.info("Cold start: %s 1Y daily to PG (%d points)", symbol, len(daily_points))
+    hourly_points = await _yahoo_fetch(config, interval="60m", range_="1y")
+    if hourly_points:
+        await _pg_upsert_candles(symbol, "60m", hourly_points)
+        LOGGER.info("Cold start: %s 1Y 60min to PG (%d points)", symbol, len(hourly_points))
     await asyncio.sleep(delay)
 
-    thirty_min_points = await _yahoo_fetch(config, interval="30m", range_="1mo")
-    if thirty_min_points:
-        await _pg_upsert_candles(symbol, "30m", thirty_min_points)
-        LOGGER.info("Cold start: %s 1M 30min to PG (%d points)", symbol, len(thirty_min_points))
+    fifteen_min_points = await _yahoo_fetch(config, interval="15m", range_="1mo")
+    if fifteen_min_points:
+        await _pg_upsert_candles(symbol, "15m", fifteen_min_points)
+        LOGGER.info("Cold start: %s 1M 15min to PG (%d points)", symbol, len(fifteen_min_points))
     await asyncio.sleep(delay)
 
     one_min_points = await _yahoo_fetch(config, interval="1m", range_="5d")
@@ -107,18 +107,18 @@ async def _cold_start_batch(config: IndexConfig, delay: float) -> None:
 
 async def _cold_start_next_piece(config: IndexConfig) -> None:
     symbol = config.symbol
-    if not await _pg_has_interval(symbol, "1d"):
-        daily = await _yahoo_fetch(config, interval="1d", range_="1y")
-        if daily:
-            await _pg_upsert_candles(symbol, "1d", daily)
-            LOGGER.info("Cold start piece: %s 1Y daily to PG", symbol)
+    if not await _pg_has_interval(symbol, "60m"):
+        hourly = await _yahoo_fetch(config, interval="60m", range_="1y")
+        if hourly:
+            await _pg_upsert_candles(symbol, "60m", hourly)
+            LOGGER.info("Cold start piece: %s 1Y 60min to PG", symbol)
         return
 
-    if not await _pg_has_interval(symbol, "30m"):
-        thirty = await _yahoo_fetch(config, interval="30m", range_="1mo")
-        if thirty:
-            await _pg_upsert_candles(symbol, "30m", thirty)
-            LOGGER.info("Cold start piece: %s 1M 30min to PG", symbol)
+    if not await _pg_has_interval(symbol, "15m"):
+        fifteen = await _yahoo_fetch(config, interval="15m", range_="1mo")
+        if fifteen:
+            await _pg_upsert_candles(symbol, "15m", fifteen)
+            LOGGER.info("Cold start piece: %s 1M 15min to PG", symbol)
         return
 
     if not await _redis_has_5d(symbol):
@@ -146,14 +146,14 @@ async def _end_of_day_downsample_if_needed(config: IndexConfig) -> None:
     if not today_1min or len(today_1min) < 10:
         return
     candle_date = today_1min[-1].timestamp.astimezone(BEIJING_TZ).date()
-    if await _pg_has_date(symbol, "1d", candle_date):
+    if await _pg_has_date(symbol, "60m", candle_date):
         return
 
-    thirty_min = _downsample(today_1min, minutes=30)
-    await _pg_upsert_candles(symbol, "30m", thirty_min)
+    fifteen_min = _downsample(today_1min, minutes=15)
+    await _pg_upsert_candles(symbol, "15m", fifteen_min)
 
-    daily_close = IntradayPoint(timestamp=today_1min[-1].timestamp, value=today_1min[-1].value)
-    await _pg_upsert_candles(symbol, "1d", [daily_close])
+    sixty_min = _downsample(today_1min, minutes=60)
+    await _pg_upsert_candles(symbol, "60m", sixty_min)
 
     existing_5d = await _redis_get_5d(symbol) or []
     trimmed = _trim_to_n_trading_days(config, [*existing_5d, *today_1min], n=5)
@@ -161,10 +161,10 @@ async def _end_of_day_downsample_if_needed(config: IndexConfig) -> None:
     await _pg_delete_older_than_1y(symbol)
 
     LOGGER.info(
-        "End-of-day downsample complete for %s: %d 30m candles, close=%.2f",
+        "End-of-day downsample complete for %s: %d 15m candles, %d 60m candles",
         symbol,
-        len(thirty_min),
-        daily_close.value,
+        len(fifteen_min),
+        len(sixty_min),
     )
 
 
@@ -240,9 +240,9 @@ async def _pg_upsert_candles(symbol: str, interval: str, points: list[IntradayPo
 async def _pg_has_full_year(symbol: str) -> bool:
     async with AsyncSessionLocal() as db:
         count = await db.scalar(
-            select(sa_func.count()).where(MarketCandle.symbol == symbol, MarketCandle.interval == "1d")
+            select(sa_func.count()).where(MarketCandle.symbol == symbol, MarketCandle.interval == "60m")
         )
-        return (count or 0) >= 200
+        return (count or 0) >= 1200
 
 
 async def _pg_has_interval(symbol: str, interval: str) -> bool:

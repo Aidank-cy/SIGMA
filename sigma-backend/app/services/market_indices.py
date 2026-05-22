@@ -472,9 +472,9 @@ async def _read_candle_ranges(
         )
 
     for range_key, interval, limit, fallback_points in (
-        ("1M", "30m", 286, 22),
-        ("3M", "1d", 66, 66),
-        ("1Y", "1d", 252, 252),
+        ("1M", "15m", 600, 22),
+        ("3M", "60m", 500, 66),
+        ("1Y", "60m", 1800, 252),
     ):
         series = await _pg_get_candles(config.symbol, interval, limit=limit)
         if not series:

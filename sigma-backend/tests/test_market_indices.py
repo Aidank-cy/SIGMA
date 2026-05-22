@@ -444,8 +444,11 @@ async def test_candle_ranges_read_storage_and_fallback_without_yahoo_fetch(monke
     async def fake_redis_get_5d(_symbol: str) -> list[market_indices.IntradayPoint]:
         return redis_points
 
-    async def fake_pg_get(_symbol: str, _interval: str, limit: int) -> list[market_indices.IntradayPoint]:
+    pg_calls: list[tuple[str, int]] = []
+
+    async def fake_pg_get(_symbol: str, interval: str, limit: int) -> list[market_indices.IntradayPoint]:
         assert limit > 0
+        pg_calls.append((interval, limit))
         return []
 
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
@@ -456,6 +459,7 @@ async def test_candle_ranges_read_storage_and_fallback_without_yahoo_fetch(monke
 
     assert ranges["5D"].values == [5990.0, 6000.0]
     assert len(ranges["1M"].values) == 22
+    assert pg_calls == [("15m", 600), ("60m", 500), ("60m", 1800)]
 
 
 @pytest.mark.asyncio
@@ -490,7 +494,100 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
 
     await market_candles.candle_refresh_job()
 
-    assert calls == ["1d:1y", "upsert:1d:1"]
+    assert calls == ["60m:1y", "upsert:60m:1"]
+
+
+@pytest.mark.asyncio
+async def test_cold_start_batch_uses_hourly_and_fifteen_minute_pg_intervals(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Closed-market cold start stores 1Y/1M ranges with the upgraded intervals."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    calls: list[str] = []
+    point = market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 6000.0)
+
+    async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> list[market_indices.IntradayPoint]:
+        calls.append(f"{interval}:{range_}")
+        return [point]
+
+    async def fake_upsert(_symbol: str, interval: str, points: list[market_indices.IntradayPoint]) -> None:
+        calls.append(f"upsert:{interval}:{len(points)}")
+
+    async def fake_set_5d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+        calls.append(f"set5d:{len(points)}")
+
+    async def fake_set_1d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+        calls.append(f"set1d:{len(points)}")
+
+    async def fake_sleep(seconds: float) -> None:
+        calls.append(f"sleep:{seconds}")
+
+    monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
+    monkeypatch.setattr(market_candles, "_pg_upsert_candles", fake_upsert)
+    monkeypatch.setattr(market_candles, "_redis_set_5d", fake_set_5d)
+    monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
+    monkeypatch.setattr(market_candles, "_filter_today", lambda _config, points: points)
+    monkeypatch.setattr(market_candles.asyncio, "sleep", fake_sleep)
+
+    await market_candles._cold_start_batch(spx, delay=2.5)
+
+    assert calls == [
+        "60m:1y",
+        "upsert:60m:1",
+        "sleep:2.5",
+        "15m:1mo",
+        "upsert:15m:1",
+        "sleep:2.5",
+        "1m:5d",
+        "set5d:1",
+        "set1d:1",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_end_of_day_downsamples_to_fifteen_and_sixty_minute_intervals(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """End-of-day storage writes only the upgraded PostgreSQL candle intervals."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            6000.0 + offset,
+        )
+        for offset in range(60)
+    ]
+    calls: list[str] = []
+
+    async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return points
+
+    async def fake_has_date(_symbol: str, interval: str, _target_date: object) -> bool:
+        calls.append(f"has:{interval}")
+        return False
+
+    async def fake_upsert(_symbol: str, interval: str, stored: list[market_indices.IntradayPoint]) -> None:
+        calls.append(f"upsert:{interval}:{len(stored)}")
+
+    async def fake_get_5d(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return []
+
+    async def fake_set_5d(_symbol: str, stored: list[market_indices.IntradayPoint]) -> None:
+        calls.append(f"set5d:{len(stored)}")
+
+    async def fake_delete(_symbol: str) -> None:
+        calls.append("delete-old")
+
+    monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
+    monkeypatch.setattr(market_candles, "_pg_has_date", fake_has_date)
+    monkeypatch.setattr(market_candles, "_pg_upsert_candles", fake_upsert)
+    monkeypatch.setattr(market_candles, "_redis_get_5d", fake_get_5d)
+    monkeypatch.setattr(market_candles, "_redis_set_5d", fake_set_5d)
+    monkeypatch.setattr(market_candles, "_pg_delete_older_than_1y", fake_delete)
+
+    await market_candles._end_of_day_downsample_if_needed(spx)
+
+    assert calls == ["has:60m", "upsert:15m:4", "upsert:60m:2", "set5d:60", "delete-old"]
 
 
 @pytest.mark.asyncio
