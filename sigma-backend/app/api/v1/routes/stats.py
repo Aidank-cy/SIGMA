@@ -1,5 +1,6 @@
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+import re
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -50,28 +51,72 @@ STOP_WORDS = {
     "about",
     "after",
     "against",
+    "also",
     "and",
     "are",
     "as",
+    "back",
+    "been",
+    "being",
+    "come",
+    "could",
+    "does",
+    "each",
     "for",
     "from",
     "has",
+    "have",
+    "here",
     "into",
     "its",
+    "just",
+    "know",
+    "like",
+    "made",
+    "make",
+    "many",
     "market",
     "markets",
+    "more",
+    "most",
+    "much",
     "new",
     "not",
     "on",
+    "only",
     "over",
     "said",
     "says",
+    "should",
+    "some",
     "stock",
     "stocks",
+    "still",
+    "such",
+    "take",
     "that",
     "the",
+    "their",
+    "them",
+    "then",
+    "than",
+    "there",
+    "these",
+    "they",
     "this",
+    "those",
+    "very",
+    "want",
+    "well",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "will",
     "with",
+    "would",
+    "your",
 }
 
 
@@ -150,12 +195,24 @@ def _keywords_for_item(item: CollectedItem) -> list[str]:
         ]
 
     text = f"{item.title} {item.summary or ''}"
-    tokens = [
-        token.strip(".,:;!?()[]{}\"'").lower()
-        for token in text.replace("/", " ").replace("-", " ").split()
-    ]
-    return [
-        token
-        for token in tokens
-        if len(token) >= 4 and token not in STOP_WORDS and not token.isnumeric()
-    ][:8]
+    raw_tokens = re.findall(r"[A-Za-z][A-Za-z0-9']*", text.replace("/", " ").replace("-", " "))
+    keywords: list[str] = []
+    index = 0
+    while index < len(raw_tokens):
+        token = raw_tokens[index]
+        if token[:1].isupper() and len(token) >= 3:
+            phrase_tokens = [token]
+            cursor = index + 1
+            while cursor < len(raw_tokens) and raw_tokens[cursor][:1].isupper() and len(raw_tokens[cursor]) >= 3:
+                phrase_tokens.append(raw_tokens[cursor])
+                cursor += 1
+            if len(phrase_tokens) >= 2:
+                keywords.append(" ".join(phrase_tokens).lower())
+                index = cursor
+                continue
+
+        normalized = token.lower()
+        if len(normalized) >= 4 and normalized not in STOP_WORDS and not normalized.isnumeric():
+            keywords.append(normalized)
+        index += 1
+    return keywords[:8]

@@ -86,7 +86,7 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
                 aria-pressed={isActive}
                 animate={{ opacity: 1, x: 0 }}
                 className={cn(
-                  "grid w-full grid-cols-[minmax(0,1fr)_56px_minmax(70px,auto)] items-center gap-3 rounded-lg border px-2 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "grid w-full grid-cols-[minmax(120px,140px)_56px_minmax(70px,1fr)] items-center gap-3 rounded-lg border px-2 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   isActive ? "border-primary/40 bg-primary/10 shadow-sm" : "border-transparent"
                 )}
                 initial={{ opacity: 0, x: 12 }}

@@ -102,7 +102,9 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
   const currentData = markets.find((market) => market.symbol === selectedMarket) ?? markets[0];
   const isPositive = (currentData?.change ?? 0) >= 0;
   const chartData = currentData?.dataByRange[activeRange] ?? currentData?.data ?? [];
-  const chartSessions = currentData?.tradingHours.beijing_sessions ?? currentData?.tradingHours.sessions ?? [];
+  const chartSessions = currentData?.tradingHours.beijing_sessions?.length
+    ? currentData.tradingHours.beijing_sessions
+    : currentData?.tradingHours.sessions ?? [];
   const chartTimeZone = "Asia/Shanghai";
   const chartTicks = useMemo(
     () => buildChartTicks(activeRange, chartSessions, chartTimeZone, now, chartData),

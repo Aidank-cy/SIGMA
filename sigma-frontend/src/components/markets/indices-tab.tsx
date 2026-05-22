@@ -155,7 +155,9 @@ export function IndicesTab() {
               {group.indices.map((index) => {
                 const isPositive = index.change_pct >= 0
                 const chartData = toMarketChartData(index, activeRange, now)
-                const chartSessions = index.trading_hours.beijing_sessions ?? index.trading_hours.sessions
+                const chartSessions = index.trading_hours.beijing_sessions?.length
+                  ? index.trading_hours.beijing_sessions
+                  : index.trading_hours.sessions
                 const chartTimeZone = "Asia/Shanghai"
                 const chartTicks = buildCompactChartTicks(
                   activeRange,

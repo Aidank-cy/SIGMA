@@ -143,11 +143,15 @@ function formatMinutes(value: number): string {
 }
 
 function normalizeAxisMinute(minutes: number, axisStart: number): number {
-  let normalized = minutes;
-  while (normalized < axisStart) {
-    normalized += 24 * 60;
-  }
-  return normalized;
+  const dayMinutes = 24 * 60;
+  const normalized = ((minutes % dayMinutes) + dayMinutes) % dayMinutes;
+  return normalized < axisStart ? normalized + dayMinutes : normalized;
+}
+
+function chartTradingSessions(index: MarketIndex): TradingSessions {
+  return index.trading_hours.beijing_sessions?.length
+    ? index.trading_hours.beijing_sessions
+    : index.trading_hours.sessions;
 }
 
 function buildIntradayAxisSegments(sessions: TradingSessions = []): IntradayAxisSegment[] {
@@ -192,10 +196,14 @@ function intradayPointPosition(timestamp: string, sessions: TradingSessions = []
   const axisStart = timeToMinutes(firstSession.open);
   const parts = timeParts(timestamp, timeZone);
   const realMinute = normalizeAxisMinute(parts.hour * 60 + parts.minute, axisStart);
-  const segment = buildIntradayAxisSegments(sessions).find(
-    (item) => realMinute >= item.realOpen && realMinute <= item.realClose
-  );
-  return segment ? segment.axisStart + realMinute - segment.realOpen : null;
+  const segments = buildIntradayAxisSegments(sessions);
+  for (const minute of [realMinute, realMinute - 24 * 60, realMinute + 24 * 60]) {
+    const segment = segments.find((item) => minute >= item.realOpen && minute <= item.realClose);
+    if (segment) {
+      return segment.axisStart + minute - segment.realOpen;
+    }
+  }
+  return null;
 }
 
 function intradayProgress(timestamp: string, sessions: TradingSessions = [], timeZone = "Asia/Shanghai"): number {
@@ -365,7 +373,7 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
     return [];
   }
 
-  const chartSessions = index.trading_hours.beijing_sessions ?? index.trading_hours.sessions;
+  const chartSessions = chartTradingSessions(index);
   const chartTimeZone = "Asia/Shanghai";
   const sparkline = index.sparkline_24h;
   const timestamps = index.sparkline_times ?? [];
@@ -396,7 +404,7 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
 
 function toFiveDayChartData(index: MarketIndex, now = new Date()): MarketChartPoint[] {
   const timeZone = "Asia/Shanghai";
-  const chartSessions = index.trading_hours.beijing_sessions ?? index.trading_hours.sessions;
+  const chartSessions = chartTradingSessions(index);
   const range = index.sparkline_ranges?.["5D"];
   const rangeValues = range?.values ?? [];
   const rangeTimes = range?.times ?? [];
@@ -443,7 +451,7 @@ function toFiveDayChartData(index: MarketIndex, now = new Date()): MarketChartPo
 
 function toCalendarRangeChartData(index: MarketIndex, activeRange: string, now = new Date()): MarketChartPoint[] {
   const timeZone = "Asia/Shanghai";
-  const chartSessions = index.trading_hours.beijing_sessions ?? index.trading_hours.sessions;
+  const chartSessions = chartTradingSessions(index);
   const range = index.sparkline_ranges?.[activeRange];
   const rangeValues = range?.values ?? [];
   const rangeTimes = range?.times ?? [];

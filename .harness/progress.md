@@ -1283,3 +1283,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Refactored multi-day Dashboard and Markets chart axes to use continuous Asia/Shanghai trading-day indexes from actual data dates, lifted active HeroChart market selection into the dashboard page, made ticker rows clickable with selected styling, switched ticker sparklines to intraday chart data with flat pre-open lines, displayed ISO currency codes, and removed HeroChart arrow, drag, and keyboard market switching.
 - Timestamp: 2026-05-22T06:20:00Z
+
+### [Maintenance] Markets tab layout and trending keyword cleanup
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/markets/page.tsx, sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/components/dashboard/ticker-carousel.tsx, sigma-backend/app/api/v1/routes/stats.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Changed Markets tab transitions to `AnimatePresence` wait mode, expanded fallback trending keyword stop words, merged consecutive capitalized terms into phrase keywords, hardened overnight Beijing-session intraday point mapping for US-market sparklines, and fixed ticker row sparkline grid alignment.
+- Timestamp: 2026-05-22T06:45:00Z

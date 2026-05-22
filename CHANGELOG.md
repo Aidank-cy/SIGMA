@@ -38,6 +38,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ### Changed
 - Change Dashboard and Markets multi-day market chart X-axes to continuous Beijing-time trading-day indexes so weekends and no-data days do not create visual gaps.
 - Change Dashboard major market index rows into clickable controls that drive the HeroChart selection.
+- Change Markets tab transitions to wait for exiting content so the summary section is not pushed down by ghost tab layouts.
 - Make market-index refresh Yahoo-free by reading intraday candles from Redis and limiting Yahoo access to the candle manager.
 - Read market-index 5D, 1M, 3M, and 1Y chart ranges from Redis and PostgreSQL candle storage instead of fetching Yahoo historical data during quote refreshes.
 - Decouple market-index historical Redis updates into a rate-limited background scheduler and trim cached daily candles to one trading year.
@@ -85,6 +86,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix fallback trending topic extraction by filtering more English function words and merging capitalized multi-word names such as `Elon Musk`.
+- Fix overnight Beijing-session intraday point mapping and ticker sparkline column alignment for dashboard market rows.
 - Fix Dashboard market index row sparklines to use intraday chart data, align mini charts consistently, show flat pre-open lines, and display raw ISO currency codes.
 - Constrain the Dashboard major market indices column to the hero chart grid row so long ticker lists scroll inside the panel.
 - Fix dashboard hero chart and major market indices panel height alignment.
