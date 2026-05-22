@@ -82,6 +82,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix dashboard hero chart and major market indices panel height alignment.
 - Fix dashboard hero chart X-axis labels for multi-day ranges to reduce overlap.
 - Fix the dashboard market index sidebar title and stretch its panel to match the hero chart height.
 - Fix market candle cold-start, end-of-day downsampling, and range reads to use the upgraded 15-minute and 60-minute intervals.
