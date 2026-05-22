@@ -1371,3 +1371,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added a real TestClient market-indices endpoint contract test for response timestamps, required index fields, and numeric sparkline data. Verified `python3 -m pytest tests/test_market_indices.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`148 passed, 1 warning`).
 - Timestamp: 2026-05-22T12:04:34Z
+
+### [Phase 2.6] Sources API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_sources_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded HTTP coverage for authenticated source list shape, create/update/delete, preview via the current `/test` route, collection queueing, status responses with collector logs, and unauthenticated listing rejection. Verified `python3 -m pytest tests/test_sources_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`149 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:06:34Z
