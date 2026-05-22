@@ -157,8 +157,10 @@ export default function DashboardPage() {
           <div>
             <HeroChart />
           </div>
-          <div className="min-h-0">
-            <TickerCarousel />
+          <div className="relative min-h-0 lg:overflow-hidden">
+            <div className="lg:absolute lg:inset-0">
+              <TickerCarousel />
+            </div>
           </div>
         </motion.section>
 
