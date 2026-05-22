@@ -1355,3 +1355,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added HTTP-level coverage for empty listing, create with simple/all fields, listing after creation, updates, deletion, missing deletion, filtered item feeds, stats, seven-day trend, cross-user ownership rejection, and unauthenticated create rejection. Verified `python3 -m pytest tests/test_watchlists_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`146 passed, 1 warning`).
 - Timestamp: 2026-05-22T11:57:53Z
+
+### [Phase 2.4] Reports API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_reports_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added HTTP-level coverage for report pagination, type/market/date filters, latest-by-type selection, detail and 404 responses, and admin-only manual generation. Verified `python3 -m pytest tests/test_reports_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`147 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:02:54Z
