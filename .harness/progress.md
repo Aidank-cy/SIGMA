@@ -1331,3 +1331,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added a paginated item query hook, made Dashboard NewsFeed use numbered Previous/Next/page controls, reset pagination on filter changes, and kept News page infinite scroll unchanged. Verified `npm run build`, rebuilt Docker Compose, checked Dashboard pagination/filter/last-page behavior in Playwright, checked News still infinite-loads without pagination, and ran `python3 -m pytest tests/test_items_api.py::test_items_list_with_pagination_and_category_filter --tb=short -q`.
 - Timestamp: 2026-05-22T11:49:12Z
+
+### [Phase 2.1] Auth API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_auth.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Covered duplicate and invalid registration, nonexistent and inactive login, refresh cookie success/error paths, expired bearer token rejection, and invalid reset-token handling with real TestClient HTTP calls. Verified `python3 -m pytest tests/test_auth.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`144 passed, 1 warning`).
+- Timestamp: 2026-05-22T11:52:47Z

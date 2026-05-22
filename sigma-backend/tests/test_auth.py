@@ -1,6 +1,12 @@
+from datetime import UTC, datetime, timedelta
+from uuid import uuid4
+
 from fastapi.testclient import TestClient
+from jose import jwt
 
 from app.api.v1.routes import auth as auth_routes
+from app.core.config import settings
+from app.services.auth_service import ALGORITHM
 
 
 class FakeRedis:
@@ -41,12 +47,22 @@ def register_user(client: TestClient, email: str) -> dict[str, str]:
 
 def test_register_first_is_admin(client: TestClient) -> None:
     """The first registered user receives admin role."""
-    payload = register_user(client, "admin@example.com")
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "admin@example.com",
+            "password": "StrongPass1",
+            "display_name": "SIGMA User",
+        },
+    )
+    payload = response.json()
 
+    assert response.status_code == 201
     assert payload["email"] == "admin@example.com"
     assert payload["role"] == "admin"
     assert payload["access_token"]
     assert payload["refresh_token"]
+    assert "refresh_token" in response.cookies
     assert "hashed_password" not in payload
 
 
@@ -87,6 +103,47 @@ def test_register_second_is_user(client: TestClient) -> None:
     assert payload["role"] == "user"
 
 
+def test_register_duplicate_email_returns_409(client: TestClient) -> None:
+    """Duplicate registration emails are rejected without creating a second user."""
+    register_user(client, "duplicate@example.com")
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "duplicate@example.com",
+            "password": "StrongPass1",
+            "display_name": "Duplicate",
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Email already registered"
+
+
+def test_register_missing_password_returns_422(client: TestClient) -> None:
+    """Registration requires a password field."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "missing-password@example.com", "display_name": "Missing"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_register_weak_password_returns_422(client: TestClient) -> None:
+    """Registration enforces the current letter-and-digit password rule."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "weak-password@example.com",
+            "password": "password",
+            "display_name": "Weak",
+        },
+    )
+
+    assert response.status_code == 422
+
+
 def test_login_success(client: TestClient) -> None:
     """Valid credentials return access and refresh credentials."""
     register_user(client, "user@example.com")
@@ -115,6 +172,74 @@ def test_login_wrong_password_401(client: TestClient) -> None:
     )
 
     assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid credentials"
+
+
+def test_login_nonexistent_email_401(client: TestClient) -> None:
+    """Unknown login emails use the same invalid credentials response."""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "missing@example.com", "password": "StrongPass1"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid credentials"
+
+
+def test_login_deactivated_user_401(client: TestClient) -> None:
+    """Inactive users cannot log in."""
+    admin = register_user(client, "admin@example.com")
+    user = register_user(client, "inactive@example.com")
+
+    update_response = client.put(
+        f"/api/v1/admin/users/{user['id']}",
+        headers={"Authorization": f"Bearer {admin['access_token']}"},
+        json={"is_active": False},
+    )
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "inactive@example.com", "password": "StrongPass1"},
+    )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["is_active"] is False
+    assert login_response.status_code == 401
+
+
+def test_refresh_token_with_valid_cookie_returns_new_access_token(client: TestClient) -> None:
+    """A valid refresh cookie issues a new access token."""
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "refresh@example.com",
+            "password": "StrongPass1",
+            "display_name": "Refresh",
+        },
+    )
+
+    response = client.post("/api/v1/auth/refresh")
+
+    assert response.status_code == 200
+    assert response.json()["access_token"]
+    assert response.json()["refresh_token"] is None
+
+
+def test_refresh_token_missing_cookie_returns_401(client: TestClient) -> None:
+    """Refresh requires the httpOnly refresh cookie."""
+    response = client.post("/api/v1/auth/refresh")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Missing refresh token"
+
+
+def test_refresh_token_invalid_cookie_returns_401(client: TestClient) -> None:
+    """Malformed refresh cookies are rejected."""
+    client.cookies.set("refresh_token", "not-a-token")
+
+    response = client.post("/api/v1/auth/refresh")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid refresh token"
 
 
 def test_me_with_valid_token(client: TestClient) -> None:
@@ -135,6 +260,26 @@ def test_me_with_valid_token(client: TestClient) -> None:
 def test_me_without_token_401(client: TestClient) -> None:
     """Missing bearer token is rejected."""
     response = client.get("/api/v1/auth/me")
+
+    assert response.status_code == 401
+
+
+def test_me_with_expired_token_401(client: TestClient) -> None:
+    """Expired bearer access tokens are rejected."""
+    user = register_user(client, "expired@example.com")
+    expired_token = jwt.encode(
+        {
+            "sub": user["id"],
+            "role": user["role"],
+            "email": user["email"],
+            "type": "access",
+            "exp": datetime.now(UTC) - timedelta(minutes=1),
+        },
+        settings.jwt_secret_key,
+        algorithm=ALGORITHM,
+    )
+
+    response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {expired_token}"})
 
     assert response.status_code == 401
 
@@ -218,3 +363,24 @@ def test_reset_password_with_valid_token(client: TestClient, monkeypatch) -> Non
     assert old_login.status_code == 401
     assert new_login.status_code == 200
     assert "pwd_reset:reset-valid@example.com" not in redis.values
+
+
+def test_reset_password_with_invalid_token_returns_401(client: TestClient) -> None:
+    """Invalid password reset tokens are rejected."""
+    invalid_reset_token = jwt.encode(
+        {
+            "sub": str(uuid4()),
+            "type": "access",
+            "exp": datetime.now(UTC) + timedelta(minutes=5),
+        },
+        settings.jwt_secret_key,
+        algorithm=ALGORITHM,
+    )
+
+    response = client.post(
+        "/api/v1/auth/reset-password",
+        json={"reset_token": invalid_reset_token, "new_password": "NewStrongPass2"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid reset token"
