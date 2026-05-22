@@ -51,6 +51,20 @@ export function useItems(filters: ItemFilters = {}) {
   };
 }
 
+export function useItemsPaginated(filters: ItemFilters = {}, page: number) {
+  const query = useQuery({
+    queryKey: ["items", "paginated", filters, page],
+    queryFn: () => apiFetch<PaginatedResponse<ItemSummary>>(`/items?${buildItemQuery(filters, page)}`)
+  });
+
+  return {
+    data: query.data,
+    error: query.error,
+    isLoading: query.isLoading || query.isFetching,
+    mutate: query.refetch
+  };
+}
+
 export function useItem(id: string) {
   const query = useQuery({
     enabled: id.length > 0,
