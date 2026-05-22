@@ -74,6 +74,20 @@ def test_security_headers_and_cors_are_applied(client: TestClient) -> None:
     assert response.headers["Access-Control-Allow-Origin"] == "http://localhost:3000"
 
 
+def test_cors_rejects_unknown_origin_preflight(client: TestClient) -> None:
+    """Unknown browser origins are rejected by CORS preflight handling."""
+    response = client.options(
+        "/api/v1/health",
+        headers={
+            "Origin": "https://evil.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Access-Control-Allow-Origin" not in response.headers
+
+
 def test_cors_preflight_does_not_consume_api_rate_limit(client: TestClient) -> None:
     """Browser preflight requests should not exhaust the general API quota."""
     headers = {
