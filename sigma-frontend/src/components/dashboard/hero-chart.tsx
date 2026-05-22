@@ -309,8 +309,7 @@ export function HeroChart() {
                   axisLine={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.28 }}
                   dataKey="time"
                   domain={xAxisDomain}
-                  interval={0}
-                  minTickGap={0}
+                  minTickGap={40}
                   tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
                   tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now, chartSessions)}
                   tickLine={false}

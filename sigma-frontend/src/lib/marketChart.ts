@@ -28,7 +28,6 @@ const warnedChartFallbacks = new Set<string>();
 const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
 const calendarRangeDays: Record<string, number> = { "1M": 30, "3M": 90, "1Y": 365 };
 const dayMs = 24 * 60 * 60 * 1000;
-const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function warnChartFallback(key: string, message: string): void {
   if (warnedChartFallbacks.has(key)) {
@@ -255,17 +254,6 @@ function formatIntradayAxisTick(value: number, sessions: TradingSessions = []): 
   return "";
 }
 
-function axisValueToIntradayTime(value: number, sessions: TradingSessions = []): string {
-  const rounded = Math.round(value);
-  const segments = buildIntradayAxisSegments(sessions);
-  for (const segment of segments) {
-    if (rounded >= segment.axisStart && rounded <= segment.axisEnd) {
-      return formatMinutes(segment.realOpen + rounded - segment.axisStart);
-    }
-  }
-  return "";
-}
-
 function localDateKey(date: Date, timeZone = "Asia/Shanghai"): string {
   return timeParts(date.toISOString(), timeZone).date;
 }
@@ -329,10 +317,6 @@ function formatDateKeyShort(dateKey: string): string {
 function monthLabelForDateKey(dateKey: string): string {
   const month = Number(dateKey.slice(5, 7));
   return monthLabels[month - 1] ?? formatDateKeyShort(dateKey);
-}
-
-function weekdayLabelForDateKey(dateKey: string): string {
-  return dayNames[dateKeyToUtcDate(dateKey).getUTCDay()] ?? formatDateKeyShort(dateKey);
 }
 
 export function spansMultipleDays(points: MarketChartPoint[], timeZone = "Asia/Shanghai"): boolean {
@@ -474,14 +458,7 @@ export function buildChartTicks(
     return buildIntradayAxisTicks(sessions);
   }
   if (activeRange === "5D") {
-    const [, axisEnd] = intradayAxisBounds(sessions);
-    const sessionTicks = new Set<number>([0, axisEnd]);
-    for (let tick = 0; tick <= axisEnd; tick += 240) {
-      sessionTicks.add(tick);
-    }
-    return Array.from(sessionTicks)
-      .sort((left, right) => left - right)
-      .flatMap((tick) => Array.from({ length: 5 }).map((_, dayIndex) => dayIndex + tick / Math.max(axisEnd, 1)));
+    return [0, 1, 2, 3, 4];
   }
 
   const [, end] = buildChartXAxisDomain(activeRange, sessions);
@@ -494,7 +471,7 @@ export function buildChartTicks(
   }
   if (activeRange === "3M") {
     const ticks = new Set<number>([0, end]);
-    for (let offset = 14; offset < end; offset += 14) {
+    for (let offset = 7; offset < end; offset += 7) {
       ticks.add(offset);
     }
     return Array.from(ticks).sort((left, right) => left - right);
@@ -504,8 +481,7 @@ export function buildChartTicks(
     const ticks = new Set<number>([0, end]);
     for (let offset = 0; offset <= end; offset += 1) {
       const dateKey = addDays(startDateKey, offset);
-      const month = Number(dateKey.slice(5, 7));
-      if (dateKey.endsWith("-01") && month % 2 === 1) {
+      if (dateKey.endsWith("-01")) {
         ticks.add(offset);
       }
     }
@@ -631,9 +607,7 @@ export function formatRangeAxisTick(
     const dateKeys = fiveDayAxisDateKeys(now, timeZone);
     const dayIndex = Math.min(Math.max(Math.floor(value), 0), dateKeys.length - 1);
     const dateKey = dateKeys[dayIndex] ?? dateKeys[dateKeys.length - 1] ?? "";
-    const [, axisEnd] = intradayAxisBounds(sessions);
-    const timeLabel = axisValueToIntradayTime((value - dayIndex) * Math.max(axisEnd, 1), sessions);
-    return timeLabel ? `${weekdayLabelForDateKey(dateKey)} ${timeLabel}` : weekdayLabelForDateKey(dateKey);
+    return String(Number(dateKey.slice(8, 10)));
   }
 
   const startDateKey = calendarRangeStartDateKey(activeRange, now, timeZone);
@@ -642,7 +616,7 @@ export function formatRangeAxisTick(
     return `${monthLabelForDateKey(dateKey)} ${Number(dateKey.slice(8, 10))}`;
   }
   if (activeRange === "3M") {
-    return formatDateKeyShort(dateKey);
+    return `${monthLabelForDateKey(dateKey)}${Number(dateKey.slice(8, 10))}`;
   }
   if (activeRange === "1Y") {
     return monthLabelForDateKey(dateKey);
