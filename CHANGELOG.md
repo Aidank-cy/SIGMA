@@ -37,6 +37,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Expand admin sources tests for list, create, update, preview, logs, stats, cascade delete, and non-admin guards.
 - Expand admin dashboard tests with seeded stats, trend, activity, source health, and non-admin guard coverage.
 - Expand user settings API tests for report/profile/retention/password sections and user-level LLM config usage.
 - Add HTTP-level stats API coverage for sentiment, trending keywords, and collection freshness.

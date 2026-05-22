@@ -1403,3 +1403,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Expanded admin dashboard HTTP coverage with seeded users, sources, items, collector activity, health, trend, LLM usage totals, root stats alias, and non-admin 403 rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`152 passed, 1 warning`).
 - Timestamp: 2026-05-22T12:12:48Z
+
+### [Phase 2.10] Admin sources API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_admin_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded admin sources HTTP coverage for list, create, update, preview/test, per-source logs, aggregate stats, cascade deletion of source items/logs, and non-admin rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`152 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:14:50Z
