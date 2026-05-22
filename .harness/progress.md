@@ -1315,3 +1315,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Wired Analytics range controls into date-filtered item queries and dynamic trend buckets, changed Sync Now/All to queue real `/sources/{source_id}/collect` jobs with delayed refreshes, defaulted News to list view, and covered the new source collection route with a focused API test.
 - Timestamp: 2026-05-22T10:52:35Z
+
+### [Phase 0] Backend baseline market-index test alignment
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Updated outdated market-index tests to match the current urllib Yahoo chart fetch path and Redis-first candle cold-start sequence. Verified the focused failing tests and the full existing backend suite with `python3 -m pytest --tb=short -q` (`134 passed, 1 warning`). The exact `python -m pytest --tb=short -q` command remains blocked by the local Homebrew `pyexpat` linkage issue documented in earlier sessions.
+- Timestamp: 2026-05-22T11:38:21Z
