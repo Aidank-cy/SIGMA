@@ -1,7 +1,9 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.routes.stats import get_last_collection, get_sentiment_stats, get_trending_keywords
@@ -9,6 +11,28 @@ from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, IntelligenceCategory, Market, SourceType
+
+
+def test_stats_http_endpoints_return_machine_consumable_payloads(client: TestClient) -> None:
+    """Stats endpoints return HTTP payloads for sentiment, trending keywords, and collection freshness."""
+    latest = asyncio.run(_seed_stats_http_data(client))
+
+    sentiment_response = client.get("/api/v1/stats/sentiment")
+    trending_response = client.get("/api/v1/stats/trending-keywords")
+    collection_response = client.get("/api/v1/stats/last-collection")
+
+    assert sentiment_response.status_code == 200
+    assert sentiment_response.json() == {"bullish_pct": 50}
+
+    assert trending_response.status_code == 200
+    trending_payload = trending_response.json()
+    assert trending_payload["items"][0] == {"keyword": "AI", "count": 2}
+    assert all({"keyword", "count"}.issubset(item) for item in trending_payload["items"])
+
+    assert collection_response.status_code == 200
+    last_success = collection_response.json()["last_success"]
+    assert isinstance(last_success, str)
+    assert last_success.startswith(latest.replace(tzinfo=None).isoformat(timespec="seconds"))
 
 
 @pytest.mark.asyncio
@@ -113,3 +137,21 @@ def _log(source: DataSource, status: CollectorStatus, executed_at: datetime) -> 
         duration_ms=120,
         executed_at=executed_at,
     )
+
+
+async def _seed_stats_http_data(client: TestClient) -> datetime:
+    session_factory = client.app.state.session_factory
+    source = _source()
+    latest = datetime.now(timezone.utc) - timedelta(minutes=3)
+    async with session_factory() as db:
+        db.add(source)
+        db.add_all(
+            [
+                _item(source, "AI chip demand", "Strong growth", {"sentiment": "bullish", "keywords": ["AI"]}),
+                _item(source, "AI risk review", "Bearish risk", {"sentiment": "bearish", "keywords": ["AI"]}),
+                _log(source, CollectorStatus.FAIL, datetime.now(timezone.utc)),
+                _log(source, CollectorStatus.SUCCESS, latest),
+            ]
+        )
+        await db.commit()
+    return latest
