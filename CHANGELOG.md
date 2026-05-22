@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add Playwright E2E coverage with deterministic backend seeding for auth, dashboard pagination, news infinite scroll, markets, analytics, reports, settings, admin, sync, item detail, i18n, and auth guards.
 - Add a source collection endpoint that queues real persisted collector runs from the Sync page.
 - Add PostgreSQL-backed market candle storage for 30-minute and daily chart ranges with Redis-backed 1D and 5D one-minute candles.
 - Add Beijing-time trading sessions to market-index API responses so chart axes can render in UTC+8 consistently.
@@ -105,6 +106,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix API rate limiting so CORS preflight requests do not consume the browser-facing request quota.
+- Fix frontend login failures so invalid credentials show the localized error without triggering token refresh redirects.
+- Fix frontend registration so newly created users keep the returned access token and land on their locale dashboard.
 - Fix Analytics time ranges so metrics, trend buckets, and article volume respect 24h, 7D, 14D, and 30D filters.
 - Fix Sync Now and Sync All so they queue persisted collection runs instead of source preview tests.
 - Fix flat mini sparklines by padding constant-value Sparkline domains and include item-derived times in generated report prompts and report detail subtitles.

@@ -74,6 +74,19 @@ def test_security_headers_and_cors_are_applied(client: TestClient) -> None:
     assert response.headers["Access-Control-Allow-Origin"] == "http://localhost:3000"
 
 
+def test_cors_preflight_does_not_consume_api_rate_limit(client: TestClient) -> None:
+    """Browser preflight requests should not exhaust the general API quota."""
+    headers = {
+        "Origin": "http://localhost:3000",
+        "Access-Control-Request-Method": "PUT",
+    }
+
+    responses = [client.options("/api/v1/me/profile", headers=headers) for _ in range(130)]
+
+    assert all(response.status_code == 200 for response in responses)
+    assert client.get("/api/v1/health").status_code == 200
+
+
 def test_source_config_strips_script_tags(client: TestClient) -> None:
     """Data source config removes script payloads before persistence."""
     token = _token(client)

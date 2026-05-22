@@ -24,21 +24,27 @@ export interface RegisterPayload {
   password: string;
 }
 
+type RegisterResponse = User & TokenResponse;
+
 export async function loginRequest(payload: LoginPayload): Promise<User> {
-  const token = await apiFetch<TokenResponse>("/auth/login", {
-    body: JSON.stringify(payload),
-    method: "POST"
-  });
+  const token = await apiFetch<TokenResponse>(
+    "/auth/login",
+    {
+      body: JSON.stringify(payload),
+      method: "POST"
+    },
+    false
+  );
   setAccessToken(token.access_token);
   return apiFetch<User>("/auth/me");
 }
 
 export async function registerRequest(payload: RegisterPayload): Promise<User> {
-  const user = await apiFetch<User>("/auth/register", {
+  const user = await apiFetch<RegisterResponse>("/auth/register", {
     body: JSON.stringify(payload),
     method: "POST"
   });
-  setAccessToken(null);
+  setAccessToken(user.access_token);
   return user;
 }
 

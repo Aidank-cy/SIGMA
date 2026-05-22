@@ -1443,3 +1443,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Aligned the health endpoint check with the shared TestClient fixture while preserving the current `/api/v1/health` contract. Verified `python3 -m pytest tests/test_health.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`153 passed, 1 warning`).
 - Timestamp: 2026-05-22T12:22:08Z
+
+### [Phase 3] Frontend-to-backend E2E coverage
+- Status: COMPLETE
+- Files created: sigma-backend/scripts/seed_e2e_data.py, sigma-frontend/playwright.config.ts, sigma-frontend/e2e/global-setup.ts, sigma-frontend/e2e/sigma.spec.ts
+- Files modified: sigma-backend/app/middleware/security.py, sigma-backend/tests/test_security.py, sigma-frontend/package.json, sigma-frontend/package-lock.json, sigma-frontend/src/lib/auth.ts, sigma-frontend/src/components/AuthProvider.tsx, sigma-frontend/src/app/[locale]/register/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added Playwright Chromium coverage for Phase 3 auth, dashboard pagination, news infinite scroll, markets, analytics, report detail, settings, admin panels, sync, item detail, i18n, and auth guards. Seeded deterministic users, sources, items, watchlists, reports, logs, LLM usage, and market-index cache data for Docker-backed E2E runs. Fixed genuine frontend auth bugs so invalid login stays on the form with an error toast and registration stores the returned token before redirecting to the dashboard. Fixed a genuine middleware bug so CORS preflight requests no longer consume the general API quota during browser flows. Verified `npm run test:e2e` (`5 passed`), `npm run build`, `python3 -m ruff check .`, and `python3 -m pytest --tb=short -q` (`154 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:08:28Z
