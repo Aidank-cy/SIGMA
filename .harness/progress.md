@@ -1259,3 +1259,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Reduced multi-day hero chart X-axis label density and label length by simplifying 5D ticks to daily date numbers, changing 3M labels to compact month-day text, showing monthly 1Y ticks, and letting Recharts skip labels with a 40px minimum gap.
 - Timestamp: 2026-05-22T03:06:53Z
+
+### [Maintenance] Dashboard indices panel height alignment
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Changed the desktop HeroChart and major market indices container from flex to a 3fr/1fr CSS grid, removed child width classes, and added `min-h-0` to the right grid cell so the ticker panel stays constrained to the chart row height with internal scrolling.
+- Timestamp: 2026-05-22T05:23:07Z

@@ -150,14 +150,14 @@ export default function DashboardPage() {
 
         <motion.section
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-6 lg:flex-row lg:items-stretch"
+          className="flex flex-col gap-6 lg:grid lg:grid-cols-[3fr_1fr]"
           initial={{ opacity: 0, y: 20 }}
           transition={{ delay: 0.1, duration: 0.4 }}
         >
-          <div className="lg:w-3/4">
+          <div>
             <HeroChart />
           </div>
-          <div className="lg:w-1/4">
+          <div className="min-h-0">
             <TickerCarousel />
           </div>
         </motion.section>
