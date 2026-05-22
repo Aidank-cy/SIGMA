@@ -1275,3 +1275,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Rechecked the Dashboard HeroChart/TickerCarousel layout and found the ticker content could still contribute to the desktop grid row height. Wrapped the ticker in a desktop absolute-fill layer inside a `min-h-0` grid cell so the left HeroChart determines the row height and excess ticker rows scroll inside the panel.
 - Timestamp: 2026-05-22T05:43:29Z
+
+### [Maintenance] Trading-day market chart axes and ticker selection
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/dashboard/ticker-carousel.tsx, sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Refactored multi-day Dashboard and Markets chart axes to use continuous Asia/Shanghai trading-day indexes from actual data dates, lifted active HeroChart market selection into the dashboard page, made ticker rows clickable with selected styling, switched ticker sparklines to intraday chart data with flat pre-open lines, displayed ISO currency codes, and removed HeroChart arrow, drag, and keyboard market switching.
+- Timestamp: 2026-05-22T06:20:00Z

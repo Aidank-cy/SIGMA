@@ -162,9 +162,10 @@ export function IndicesTab() {
                   chartSessions,
                   chartTimeZone,
                   activeRange === "5D" ? 5 : 4,
-                  now
+                  now,
+                  chartData
                 )
-                const xAxisDomain = buildChartXAxisDomain(activeRange, chartSessions)
+                const xAxisDomain = buildChartXAxisDomain(activeRange, chartSessions, chartData)
                 const isAwaitingOpen = isPreMarketClearWindow(index.trading_hours, now)
                 const displayChangePct = isAwaitingOpen ? 0 : index.change_pct
                 const chartColor = isPositive
@@ -244,7 +245,7 @@ export function IndicesTab() {
                             minTickGap={0}
                             tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
                             tickFormatter={(value) =>
-                              formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now, chartSessions)
+                              formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now, chartSessions, chartData)
                             }
                             tickLine={false}
                             tickMargin={8}

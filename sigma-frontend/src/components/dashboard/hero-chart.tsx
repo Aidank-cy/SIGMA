@@ -1,7 +1,7 @@
 "use client";
 
-import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "framer-motion";
-import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { TrendingDown, TrendingUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -48,7 +48,12 @@ interface MarketChartData {
   tradingHours: MarketIndex["trading_hours"];
 }
 
-export function HeroChart() {
+interface HeroChartProps {
+  activeMarket?: string;
+  onActiveMarketChange?: (symbol: string) => void;
+}
+
+export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps) {
   const t = useTranslations("dashboard");
   const chartT = useTranslations("feed.chart");
   const { data, isLoading } = useMarketIndices();
@@ -72,74 +77,46 @@ export function HeroChart() {
       };
     });
   }, [data, now]);
-  const [activeMarket, setActiveMarket] = useState(markets[0]?.name ?? "SIGMA");
   const [direction, setDirection] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragX = useMotionValue(0);
+  const previousMarketRef = useRef<string | undefined>(undefined);
+  const selectedMarket = activeMarket ?? markets[0]?.symbol ?? "SIGMA";
 
   useEffect(() => {
-    if (!markets.some((market) => market.name === activeMarket)) {
-      setActiveMarket(markets[0]?.name ?? "SIGMA");
+    if (markets.length > 0 && !markets.some((market) => market.symbol === selectedMarket)) {
+      onActiveMarketChange?.(markets[0].symbol);
     }
-  }, [activeMarket, markets]);
+  }, [markets, onActiveMarketChange, selectedMarket]);
 
-  const currentData = markets.find((market) => market.name === activeMarket) ?? markets[0];
+  useEffect(() => {
+    const previousMarket = previousMarketRef.current;
+    if (previousMarket && previousMarket !== selectedMarket) {
+      const previousIndex = markets.findIndex((market) => market.symbol === previousMarket);
+      const nextIndex = markets.findIndex((market) => market.symbol === selectedMarket);
+      if (previousIndex !== -1 && nextIndex !== -1) {
+        setDirection(nextIndex > previousIndex ? 1 : -1);
+      }
+    }
+    previousMarketRef.current = selectedMarket;
+  }, [markets, selectedMarket]);
+
+  const currentData = markets.find((market) => market.symbol === selectedMarket) ?? markets[0];
   const isPositive = (currentData?.change ?? 0) >= 0;
   const chartData = currentData?.dataByRange[activeRange] ?? currentData?.data ?? [];
   const chartSessions = currentData?.tradingHours.beijing_sessions ?? currentData?.tradingHours.sessions ?? [];
   const chartTimeZone = "Asia/Shanghai";
   const chartTicks = useMemo(
-    () => buildChartTicks(activeRange, chartSessions, chartTimeZone, now),
-    [activeRange, chartSessions, chartTimeZone, now]
+    () => buildChartTicks(activeRange, chartSessions, chartTimeZone, now, chartData),
+    [activeRange, chartData, chartSessions, chartTimeZone, now]
   );
-  const xAxisDomain = useMemo(() => buildChartXAxisDomain(activeRange, chartSessions), [activeRange, chartSessions]);
-  const boundaryTicks = useMemo(() => buildChartBoundaryTicks(activeRange), [activeRange]);
+  const xAxisDomain = useMemo(
+    () => buildChartXAxisDomain(activeRange, chartSessions, chartData),
+    [activeRange, chartData, chartSessions]
+  );
+  const boundaryTicks = useMemo(() => buildChartBoundaryTicks(activeRange, chartData), [activeRange, chartData]);
   const yAxisDomain = useMemo(
     () => computeChartYDomain(chartData, currentData?.previousClose),
     [chartData, currentData?.previousClose]
   );
-
-  const handlePrev = () => {
-    const currentIndex = markets.findIndex((market) => market.name === activeMarket);
-    const prevIndex = (currentIndex - 1 + markets.length) % markets.length;
-    setDirection(-1);
-    setActiveMarket(markets[prevIndex]?.name ?? activeMarket);
-  };
-
-  const handleNext = () => {
-    const currentIndex = markets.findIndex((market) => market.name === activeMarket);
-    const nextIndex = (currentIndex + 1) % markets.length;
-    setDirection(1);
-    setActiveMarket(markets[nextIndex]?.name ?? activeMarket);
-  };
-
-  const handleDragEnd = (_event: PointerEvent, info: { offset: { x: number }; velocity: { x: number } }) => {
-    const threshold = 50;
-    const velocity = info.velocity.x;
-    const offset = info.offset.x;
-
-    if (Math.abs(velocity) > 500 || Math.abs(offset) > threshold) {
-      if (offset > 0 || velocity > 500) {
-        handlePrev();
-      } else {
-        handleNext();
-      }
-    }
-
-    animate(dragX, 0, { damping: 30, stiffness: 300, type: "spring" });
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft") handlePrev();
-      if (event.key === "ArrowRight") handleNext();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  });
-
-  const chartOpacity = useTransform(dragX, [-100, 0, 100], [0.5, 1, 0.5]);
 
   if (isLoading) {
     return (
@@ -215,7 +192,7 @@ export function HeroChart() {
               animate={{ opacity: 1, y: 0 }}
               className="text-2xl font-bold text-foreground lg:text-3xl"
               initial={{ opacity: 0, y: 10 }}
-              key={activeMarket}
+              key={selectedMarket}
             >
               {currentData?.name}
             </motion.h2>
@@ -227,7 +204,7 @@ export function HeroChart() {
             animate={{ opacity: 1, scale: 1 }}
             className="flex items-baseline gap-2 text-3xl font-bold tracking-normal text-foreground lg:text-4xl"
             initial={{ opacity: 0, scale: 0.95 }}
-            key={`${activeMarket}-price`}
+            key={`${selectedMarket}-price`}
           >
             <span className="text-lg font-semibold text-muted-foreground lg:text-xl">
               {currentData?.currency}
@@ -241,7 +218,7 @@ export function HeroChart() {
               isPositive ? "text-chart-1" : "text-chart-2"
             )}
             initial={{ opacity: 0 }}
-            key={`${activeMarket}-change`}
+            key={`${selectedMarket}-change`}
           >
             {isPositive ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
             <span>
@@ -252,35 +229,8 @@ export function HeroChart() {
         </div>
       </div>
 
-      <button
-        aria-label="Previous market"
-        className="absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-border bg-background/90 p-2.5 text-foreground opacity-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-muted group-hover:opacity-100"
-        onClick={handlePrev}
-        type="button"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <button
-        aria-label="Next market"
-        className="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-border bg-background/90 p-2.5 text-foreground opacity-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-muted group-hover:opacity-100"
-        onClick={handleNext}
-        type="button"
-      >
-        <ChevronRight className="h-5 w-5" />
-      </button>
-
       <motion.div
-        className="relative h-56 cursor-grab touch-pan-y active:cursor-grabbing lg:h-72"
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
-        onDragEnd={(event, info) => {
-          setIsDragging(false);
-          handleDragEnd(event as PointerEvent, info);
-        }}
-        onDragStart={() => setIsDragging(true)}
-        ref={containerRef}
-        style={{ x: dragX }}
+        className="relative h-56 lg:h-72"
       >
         <AnimatePresence initial={false} mode="sync">
           <motion.div
@@ -288,8 +238,7 @@ export function HeroChart() {
             className="absolute inset-0"
             exit={{ opacity: 0, x: direction * -80 }}
             initial={{ opacity: 0, x: direction * 80 }}
-            key={activeMarket}
-            style={{ opacity: isDragging ? chartOpacity : 1 }}
+            key={selectedMarket}
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <ResponsiveContainer height="100%" width="100%">
@@ -311,7 +260,7 @@ export function HeroChart() {
                   domain={xAxisDomain}
                   minTickGap={40}
                   tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
-                  tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now, chartSessions)}
+                  tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now, chartSessions, chartData)}
                   tickLine={false}
                   tickMargin={12}
                   ticks={chartTicks}
@@ -368,12 +317,12 @@ export function HeroChart() {
             aria-label={market.name}
             className={cn(
               "h-2 rounded-full transition-all duration-300",
-              activeMarket === market.name ? "w-8 bg-primary" : "w-2 bg-muted-foreground/25 hover:bg-muted-foreground/40"
+              selectedMarket === market.symbol ? "w-8 bg-primary" : "w-2 bg-muted-foreground/25 hover:bg-muted-foreground/40"
             )}
             key={market.name}
             onClick={() => {
-              setDirection(markets.findIndex((item) => item.name === market.name) > markets.findIndex((item) => item.name === activeMarket) ? 1 : -1);
-              setActiveMarket(market.name);
+              setDirection(markets.findIndex((item) => item.symbol === market.symbol) > markets.findIndex((item) => item.symbol === selectedMarket) ? 1 : -1);
+              onActiveMarketChange?.(market.symbol);
             }}
             type="button"
           />

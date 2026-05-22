@@ -36,6 +36,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change Dashboard and Markets multi-day market chart X-axes to continuous Beijing-time trading-day indexes so weekends and no-data days do not create visual gaps.
+- Change Dashboard major market index rows into clickable controls that drive the HeroChart selection.
 - Make market-index refresh Yahoo-free by reading intraday candles from Redis and limiting Yahoo access to the candle manager.
 - Read market-index 5D, 1M, 3M, and 1Y chart ranges from Redis and PostgreSQL candle storage instead of fetching Yahoo historical data during quote refreshes.
 - Decouple market-index historical Redis updates into a rate-limited background scheduler and trim cached daily candles to one trading year.
@@ -76,12 +78,14 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Removed
+- Remove Dashboard HeroChart previous/next arrow controls, drag-to-switch gestures, and keyboard market switching.
 - Remove the standalone demo data seeding script and its demo-content tests.
 - Remove the Layer 6 Alpha Vantage sentiment seed source while keeping Layer 5 collection sources active.
 - Remove obsolete pre-v0 frontend components, legacy select primitives, the deprecated theme hook, and compile-excluded v0 reference pages after integration.
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Dashboard market index row sparklines to use intraday chart data, align mini charts consistently, show flat pre-open lines, and display raw ISO currency codes.
 - Constrain the Dashboard major market indices column to the hero chart grid row so long ticker lists scroll inside the panel.
 - Fix dashboard hero chart and major market indices panel height alignment.
 - Fix dashboard hero chart X-axis labels for multi-day ranges to reduce overlap.

@@ -99,6 +99,7 @@ export default function DashboardPage() {
   const [category, setCategory] = useState<Category | "">("");
   const [greetingKey, setGreetingKey] = useState<GreetingKey>("greetingMorning");
   const [market, setMarket] = useState<Market | "">("");
+  const [activeMarket, setActiveMarket] = useState("");
   const [query, setQuery] = useState("");
   const filters = useMemo<ItemFilters>(
     () => ({
@@ -113,6 +114,13 @@ export default function DashboardPage() {
   useEffect(() => {
     setGreetingKey(getGreetingKey());
   }, []);
+
+  useEffect(() => {
+    const indices = marketData?.indices ?? [];
+    if (indices.length > 0 && !indices.some((index) => index.symbol === activeMarket)) {
+      setActiveMarket(indices[0].symbol);
+    }
+  }, [activeMarket, marketData]);
 
   const marketUpdatedAt = marketData && "updated_at" in marketData ? marketData.updated_at : null;
   const updatedAt = formatUpdatedAt(marketUpdatedAt) ?? t("live");
@@ -155,11 +163,11 @@ export default function DashboardPage() {
           transition={{ delay: 0.1, duration: 0.4 }}
         >
           <div>
-            <HeroChart />
+            <HeroChart activeMarket={activeMarket} onActiveMarketChange={setActiveMarket} />
           </div>
           <div className="relative min-h-0 lg:overflow-hidden">
             <div className="lg:absolute lg:inset-0">
-              <TickerCarousel />
+              <TickerCarousel activeMarket={activeMarket} onSelectMarket={setActiveMarket} />
             </div>
           </div>
         </motion.section>
