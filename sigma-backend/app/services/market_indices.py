@@ -18,11 +18,6 @@ from app.utils.redis_lock import create_redis_client
 CACHE_KEY = "sigma:market-indices"
 ACTIVE_CACHE_TTL_SECONDS = 15
 CLOSED_CACHE_TTL_SECONDS = 120
-HISTORICAL_CACHE_KEY = "sigma:historical:{symbol}"
-HISTORICAL_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30
-MAX_HISTORICAL_POINTS = 252
-HISTORICAL_TRADING_FETCH_INTERVAL_SECONDS = 30
-HISTORICAL_CLOSED_FETCH_DELAY_SECONDS = 2.5
 MARKET_INDEX_REFRESH_DELAY_SECONDS = 0.6
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 LOGGER = logging.getLogger(__name__)
@@ -35,13 +30,6 @@ YAHOO_HEADERS = {
     ),
 }
 _yahoo_client: httpx.AsyncClient | None = None
-_historical_last_fetch: dict[str, datetime] = {}
-HISTORICAL_RANGES: dict[str, int] = {
-    "5D": 5,
-    "1M": 22,
-    "3M": 66,
-    "1Y": 252,
-}
 
 
 @dataclass(frozen=True)
@@ -152,7 +140,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
             config.symbol,
             len(intraday),
         )
-    sparkline_ranges = await _read_cached_historical_ranges(config, value, change_pct)
+    sparkline_ranges = await _read_candle_ranges(config, value, change_pct)
 
     return MarketIndex(
         symbol=config.symbol,
@@ -572,21 +560,45 @@ async def _fetch_yahoo_intraday_series(config: IndexConfig) -> list[IntradayPoin
     return _align_intraday_points(config, session_date, points)
 
 
-async def _read_cached_historical_ranges(
+async def _read_candle_ranges(
     config: IndexConfig,
     value: float,
     change_pct: float,
 ) -> dict[str, MarketSparkline]:
-    cached = await _get_cached_historical(config.symbol)
+    """Read chart range candles from Redis and PostgreSQL without fetching Yahoo."""
+    from app.services.market_candles import _pg_get_candles, _redis_get_5d
 
     ranges: dict[str, MarketSparkline] = {}
-    for range_key, fallback_points in HISTORICAL_RANGES.items():
-        series = cached[-fallback_points:] if cached else None
+
+    data_5d = await _redis_get_5d(config.symbol)
+    if data_5d:
+        ranges["5D"] = MarketSparkline(
+            values=[round(point.value, 2) for point in data_5d],
+            times=[point.timestamp.isoformat() for point in data_5d],
+        )
+    else:
+        LOGGER.warning(
+            "Using generated fallback 5D historical series for %s because no Redis 5D candles are available.",
+            config.symbol,
+        )
+        fallback = _fallback_historical_series(config, value, change_pct, 5)
+        ranges["5D"] = MarketSparkline(
+            values=[round(point.value, 2) for point in fallback],
+            times=[point.timestamp.isoformat() for point in fallback],
+        )
+
+    for range_key, interval, limit, fallback_points in (
+        ("1M", "30m", 286, 22),
+        ("3M", "1d", 66, 66),
+        ("1Y", "1d", 252, 252),
+    ):
+        series = await _pg_get_candles(config.symbol, interval, limit=limit)
         if not series:
             LOGGER.warning(
-                "Using generated fallback %s historical series for %s because no cached daily candles are available.",
+                "Using generated fallback %s historical series for %s because no %s candles are available.",
                 range_key,
                 config.symbol,
+                interval,
             )
             series = _fallback_historical_series(config, value, change_pct, fallback_points)
         ranges[range_key] = MarketSparkline(
@@ -594,61 +606,6 @@ async def _read_cached_historical_ranges(
             times=[point.timestamp.isoformat() for point in series],
         )
     return ranges
-
-
-async def refresh_historical_data_job() -> None:
-    """Fetch historical market data independently from live quote refreshes."""
-    now_beijing = _now_utc().astimezone(BEIJING_TZ)
-
-    for config in INDEX_CONFIGS:
-        symbol = config.symbol
-        cached = await _get_cached_historical(symbol)
-        if cached is not None:
-            latest_cached_date = _historical_point_date(config, cached[-1]) if cached else None
-            latest_completed = _latest_completed_session_date(config)
-            if latest_cached_date is not None and latest_cached_date >= latest_completed:
-                continue
-
-        market_status = _market_status_beijing(config, now_beijing)
-        if market_status == "not_opened":
-            continue
-        if market_status == "trading":
-            last_fetch = _historical_last_fetch.get(symbol)
-            now_utc = _now_utc()
-            if last_fetch is not None and (now_utc - last_fetch).total_seconds() < HISTORICAL_TRADING_FETCH_INTERVAL_SECONDS:
-                continue
-            await _incremental_historical_fetch(config, cached)
-            _historical_last_fetch[symbol] = _now_utc()
-            continue
-
-        if cached is None:
-            full_series = await _fetch_yahoo_historical_series(config, "1y")
-            if full_series:
-                points = _trim_historical_points(_filter_completed_historical_points(config, full_series))
-                await _set_cached_historical(symbol, points)
-                LOGGER.info("Fetched full 1Y historical data for %s (%d points)", symbol, len(points))
-            await asyncio.sleep(HISTORICAL_CLOSED_FETCH_DELAY_SECONDS)
-        else:
-            await _incremental_historical_fetch(config, cached)
-            await asyncio.sleep(HISTORICAL_CLOSED_FETCH_DELAY_SECONDS)
-
-
-async def _incremental_historical_fetch(config: IndexConfig, cached: list[IntradayPoint] | None) -> None:
-    """Fetch recent daily candles and merge missing completed sessions into cache."""
-    recent = await _fetch_yahoo_historical_series(config, "5d")
-    if not recent:
-        return
-    completed_recent = _filter_completed_historical_points(config, recent)
-    if cached is None:
-        await _set_cached_historical(config.symbol, _trim_historical_points(completed_recent))
-        return
-
-    cached_dates = {_historical_point_date(config, point) for point in cached}
-    new_points = [point for point in completed_recent if _historical_point_date(config, point) not in cached_dates]
-    if new_points:
-        merged = _trim_historical_points([*cached, *new_points])
-        await _set_cached_historical(config.symbol, merged)
-        LOGGER.info("Updated historical cache for %s with %d new points", config.symbol, len(new_points))
 
 
 def _market_status_beijing(config: IndexConfig, now_beijing: datetime) -> str:
@@ -663,43 +620,6 @@ def _market_status_beijing(config: IndexConfig, now_beijing: datetime) -> str:
     if any(current < session_open for session_open, _session_close in config.sessions):
         return "not_opened"
     return "closed"
-
-
-async def _fetch_yahoo_historical_series(
-    config: IndexConfig,
-    provider_range: str,
-) -> list[IntradayPoint] | None:
-    result = await _fetch_yahoo_chart_result(
-        config,
-        params={"includePrePost": "false", "interval": "1d", "range": provider_range},
-        purpose=f"historical {provider_range}",
-    )
-    if not isinstance(result, dict):
-        return None
-    timestamps = result.get("timestamp")
-    indicators = result.get("indicators", {})
-    if not isinstance(timestamps, list) or not isinstance(indicators, dict):
-        return None
-    quote_payload = indicators.get("quote", [None])[0]
-    if not isinstance(quote_payload, dict):
-        return None
-    closes = quote_payload.get("close")
-    if not isinstance(closes, list) or len(closes) != len(timestamps):
-        return None
-
-    points: list[IntradayPoint] = []
-    for timestamp, close in zip(timestamps, closes, strict=False):
-        value = _as_float(close)
-        epoch = _as_float(timestamp)
-        if value is None or epoch is None or value <= 0:
-            continue
-        points.append(
-            IntradayPoint(
-                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
-                value=value,
-            )
-        )
-    return points or None
 
 
 def _fallback_historical_series(
@@ -956,100 +876,6 @@ async def _cache_set(value: str) -> None:
         return
     finally:
         await client.aclose()
-
-
-async def _get_cached_historical(symbol: str) -> list[IntradayPoint] | None:
-    client = create_redis_client()
-    try:
-        raw = await client.get(HISTORICAL_CACHE_KEY.format(symbol=symbol))
-    except Exception as exc:
-        LOGGER.warning("Historical cache read for %s failed: %s: %s", symbol, type(exc).__name__, exc)
-        return None
-    finally:
-        await client.aclose()
-    if raw is None:
-        return None
-    return _deserialize_historical(raw)
-
-
-async def _set_cached_historical(symbol: str, points: list[IntradayPoint]) -> None:
-    client = create_redis_client()
-    try:
-        await client.set(
-            HISTORICAL_CACHE_KEY.format(symbol=symbol),
-            _serialize_historical(points),
-            ex=HISTORICAL_CACHE_TTL_SECONDS,
-        )
-    except Exception as exc:
-        LOGGER.warning("Historical cache write for %s failed: %s: %s", symbol, type(exc).__name__, exc)
-    finally:
-        await client.aclose()
-
-
-def _serialize_historical(points: list[IntradayPoint]) -> str:
-    return json.dumps(
-        [
-            {
-                "t": int(point.timestamp.timestamp()),
-                "v": round(point.value, 6),
-            }
-            for point in points
-        ],
-        separators=(",", ":"),
-    )
-
-
-def _deserialize_historical(value: object) -> list[IntradayPoint] | None:
-    try:
-        raw = value.decode() if isinstance(value, bytes) else str(value)
-        payload = json.loads(raw)
-    except (UnicodeDecodeError, TypeError, ValueError):
-        return None
-    if not isinstance(payload, list):
-        return None
-
-    points: list[IntradayPoint] = []
-    for item in payload:
-        if not isinstance(item, dict):
-            continue
-        epoch = _as_float(item.get("t"))
-        point_value = _as_float(item.get("v"))
-        if epoch is None or point_value is None or point_value <= 0:
-            continue
-        points.append(
-            IntradayPoint(
-                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
-                value=point_value,
-            )
-        )
-    return points or None
-
-
-def _trim_historical_points(points: list[IntradayPoint]) -> list[IntradayPoint]:
-    return sorted(points, key=lambda point: point.timestamp)[-MAX_HISTORICAL_POINTS:]
-
-
-def _filter_completed_historical_points(config: IndexConfig, points: list[IntradayPoint]) -> list[IntradayPoint]:
-    latest_completed_date = _latest_completed_session_date(config)
-    return [
-        point
-        for point in _trim_historical_points(points)
-        if _historical_point_date(config, point) <= latest_completed_date
-    ]
-
-
-def _historical_point_date(config: IndexConfig, point: IntradayPoint) -> date:
-    return point.timestamp.astimezone(ZoneInfo(config.timezone)).date()
-
-
-def _latest_completed_session_date(config: IndexConfig, now: datetime | None = None) -> date:
-    local_now = (now or _now_utc()).astimezone(ZoneInfo(config.timezone))
-    session_date = _latest_session_date(config, now)
-    if local_now.date() == session_date and local_now.time().replace(tzinfo=None) < config.close_time:
-        session_date -= timedelta(days=1)
-        while session_date.weekday() >= 5:
-            session_date -= timedelta(days=1)
-    return session_date
 
 
 def decode_cached_payload(value: str) -> dict[str, object]:
