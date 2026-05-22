@@ -1267,3 +1267,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Changed the desktop HeroChart and major market indices container from flex to a 3fr/1fr CSS grid, removed child width classes, and added `min-h-0` to the right grid cell so the ticker panel stays constrained to the chart row height with internal scrolling.
 - Timestamp: 2026-05-22T05:23:07Z
+
+### [Maintenance] Dashboard ticker column scroll boundary
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Rechecked the Dashboard HeroChart/TickerCarousel layout and found the ticker content could still contribute to the desktop grid row height. Wrapped the ticker in a desktop absolute-fill layer inside a `min-h-0` grid cell so the left HeroChart determines the row height and excess ticker rows scroll inside the panel.
+- Timestamp: 2026-05-22T05:43:29Z
