@@ -1427,3 +1427,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added admin LLM HTTP coverage for config reads, updates with API-key settings, seeded usage rollups, and non-admin access rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`153 passed, 1 warning`).
 - Timestamp: 2026-05-22T12:18:22Z
+
+### [Phase 2.13] Admin logs API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_admin_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded admin logs HTTP coverage for unfiltered listing, source/status/date-range/combined filters, page-two pagination, success-rate calculation, and non-admin access rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`153 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:20:34Z

@@ -214,15 +214,70 @@ def test_admin_llm_config_usage_and_guards(client: TestClient) -> None:
 
 
 def test_admin_logs_endpoint(client: TestClient) -> None:
-    """Admin logs endpoint returns pagination metadata and success rate."""
-    token = _token(client, "admin-logs@example.com")
+    """Admin logs endpoint supports filters, pagination, and role guards."""
+    admin_token = _token(client, "admin-logs@example.com")
+    user_token = _token(client, "regular-logs@example.com")
+    source_id = asyncio.run(_seed_admin_logs_data(client))
+    headers = _auth(admin_token)
 
-    response = client.get("/api/v1/admin/logs", headers=_auth(token))
+    response = client.get("/api/v1/admin/logs", headers=headers)
+    source_response = client.get(f"/api/v1/admin/logs?source_id={source_id}", headers=headers)
+    success_response = client.get("/api/v1/admin/logs?status=success", headers=headers)
+    fail_response = client.get("/api/v1/admin/logs?status=fail", headers=headers)
+    date_response = client.get(
+        "/api/v1/admin/logs",
+        headers=headers,
+        params={
+            "date_from": "2026-01-02T00:00:00+00:00",
+            "date_to": "2026-01-05T23:59:59+00:00",
+        },
+    )
+    combined_response = client.get(
+        "/api/v1/admin/logs",
+        headers=headers,
+        params={
+            "source_id": source_id,
+            "status": "success",
+            "date_from": "2026-01-03T00:00:00+00:00",
+        },
+    )
+    page_two_response = client.get("/api/v1/admin/logs?page=2&page_size=10", headers=headers)
+    forbidden_response = client.get("/api/v1/admin/logs", headers=_auth(user_token))
 
     assert response.status_code == 200
     assert response.json()["page"] == 1
     assert response.json()["page_size"] == 50
-    assert response.json()["success_rate"] == 0.0
+    assert response.json()["total"] == 12
+    assert response.json()["success_rate"] == 0.25
+
+    assert source_response.status_code == 200
+    assert source_response.json()["total"] == 4
+    assert all(item["source_id"] == source_id for item in source_response.json()["items"])
+
+    assert success_response.status_code == 200
+    assert success_response.json()["total"] == 3
+    assert all(item["status"] == "success" for item in success_response.json()["items"])
+
+    assert fail_response.status_code == 200
+    assert fail_response.json()["total"] == 2
+    assert all(item["status"] == "fail" for item in fail_response.json()["items"])
+
+    assert date_response.status_code == 200
+    assert date_response.json()["total"] == 6
+
+    assert combined_response.status_code == 200
+    assert combined_response.json()["total"] == 2
+    assert all(item["source_id"] == source_id for item in combined_response.json()["items"])
+    assert all(item["status"] == "success" for item in combined_response.json()["items"])
+
+    assert page_two_response.status_code == 200
+    assert page_two_response.json()["page"] == 2
+    assert page_two_response.json()["page_size"] == 10
+    assert page_two_response.json()["total"] == 12
+    assert page_two_response.json()["has_next"] is False
+    assert len(page_two_response.json()["items"]) == 2
+
+    assert forbidden_response.status_code == 403
 
 
 def _token(client: TestClient, email: str) -> str:
@@ -365,3 +420,67 @@ async def _seed_admin_llm_usage(client: TestClient) -> None:
             )
         )
         await db.commit()
+
+
+async def _seed_admin_logs_data(client: TestClient) -> str:
+    session_factory = client.app.state.session_factory
+    source_a = DataSource(
+        id=uuid4(),
+        name="Admin Logs A",
+        source_type=SourceType.RSS,
+        category=IntelligenceCategory.FINANCE,
+        market=Market.US,
+        config={"feed_url": "https://logs.test/a.xml"},
+        schedule_cron="*/5 * * * *",
+        max_execution_seconds=60,
+        is_active=True,
+    )
+    source_b = DataSource(
+        id=uuid4(),
+        name="Admin Logs B",
+        source_type=SourceType.RSS,
+        category=IntelligenceCategory.FINANCE,
+        market=Market.US,
+        config={"feed_url": "https://logs.test/b.xml"},
+        schedule_cron="*/5 * * * *",
+        max_execution_seconds=60,
+        is_active=True,
+    )
+    timestamps = [
+        datetime(2026, 1, 5, 12, tzinfo=timezone.utc),
+        datetime(2026, 1, 4, 12, tzinfo=timezone.utc),
+        datetime(2026, 1, 3, 12, tzinfo=timezone.utc),
+        datetime(2026, 1, 2, 12, tzinfo=timezone.utc),
+        datetime(2026, 1, 1, 12, tzinfo=timezone.utc),
+        datetime(2025, 12, 31, 12, tzinfo=timezone.utc),
+        datetime(2025, 12, 30, 12, tzinfo=timezone.utc),
+        datetime(2025, 12, 29, 12, tzinfo=timezone.utc),
+        datetime(2025, 12, 28, 12, tzinfo=timezone.utc),
+        datetime(2025, 12, 27, 12, tzinfo=timezone.utc),
+        datetime(2025, 12, 26, 12, tzinfo=timezone.utc),
+        datetime(2025, 12, 25, 12, tzinfo=timezone.utc),
+    ]
+    logs = [
+        _collector_log(source_a.id, CollectorStatus.SUCCESS, timestamps[0]),
+        _collector_log(source_a.id, CollectorStatus.FAIL, timestamps[1]),
+        _collector_log(source_a.id, CollectorStatus.SUCCESS, timestamps[2]),
+        _collector_log(source_a.id, CollectorStatus.TIMEOUT, timestamps[3]),
+        _collector_log(source_b.id, CollectorStatus.SUCCESS, timestamps[0] - timedelta(hours=1)),
+        _collector_log(source_b.id, CollectorStatus.FAIL, timestamps[1] - timedelta(hours=1)),
+    ]
+    logs.extend(_collector_log(source_b.id, CollectorStatus.TIMEOUT, timestamp) for timestamp in timestamps[6:])
+    async with session_factory() as db:
+        db.add_all([source_a, source_b, *logs])
+        await db.commit()
+    return str(source_a.id)
+
+
+def _collector_log(source_id: UUID, status: CollectorStatus, executed_at: datetime) -> CollectorLog:
+    return CollectorLog(
+        source_id=source_id,
+        status=status,
+        items_count=5 if status == CollectorStatus.SUCCESS else 0,
+        error_message=None if status == CollectorStatus.SUCCESS else status.value,
+        duration_ms=100,
+        executed_at=executed_at,
+    )
