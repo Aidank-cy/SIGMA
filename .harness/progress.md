@@ -1483,3 +1483,19 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Verified MW1 through MW4 with the actual FastAPI middleware stack: allowed frontend CORS origin, rejected unknown-origin preflight, preflight requests excluded from quota consumption, login/general rate limiting, malformed bearer rejection, and browser security headers. Ran `python3 -m pytest tests/test_security.py --tb=short -q` (`8 passed, 1 warning`), targeted ruff, and full backend suite `python3 -m pytest --tb=short -q` (`159 passed, 1 warning`).
 - Timestamp: 2026-05-22T13:23:04Z
+
+### [Phase 4.5] Database infrastructure coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: tests/test_seeds.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Verified DB1 and DB2: ran a clean `DATABASE_URL=postgresql+asyncpg://sigma:sigma@localhost:5432/sigma_migration_test python3 -m alembic upgrade head` against a freshly created Docker Postgres database, then dropped the test database; added FastAPI lifespan coverage that proves startup seeds the seven system data sources before serving requests. Ran `python3 -m pytest tests/test_seeds.py --tb=short -q` (`6 passed, 1 warning`), targeted ruff, and full backend suite `python3 -m pytest --tb=short -q` (`160 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:25:31Z
+
+### [Phase 4] Backend services, scheduler, and infrastructure testing
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend collector, analyzer, scheduler, middleware, and seed tests plus LLM retry logging
+- Tests: PASS
+- Notes: Completed Phase 4.1 through Phase 4.5 sequentially. Backend suite stands at `160 passed, 1 warning`; clean Alembic migration to head passed on Docker Postgres.
+- Timestamp: 2026-05-22T13:25:31Z
