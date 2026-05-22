@@ -1323,3 +1323,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Updated outdated market-index tests to match the current urllib Yahoo chart fetch path and Redis-first candle cold-start sequence. Verified the focused failing tests and the full existing backend suite with `python3 -m pytest --tb=short -q` (`134 passed, 1 warning`). The exact `python -m pytest --tb=short -q` command remains blocked by the local Homebrew `pyexpat` linkage issue documented in earlier sessions.
 - Timestamp: 2026-05-22T11:38:21Z
+
+### [Phase 1] Dashboard news pagination
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/hooks/useItems.ts, sigma-frontend/src/components/dashboard/news-feed.tsx, sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added a paginated item query hook, made Dashboard NewsFeed use numbered Previous/Next/page controls, reset pagination on filter changes, and kept News page infinite scroll unchanged. Verified `npm run build`, rebuilt Docker Compose, checked Dashboard pagination/filter/last-page behavior in Playwright, checked News still infinite-loads without pagination, and ran `python3 -m pytest tests/test_items_api.py::test_items_list_with_pagination_and_category_filter --tb=short -q`.
+- Timestamp: 2026-05-22T11:49:12Z

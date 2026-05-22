@@ -70,6 +70,11 @@
     "viewAll": "View All",
     "swipeHint": "Swipe or use arrow keys to navigate"
   },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {current} of {total}"
+  },
   "feed": {
     "eyebrow": "Live intelligence",
     "title": "Home feed",

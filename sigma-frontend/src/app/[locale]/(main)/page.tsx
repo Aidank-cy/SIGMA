@@ -188,7 +188,7 @@ export default function DashboardPage() {
         </motion.section>
 
         <motion.section animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} transition={{ delay: 0.5, duration: 0.4 }}>
-          <NewsFeed filters={filters} />
+          <NewsFeed filters={filters} paginated />
         </motion.section>
       </div>
 
