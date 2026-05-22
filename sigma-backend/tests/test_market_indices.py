@@ -1,6 +1,5 @@
 from datetime import UTC, datetime, timedelta
 
-import httpx
 import pytest
 
 from app.api.v1.routes.market_indices import list_market_indices
@@ -268,43 +267,24 @@ async def test_build_index_is_yahoo_free(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 @pytest.mark.asyncio
-async def test_yahoo_chart_result_uses_browser_headers_and_query2_retry(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Yahoo chart requests send browser headers and retry query2 after query1 failures."""
+async def test_yahoo_chart_result_uses_user_agent_and_query2_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Yahoo chart requests use the configured User-Agent and retry query2 after query1 failures."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
-    calls: list[tuple[dict[str, str], str]] = []
+    calls: list[str] = []
 
-    class FakeAsyncClient:
-        def __init__(self, *, headers: dict[str, str], timeout: int, limits: httpx.Limits) -> None:
-            self.headers = headers
-            self.timeout = timeout
-            self.limits = limits
-            self.is_closed = False
+    async def fake_to_thread(
+        _func: object,
+        url: str,
+        _purpose: str,
+        _symbol: str,
+        host: str,
+    ) -> dict[str, object] | None:
+        calls.append(url)
+        if host == "query1.finance.yahoo.com":
+            return None
+        return {"meta": {"chartPreviousClose": 5900.0, "regularMarketPrice": 6000.0}}
 
-        async def get(self, url: str, params: dict[str, str]) -> httpx.Response:
-            calls.append((self.headers, url))
-            request = httpx.Request("GET", url, params=params)
-            if "query1.finance.yahoo.com" in url:
-                return httpx.Response(403, request=request, text="Forbidden")
-            return httpx.Response(
-                200,
-                request=request,
-                json={
-                    "chart": {
-                        "result": [
-                            {
-                                "meta": {
-                                    "chartPreviousClose": 5900.0,
-                                    "regularMarketPrice": 6000.0,
-                                }
-                            }
-                        ],
-                        "error": None,
-                    }
-                },
-            )
-
-    monkeypatch.setattr(market_indices.httpx, "AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(market_indices, "_yahoo_client", None)
+    monkeypatch.setattr(market_indices.asyncio, "to_thread", fake_to_thread)
     monkeypatch.setattr(market_indices, "_yahoo_last_request_time", 0.0)
     monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 0.0)
     monkeypatch.setattr(market_indices, "_yahoo_consecutive_429s", 0)
@@ -313,8 +293,8 @@ async def test_yahoo_chart_result_uses_browser_headers_and_query2_retry(monkeypa
 
     assert isinstance(result, dict)
     assert result["meta"]["regularMarketPrice"] == pytest.approx(6000.0)
-    assert [url.split("/")[2] for _, url in calls] == ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]
-    assert all("Chrome/131.0.0.0" in headers["User-Agent"] for headers, _ in calls)
+    assert [url.split("/")[2] for url in calls] == ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]
+    assert market_indices.YAHOO_HEADERS["User-Agent"] == "Mozilla/5.0"
 
 
 @pytest.mark.asyncio
@@ -323,19 +303,17 @@ async def test_yahoo_chart_result_backs_off_on_429(monkeypatch: pytest.MonkeyPat
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
 
-    class FakeAsyncClient:
-        def __init__(self, *, headers: dict[str, str], timeout: int, limits: httpx.Limits) -> None:
-            self.headers = headers
-            self.timeout = timeout
-            self.limits = limits
-            self.is_closed = False
+    async def fake_to_thread(
+        _func: object,
+        url: str,
+        _purpose: str,
+        _symbol: str,
+        _host: str,
+    ) -> str:
+        calls.append(url)
+        return "_429"
 
-        async def get(self, url: str, params: dict[str, str]) -> httpx.Response:
-            calls.append(url)
-            return httpx.Response(429, request=httpx.Request("GET", url, params=params), text="Too Many Requests")
-
-    monkeypatch.setattr(market_indices.httpx, "AsyncClient", FakeAsyncClient)
-    monkeypatch.setattr(market_indices, "_yahoo_client", None)
+    monkeypatch.setattr(market_indices.asyncio, "to_thread", fake_to_thread)
     monkeypatch.setattr(market_indices, "_yahoo_last_request_time", 0.0)
     monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 0.0)
     monkeypatch.setattr(market_indices, "_yahoo_consecutive_429s", 0)
@@ -464,22 +442,19 @@ async def test_candle_ranges_read_storage_and_fallback_without_yahoo_fetch(monke
 
 @pytest.mark.asyncio
 async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The independent candle job fetches one missing cold-start piece during trading."""
+    """The independent candle job fetches one Redis 1D cold-start piece during trading."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
 
-    async def fake_has_full_year(_symbol: str) -> bool:
-        return False
-
-    async def fake_has_interval(_symbol: str, _interval: str) -> bool:
+    async def fake_redis_has_1d(_symbol: str) -> bool:
         return False
 
     async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> list[market_indices.IntradayPoint]:
         calls.append(f"{interval}:{range_}")
         return [market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 6000.0)]
 
-    async def fake_upsert(_symbol: str, interval: str, points: list[market_indices.IntradayPoint]) -> None:
-        calls.append(f"upsert:{interval}:{len(points)}")
+    async def fake_set_1d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+        calls.append(f"set1d:{len(points)}")
 
     market_candles._last_fetch_time.clear()
     market_candles._cold_start_done.clear()
@@ -487,24 +462,24 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_pg_has_full_year", fake_has_full_year)
-    monkeypatch.setattr(market_candles, "_pg_has_interval", fake_has_interval)
+    monkeypatch.setattr(market_candles, "_redis_has_1d", fake_redis_has_1d)
     monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
-    monkeypatch.setattr(market_candles, "_pg_upsert_candles", fake_upsert)
+    monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
 
     await market_candles.candle_refresh_job()
 
-    assert calls == ["60m:1y", "upsert:60m:1"]
+    assert calls == ["1m:1d", "set1d:1"]
 
 
 @pytest.mark.asyncio
-async def test_cold_start_batch_uses_hourly_and_fifteen_minute_pg_intervals(
+async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Closed-market cold start stores 1Y/1M ranges with the upgraded intervals."""
+    """Cold start fills Redis 1D/5D before PostgreSQL 15m/60m intervals."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
     point = market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 6000.0)
+    state = {"has_1d": False, "has_5d": False, "has_15m": False, "has_60m": False}
 
     async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> list[market_indices.IntradayPoint]:
         calls.append(f"{interval}:{range_}")
@@ -518,30 +493,53 @@ async def test_cold_start_batch_uses_hourly_and_fifteen_minute_pg_intervals(
 
     async def fake_set_1d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
         calls.append(f"set1d:{len(points)}")
+        state["has_1d"] = True
 
-    async def fake_sleep(seconds: float) -> None:
-        calls.append(f"sleep:{seconds}")
+    async def fake_has_1d(_symbol: str) -> bool:
+        return state["has_1d"]
+
+    async def fake_has_5d(_symbol: str) -> bool:
+        return state["has_5d"]
+
+    async def fake_has_interval(_symbol: str, interval: str) -> bool:
+        return bool(state[f"has_{interval}"])
+
+    async def fake_set_5d_with_state(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+        await fake_set_5d(_symbol, points)
+        state["has_5d"] = True
+
+    async def fake_upsert_with_state(
+        _symbol: str,
+        interval: str,
+        points: list[market_indices.IntradayPoint],
+    ) -> None:
+        await fake_upsert(_symbol, interval, points)
+        state[f"has_{interval}"] = True
 
     monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
-    monkeypatch.setattr(market_candles, "_pg_upsert_candles", fake_upsert)
-    monkeypatch.setattr(market_candles, "_redis_set_5d", fake_set_5d)
+    monkeypatch.setattr(market_candles, "_pg_upsert_candles", fake_upsert_with_state)
+    monkeypatch.setattr(market_candles, "_redis_set_5d", fake_set_5d_with_state)
     monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
+    monkeypatch.setattr(market_candles, "_redis_has_1d", fake_has_1d)
+    monkeypatch.setattr(market_candles, "_redis_has_5d", fake_has_5d)
+    monkeypatch.setattr(market_candles, "_pg_has_interval", fake_has_interval)
     monkeypatch.setattr(market_candles, "_filter_today", lambda _config, points: points)
-    monkeypatch.setattr(market_candles.asyncio, "sleep", fake_sleep)
 
-    await market_candles._cold_start_batch(spx, delay=2.5)
+    for _ in range(5):
+        await market_candles._cold_start_next_piece(spx)
 
     assert calls == [
-        "60m:1y",
-        "upsert:60m:1",
-        "sleep:2.5",
-        "15m:1mo",
-        "upsert:15m:1",
-        "sleep:2.5",
+        "1m:1d",
+        "set1d:1",
         "1m:5d",
         "set5d:1",
         "set1d:1",
+        "15m:1mo",
+        "upsert:15m:1",
+        "60m:1y",
+        "upsert:60m:1",
     ]
+    assert market_candles._cold_start_done[spx.symbol] is True
 
 
 @pytest.mark.asyncio
@@ -604,6 +602,7 @@ async def test_candle_job_rate_limits_trading_fetches(monkeypatch: pytest.Monkey
 
     market_candles._last_fetch_time.clear()
     market_candles._cold_start_done.clear()
+    market_candles._cold_start_done[spx.symbol] = True
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))

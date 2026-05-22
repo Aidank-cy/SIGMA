@@ -37,6 +37,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Update market-index tests to cover the current urllib Yahoo fetch path and Redis-first candle warmup.
 - Change News to open in list view by default.
 - Change Dashboard ticker sparklines to choose trading, closed, and unopened rendering states, with larger price text and currency on a second line.
 - Change Dashboard and Markets multi-day market chart X-axes to continuous Beijing-time trading-day indexes so weekends and no-data days do not create visual gaps.
