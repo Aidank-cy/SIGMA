@@ -1451,3 +1451,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added Playwright Chromium coverage for Phase 3 auth, dashboard pagination, news infinite scroll, markets, analytics, report detail, settings, admin panels, sync, item detail, i18n, and auth guards. Seeded deterministic users, sources, items, watchlists, reports, logs, LLM usage, and market-index cache data for Docker-backed E2E runs. Fixed genuine frontend auth bugs so invalid login stays on the form with an error toast and registration stores the returned token before redirecting to the dashboard. Fixed a genuine middleware bug so CORS preflight requests no longer consume the general API quota during browser flows. Verified `npm run test:e2e` (`5 passed`), `npm run build`, `python3 -m ruff check .`, and `python3 -m pytest --tb=short -q` (`154 passed, 1 warning`).
 - Timestamp: 2026-05-22T13:08:28Z
+
+### [Phase 4.1] Collector infrastructure coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_collectors.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Verified COL1 through COL5 with real collector implementations: RSS fetch plus normalization and persistence shape including `collected_at`, API collection, scraper extraction, URL/title deduplication, and source category/market normalization. Ran `python3 -m pytest tests/test_collectors.py --tb=short -q` (`10 passed, 1 warning`) and full backend suite `python3 -m pytest --tb=short -q` (`155 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:17:13Z
