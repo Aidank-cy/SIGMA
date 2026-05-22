@@ -1,14 +1,61 @@
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from app.models import Base
+from app.models.collected_item import CollectedItem
+from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
-from app.models.enums import IntelligenceCategory, Market, ReportType, SourceType
-from app.scheduler.engine import add_cleanup_job, add_market_indices_job, add_report_jobs, load_source_jobs, scheduler
+from app.models.enums import CollectorStatus, IntelligenceCategory, Market, ReportType, SourceType
+from app.scheduler.engine import (
+    add_cleanup_job,
+    add_market_indices_job,
+    add_or_update_source_job,
+    add_report_jobs,
+    load_source_jobs,
+    remove_source_job,
+    scheduler,
+    start_scheduler,
+    stop_scheduler,
+)
 from app.scheduler.jobs import _period_for, collect_from_source
+
+
+@pytest.mark.asyncio
+async def test_start_scheduler_starts_and_registers_core_jobs() -> None:
+    """Scheduler startup registers source, cleanup, report, and market jobs."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    source = _source(99)
+    async with session_factory() as db:
+        db.add(source)
+        await db.commit()
+
+    scheduler.remove_all_jobs()
+    try:
+        await start_scheduler(session_factory)
+
+        job_ids = {job.id for job in scheduler.get_jobs()}
+        assert scheduler.running is True
+        assert f"collector:{source.id}" in job_ids
+        assert "cleanup_expired_items" in job_ids
+        assert {"reports:daily", "reports:weekly", "reports:monthly"}.issubset(job_ids)
+        assert {"market-indices:refresh", "market-candles:refresh"}.issubset(job_ids)
+    finally:
+        await stop_scheduler()
+        scheduler.remove_all_jobs()
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -87,10 +134,33 @@ async def test_collect_from_source_triggers_summarizer(
 
     assert len(called) == 1
     assert len(called[0]) == 1
+    async with session_factory() as db:
+        items = list(await db.scalars(select(CollectedItem).where(CollectedItem.source_id == source.id)))
+        logs = list(await db.scalars(select(CollectorLog).where(CollectorLog.source_id == source.id)))
+    assert len(items) == 1
+    assert len(logs) == 1
+    assert logs[0].status == CollectorStatus.SUCCESS
+    assert logs[0].items_count == 1
 
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.drop_all)
     await engine.dispose()
+
+
+def test_add_and_remove_source_job_updates_scheduler() -> None:
+    """Adding and removing a source updates the scheduler job registry."""
+    scheduler.remove_all_jobs()
+    source = _source(20)
+
+    add_or_update_source_job(source)
+
+    job_id = f"collector:{source.id}"
+    assert scheduler.get_job(job_id) is not None
+
+    remove_source_job(source.id)
+
+    assert scheduler.get_job(job_id) is None
+    scheduler.remove_all_jobs()
 
 
 def test_scheduler_registers_report_jobs() -> None:

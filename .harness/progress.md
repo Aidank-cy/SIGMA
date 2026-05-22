@@ -1467,3 +1467,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Verified ANZ1 through ANZ4 with real analyzer code: batch summaries populate item summaries, failed summaries log warnings without crashing the batch, report generation persists markdown reports, LLM retry exhaustion is logged before raising, and token usage logging remains covered. Ran `python3 -m pytest tests/test_summarizer.py tests/test_report_generator.py tests/test_llm_client.py tests/test_llm.py --tb=short -q` (`34 passed, 1 warning`), targeted ruff, and full backend suite `python3 -m pytest --tb=short -q` (`156 passed, 1 warning`).
 - Timestamp: 2026-05-22T13:19:36Z
+
+### [Phase 4.3] Scheduler infrastructure coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: tests/test_scheduler.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Verified SCH1 through SCH3 with the actual scheduler engine: startup starts APScheduler and registers source, cleanup, report, market-index, and candle jobs; source collection writes persisted items and CollectorLog rows; source add/remove operations update the scheduler registry. Ran `python3 -m pytest tests/test_scheduler.py --tb=short -q` (`8 passed, 1 warning`), targeted ruff, and full backend suite `python3 -m pytest --tb=short -q` (`158 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:21:31Z
