@@ -58,7 +58,7 @@ export function TickerCarousel() {
   });
 
   return (
-    <section className="h-full max-h-[488px] rounded-xl border border-border bg-card p-4">
+    <section className="flex h-full flex-col rounded-xl border border-border bg-card p-4">
       <h2 className="mb-4 text-lg font-semibold text-foreground">{t("marketMovers")}</h2>
 
       {tickers.length === 0 ? (
@@ -66,7 +66,7 @@ export function TickerCarousel() {
           {t("empty")}
         </div>
       ) : (
-        <div className="max-h-[424px] space-y-1 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
           {tickers.map((ticker, index) => {
             const isPositive = ticker.change >= 0;
             const lineColor = ticker.isPreMarket
