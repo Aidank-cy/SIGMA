@@ -5,6 +5,7 @@ import logging
 import math
 import os
 import random
+import ssl
 import time as _time
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
@@ -30,7 +31,6 @@ YAHOO_HEADERS = {
         "Chrome/131.0.0.0 Safari/537.36"
     ),
 }
-_yahoo_client: httpx.AsyncClient | None = None
 _yahoo_semaphore = asyncio.Semaphore(1)
 _yahoo_min_interval = 1.0
 _yahoo_last_request_time = 0.0
@@ -373,75 +373,66 @@ async def _fetch_yahoo_chart_result(
             return None
 
         symbol_path = quote_path(config.finnhub_symbol, safe="")
-        client = _get_yahoo_client()
-        for host in YAHOO_CHART_HOSTS:
-            url = f"https://{host}/v8/finance/chart/{symbol_path}"
-            try:
-                response = await client.get(url, params=params)
-                if response.status_code == 429:
-                    _yahoo_on_429()
-                    return None
-                response.raise_for_status()
-                payload = response.json()
-            except httpx.HTTPStatusError as exc:
-                if exc.response.status_code == 429:
-                    _yahoo_on_429()
-                    return None
-                LOGGER.warning(
-                    "Yahoo %s chart request for %s via %s failed: HTTP %s - %s",
-                    purpose,
-                    config.finnhub_symbol,
-                    host,
-                    exc.response.status_code,
-                    exc.response.text[:200],
-                )
-                continue
-            except httpx.HTTPError as exc:
-                LOGGER.warning(
-                    "Yahoo %s chart request for %s via %s failed: %s: %s",
-                    purpose,
-                    config.finnhub_symbol,
-                    host,
-                    type(exc).__name__,
-                    exc,
-                )
-                continue
-            except Exception as exc:
-                LOGGER.warning(
-                    "Yahoo %s chart request for %s via %s failed: %s: %s",
-                    purpose,
-                    config.finnhub_symbol,
-                    host,
-                    type(exc).__name__,
-                    exc,
-                )
-                continue
+        ctx = ssl.create_default_context()
+        ctx.set_ciphers("DEFAULT@SECLEVEL=1")
+        async with httpx.AsyncClient(timeout=10, headers=YAHOO_HEADERS, verify=ctx) as client:
+            for host in YAHOO_CHART_HOSTS:
+                url = f"https://{host}/v8/finance/chart/{symbol_path}"
+                try:
+                    response = await client.get(url, params=params)
+                    if response.status_code == 429:
+                        _yahoo_on_429()
+                        return None
+                    response.raise_for_status()
+                    payload = response.json()
+                except httpx.HTTPStatusError as exc:
+                    if exc.response.status_code == 429:
+                        _yahoo_on_429()
+                        return None
+                    LOGGER.warning(
+                        "Yahoo %s chart request for %s via %s failed: HTTP %s - %s",
+                        purpose,
+                        config.finnhub_symbol,
+                        host,
+                        exc.response.status_code,
+                        exc.response.text[:200],
+                    )
+                    continue
+                except httpx.HTTPError as exc:
+                    LOGGER.warning(
+                        "Yahoo %s chart request for %s via %s failed: %s: %s",
+                        purpose,
+                        config.finnhub_symbol,
+                        host,
+                        type(exc).__name__,
+                        exc,
+                    )
+                    continue
+                except Exception as exc:
+                    LOGGER.warning(
+                        "Yahoo %s chart request for %s via %s failed: %s: %s",
+                        purpose,
+                        config.finnhub_symbol,
+                        host,
+                        type(exc).__name__,
+                        exc,
+                    )
+                    continue
 
-            chart = payload.get("chart")
-            if not isinstance(chart, dict):
-                LOGGER.warning("Yahoo %s chart response for %s via %s did not include chart data.", purpose, config.finnhub_symbol, host)
-                continue
-            error = chart.get("error")
-            if error:
-                LOGGER.warning("Yahoo %s chart response for %s via %s returned error: %s", purpose, config.finnhub_symbol, host, error)
-                continue
-            result = chart.get("result")
-            if isinstance(result, list) and result and isinstance(result[0], dict):
-                _yahoo_on_success()
-                return result[0]
-            LOGGER.warning("Yahoo %s chart response for %s via %s did not include result data.", purpose, config.finnhub_symbol, host)
+                chart = payload.get("chart")
+                if not isinstance(chart, dict):
+                    LOGGER.warning("Yahoo %s chart response for %s via %s did not include chart data.", purpose, config.finnhub_symbol, host)
+                    continue
+                error = chart.get("error")
+                if error:
+                    LOGGER.warning("Yahoo %s chart response for %s via %s returned error: %s", purpose, config.finnhub_symbol, host, error)
+                    continue
+                result = chart.get("result")
+                if isinstance(result, list) and result and isinstance(result[0], dict):
+                    _yahoo_on_success()
+                    return result[0]
+                LOGGER.warning("Yahoo %s chart response for %s via %s did not include result data.", purpose, config.finnhub_symbol, host)
     return None
-
-
-def _get_yahoo_client() -> httpx.AsyncClient:
-    global _yahoo_client
-    if _yahoo_client is None or _yahoo_client.is_closed:
-        _yahoo_client = httpx.AsyncClient(
-            timeout=10,
-            headers=YAHOO_HEADERS,
-            limits=httpx.Limits(max_connections=3),
-        )
-    return _yahoo_client
 
 
 async def _read_candle_ranges(

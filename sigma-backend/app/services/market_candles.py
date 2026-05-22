@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 from datetime import UTC, date, datetime, time, timedelta
@@ -30,7 +29,6 @@ CANDLE_1D_TTL = 60 * 60 * 24 * 2
 CANDLE_5D_TTL = 60 * 60 * 24 * 7
 
 TRADING_FETCH_INTERVAL = 30
-COLD_START_FETCH_DELAY = 2.5
 COLD_START_NOT_OPEN_DELAY = 30
 
 _last_fetch_time: dict[str, datetime] = {}
@@ -46,11 +44,8 @@ async def candle_refresh_job() -> None:
         status = _market_status_beijing(config, now_beijing)
 
         if not _cold_start_done.get(symbol, False):
-            if not await _pg_has_full_year(symbol):
-                await _cold_start_fetch(config, status)
-                continue
-            _cold_start_done[symbol] = True
-            LOGGER.info("Cold start complete for %s", symbol)
+            await _cold_start_fetch(config, status)
+            break
 
         if status == "not_opened":
             continue
@@ -67,58 +62,26 @@ async def candle_refresh_job() -> None:
 
 async def _cold_start_fetch(config: IndexConfig, status: str) -> None:
     symbol = config.symbol
-    if status == "closed":
-        await _cold_start_batch(config, delay=COLD_START_FETCH_DELAY)
-        _cold_start_done[symbol] = True
-        LOGGER.info("Cold start batch complete for %s (closed)", symbol)
+    if status == "trading":
+        last = _last_fetch_time.get(symbol)
+        now_utc = _now_utc()
+        if last is not None and (now_utc - last).total_seconds() < COLD_START_NOT_OPEN_DELAY:
+            return
+        await _cold_start_next_piece(config)
+        _last_fetch_time[symbol] = _now_utc()
         return
 
-    last = _last_fetch_time.get(symbol)
-    now_utc = _now_utc()
-    if last is not None and (now_utc - last).total_seconds() < COLD_START_NOT_OPEN_DELAY:
-        return
     await _cold_start_next_piece(config)
-    _last_fetch_time[symbol] = _now_utc()
-
-
-async def _cold_start_batch(config: IndexConfig, delay: float) -> None:
-    symbol = config.symbol
-
-    hourly_points = await _yahoo_fetch(config, interval="60m", range_="1y")
-    if hourly_points:
-        await _pg_upsert_candles(symbol, "60m", hourly_points)
-        LOGGER.info("Cold start: %s 1Y 60min to PG (%d points)", symbol, len(hourly_points))
-    await asyncio.sleep(delay)
-
-    fifteen_min_points = await _yahoo_fetch(config, interval="15m", range_="1mo")
-    if fifteen_min_points:
-        await _pg_upsert_candles(symbol, "15m", fifteen_min_points)
-        LOGGER.info("Cold start: %s 1M 15min to PG (%d points)", symbol, len(fifteen_min_points))
-    await asyncio.sleep(delay)
-
-    one_min_points = await _yahoo_fetch(config, interval="1m", range_="5d")
-    if one_min_points:
-        await _redis_set_5d(symbol, one_min_points)
-        today_points = _filter_today(config, one_min_points)
-        if today_points:
-            await _redis_set_1d(symbol, today_points)
-        LOGGER.info("Cold start: %s 5D 1min to Redis (%d points)", symbol, len(one_min_points))
 
 
 async def _cold_start_next_piece(config: IndexConfig) -> None:
     symbol = config.symbol
-    if not await _pg_has_interval(symbol, "60m"):
-        hourly = await _yahoo_fetch(config, interval="60m", range_="1y")
-        if hourly:
-            await _pg_upsert_candles(symbol, "60m", hourly)
-            LOGGER.info("Cold start piece: %s 1Y 60min to PG", symbol)
-        return
 
-    if not await _pg_has_interval(symbol, "15m"):
-        fifteen = await _yahoo_fetch(config, interval="15m", range_="1mo")
-        if fifteen:
-            await _pg_upsert_candles(symbol, "15m", fifteen)
-            LOGGER.info("Cold start piece: %s 1M 15min to PG", symbol)
+    if not await _redis_has_1d(symbol):
+        one_day = await _yahoo_fetch(config, interval="1m", range_="1d")
+        if one_day:
+            await _redis_set_1d(symbol, one_day)
+            LOGGER.info("Cold start piece: %s 1D 1min to Redis", symbol)
         return
 
     if not await _redis_has_5d(symbol):
@@ -131,7 +94,22 @@ async def _cold_start_next_piece(config: IndexConfig) -> None:
             LOGGER.info("Cold start piece: %s 5D 1min to Redis", symbol)
         return
 
+    if not await _pg_has_interval(symbol, "15m"):
+        fifteen = await _yahoo_fetch(config, interval="15m", range_="1mo")
+        if fifteen:
+            await _pg_upsert_candles(symbol, "15m", fifteen)
+            LOGGER.info("Cold start piece: %s 1M 15min to PG", symbol)
+        return
+
+    if not await _pg_has_interval(symbol, "60m"):
+        hourly = await _yahoo_fetch(config, interval="60m", range_="1y")
+        if hourly:
+            await _pg_upsert_candles(symbol, "60m", hourly)
+            LOGGER.info("Cold start piece: %s 1Y 60min to PG", symbol)
+        return
+
     _cold_start_done[symbol] = True
+    LOGGER.info("Cold start complete for %s", symbol)
 
 
 async def _fetch_and_store_1d_1min(config: IndexConfig) -> None:
@@ -308,6 +286,11 @@ async def _redis_get_5d(symbol: str) -> list[IntradayPoint] | None:
 
 async def _redis_set_5d(symbol: str, points: list[IntradayPoint]) -> None:
     await _redis_set_points(CANDLE_5D_KEY.format(symbol=symbol), points, CANDLE_5D_TTL)
+
+
+async def _redis_has_1d(symbol: str) -> bool:
+    points = await _redis_get_1d(symbol)
+    return bool(points)
 
 
 async def _redis_has_5d(symbol: str) -> bool:
