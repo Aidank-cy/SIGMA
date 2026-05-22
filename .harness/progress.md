@@ -1395,3 +1395,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Expanded HTTP coverage for report config, profile, retention, password success/error behavior, and current user LLM config and usage routes. Verified `python3 -m pytest tests/test_user_settings_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`152 passed, 1 warning`).
 - Timestamp: 2026-05-22T12:10:43Z
+
+### [Phase 2.9] Admin dashboard API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_admin_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded admin dashboard HTTP coverage with seeded users, sources, items, collector activity, health, trend, LLM usage totals, root stats alias, and non-admin 403 rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`152 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:12:48Z

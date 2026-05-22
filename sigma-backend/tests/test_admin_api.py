@@ -1,26 +1,62 @@
+import asyncio
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
+
 from fastapi.testclient import TestClient
 
+from app.api.v1.admin import dashboard as admin_dashboard
+from app.models.collected_item import CollectedItem
+from app.models.collector_log import CollectorLog
+from app.models.data_source import DataSource
+from app.models.enums import CollectorStatus, IntelligenceCategory, LLMFunctionType, Market, SourceType
+from app.models.llm_usage_log import LLMUsageLog
 
-def test_admin_dashboard_endpoints(client: TestClient) -> None:
+
+def test_admin_dashboard_endpoints(client: TestClient, monkeypatch) -> None:
     """Admin dashboard endpoints return machine-consumable payloads."""
     token = _token(client, "admin-dashboard@example.com")
+    user_token = _token(client, "regular-dashboard@example.com")
     headers = _auth(token)
+    source_id = asyncio.run(_seed_admin_dashboard_data(client))
+
+    async def no_cache_get(_key: str) -> None:
+        return None
+
+    async def no_cache_set(_key: str, _value: str) -> None:
+        return None
+
+    monkeypatch.setattr(admin_dashboard, "_cache_get", no_cache_get)
+    monkeypatch.setattr(admin_dashboard, "_cache_set", no_cache_set)
 
     stats = client.get("/api/v1/admin/dashboard/stats", headers=headers)
     stats_root = client.get("/api/v1/admin/dashboard", headers=headers)
     trend = client.get("/api/v1/admin/dashboard/collection-trend", headers=headers)
     activity = client.get("/api/v1/admin/dashboard/recent-activity", headers=headers)
     health = client.get("/api/v1/admin/dashboard/source-health", headers=headers)
+    forbidden = client.get("/api/v1/admin/dashboard/stats", headers=_auth(user_token))
 
     assert stats.status_code == 200
-    assert stats.json()["users"] == 1
+    assert stats.json() == {
+        "users": 2,
+        "sources": 1,
+        "active_sources": 1,
+        "items": 1,
+        "tokens_today": 15,
+    }
     assert stats_root.status_code == 200
     assert stats_root.json() == stats.json()
     assert trend.status_code == 200
     assert len(trend.json()) == 7
+    assert sum(point["items"] for point in trend.json()) == 1
     assert activity.status_code == 200
-    assert activity.json() == []
+    assert activity.json()[0]["source_name"] == "Dashboard RSS"
+    assert activity.json()[0]["status"] == "success"
+    assert activity.json()[0]["items_count"] == 3
     assert health.status_code == 200
+    assert health.json()[0]["source_id"] == source_id
+    assert health.json()[0]["name"] == "Dashboard RSS"
+    assert health.json()[0]["status"] == "green"
+    assert forbidden.status_code == 403
 
 
 def test_admin_user_management_guards(client: TestClient) -> None:
@@ -121,3 +157,55 @@ def _source_payload(name: str) -> dict[str, object]:
         "max_execution_seconds": 60,
         "is_active": True,
     }
+
+
+async def _seed_admin_dashboard_data(client: TestClient) -> str:
+    session_factory = client.app.state.session_factory
+    source = DataSource(
+        id=uuid4(),
+        name="Dashboard RSS",
+        source_type=SourceType.RSS,
+        category=IntelligenceCategory.FINANCE,
+        market=Market.US,
+        config={"feed_url": "https://rss.test/feed.xml"},
+        schedule_cron="*/5 * * * *",
+        max_execution_seconds=60,
+        is_active=True,
+    )
+    now = datetime.now(timezone.utc)
+    async with session_factory() as db:
+        db.add(source)
+        db.add_all(
+            [
+                CollectedItem(
+                    source_id=source.id,
+                    title="Dashboard item",
+                    content_raw="Dashboard content",
+                    content_url=f"https://admin-dashboard.test/{uuid4()}",
+                    summary="Dashboard summary",
+                    category=IntelligenceCategory.FINANCE,
+                    market=Market.US,
+                    published_at=now,
+                    collected_at=now,
+                    expires_at=now + timedelta(days=30),
+                ),
+                CollectorLog(
+                    source_id=source.id,
+                    status=CollectorStatus.SUCCESS,
+                    items_count=3,
+                    error_message=None,
+                    duration_ms=200,
+                    executed_at=now,
+                ),
+                LLMUsageLog(
+                    provider="openai",
+                    model="gpt-test",
+                    function_type=LLMFunctionType.SUMMARY,
+                    input_tokens=10,
+                    output_tokens=5,
+                    created_at=now,
+                ),
+            ]
+        )
+        await db.commit()
+    return str(source.id)
