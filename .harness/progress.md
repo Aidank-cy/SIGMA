@@ -1234,3 +1234,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Removed Yahoo quote and intraday calls from `_build_index`, added Redis candle quote/intraday fallbacks, kept Yahoo access behind the candle manager, added global Yahoo one-at-a-time rate limiting with 429 exponential backoff, and covered the Yahoo-free refresh path with focused tests.
 - Timestamp: 2026-05-22T02:19:14Z
+
+### [Maintenance] Market candle interval migration
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Migrated PostgreSQL market candle cold-start, completion detection, end-of-day downsampling, and range reads from legacy 1d/30m intervals to 60m/15m. Also fixed the closed-market cold-start batch path, which still referenced the old intervals locally despite the prompt noting it was already migrated.
+- Follow-ups: Run the production Alembic migration before deployment and truncate old `market_candles` rows if stale 1d/30m data should be discarded.
+- Timestamp: 2026-05-22T02:54:21Z
