@@ -43,6 +43,23 @@ function extractToc(markdown: string): TocItem[] {
     }));
 }
 
+function formatReportSubtitle(report: {
+  generated_at: string;
+  period_end: string;
+  period_start: string;
+  report_type: string;
+}, locale: string): string {
+  const timeFormatter = new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit"
+  });
+  const typeLabel = `${report.report_type.charAt(0).toUpperCase()}${report.report_type.slice(1)} Market Report`;
+  const startTime = timeFormatter.format(new Date(`${report.period_start}T00:00:00`));
+  const endTime = timeFormatter.format(new Date(report.generated_at));
+  return `${typeLabel} | ${report.period_start} (${startTime}) to ${report.period_end} (${endTime})`;
+}
+
 export default function ReportDetailPage() {
   const params = useParams<{ id: string }>();
   const locale = useLocale();
@@ -89,14 +106,17 @@ export default function ReportDetailPage() {
             <span>/</span>
             <span>{t("breadcrumbCurrent")}</span>
           </nav>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge>{t(`types.${report.report_type}`)}</Badge>
-            <span className="text-sm text-muted-foreground">
-              {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge className="h-auto px-3 py-1 text-base font-bold">{t(`types.${report.report_type}`)}</Badge>
+            <span className="text-lg font-bold text-foreground">
+              {new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(
                 new Date(report.generated_at)
               )}
             </span>
           </div>
+          <p className="text-base text-muted-foreground">
+            {formatReportSubtitle(report, locale)}
+          </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-5xl">
               {report.title}

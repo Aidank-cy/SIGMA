@@ -114,7 +114,10 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
     () => buildChartXAxisDomain(activeRange, chartSessions, chartData),
     [activeRange, chartData, chartSessions]
   );
-  const boundaryTicks = useMemo(() => buildChartBoundaryTicks(activeRange, chartData), [activeRange, chartData]);
+  const boundaryTicks = useMemo(
+    () => buildChartBoundaryTicks(activeRange, chartData, chartSessions, chartTimeZone),
+    [activeRange, chartData, chartSessions, chartTimeZone]
+  );
   const yAxisDomain = useMemo(
     () => computeChartYDomain(chartData, currentData?.previousClose),
     [chartData, currentData?.previousClose]

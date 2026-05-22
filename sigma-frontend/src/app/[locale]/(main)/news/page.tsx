@@ -317,7 +317,7 @@ export default function NewsPage() {
   const searchParams = useSearchParams()
   const keywordParam = searchParams.get("keyword") ?? ""
   const dateFromParam = searchParams.get("date_from") ?? undefined
-  const [viewMode, setViewMode] = useState<ViewMode>("grid")
+  const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [searchQuery, setSearchQuery] = useState(keywordParam)
   const [activeCategory, setActiveCategory] = useState<Category | "">("")
   const [activeMarket, setActiveMarket] = useState<Market | "">("")

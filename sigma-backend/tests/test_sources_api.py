@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 
 
@@ -60,6 +62,39 @@ def test_source_test_returns_preview(client: TestClient, monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json()["items"][0]["title"] == "Preview"
+
+
+def test_source_collect_queues_background_collection(client: TestClient, monkeypatch) -> None:
+    """Source collect endpoint queues the real collection job."""
+    token = _token(client, "collect@example.com")
+    create_response = client.post(
+        "/api/v1/sources",
+        headers=_auth(token),
+        json=_source_payload("Collect RSS"),
+    )
+    source_id = create_response.json()["id"]
+    queued: list[str] = []
+
+    def fake_collect_from_source(queued_source_id):
+        queued.append(str(queued_source_id))
+
+        async def noop() -> None:
+            return None
+
+        return noop()
+
+    def fake_create_task(coro):
+        coro.close()
+        return object()
+
+    monkeypatch.setattr("app.api.v1.routes.sources.collect_from_source", fake_collect_from_source)
+    monkeypatch.setattr("app.api.v1.routes.sources.asyncio", SimpleNamespace(create_task=fake_create_task))
+
+    response = client.post(f"/api/v1/sources/{source_id}/collect", headers=_auth(token))
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "queued", "source_id": source_id}
+    assert queued == [source_id]
 
 
 def _token(client: TestClient, email: str) -> str:

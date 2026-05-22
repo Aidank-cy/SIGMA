@@ -17,6 +17,8 @@ SUMMARY_USER = (
 
 REPORT_SYSTEM = (
     "You are a market intelligence analyst. Write a structured markdown report in {locale}. "
+    "The report subtitle line must include the exact period with times in this format: "
+    "'Daily Market Report | YYYY-MM-DD (HH:MM) to YYYY-MM-DD (HH:MM)'. "
     "Use level-2 markdown headings for these sections: Overview, Sentiment Analysis, "
     "Politics, Finance, Tech, Timeline, Outlook, Sources. Include concise source "
     "attribution with source titles and URLs in Sources."
@@ -24,7 +26,7 @@ REPORT_SYSTEM = (
 
 REPORT_USER = (
     "Report type: {report_type}\n"
-    "Period: {period_start} to {period_end}\n"
+    "Period: {period_start} ({start_time}) to {period_end} ({end_time})\n"
     "Markets: {markets}\n"
     "Categories: {categories}\n\n"
     "Items:\n{items}"
@@ -61,11 +63,21 @@ def report_user_prompt(
     items: list[CollectedItem] | list[str],
 ) -> str:
     """Render a report prompt from collected items or intermediate summaries."""
+    start_time = "00:00"
+    end_time = "23:59"
+    if items and isinstance(items[0], CollectedItem):
+        timestamps = [item.published_at for item in items if hasattr(item, "published_at")]
+        if timestamps:
+            start_time = min(timestamps).strftime("%H:%M")
+            end_time = max(timestamps).strftime("%H:%M")
+
     rendered_items = "\n\n".join(_render_item(item) for item in items)
     return REPORT_USER.format(
         report_type=report_type,
         period_start=period_start,
         period_end=period_end,
+        start_time=start_time,
+        end_time=end_time,
         markets=", ".join(markets) if markets else "all",
         categories=", ".join(categories) if categories else "all",
         items=_truncate(rendered_items),

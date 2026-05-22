@@ -9,10 +9,11 @@ import { Sparkline } from "@/components/ui/Sparkline";
 import { useMarketClock } from "@/hooks/useMarketClock";
 import { useMarketIndices } from "@/hooks/useMarketIndices";
 import { toIntradayChartData } from "@/lib/marketChart";
-import { isPreMarketClearWindow } from "@/lib/marketSessions";
+import { isPreMarketClearWindow, isTradingHoursActive } from "@/lib/marketSessions";
 import { cn } from "@/lib/utils";
 
 const warnedTickerFallbacks = new Set<string>();
+type MarketState = "trading" | "closed" | "unopened";
 
 interface TickerCarouselProps {
   activeMarket?: string;
@@ -43,8 +44,10 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
     () =>
       (data?.indices ?? []).map((index) => {
         const isPreMarket = isPreMarketClearWindow(index.trading_hours, now);
+        const isTrading = index.is_trading || isTradingHoursActive(index.trading_hours, now);
+        const marketState: MarketState = isPreMarket ? "unopened" : isTrading ? "trading" : "closed";
         const intraday = toIntradayChartData(index, now, false);
-        const sparkline = isPreMarket
+        const sparkline = marketState === "unopened"
           ? Array.from({ length: 12 }).map(() => index.value)
           : intraday.length > 1
             ? intraday.map((point) => point.value)
@@ -52,7 +55,7 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
         return {
           change: index.change_pct,
           currency: index.currency,
-          isPreMarket,
+          marketState,
           name: index.name,
           price: index.value,
           sparkline: sparkline.map((value) => ({ value })),
@@ -74,7 +77,7 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
         <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
           {tickers.map((ticker, index) => {
             const isPositive = ticker.change >= 0;
-            const lineColor = ticker.isPreMarket
+            const lineColor = ticker.marketState === "unopened"
               ? flatLineColor
               : isPositive
                 ? "oklch(0.65 0.22 145)"
@@ -104,17 +107,17 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
                   <Sparkline color={lineColor} data={ticker.sparkline} height={20} width={48} />
                 </div>
 
-                <p className="text-right text-sm font-bold tabular-nums text-foreground">
-                  <span className="mr-1 text-xs font-semibold text-foreground/55">
-                    {ticker.currency}
-                  </span>
-                  <span className={cn(ticker.price >= 100000 && "text-xs")}>
+                <div className="text-right">
+                  <p className="text-base font-bold tabular-nums text-foreground">
                     {ticker.price.toLocaleString("en-US", {
                       maximumFractionDigits: 2,
                       minimumFractionDigits: 2
                     })}
-                  </span>
-                </p>
+                  </p>
+                  <p className="text-xs font-medium text-foreground/55">
+                    {ticker.currency}
+                  </p>
+                </div>
               </motion.button>
             );
           })}

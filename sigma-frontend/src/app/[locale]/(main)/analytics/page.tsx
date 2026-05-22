@@ -17,7 +17,8 @@ import { apiFetch } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import type { Category, ItemSummary, ReportSummary, Sentiment } from "@/lib/types"
 
-const timeRanges = ["24h", "7d", "30d", "90d"]
+const timeRanges = ["24h", "7D", "14D", "30D"]
+const timeRangeDays: Record<string, number> = { "24h": 1, "7D": 7, "14D": 14, "30D": 30 }
 const categories: Category[] = ["politics", "finance", "technology", "macro"]
 
 const categoryColors: Record<Category, string> = {
@@ -48,9 +49,10 @@ function readingTime(content: string) {
   return Math.max(1, Math.ceil(content.split(/\s+/).filter(Boolean).length / 220))
 }
 
-function buildDailyVolume(items: ItemSummary[], locale: string) {
+function buildDailyVolume(items: ItemSummary[], locale: string, days = 7) {
   const counts = new Map<string, number>()
-  for (let offset = 6; offset >= 0; offset -= 1) {
+  const dateFormat: Intl.DateTimeFormatOptions = days <= 7 ? { weekday: "short" } : { month: "short", day: "numeric" }
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
     const date = new Date()
     date.setDate(date.getDate() - offset)
     const key = date.toISOString().slice(0, 10)
@@ -62,13 +64,14 @@ function buildDailyVolume(items: ItemSummary[], locale: string) {
   })
   return Array.from(counts.entries()).map(([day, articles]) => ({
     articles,
-    day: new Intl.DateTimeFormat(locale, { weekday: "short" }).format(new Date(`${day}T00:00:00Z`))
+    day: new Intl.DateTimeFormat(locale, dateFormat).format(new Date(`${day}T00:00:00Z`))
   }))
 }
 
-function buildDailySentiment(items: ItemSummary[], locale: string) {
+function buildDailySentiment(items: ItemSummary[], locale: string, days = 7) {
   const buckets = new Map<string, { bullish: number; total: number }>()
-  for (let offset = 6; offset >= 0; offset -= 1) {
+  const dateFormat: Intl.DateTimeFormatOptions = days <= 7 ? { weekday: "short" } : { month: "short", day: "numeric" }
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
     const date = new Date()
     date.setDate(date.getDate() - offset)
     buckets.set(date.toISOString().slice(0, 10), { bullish: 0, total: 0 })
@@ -83,7 +86,7 @@ function buildDailySentiment(items: ItemSummary[], locale: string) {
     }
   })
   return Array.from(buckets.entries()).map(([day, bucket]) => ({
-    day: new Intl.DateTimeFormat(locale, { weekday: "short" }).format(new Date(`${day}T00:00:00Z`)),
+    day: new Intl.DateTimeFormat(locale, dateFormat).format(new Date(`${day}T00:00:00Z`)),
     sentiment: bucket.total > 0 ? Math.round((bucket.bullish / bucket.total) * 100) : 0,
     total: bucket.total
   }))
@@ -163,11 +166,17 @@ export default function AnalyticsPage() {
   const feedT = useTranslations("feed")
   const { user } = useAuth()
   const { showToast } = useToast()
-  const [timeRange, setTimeRange] = useState("7d")
+  const [timeRange, setTimeRange] = useState("7D")
   const [isGenerating, setIsGenerating] = useState(false)
   const sentiment = useSentimentStats()
   const keywords = useTrendingKeywords()
-  const itemQuery = useItems({ page_size: 100 })
+  const rangeDays = useMemo(() => timeRangeDays[timeRange] ?? 7, [timeRange])
+  const dateFrom = useMemo(() => {
+    const date = new Date()
+    date.setDate(date.getDate() - rangeDays)
+    return date.toISOString().slice(0, 10)
+  }, [rangeDays])
+  const itemQuery = useItems({ date_from: dateFrom, page_size: 100 })
   const reportsQuery = useReports(undefined, 6)
   const items = useMemo(() => itemQuery.data?.pages.flatMap((page) => page.items) ?? [], [itemQuery.data])
   const reports = useMemo(() => reportsQuery.data?.pages.flatMap((page) => page.items) ?? [], [reportsQuery.data])
@@ -185,7 +194,7 @@ export default function AnalyticsPage() {
     ]
   }, [feedT, items, sentiment.data?.bullish_pct])
   const bullishValue = sentimentData[0]?.value ?? 0
-  const trendData = useMemo(() => buildDailySentiment(items, locale), [items, locale])
+  const trendData = useMemo(() => buildDailySentiment(items, locale, rangeDays), [items, locale, rangeDays])
   const trendChange = useMemo(() => {
     const observed = trendData.filter((point) => point.total > 0)
     if (observed.length < 2) {
@@ -193,7 +202,7 @@ export default function AnalyticsPage() {
     }
     return observed[observed.length - 1].sentiment - observed[0].sentiment
   }, [trendData])
-  const volumeData = useMemo(() => buildDailyVolume(items, locale), [items, locale])
+  const volumeData = useMemo(() => buildDailyVolume(items, locale, rangeDays), [items, locale, rangeDays])
   const sourceData = useMemo(() => buildSourceData(items), [items])
   const categoryData = useMemo(() => buildCategoryRows(items, feedT), [feedT, items])
 
@@ -295,7 +304,7 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-2xl font-bold text-foreground">{items.length}</span>
-            <span className="text-xs text-muted-foreground">{t("articlesThisWeek")}</span>
+            <span className="text-xs text-muted-foreground">{t("articlesInRange", { range: timeRange })}</span>
           </div>
         </MetricCard>
 

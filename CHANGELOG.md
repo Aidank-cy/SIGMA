@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add a source collection endpoint that queues real persisted collector runs from the Sync page.
 - Add PostgreSQL-backed market candle storage for 30-minute and daily chart ranges with Redis-backed 1D and 5D one-minute candles.
 - Add Beijing-time trading sessions to market-index API responses so chart axes can render in UTC+8 consistently.
 - Add an independent per-market historical data refresh job with Redis cache reads decoupled from live quote refreshes.
@@ -36,6 +37,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change News to open in list view by default.
+- Change Dashboard ticker sparklines to choose trading, closed, and unopened rendering states, with larger price text and currency on a second line.
 - Change Dashboard and Markets multi-day market chart X-axes to continuous Beijing-time trading-day indexes so weekends and no-data days do not create visual gaps.
 - Change Dashboard major market index rows into clickable controls that drive the HeroChart selection.
 - Change Markets tab transitions to wait for exiting content so the summary section is not pushed down by ghost tab layouts.
@@ -86,6 +89,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Analytics time ranges so metrics, trend buckets, and article volume respect 24h, 7D, 14D, and 30D filters.
+- Fix Sync Now and Sync All so they queue persisted collection runs instead of source preview tests.
+- Fix flat mini sparklines by padding constant-value Sparkline domains and include item-derived times in generated report prompts and report detail subtitles.
+- Fix US-market multi-day chart bucketing so post-midnight Beijing timestamps stay on the trading session date that opened the prior evening.
 - Fix fallback trending topic extraction by filtering more English function words and merging capitalized multi-word names such as `Elon Musk`.
 - Fix overnight Beijing-session intraday point mapping and ticker sparkline column alignment for dashboard market rows.
 - Fix Dashboard market index row sparklines to use intraday chart data, align mini charts consistently, show flat pre-open lines, and display raw ISO currency codes.

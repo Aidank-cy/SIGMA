@@ -77,11 +77,24 @@ export default function SyncPage() {
     return items.filter((log) => log.status === logFilter)
   }, [logFilter, logs?.items])
 
+  function refreshSyncDataAfter(delay: number) {
+    setTimeout(() => {
+      mutate()
+      todayItems.mutate()
+      if (isAdmin) {
+        apiFetch<AdminLogResponse>("/admin/logs?page=1&page_size=12")
+          .then(setLogs)
+          .catch(() => {})
+      }
+    }, delay)
+  }
+
   async function handleSyncAll() {
     setIsSyncing(true)
     try {
-      await Promise.all(sources.filter((source) => source.is_active).slice(0, 6).map((source) => apiFetch(`/sources/${source.id}/test`, { method: "POST" })))
+      await Promise.all(sources.filter((source) => source.is_active).slice(0, 6).map((source) => apiFetch(`/sources/${source.id}/collect`, { method: "POST" })))
       showToast(t("syncQueued"), "success")
+      refreshSyncDataAfter(5000)
     } catch {
       showToast(t("syncError"), "error")
     } finally {
@@ -92,8 +105,9 @@ export default function SyncPage() {
   async function handleSyncSource(id: string) {
     setSyncingSourceId(id)
     try {
-      await apiFetch(`/sources/${id}/test`, { method: "POST" })
+      await apiFetch(`/sources/${id}/collect`, { method: "POST" })
       showToast(t("sourceSynced"), "success")
+      refreshSyncDataAfter(3000)
     } catch {
       showToast(t("syncError"), "error")
     } finally {

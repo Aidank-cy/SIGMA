@@ -1291,3 +1291,27 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Changed Markets tab transitions to `AnimatePresence` wait mode, expanded fallback trending keyword stop words, merged consecutive capitalized terms into phrase keywords, hardened overnight Beijing-session intraday point mapping for US-market sparklines, and fixed ticker row sparkline grid alignment.
 - Timestamp: 2026-05-22T06:45:00Z
+
+### [Maintenance] Cross-midnight US market chart bucketing
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added session-date bucketing for cross-midnight Beijing sessions so US-market post-midnight timestamps remain on the trading day that opened the prior evening for 5D, 1M, 3M, and 1Y chart ranges while preserving tooltip timestamps and intraday point positioning.
+- Timestamp: 2026-05-22T07:05:00Z
+
+### [Maintenance] Ticker sparkline states and report subtitle times
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/components/dashboard/ticker-carousel.tsx, sigma-frontend/src/components/ui/Sparkline.tsx, sigma-frontend/src/app/[locale]/(main)/reports/[id]/page.tsx, sigma-backend/app/analyzers/prompts.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Split ticker sparkline rendering into trading, closed, and unopened states, padded constant sparkline domains so flat neutral lines render, moved ticker currency below larger price text, enlarged report detail type/date metadata, added report subtitle fallback times, and instructed generated reports to include item-derived period times.
+- Timestamp: 2026-05-22T07:25:00Z
+
+### [Maintenance] Analytics range filtering and real sync collection
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/src/app/[locale]/(main)/news/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/api/v1/routes/sources.py, sigma-backend/tests/test_sources_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Wired Analytics range controls into date-filtered item queries and dynamic trend buckets, changed Sync Now/All to queue real `/sources/{source_id}/collect` jobs with delayed refreshes, defaulted News to list view, and covered the new source collection route with a focused API test.
+- Timestamp: 2026-05-22T10:52:35Z

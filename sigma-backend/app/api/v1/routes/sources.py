@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -13,6 +14,7 @@ from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, UserRole
 from app.models.user import User
 from app.scheduler.engine import add_or_update_source_job, remove_source_job
+from app.scheduler.jobs import collect_from_source
 from app.schemas.source import (
     DataSourceCreate,
     DataSourceRead,
@@ -116,6 +118,20 @@ async def test_source(
     collector = create_collector(source)
     items = await collector.collect()
     return SourcePreviewResponse(items=[dict(item) for item in items[:3]])
+
+
+@router.post("/{source_id}/collect")
+async def collect_source(
+    source_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    """Trigger a real collection for the given source in the background."""
+    source = await _get_owned_source(db, source_id, current_user)
+    if not source.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Source is not active")
+    asyncio.create_task(collect_from_source(source_id))
+    return {"status": "queued", "source_id": str(source_id)}
 
 
 @router.get("/{source_id}/status", response_model=SourceStatusResponse)
