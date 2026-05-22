@@ -1387,3 +1387,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added HTTP-level coverage for sentiment stats, trending keyword counts, and last successful collection freshness using real seeded database rows. Verified `python3 -m pytest tests/test_stats_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`150 passed, 1 warning`).
 - Timestamp: 2026-05-22T12:08:18Z
+
+### [Phase 2.8] User settings API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_user_settings_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded HTTP coverage for report config, profile, retention, password success/error behavior, and current user LLM config and usage routes. Verified `python3 -m pytest tests/test_user_settings_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`152 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:10:43Z
