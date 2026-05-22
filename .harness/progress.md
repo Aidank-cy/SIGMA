@@ -1363,3 +1363,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added HTTP-level coverage for report pagination, type/market/date filters, latest-by-type selection, detail and 404 responses, and admin-only manual generation. Verified `python3 -m pytest tests/test_reports_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`147 passed, 1 warning`).
 - Timestamp: 2026-05-22T12:02:54Z
+
+### [Phase 2.5] Market indices API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added a real TestClient market-indices endpoint contract test for response timestamps, required index fields, and numeric sparkline data. Verified `python3 -m pytest tests/test_market_indices.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`148 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:04:34Z

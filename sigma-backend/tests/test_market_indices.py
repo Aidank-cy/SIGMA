@@ -1,12 +1,72 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from fastapi.testclient import TestClient
 
+from app.api.v1.routes import market_indices as market_indices_routes
 from app.api.v1.routes.market_indices import list_market_indices
 from app.scheduler.engine import add_market_indices_job, scheduler
 from app.scheduler.jobs import refresh_market_indices_job
+from app.schemas.market import MarketIndex, MarketIndicesResponse, TradingHours, TradingSession
 from app.services import market_candles
 from app.services import market_indices
+
+
+def test_market_indices_http_response_shape(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Market-indices endpoint returns timestamped index quotes with sparkline data."""
+
+    async def fake_market_indices() -> MarketIndicesResponse:
+        return MarketIndicesResponse(
+            updated_at=datetime(2026, 5, 22, 12, 0, tzinfo=UTC),
+            indices=[
+                MarketIndex(
+                    symbol="SPX",
+                    name="S&P 500",
+                    value=5842.15,
+                    previous_close=5818.3,
+                    change_pct=0.41,
+                    market="us",
+                    currency="USD",
+                    is_trading=True,
+                    trading_hours=TradingHours(
+                        open="09:30",
+                        close="16:00",
+                        timezone="America/New_York",
+                        sessions=[TradingSession(open="09:30", close="16:00")],
+                        beijing_sessions=[TradingSession(open="21:30", close="04:00")],
+                    ),
+                    sparkline_24h=[5830.0, 5842.15],
+                    sparkline_times=["2026-05-22T21:30:00+08:00", "2026-05-22T21:31:00+08:00"],
+                    sparkline_ranges={},
+                )
+            ],
+        )
+
+    monkeypatch.setattr(market_indices_routes, "get_market_indices", fake_market_indices)
+
+    response = client.get("/api/v1/market-indices")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["updated_at"] == "2026-05-22T12:00:00Z"
+    assert len(payload["indices"]) == 1
+    index = payload["indices"][0]
+    assert {
+        "symbol",
+        "name",
+        "value",
+        "change_pct",
+        "market",
+        "is_trading",
+    }.issubset(index)
+    assert index["symbol"] == "SPX"
+    assert index["name"] == "S&P 500"
+    assert index["value"] == 5842.15
+    assert index["change_pct"] == 0.41
+    assert index["market"] == "us"
+    assert index["is_trading"] is True
+    assert index["sparkline_24h"] == [5830.0, 5842.15]
+    assert all(isinstance(point, int | float) for point in index["sparkline_24h"])
 
 
 @pytest.mark.asyncio

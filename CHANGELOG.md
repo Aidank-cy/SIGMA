@@ -37,6 +37,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Add HTTP-level market-indices API coverage for index quote response shape and sparkline data.
 - Expand reports API tests for pagination, filters, latest reports, detail responses, and admin-only generation.
 - Expand watchlist API tests for CRUD, ownership, filtered items, stats, trend, and unauthenticated access.
 - Add HTTP-level items API coverage for pagination, filters, formats, detail responses, and validation errors.
