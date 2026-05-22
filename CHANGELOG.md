@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add PostgreSQL-backed market candle storage for 30-minute and daily chart ranges with Redis-backed 1D and 5D one-minute candles.
 - Add Beijing-time trading sessions to market-index API responses so chart axes can render in UTC+8 consistently.
 - Add an independent per-market historical data refresh job with Redis cache reads decoupled from live quote refreshes.
 - Add a market-index `is_fallback_data` flag so clients can distinguish generated chart data from provider data.
@@ -35,6 +36,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Read market-index 5D, 1M, 3M, and 1Y chart ranges from Redis and PostgreSQL candle storage instead of fetching Yahoo historical data during quote refreshes.
 - Decouple market-index historical Redis updates into a rate-limited background scheduler and trim cached daily candles to one trading year.
 - Keep live market-index polling at the 15-second active cadence while running historical refreshes independently.
 - Render Dashboard and Markets chart X-axes in Beijing time across all markets.

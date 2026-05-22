@@ -1218,3 +1218,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added Beijing-session API fields, rendered market chart axes in Asia/Shanghai, moved historical Yahoo range fetching into an independent per-market scheduler job, kept live market refresh cadence at 15 seconds, improved dark-mode secondary text contrast across dashboard and top-level page captions, redesigned Market Movers as a vertical dashboard column, removed the sidebar market overview, and wired trending topics/stat cards to filtered destinations. Verified with frontend production build, backend Ruff via python3, focused backend market/scheduler tests, `git diff --check`, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-21T13:02:43Z
+
+### [Maintenance] Beijing-time candles and dense chart ranges
+- Status: COMPLETE
+- Files created: sigma-backend/app/models/market_candle.py, sigma-backend/app/services/market_candles.py, sigma-backend/alembic/versions/20260522_0003_market_candles.py
+- Files modified: sigma-backend/app/models/__init__.py, sigma-backend/app/scheduler/engine.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, sigma-backend/tests/test_scheduler.py, sigma-frontend/src/lib/marketChart.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Replaced Redis-only historical daily cache code with Redis 1D/5D one-minute candles plus PostgreSQL 30m/1d candles, registered the new candle refresh scheduler job, kept market-index historical range reads storage-only, and updated frontend range chart math for dense Beijing-time 5D/1M data.
+- Timestamp: 2026-05-22T01:51:15Z
