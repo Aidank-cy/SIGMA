@@ -150,7 +150,7 @@ export default function DashboardPage() {
 
         <motion.section
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-6 lg:flex-row"
+          className="flex flex-col gap-6 lg:flex-row lg:items-stretch"
           initial={{ opacity: 0, y: 20 }}
           transition={{ delay: 0.1, duration: 0.4 }}
         >
