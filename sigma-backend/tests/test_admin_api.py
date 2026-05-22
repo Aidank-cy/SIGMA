@@ -158,6 +158,61 @@ def test_admin_source_preview_crud_stats_and_guards(client: TestClient, monkeypa
     assert artifacts_remaining == 0
 
 
+def test_admin_llm_config_usage_and_guards(client: TestClient) -> None:
+    """Admins can manage global LLM config, inspect usage, and reject non-admins."""
+    admin_token = _token(client, "admin-llm-suite@example.com")
+    user_token = _token(client, "regular-llm-suite@example.com")
+    headers = _auth(admin_token)
+    asyncio.run(_seed_admin_llm_usage(client))
+
+    get_response = client.get("/api/v1/admin/llm/config", headers=headers)
+    update_response = client.put(
+        "/api/v1/admin/llm/config",
+        headers=headers,
+        json={
+            "provider": "gemini",
+            "model": "gemini-test",
+            "daily_token_limit": 6543,
+            "cost_guard_enabled": False,
+            "api_keys": [
+                {
+                    "name": "Global Gemini",
+                    "key": "sk-admin-gemini",
+                    "provider": "gemini",
+                    "token_limit": 6543,
+                }
+            ],
+        },
+    )
+    usage_response = client.get("/api/v1/admin/llm/usage", headers=headers)
+    forbidden_response = client.get("/api/v1/admin/llm/config", headers=_auth(user_token))
+
+    assert get_response.status_code == 200
+    assert {"provider", "model", "daily_token_limit", "cost_guard_enabled", "api_keys"}.issubset(
+        get_response.json()
+    )
+    assert update_response.status_code == 200
+    assert update_response.json() == {
+        "provider": "gemini",
+        "model": "gemini-test",
+        "daily_token_limit": 6543,
+        "cost_guard_enabled": False,
+        "api_keys": [
+            {
+                "name": "Global Gemini",
+                "key": "sk-admin-gemini",
+                "provider": "gemini",
+                "token_limit": 6543,
+            }
+        ],
+    }
+    assert usage_response.status_code == 200
+    assert usage_response.json()["items"][0]["function_type"] == "report"
+    assert usage_response.json()["items"][0]["provider"] == "gemini"
+    assert usage_response.json()["items"][0]["total_tokens"] == 175
+    assert forbidden_response.status_code == 403
+
+
 def test_admin_logs_endpoint(client: TestClient) -> None:
     """Admin logs endpoint returns pagination metadata and success rate."""
     token = _token(client, "admin-logs@example.com")
@@ -294,3 +349,19 @@ async def _source_artifact_count(client: TestClient, source_id: str) -> int:
             select(func.count()).select_from(CollectorLog).where(CollectorLog.source_id == UUID(source_id))
         )
     return int(item_count or 0) + int(log_count or 0)
+
+
+async def _seed_admin_llm_usage(client: TestClient) -> None:
+    session_factory = client.app.state.session_factory
+    async with session_factory() as db:
+        db.add(
+            LLMUsageLog(
+                provider="gemini",
+                model="gemini-test",
+                function_type=LLMFunctionType.REPORT,
+                input_tokens=150,
+                output_tokens=25,
+                created_at=datetime.now(timezone.utc),
+            )
+        )
+        await db.commit()
