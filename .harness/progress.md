@@ -1251,3 +1251,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Renamed the dashboard ticker panel to Major Market Indices / 主要市场指数 and removed the panel's fixed max-height so the right column stretches with the hero chart on desktop.
 - Timestamp: 2026-05-22T02:58:26Z
+
+### [Maintenance] Dashboard hero chart X-axis labels
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Reduced multi-day hero chart X-axis label density and label length by simplifying 5D ticks to daily date numbers, changing 3M labels to compact month-day text, showing monthly 1Y ticks, and letting Recharts skip labels with a 40px minimum gap.
+- Timestamp: 2026-05-22T03:06:53Z
