@@ -5,6 +5,7 @@ import logging
 import math
 import os
 import random
+import time as _time
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from urllib.parse import quote as quote_path
@@ -30,6 +31,12 @@ YAHOO_HEADERS = {
     ),
 }
 _yahoo_client: httpx.AsyncClient | None = None
+_yahoo_semaphore = asyncio.Semaphore(1)
+_yahoo_min_interval = 1.0
+_yahoo_last_request_time = 0.0
+_yahoo_backoff_until = 0.0
+_yahoo_consecutive_429s = 0
+YAHOO_MAX_BACKOFF_SECONDS = 300
 
 
 @dataclass(frozen=True)
@@ -115,6 +122,8 @@ def any_market_trading_now(now: datetime | None = None) -> bool:
 async def _build_index(config: IndexConfig) -> MarketIndex:
     quote = await _fetch_index_quote(config)
     if quote is None:
+        quote = await _quote_from_redis_candle(config)
+    if quote is None:
         LOGGER.warning(
             "Using last-resort fallback quote for %s because live market data providers returned no quote.",
             config.symbol,
@@ -122,11 +131,11 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
     value = quote.current if quote is not None else config.fallback_value
     change_pct = quote.change_pct if quote is not None else config.fallback_change_pct
     previous_close = quote.previous_close if quote is not None else _previous_close_from_change(value, change_pct)
-    intraday = await _fetch_intraday_series(config, value)
+    intraday = await _read_intraday_from_redis(config)
     is_fallback_data = intraday is None
     if intraday is None:
         LOGGER.warning(
-            "Using generated fallback intraday series for %s because live intraday providers returned no candles.",
+            "Using generated fallback intraday series for %s because no Redis 1D candles are available.",
             config.symbol,
         )
         intraday = _fallback_intraday_series(config, value, change_pct)
@@ -136,7 +145,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
         change_pct = ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
     if len(intraday) < 30:
         LOGGER.warning(
-            "%s returned only %s intraday chart points; charts may appear undersampled.",
+            "%s has only %s intraday chart points; charts may appear undersampled.",
             config.symbol,
             len(intraday),
         )
@@ -169,9 +178,6 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
 
 
 async def _fetch_index_quote(config: IndexConfig) -> IndexQuote | None:
-    quote = await _fetch_yahoo_quote(config)
-    if quote is not None:
-        return quote
     quote = await _fetch_finnhub_quote(config)
     if quote is not None:
         return quote
@@ -297,19 +303,64 @@ async def _fetch_stooq_quote(config: IndexConfig) -> IndexQuote | None:
     return IndexQuote(current=current, change_pct=((current - previous) / previous) * 100, previous_close=previous)
 
 
-async def _fetch_yahoo_quote(config: IndexConfig) -> IndexQuote | None:
-    result = await _fetch_yahoo_chart_result(config, params={}, purpose="quote")
-    if not isinstance(result, dict):
-        return None
-    meta = result.get("meta", {})
-    if not isinstance(meta, dict):
-        return None
+async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
+    """Derive a quote from the latest Redis 1D candle point."""
+    from app.services.market_candles import _redis_get_1d
 
-    current = _as_float(meta.get("regularMarketPrice"))
-    previous = _as_float(meta.get("chartPreviousClose")) or _as_float(meta.get("previousClose"))
-    if current is None or previous is None or current <= 0 or previous <= 0:
+    points = await _redis_get_1d(config.symbol)
+    if not points or len(points) < 2:
         return None
-    return IndexQuote(current=current, change_pct=((current - previous) / previous) * 100, previous_close=previous)
+    current = points[-1].value
+    first = points[0].value
+    if current <= 0 or first <= 0:
+        return None
+    return IndexQuote(
+        current=current,
+        change_pct=((current - first) / first) * 100,
+        previous_close=first,
+    )
+
+
+async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] | None:
+    """Read today's 1-minute candle data from Redis."""
+    from app.services.market_candles import _redis_get_1d
+
+    points = await _redis_get_1d(config.symbol)
+    if points and len(points) >= 10:
+        return points
+    return None
+
+
+async def _yahoo_rate_limit_wait() -> bool:
+    """Wait for Yahoo rate-limit clearance, returning False while in backoff."""
+    global _yahoo_last_request_time
+
+    now = _time.monotonic()
+    if now < _yahoo_backoff_until:
+        LOGGER.debug("Yahoo backoff active, %.0fs remaining", _yahoo_backoff_until - now)
+        return False
+    elapsed = now - _yahoo_last_request_time
+    if elapsed < _yahoo_min_interval:
+        await asyncio.sleep(_yahoo_min_interval - elapsed)
+    _yahoo_last_request_time = _time.monotonic()
+    return True
+
+
+def _yahoo_on_429() -> None:
+    global _yahoo_backoff_until, _yahoo_consecutive_429s
+
+    _yahoo_consecutive_429s += 1
+    backoff = min(30 * (2 ** (_yahoo_consecutive_429s - 1)), YAHOO_MAX_BACKOFF_SECONDS)
+    _yahoo_backoff_until = _time.monotonic() + backoff
+    LOGGER.warning("Yahoo 429 (#%d). Backing off %ds.", _yahoo_consecutive_429s, backoff)
+
+
+def _yahoo_on_success() -> None:
+    global _yahoo_consecutive_429s
+
+    if _yahoo_consecutive_429s > 0:
+        LOGGER.info("Yahoo OK, resetting backoff from %d.", _yahoo_consecutive_429s)
+    _yahoo_consecutive_429s = 0
 
 
 async def _fetch_yahoo_chart_result(
@@ -317,57 +368,68 @@ async def _fetch_yahoo_chart_result(
     params: dict[str, str],
     purpose: str,
 ) -> dict[str, object] | None:
-    symbol_path = quote_path(config.finnhub_symbol, safe="")
-    client = _get_yahoo_client()
-    for host in YAHOO_CHART_HOSTS:
-        url = f"https://{host}/v8/finance/chart/{symbol_path}"
-        try:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            payload = response.json()
-        except httpx.HTTPStatusError as exc:
-            LOGGER.warning(
-                "Yahoo %s chart request for %s via %s failed: HTTP %s - %s",
-                purpose,
-                config.finnhub_symbol,
-                host,
-                exc.response.status_code,
-                exc.response.text[:200],
-            )
-            continue
-        except httpx.HTTPError as exc:
-            LOGGER.warning(
-                "Yahoo %s chart request for %s via %s failed: %s: %s",
-                purpose,
-                config.finnhub_symbol,
-                host,
-                type(exc).__name__,
-                exc,
-            )
-            continue
-        except Exception as exc:
-            LOGGER.warning(
-                "Yahoo %s chart request for %s via %s failed: %s: %s",
-                purpose,
-                config.finnhub_symbol,
-                host,
-                type(exc).__name__,
-                exc,
-            )
-            continue
+    async with _yahoo_semaphore:
+        if not await _yahoo_rate_limit_wait():
+            return None
 
-        chart = payload.get("chart")
-        if not isinstance(chart, dict):
-            LOGGER.warning("Yahoo %s chart response for %s via %s did not include chart data.", purpose, config.finnhub_symbol, host)
-            continue
-        error = chart.get("error")
-        if error:
-            LOGGER.warning("Yahoo %s chart response for %s via %s returned error: %s", purpose, config.finnhub_symbol, host, error)
-            continue
-        result = chart.get("result")
-        if isinstance(result, list) and result and isinstance(result[0], dict):
-            return result[0]
-        LOGGER.warning("Yahoo %s chart response for %s via %s did not include result data.", purpose, config.finnhub_symbol, host)
+        symbol_path = quote_path(config.finnhub_symbol, safe="")
+        client = _get_yahoo_client()
+        for host in YAHOO_CHART_HOSTS:
+            url = f"https://{host}/v8/finance/chart/{symbol_path}"
+            try:
+                response = await client.get(url, params=params)
+                if response.status_code == 429:
+                    _yahoo_on_429()
+                    return None
+                response.raise_for_status()
+                payload = response.json()
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 429:
+                    _yahoo_on_429()
+                    return None
+                LOGGER.warning(
+                    "Yahoo %s chart request for %s via %s failed: HTTP %s - %s",
+                    purpose,
+                    config.finnhub_symbol,
+                    host,
+                    exc.response.status_code,
+                    exc.response.text[:200],
+                )
+                continue
+            except httpx.HTTPError as exc:
+                LOGGER.warning(
+                    "Yahoo %s chart request for %s via %s failed: %s: %s",
+                    purpose,
+                    config.finnhub_symbol,
+                    host,
+                    type(exc).__name__,
+                    exc,
+                )
+                continue
+            except Exception as exc:
+                LOGGER.warning(
+                    "Yahoo %s chart request for %s via %s failed: %s: %s",
+                    purpose,
+                    config.finnhub_symbol,
+                    host,
+                    type(exc).__name__,
+                    exc,
+                )
+                continue
+
+            chart = payload.get("chart")
+            if not isinstance(chart, dict):
+                LOGGER.warning("Yahoo %s chart response for %s via %s did not include chart data.", purpose, config.finnhub_symbol, host)
+                continue
+            error = chart.get("error")
+            if error:
+                LOGGER.warning("Yahoo %s chart response for %s via %s returned error: %s", purpose, config.finnhub_symbol, host, error)
+                continue
+            result = chart.get("result")
+            if isinstance(result, list) and result and isinstance(result[0], dict):
+                _yahoo_on_success()
+                return result[0]
+            LOGGER.warning("Yahoo %s chart response for %s via %s did not include result data.", purpose, config.finnhub_symbol, host)
     return None
 
 
@@ -380,184 +442,6 @@ def _get_yahoo_client() -> httpx.AsyncClient:
             limits=httpx.Limits(max_connections=3),
         )
     return _yahoo_client
-
-
-async def _fetch_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
-    if not _is_trading(config):
-        return None
-
-    yahoo_series = await _fetch_yahoo_intraday_series(config)
-    if yahoo_series is not None:
-        return yahoo_series
-    finnhub_series = await _fetch_finnhub_intraday_series(config, target_value)
-    if finnhub_series is not None:
-        return finnhub_series
-    return await _fetch_alpha_vantage_intraday_series(config)
-
-
-async def _fetch_finnhub_intraday_series(config: IndexConfig, target_value: float) -> list[IntradayPoint] | None:
-    token = os.getenv("FINNHUB_KEY", "")
-    if not token:
-        return None
-
-    session_date = _latest_session_date(config)
-    start, end = _session_utc_bounds(config, session_date)
-    direct = await _fetch_finnhub_candles(config.finnhub_symbol, token, start, end)
-    if direct is not None:
-        return _align_intraday_points(config, session_date, direct)
-    if not config.finnhub_proxy_symbol:
-        return None
-    proxy = await _fetch_finnhub_candles(config.finnhub_proxy_symbol, token, start, end)
-    if proxy is None:
-        return None
-    aligned = _align_intraday_points(config, session_date, proxy)
-    if not aligned or aligned[-1].value <= 0:
-        return None
-    scale = target_value / aligned[-1].value
-    return [IntradayPoint(timestamp=point.timestamp, value=point.value * scale) for point in aligned]
-
-
-async def _fetch_finnhub_candles(
-    symbol: str,
-    token: str,
-    start: datetime,
-    end: datetime,
-) -> list[IntradayPoint] | None:
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            response = await client.get(
-                "https://finnhub.io/api/v1/stock/candle",
-                params={
-                    "from": int(start.timestamp()),
-                    "resolution": "1",
-                    "symbol": symbol,
-                    "to": int(end.timestamp()),
-                    "token": token,
-                },
-            )
-            response.raise_for_status()
-            payload = response.json()
-    except httpx.HTTPStatusError as exc:
-        LOGGER.warning("Finnhub candle request for %s failed with status %s.", symbol, exc.response.status_code)
-        return None
-    except httpx.HTTPError as exc:
-        LOGGER.warning("Finnhub candle request for %s failed: %s.", symbol, type(exc).__name__)
-        return None
-    except Exception as exc:
-        LOGGER.warning("Finnhub candle request for %s failed: %s: %s.", symbol, type(exc).__name__, exc)
-        return None
-
-    if payload.get("s") != "ok":
-        return None
-    closes = payload.get("c")
-    timestamps = payload.get("t")
-    if not isinstance(closes, list) or not isinstance(timestamps, list) or len(closes) != len(timestamps):
-        return None
-
-    points: list[IntradayPoint] = []
-    for timestamp, close in zip(timestamps, closes, strict=False):
-        value = _as_float(close)
-        epoch = _as_float(timestamp)
-        if value is None or epoch is None or value <= 0:
-            continue
-        points.append(
-            IntradayPoint(
-                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
-                value=value,
-            )
-        )
-    return points or None
-
-
-async def _fetch_alpha_vantage_intraday_series(config: IndexConfig) -> list[IntradayPoint] | None:
-    token = os.getenv("ALPHAVANTAGE_KEY", "")
-    if not token:
-        return None
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            response = await client.get(
-                "https://www.alphavantage.co/query",
-                params={
-                    "apikey": token,
-                    "function": "TIME_SERIES_INTRADAY",
-                    "interval": "1min",
-                    "outputsize": "compact",
-                    "symbol": config.alpha_symbol,
-                },
-            )
-            response.raise_for_status()
-            payload = response.json()
-    except httpx.HTTPStatusError as exc:
-        LOGGER.warning("Alpha Vantage intraday request for %s failed with status %s.", config.symbol, exc.response.status_code)
-        return None
-    except httpx.HTTPError as exc:
-        LOGGER.warning("Alpha Vantage intraday request for %s failed: %s.", config.symbol, type(exc).__name__)
-        return None
-    except Exception as exc:
-        LOGGER.warning("Alpha Vantage intraday request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc)
-        return None
-
-    series = payload.get("Time Series (1min)")
-    if not isinstance(series, dict):
-        LOGGER.warning("Alpha Vantage intraday response for %s did not include 1-minute time series data.", config.symbol)
-        return None
-
-    zone = ZoneInfo(config.timezone)
-    points: list[IntradayPoint] = []
-    for timestamp, values in series.items():
-        if not isinstance(values, dict):
-            continue
-        value = _as_float(values.get("4. close"))
-        if value is None or value <= 0:
-            continue
-        try:
-            local_timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=zone)
-        except ValueError:
-            continue
-        points.append(IntradayPoint(timestamp=local_timestamp.astimezone(BEIJING_TZ), value=value))
-
-    if not points:
-        return None
-    session_date = _latest_session_date(config)
-    return _align_intraday_points(config, session_date, points)
-
-
-async def _fetch_yahoo_intraday_series(config: IndexConfig) -> list[IntradayPoint] | None:
-    result = await _fetch_yahoo_chart_result(
-        config,
-        params={"includePrePost": "false", "interval": "1m", "range": "1d"},
-        purpose="intraday",
-    )
-    if not isinstance(result, dict):
-        return None
-    timestamps = result.get("timestamp")
-    indicators = result.get("indicators", {})
-    if not isinstance(timestamps, list) or not isinstance(indicators, dict):
-        return None
-    quote_payload = indicators.get("quote", [None])[0]
-    if not isinstance(quote_payload, dict):
-        return None
-    closes = quote_payload.get("close")
-    if not isinstance(closes, list) or len(closes) != len(timestamps):
-        return None
-
-    points: list[IntradayPoint] = []
-    for timestamp, close in zip(timestamps, closes, strict=False):
-        value = _as_float(close)
-        epoch = _as_float(timestamp)
-        if value is None or epoch is None or value <= 0:
-            continue
-        point = IntradayPoint(
-            timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
-            value=value,
-        )
-        if _is_within_session(point.timestamp, config):
-            points.append(point)
-
-    if not points:
-        return None
-    session_date = _latest_session_date(config)
-    return _align_intraday_points(config, session_date, points)
 
 
 async def _read_candle_ranges(
@@ -776,15 +660,6 @@ def _trading_minutes(config: IndexConfig, session_date: date) -> list[datetime]:
             timestamps.append(current.astimezone(BEIJING_TZ).replace(second=0, microsecond=0))
             current += timedelta(minutes=1)
     return timestamps
-
-
-def _session_utc_bounds(config: IndexConfig, session_date: date) -> tuple[datetime, datetime]:
-    zone = ZoneInfo(config.timezone)
-    start = datetime.combine(session_date, config.sessions[0][0], tzinfo=zone)
-    end = datetime.combine(session_date, config.sessions[-1][1], tzinfo=zone)
-    if config.sessions[-1][1] <= config.sessions[0][0]:
-        end += timedelta(days=1)
-    return start.astimezone(UTC), end.astimezone(UTC)
 
 
 def _latest_session_date(config: IndexConfig, now: datetime | None = None) -> date:

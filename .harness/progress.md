@@ -1226,3 +1226,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Replaced Redis-only historical daily cache code with Redis 1D/5D one-minute candles plus PostgreSQL 30m/1d candles, registered the new candle refresh scheduler job, kept market-index historical range reads storage-only, and updated frontend range chart math for dense Beijing-time 5D/1M data.
 - Timestamp: 2026-05-22T01:51:15Z
+
+### [Maintenance] Yahoo-free market-index refresh
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Removed Yahoo quote and intraday calls from `_build_index`, added Redis candle quote/intraday fallbacks, kept Yahoo access behind the candle manager, added global Yahoo one-at-a-time rate limiting with 429 exponential backoff, and covered the Yahoo-free refresh path with focused tests.
+- Timestamp: 2026-05-22T02:19:14Z

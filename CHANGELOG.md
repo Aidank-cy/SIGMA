@@ -36,6 +36,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Make market-index refresh Yahoo-free by reading intraday candles from Redis and limiting Yahoo access to the candle manager.
 - Read market-index 5D, 1M, 3M, and 1Y chart ranges from Redis and PostgreSQL candle storage instead of fetching Yahoo historical data during quote refreshes.
 - Decouple market-index historical Redis updates into a rate-limited background scheduler and trim cached daily candles to one trading year.
 - Keep live market-index polling at the 15-second active cadence while running historical refreshes independently.
