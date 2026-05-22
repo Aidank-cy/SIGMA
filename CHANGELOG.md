@@ -37,6 +37,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Add HTTP-level items API coverage for pagination, filters, formats, detail responses, and validation errors.
 - Expand auth API tests across registration, login, refresh, bearer-token, and password-reset error paths.
 - Replace Dashboard feed infinite scroll with numbered pagination while preserving infinite scroll on the News page.
 - Update market-index tests to cover the current urllib Yahoo fetch path and Redis-first candle warmup.

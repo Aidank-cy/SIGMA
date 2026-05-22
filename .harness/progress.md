@@ -1339,3 +1339,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Covered duplicate and invalid registration, nonexistent and inactive login, refresh cookie success/error paths, expired bearer token rejection, and invalid reset-token handling with real TestClient HTTP calls. Verified `python3 -m pytest tests/test_auth.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`144 passed, 1 warning`).
 - Timestamp: 2026-05-22T11:52:47Z
+
+### [Phase 2.2] Items API coverage
+- Status: COMPLETE
+- Files created: sigma-backend/tests/test_items_api_http.py
+- Files modified: sigma-backend/tests/conftest.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added HTTP-level TestClient coverage for item list pagination, category/market/source/date/keyword/combined filters, minimal/full formats, detail payloads, 404s, ordering, empty sets, and validation errors. Exposed the test session factory on the existing client fixture for direct data seeding while keeping endpoint calls as real HTTP calls. Verified `python3 -m pytest tests/test_items_api_http.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`145 passed, 1 warning`).
+- Timestamp: 2026-05-22T11:55:56Z

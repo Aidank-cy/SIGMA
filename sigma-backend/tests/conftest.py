@@ -44,6 +44,7 @@ def client() -> Iterator[TestClient]:
 
     app = create_app(enable_scheduler=False)
     app.dependency_overrides[get_db] = override_get_db
+    app.state.session_factory = session_factory
 
     import asyncio
 
