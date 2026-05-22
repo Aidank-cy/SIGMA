@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime, time, timezone
 from typing import Any
@@ -14,6 +15,8 @@ from app.core.config import settings
 from app.models.enums import LLMFunctionType
 from app.models.llm_usage_log import LLMUsageLog
 from app.models.system_config import SystemConfig
+
+logger = logging.getLogger(__name__)
 
 
 class BudgetExceededError(RuntimeError):
@@ -202,11 +205,13 @@ class LLMClient:
                     if response.status_code not in {429, 500, 502, 503, 504}:
                         response.raise_for_status()
                         return response.json()
-                except httpx.HTTPError:
+                except httpx.HTTPError as exc:
                     if attempt == 2:
+                        logger.warning("LLM request failed after retries: %s", exc)
                         raise
                 if attempt < 2:
                     await asyncio.sleep(delays[attempt])
+            logger.warning("LLM request failed after retries with status %s", response.status_code)
             response.raise_for_status()
             return response.json()
         finally:

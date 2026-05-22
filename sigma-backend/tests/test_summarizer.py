@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -49,6 +50,7 @@ async def test_batch_summarize_writes_and_skips_existing(
 async def test_batch_summarize_failure_does_not_crash(
     db_session: AsyncSession,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """A failed item increments retry metadata while the batch continues."""
     source = _source()
@@ -69,6 +71,7 @@ async def test_batch_summarize_failure_does_not_crash(
 
     monkeypatch.setattr("app.analyzers.summarizer.LLMClient", FakeLLMClient)
 
+    caplog.set_level(logging.WARNING, logger="app.analyzers.summarizer")
     await batch_summarize([ok.id, failing.id], db=db_session)
     await db_session.commit()
     await db_session.refresh(ok)
@@ -77,6 +80,7 @@ async def test_batch_summarize_failure_does_not_crash(
     assert ok.summary == '{"sentiment":"neutral","summary":"Ok summary","keywords":["ok"]}'
     assert failing.summary is None
     assert failing.metadata_extra == {"summary_retry_count": 1}
+    assert "Failed to summarize collected item" in caplog.text
 
 
 def test_normalize_summary_payload_bounds_fields() -> None:

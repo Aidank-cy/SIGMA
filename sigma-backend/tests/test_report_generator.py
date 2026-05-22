@@ -2,12 +2,52 @@ from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.analyzers.report_generator import generate_report
 from app.models.collected_item import CollectedItem
 from app.models.data_source import DataSource
 from app.models.enums import IntelligenceCategory, Market, ReportType, SourceType
+from app.models.report import Report
+
+
+@pytest.mark.asyncio
+async def test_report_generator_creates_persisted_markdown_report(
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Report generation creates a persisted markdown report from collected items."""
+    source = _source()
+    db_session.add(source)
+    db_session.add_all([_item(source, "Bullish AI earnings"), _item(source, "Finance outlook")])
+    await db_session.commit()
+
+    class FakeLLMClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def complete(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> str:
+            assert "Bullish AI earnings" in user_prompt
+            return "# Overview\n\nAI earnings led the market narrative."
+
+    monkeypatch.setattr("app.analyzers.report_generator.LLMClient", FakeLLMClient)
+
+    report = await generate_report(
+        db_session,
+        ReportType.DAILY,
+        ["us"],
+        ["finance"],
+        date.today(),
+        date.today(),
+    )
+    await db_session.commit()
+
+    stored = await db_session.scalar(select(Report).where(Report.id == report.id))
+    assert stored is not None
+    assert stored.title == "Daily Intelligence Report"
+    assert stored.content.startswith("# Overview")
+    assert stored.item_count == 2
 
 
 @pytest.mark.asyncio

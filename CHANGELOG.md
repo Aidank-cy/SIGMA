@@ -38,6 +38,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Expand analyzer infrastructure tests for report persistence, summarization failure logging, and LLM retry exhaustion logging.
 - Expand collector infrastructure tests for RSS normalization, persistence shape, deduplication, and source metadata.
 - Align the health endpoint test with the shared backend TestClient fixture.
 - Expand admin logs tests for source, status, date-range, combined filters, pagination, and non-admin guards.
