@@ -37,6 +37,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Align the health endpoint test with the shared backend TestClient fixture.
 - Expand admin logs tests for source, status, date-range, combined filters, pagination, and non-admin guards.
 - Expand admin LLM tests for config reads, updates, usage rollups, and non-admin guards.
 - Expand admin users tests for pagination, search, role updates, deactivation, deletion, self-protection, and non-admin guards.
