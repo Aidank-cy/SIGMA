@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add region-grouped Admin Sources columns with per-source toggles, sync actions, and market-prefilled source creation.
 - Add Playwright E2E coverage with deterministic backend seeding for auth, dashboard pagination, news infinite scroll, markets, analytics, reports, settings, admin, sync, item detail, i18n, and auth guards.
 - Add a source collection endpoint that queues real persisted collector runs from the Sync page.
 - Add PostgreSQL-backed market candle storage for 30-minute and daily chart ranges with Redis-backed 1D and 5D one-minute candles.

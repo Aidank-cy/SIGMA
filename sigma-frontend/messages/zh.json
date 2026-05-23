@@ -227,10 +227,12 @@
     "regionNames": {
       "us": "美国",
       "cn": "中国",
+      "hk": "香港",
       "jp": "日本",
       "eu": "欧洲",
       "kr": "韩国",
-      "tw": "台湾"
+      "tw": "台湾",
+      "global": "全球"
     },
     "sectorNames": {
       "technology": "科技",
@@ -651,6 +653,12 @@
       "logsTitle": "{name} 的日志",
       "items": "条",
       "emptyLogs": "此数据源暂无日志。",
+      "emptyRegion": "此区域暂无数据源。",
+      "sourceCount": "{count} 个数据源",
+      "toggleSource": "切换 {name}",
+      "syncQueued": "数据源同步已加入队列。",
+      "syncError": "无法同步此数据源。",
+      "syncSource": "同步 {name}",
       "types": {
         "rss": "RSS",
         "api": "API",

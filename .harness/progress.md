@@ -1529,3 +1529,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Analytics now passes selected range days to sentiment and keyword stats, fetches up to 500 items for chart buckets, and filters report cards by `generated_at`. Backend stats endpoints accept dynamic `days` windows, and the items API allows page sizes up to 500 for analytics. Verified with `./hooks/post-file-edit.sh` and `python3 -m pytest --tb=short -q`.
 - Timestamp: 2026-05-23T03:13:09Z
+
+### [Maintenance] Sub-feature: Region-grouped admin sources
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/components/admin/AdminSourcesPanel.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Admin Sources now renders US, CN, HK, JP, EU, and Global columns, groups unknown markets into Global, supports per-row active toggles and source collection, and opens create with the column market preselected. Verified with `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-23T03:16:37Z

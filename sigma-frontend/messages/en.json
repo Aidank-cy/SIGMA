@@ -227,10 +227,12 @@
     "regionNames": {
       "us": "US",
       "cn": "China",
+      "hk": "Hong Kong",
       "jp": "Japan",
       "eu": "Europe",
       "kr": "Korea",
-      "tw": "Taiwan"
+      "tw": "Taiwan",
+      "global": "Global"
     },
     "sectorNames": {
       "technology": "Technology",
@@ -651,6 +653,12 @@
       "logsTitle": "Logs for {name}",
       "items": "items",
       "emptyLogs": "No logs for this source.",
+      "emptyRegion": "No sources in this region.",
+      "sourceCount": "{count, plural, =0 {No sources} one {# source} other {# sources}}",
+      "toggleSource": "Toggle {name}",
+      "syncQueued": "Source sync queued.",
+      "syncError": "Unable to sync this source.",
+      "syncSource": "Sync {name}",
       "types": {
         "rss": "RSS",
         "api": "API",
