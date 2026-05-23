@@ -1574,3 +1574,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Enriched repeated-title API collector content with available metadata, added a collector regression test, displayed market point changes beside percentages, filtered cluttered Asia 1D chart ticks, and switched Analytics 24h trend/volume charts to hourly buckets with a precise 24-hour query window.
 - Follow-ups: None.
 - Timestamp: 2026-05-23T09:28:06Z
+
+### [Maintenance] Round 5 and 6 market, news, and content fixes
+- Status: COMPLETE
+- Files modified: sigma-backend/app/collectors/api_collector.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_collectors.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/app/[locale]/(main)/items/[id]/page.tsx, sigma-frontend/src/app/[locale]/(main)/news/page.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Made FRED fallback content human-readable, hid metadata-only raw item bodies behind localized source-link UI, preserved News category/market/keyword/page state in URL params, changed Analytics date windows to full ISO sliding timestamps, skipped Alpha Vantage for DAX while rejecting suspiciously small quotes, and corrected the Nikkei 225 hidden tick to 10:00.
+- Follow-ups: None.
+- Timestamp: 2026-05-23T10:19:42Z

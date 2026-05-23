@@ -234,7 +234,7 @@ export default function AnalyticsPage() {
     } else {
       date.setDate(date.getDate() - rangeDays)
     }
-    return date.toISOString().slice(0, rangeDays <= 1 ? 19 : 10)
+    return date.toISOString()
   }, [rangeDays])
   const sentiment = useSentimentStats(rangeDays)
   const keywords = useTrendingKeywords(rangeDays)

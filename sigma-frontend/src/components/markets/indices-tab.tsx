@@ -34,7 +34,7 @@ const marketRegionMap = Object.fromEntries(
 
 const SYMBOL_HIDDEN_TICKS: Record<string, number[]> = {
   HSI: [120],
-  N225: [60],
+  N225: [120],
   SSE: [90],
 }
 

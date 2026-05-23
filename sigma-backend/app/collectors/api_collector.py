@@ -71,17 +71,25 @@ class APICollector(BaseCollector):
             if title:
                 item["content"] = title
         if item.get("content") == item.get("title") or item.get("content_raw") == item.get("title"):
-            extra_parts = []
-            for field in ("press_release", "link", "notes", "realtime_start", "realtime_end"):
-                value = self._extract_path(entry, field)
-                value_text = str(value).strip() if value is not None else ""
-                if value_text and value_text != item.get("title", ""):
-                    extra_parts.append(f"{field}: {value_text}")
-            if extra_parts:
-                enriched = f"{item.get('title', '')}. {'; '.join(extra_parts)}"
-                item["content"] = enriched
-                if "content_raw" in item:
-                    item["content_raw"] = enriched
+            title = item.get("title", "")
+            link = self._extract_path(entry, "link")
+            press_release = self._extract_path(entry, "press_release")
+            realtime_start = self._extract_path(entry, "realtime_start")
+            realtime_end = self._extract_path(entry, "realtime_end")
+            parts = [title]
+            if realtime_start:
+                release_date = f"Release date: {realtime_start}"
+                if realtime_end and realtime_end != realtime_start:
+                    release_date += f" to {realtime_end}"
+                parts.append(release_date)
+            if press_release:
+                parts.append("This release includes a press release")
+            if link:
+                parts.append(f"Source: {link}")
+            enriched = ". ".join(part for part in parts if part)
+            item["content"] = enriched
+            if "content_raw" in item:
+                item["content_raw"] = enriched
         metadata_fields = self.config.get("metadata_fields") or []
         metadata = {
             str(field): self._extract_path(entry, field)

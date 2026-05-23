@@ -122,6 +122,11 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix DAX quote selection so Alpha Vantage ETF prices are skipped and suspiciously tiny index quotes are discarded.
+- Fix FRED release content enrichment to use readable metadata sentences and hide metadata-only raw content behind a source link.
+- Fix News filters and pagination so category, market, keyword, and page state survive item-detail back navigation through URL parameters.
+- Fix Analytics range queries to use precise sliding ISO timestamps for every selected time window.
+- Fix the Nikkei 225 hidden 1-day chart tick so the 10:00 label is removed instead of 09:00.
 - Fix FRED release collection so sparse metadata records produce summary-ready content instead of repeating the title.
 - Fix Dashboard and Markets index change labels to show absolute point moves alongside percentage changes.
 - Fix cluttered 1-day Asia market chart ticks for SSE Composite, Hang Seng Index, and Nikkei 225.

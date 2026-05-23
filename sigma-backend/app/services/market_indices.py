@@ -80,7 +80,7 @@ INDEX_CONFIGS: tuple[IndexConfig, ...] = (
     IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "HSI", "^hsi", 19553.61, 0.32, "HKD"),
     IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "N225", "^nkx", 38570.76, -0.12, "JPY"),
     IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", None, "FTSE", "^ukx", 8433.21, 0.21, "GBP"),
-    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", None, "DAX", "^dax", 18772.85, 0.37, "EUR"),
+    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", None, "", "^dax", 18772.85, 0.37, "EUR"),
     IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", None, "KS11", "^kospi", 2650.30, 0.45, "KRW"),
     IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", None, "TWII", "^twse", 20500.15, 0.28, "TWD"),
 )
@@ -127,6 +127,14 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
     quote = await _fetch_index_quote(config)
     if quote is None:
         quote = await _quote_from_redis_candle(config)
+    if quote is not None and config.fallback_value > 0 and quote.current < config.fallback_value * 0.1:
+        LOGGER.warning(
+            "Discarding suspicious quote for %s: got %.2f but expected ~%.2f",
+            config.symbol,
+            quote.current,
+            config.fallback_value,
+        )
+        quote = None
     if quote is None:
         LOGGER.warning(
             "Using last-resort fallback quote for %s because live market data providers returned no quote.",
@@ -240,7 +248,7 @@ async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> IndexQuote | N
 
 async def _fetch_alpha_vantage_quote(config: IndexConfig) -> IndexQuote | None:
     token = os.getenv("ALPHAVANTAGE_KEY", "")
-    if not token:
+    if not token or not config.alpha_symbol:
         return None
     try:
         async with httpx.AsyncClient(timeout=8) as client:

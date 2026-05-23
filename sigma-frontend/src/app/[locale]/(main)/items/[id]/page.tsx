@@ -9,7 +9,6 @@ import { useState } from "react";
 import { ItemSidebar } from "@/components/feed/ItemSidebar";
 import { RawContent } from "@/components/feed/RawContent";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useItem } from "@/hooks/useItems";
@@ -29,6 +28,9 @@ export default function ItemDetailPage() {
   if (!item) {
     return <div className="rounded-2xl border border-dashed border-border p-10 text-muted-foreground">{t("empty")}</div>;
   }
+
+  const isMetadataOnly = item.content_raw.startsWith(item.title)
+    && (item.content_raw.includes("Release date:") || item.content_raw.includes("Source:"));
 
   return (
     <article className="grid gap-8 p-6 lg:grid-cols-[1fr_280px] lg:p-8">
@@ -85,7 +87,24 @@ export default function ItemDetailPage() {
             </button>
             {isRawOpen ? (
               <div className="mt-5 rounded-2xl border border-border bg-card p-5">
-                <RawContent content={item.content_raw} />
+                {isMetadataOnly ? (
+                  <div className="flex flex-col gap-4">
+                    <p className="text-sm leading-6 text-muted-foreground">{t("metadataOnly")}</p>
+                    {item.content_url ? (
+                      <Link
+                        className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-full bg-sigma-text px-4 text-sm font-medium text-sigma-bg shadow-apple-soft transition-transform hover:-translate-y-0.5"
+                        href={item.content_url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {t("originalSource")}
+                        <ExternalLink className="h-4 w-4" aria-hidden />
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : (
+                  <RawContent content={item.content_raw} />
+                )}
               </div>
             ) : null}
           </section>

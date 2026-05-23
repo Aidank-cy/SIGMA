@@ -216,6 +216,47 @@ async def test_index_quote_uses_fallback_provider_after_configured_providers_mis
     assert quote.previous_close == pytest.approx(3152.71)
 
 
+def test_dax_skips_alpha_vantage_etf_symbol() -> None:
+    """DAX avoids Alpha Vantage's ETF symbol trap and falls through to Stooq."""
+    dax = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "DAX")
+
+    assert dax.alpha_symbol == ""
+    assert dax.stooq_symbol == "^dax"
+
+
+@pytest.mark.asyncio
+async def test_build_index_discards_suspiciously_small_quote(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Quotes far below the configured index baseline are ignored before rendering."""
+    dax = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "DAX")
+
+    async def fake_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
+        return market_indices.IndexQuote(current=30.0, change_pct=0.5, previous_close=29.85)
+
+    async def fake_intraday(_config: market_indices.IndexConfig) -> None:
+        return None
+
+    async def fake_historical(
+        _config: market_indices.IndexConfig,
+        _value: float,
+        _change_pct: float,
+    ) -> dict[str, market_indices.MarketSparkline]:
+        return {}
+
+    monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
+    monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
+    monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
+    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+
+    index = await market_indices._build_index(dax)
+
+    assert index.value == pytest.approx(dax.fallback_value)
+    assert index.change_pct == pytest.approx(dax.fallback_change_pct)
+    assert "Discarding suspicious quote for DAX: got 30.00" in caplog.text
+
+
 def test_market_cache_ttl_shortens_during_trading() -> None:
     """Market-index cache freshness uses a shorter TTL during live sessions."""
     assert market_indices._market_cache_ttl_seconds(datetime(2026, 5, 18, 14, 0, tzinfo=UTC)) == 15
