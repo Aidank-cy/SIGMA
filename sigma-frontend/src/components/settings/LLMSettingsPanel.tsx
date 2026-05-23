@@ -93,6 +93,7 @@ export function LLMSettingsPanel({
         ...configData,
         api_keys: (configData.api_keys ?? []).map((entry) => ({
           ...entry,
+          is_default: Boolean(entry.is_default),
           provider: entry.provider || configData.provider,
           token_limit: entry.token_limit || 1_000_000
         }))
@@ -198,6 +199,7 @@ export function LLMSettingsPanel({
 
   const dailyBudgetPercent =
     form.daily_token_limit > 0 ? Math.min(100, Math.round((totals.today / form.daily_token_limit) * 100)) : 0;
+  const hasExplicitDefault = form.api_keys.some((entry) => entry.is_default);
 
   const hasInvalidApiKeys = form.api_keys.some(
     (entry) =>
@@ -230,12 +232,18 @@ export function LLMSettingsPanel({
       ...form,
       api_keys: [
         ...form.api_keys,
-        { key: "", name: t("newKeyName"), provider: form.provider, token_limit: 1_000_000 }
+        {
+          is_default: form.api_keys.length === 0,
+          key: "",
+          name: t("newKeyName"),
+          provider: form.provider,
+          token_limit: 1_000_000
+        }
       ]
     });
   }
 
-  function updateApiKey(index: number, field: keyof LLMApiKey, value: string | number) {
+  function updateApiKey(index: number, field: keyof LLMApiKey, value: string | number | boolean) {
     setForm({
       ...form,
       api_keys: form.api_keys.map((entry, entryIndex) =>
@@ -244,16 +252,36 @@ export function LLMSettingsPanel({
     });
   }
 
-  function removeApiKey(index: number) {
+  function setDefaultApiKey(index: number) {
     setForm({
       ...form,
-      api_keys: form.api_keys.filter((_, entryIndex) => entryIndex !== index)
+      api_keys: form.api_keys.map((entry, entryIndex) => ({
+        ...entry,
+        is_default: entryIndex === index
+      }))
+    });
+  }
+
+  function removeApiKey(index: number) {
+    const nextKeys = form.api_keys.filter((_, entryIndex) => entryIndex !== index);
+    const normalizedKeys = nextKeys.some((entry) => entry.is_default)
+      ? nextKeys
+      : nextKeys.map((entry, entryIndex) => ({ ...entry, is_default: entryIndex === 0 }));
+    setForm({
+      ...form,
+      api_keys: normalizedKeys
     });
   }
 
   async function save() {
     try {
-      await onSave(form);
+      await onSave({
+        ...form,
+        api_keys: form.api_keys.map((entry, index) => ({
+          ...entry,
+          is_default: entry.is_default || (!hasExplicitDefault && index === 0)
+        }))
+      });
       toast.showToast(t("saved"), "success");
     } catch (error) {
       toast.showToast(error instanceof Error ? error.message : t("error"), "error");
@@ -268,28 +296,93 @@ export function LLMSettingsPanel({
     <div className="space-y-6">
       <section className="space-y-4">
         <Card className="space-y-4 p-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <CustomSelect
-              labelMode="stacked"
-              label={t("provider")}
-              onChange={(value) =>
-                setForm({
-                  ...form,
-                  provider: value as LLMConfig["provider"],
-                  model: models[value][0]
-                })
-              }
-              options={providerOptions}
-              value={form.provider}
-            />
-            <CustomSelect
-              labelMode="stacked"
-              label={t("model")}
-              onChange={(value) => setForm({ ...form, model: value })}
-              options={models[form.provider].map((model) => ({ label: model, value: model }))}
-              value={form.model}
-            />
-          </div>
+          <section className="space-y-3 rounded-lg border border-sigma-line p-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-sigma-text">{t("apiKeys")}</h3>
+                <p className="mt-1 text-xs leading-5 text-sigma-muted">{t("apiKeysCaption")}</p>
+              </div>
+              <Button onClick={addApiKey} size="sm" type="button" variant="secondary">
+                <Plus className="h-4 w-4" aria-hidden />
+                {t("addKey")}
+              </Button>
+            </div>
+            {form.api_keys.length === 0 ? (
+              <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
+            ) : (
+              <div className="space-y-4">
+                {groupedApiKeys.map((group) => (
+                  <div className="space-y-2" key={group.provider}>
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-sigma-muted">
+                      {t(`providers.${group.provider}`)}
+                    </h4>
+                    <div className="space-y-3">
+                      {group.entries.map(({ entry, index }) => {
+                        const isDefault = entry.is_default || (!hasExplicitDefault && index === 0);
+                        return (
+                          <div
+                            className={
+                              isDefault
+                                ? "grid gap-3 rounded-lg border-l-4 border-primary bg-primary/5 p-3 lg:grid-cols-[0.85fr_1fr_1fr_0.85fr_auto]"
+                                : "grid gap-3 rounded-lg bg-sigma-elevated p-3 lg:grid-cols-[0.85fr_1fr_1fr_0.85fr_auto]"
+                            }
+                            key={index}
+                          >
+                            <CustomSelect
+                              labelMode="stacked"
+                              label={t("provider")}
+                              onChange={(value) => updateApiKey(index, "provider", value)}
+                              options={providerOptions}
+                              value={entry.provider}
+                            />
+                            <Input
+                              label={t("keyName")}
+                              labelMode="stacked"
+                              onChange={(event) => updateApiKey(index, "name", event.target.value)}
+                              value={entry.name}
+                            />
+                            <Input
+                              label={t("keyValue")}
+                              labelMode="stacked"
+                              onChange={(event) => updateApiKey(index, "key", event.target.value)}
+                              type="password"
+                              value={entry.key}
+                            />
+                            <TokenLimitInput
+                              label={t("tokenLimit")}
+                              onChange={(value) => updateApiKey(index, "token_limit", value)}
+                              value={entry.token_limit}
+                            />
+                            <div className="flex flex-col gap-2 self-center">
+                              <Button
+                                className="justify-center"
+                                onClick={() => setDefaultApiKey(index)}
+                                size="sm"
+                                type="button"
+                                variant={isDefault ? "primary" : "secondary"}
+                              >
+                                {isDefault ? t("defaultKey") : t("setDefault")}
+                              </Button>
+                              <Button
+                                aria-label={t("deleteKey")}
+                                onClick={() => removeApiKey(index)}
+                                size="sm"
+                                type="button"
+                                variant="ghost"
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden />
+                                {t("deleteKey")}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
           <label className="flex items-center justify-between gap-4 rounded-lg border border-sigma-line p-3 text-sm font-medium text-sigma-text">
             <span className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-sigma-muted" aria-hidden />
@@ -337,81 +430,17 @@ export function LLMSettingsPanel({
                 <DailyUsageSparkline data={dailyUsageData} />
               </Card>
             </section>
-          ) : (
-            <section className="space-y-3 rounded-lg border border-sigma-line p-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-sigma-text">{t("apiKeys")}</h3>
-                  <p className="mt-1 text-xs leading-5 text-sigma-muted">{t("apiKeysCaption")}</p>
-                </div>
-                <Button onClick={addApiKey} size="sm" type="button" variant="secondary">
-                  <Plus className="h-4 w-4" aria-hidden />
-                  {t("addKey")}
-                </Button>
-              </div>
-              {form.api_keys.length === 0 ? (
-                <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
-              ) : (
-                <div className="space-y-4">
-                  {groupedApiKeys.map((group) => (
-                    <div className="space-y-2" key={group.provider}>
-                      <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-sigma-muted">
-                        {t(`providers.${group.provider}`)}
-                      </h4>
-                      <div className="space-y-3">
-                        {group.entries.map(({ entry, index }) => (
-                          <div
-                            className="grid gap-3 rounded-lg bg-sigma-elevated p-3 lg:grid-cols-[0.9fr_1fr_1fr_0.8fr_auto]"
-                            key={index}
-                          >
-                            <CustomSelect
-                              labelMode="stacked"
-                              label={t("provider")}
-                              onChange={(value) => updateApiKey(index, "provider", value)}
-                              options={providerOptions}
-                              value={entry.provider}
-                            />
-                            <Input
-                              label={t("keyName")}
-                              labelMode="stacked"
-                              onChange={(event) => updateApiKey(index, "name", event.target.value)}
-                              value={entry.name}
-                            />
-                            <Input
-                              label={t("keyValue")}
-                              labelMode="stacked"
-                              onChange={(event) => updateApiKey(index, "key", event.target.value)}
-                              type="password"
-                              value={entry.key}
-                            />
-                            <Input
-                              label={t("tokenLimit")}
-                              labelMode="stacked"
-                              min={1}
-                              onChange={(event) => updateApiKey(index, "token_limit", Number(event.target.value))}
-                              type="number"
-                              value={entry.token_limit}
-                            />
-                            <Button
-                              aria-label={t("deleteKey")}
-                              className="self-center"
-                              onClick={() => removeApiKey(index)}
-                              size="sm"
-                              type="button"
-                              variant="ghost"
-                            >
-                              <Trash2 className="h-4 w-4" aria-hidden />
-                              {t("deleteKey")}
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
+          ) : null}
+          <section className="grid gap-4 xl:grid-cols-[3fr_1fr]">
+            <Card className="p-5">
+              <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>
+              <TokenTrendChart data={trendData} />
+            </Card>
+            <Card className="p-5">
+              <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>
+              <FunctionUsageChart data={functionData} />
+            </Card>
+          </section>
           <Button className="w-full" disabled={!showCharts && hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
             {t("save")}
           </Button>
@@ -423,21 +452,62 @@ export function LLMSettingsPanel({
         <UsageCard label={t("week")} tokens={totals.week} />
         <UsageCard label={t("month")} tokens={totals.month} />
       </section>
-
-      {showCharts ? (
-        <section className="grid gap-4 xl:grid-cols-2">
-          <Card className="p-5">
-            <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>
-            <TokenTrendChart data={trendData} />
-          </Card>
-          <Card className="p-5">
-            <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>
-            <FunctionUsageChart data={functionData} />
-          </Card>
-        </section>
-      ) : null}
     </div>
   );
+}
+
+function TokenLimitInput({
+  label,
+  onChange,
+  value
+}: {
+  label: string;
+  onChange: (value: number) => void;
+  value: number;
+}) {
+  const [rawValue, setRawValue] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+
+  function handleChange(nextRaw: string) {
+    setRawValue(nextRaw);
+    const parsed = parseTokenAmount(nextRaw);
+    if (parsed !== null && parsed > 0) {
+      onChange(parsed);
+    }
+  }
+
+  return (
+    <Input
+      label={label}
+      labelMode="stacked"
+      onBlur={() => {
+        setIsEditing(false);
+        setRawValue("");
+      }}
+      onChange={(event) => handleChange(event.target.value)}
+      onFocus={() => {
+        setIsEditing(true);
+        setRawValue(String(value));
+      }}
+      type="text"
+      value={isEditing ? rawValue : value.toLocaleString()}
+    />
+  );
+}
+
+function parseTokenAmount(rawValue: string): number | null {
+  const normalized = rawValue.trim().replace(/,/g, "");
+  const match = normalized.match(/^(\d+(?:\.\d+)?)([kKmM])?$/);
+  if (!match) {
+    return null;
+  }
+  const amount = Number.parseFloat(match[1]);
+  if (!Number.isFinite(amount)) {
+    return null;
+  }
+  const suffix = match[2]?.toLowerCase();
+  const multiplier = suffix === "m" ? 1_000_000 : suffix === "k" ? 1_000 : 1;
+  return Math.round(amount * multiplier);
 }
 
 function UsageCard({ label, tokens }: { label: string; tokens: number }) {

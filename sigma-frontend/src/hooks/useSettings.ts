@@ -46,9 +46,15 @@ export function useSettingsMutations() {
     updateReportConfig: useMutation({
       mutationFn: (payload: UserReportConfig) =>
         apiFetch<UserReportConfig>("/me/report-config", {
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            ...payload,
+            report_frequency: payload.report_frequencies?.[0] ?? payload.report_frequency
+          }),
           method: "PUT"
-        }),
+        }).then((response) => ({
+          ...response,
+          report_frequencies: payload.report_frequencies ?? [response.report_frequency]
+        })),
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["report-config"] })
     }),
     updateRetention: useMutation({

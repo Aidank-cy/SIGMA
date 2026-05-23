@@ -51,7 +51,7 @@ export function AdminDashboardPanel() {
             <h2 className="text-lg font-semibold">{t("trend")}</h2>
             <span className="text-xs font-medium text-sigma-muted">{t("refresh")}</span>
           </div>
-          {trend.isLoading ? <Skeleton className="h-[280px] w-full" /> : <TrendLine data={trendData} />}
+          {trend.isLoading ? <Skeleton className="h-[280px] w-full" /> : <TrendLine data={trendData} variant="bar" />}
         </Card>
 
         <Card className="overflow-hidden">

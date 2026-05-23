@@ -1590,3 +1590,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Changed only Sentiment Trend to build one-minute buckets across the selected published-time window, carry forward the last known sentiment through empty buckets, and auto-fetch all item pages so Sentiment Overview, Sentiment Trend, Article Volume, and Source Distribution share the same complete selected range.
 - Follow-ups: None.
 - Timestamp: 2026-05-23T11:33:51Z
+
+### [Maintenance] Settings and admin LLM panel refactor
+- Status: COMPLETE
+- Files created: sigma-frontend/src/lib/selection.ts
+- Files modified: sigma-frontend/src/app/[locale]/(main)/news/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/admin/AdminDashboardPanel.tsx, sigma-frontend/src/components/admin/AdminLLMPanel.tsx, sigma-frontend/src/components/charts/TrendLine.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added shared multi-select toggle behavior for News and Settings, capped retention options at 90 days, switched report frequency and market filters to ALL-aware pill controls, added default API-key handling with K/M token-limit parsing, moved user cost guard and user-scoped LLM usage charts into the configuration card, replaced the admin LLM wrapper with a user list/detail development view, and changed the admin collection trend to a bar chart. Verified `git diff --check`, `npm run build`, and a browser smoke check of `/en/settings`; direct `npm run lint` still prompts for first-time ESLint configuration in this repo.
+- Follow-ups: Replace the admin LLM panel's existing-hook fallback data with dedicated user-scoped admin endpoints once the backend contract is added.
+- Timestamp: 2026-05-23T12:37:53Z

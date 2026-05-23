@@ -67,6 +67,7 @@ export interface LLMApiKey {
   key: string;
   provider: string;
   token_limit: number;
+  is_default: boolean;
 }
 
 export interface LLMUsageDay {
@@ -177,6 +178,7 @@ export interface WatchlistTrend {
 
 export interface UserReportConfig {
   report_frequency: ReportType;
+  report_frequencies?: ReportType[];
   markets: Market[];
   categories: Category[];
   is_active: boolean;

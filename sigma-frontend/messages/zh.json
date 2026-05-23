@@ -473,11 +473,13 @@
       "en": "英文"
     },
     "retention": {
-      "title": "数据保留",
-      "days": "{count} 天"
+      "title": "Data Retention",
+      "days": "{count} Days"
     },
     "reports": {
       "title": "报告配置",
+      "all": "全部",
+      "allMarkets": "全部",
       "daily": "日报",
       "weekly": "周报",
       "monthly": "月报",
@@ -729,6 +731,8 @@
       "keyName": "Key 名称",
       "keyValue": "API Key",
       "tokenLimit": "Token 上限",
+      "defaultKey": "默认",
+      "setDefault": "设为默认",
       "deleteKey": "删除",
       "emptyKeys": "还没有保存 API Key。",
       "keyCount": "{count} 个 API Key",
@@ -745,6 +749,19 @@
       "noUsageData": "暂无使用数据。",
       "dailyTokenBudget": "Daily Token Budget",
       "dailyTokenBudgetCaption": "{tokens} of {limit} tokens used today.",
+      "userList": "用户",
+      "selectUser": "选择用户查看详情",
+      "selectUserCaption": "从列表中选择用户，查看该用户的 LLM Key、生成报告和用量趋势。",
+      "reportsByKey": "按 API Key 分类的报告",
+      "totalReports": "报告总数",
+      "totalTokens": "总 Token 消耗",
+      "reportContent": "报告内容",
+      "tokenCost": "Token 消耗",
+      "reportBreakdown": "报告类型分布",
+      "reportGeneration": "报告生成",
+      "reportGenerationToggle": "切换报告生成",
+      "reportTitleSuffix": "情报报告",
+      "tokenUnit": "tokens",
       "providers": {
         "anthropic": "Anthropic",
         "openai": "OpenAI",

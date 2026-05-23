@@ -28,6 +28,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add persisted drag-and-drop region ordering for the Markets sectors grid.
 - Add route loading states for the main authenticated pages.
 - Add admin LLM provider distribution and daily token budget visualizations backed by provider and model usage rollups.
+- Add a user-focused admin LLM master-detail panel with API key, report summary, report content, and usage chart sections.
 - Add Markets index range controls, Korea and Taiwan index coverage, watchlist creation from Markets, and region-grouped sector sections.
 - Add visible hero chart time labels, richer price tooltips, and browser-time dashboard greetings.
 - Add index logo badges and currency labels to the dashboard hero market chart.
@@ -70,6 +71,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace Dashboard feed infinite scroll with numbered pagination while preserving infinite scroll on the News page.
 - Update market-index tests to cover the current urllib Yahoo fetch path and Redis-first candle warmup.
 - Change News to open in list view by default.
+- Change Settings report filters to use News-style multi-select pills, cap data retention at 90 days, and move user LLM API-key/default-key controls ahead of cost guard and usage charts.
+- Change the admin collection trend from a line chart to a bar chart for clearer data points.
 - Change Dashboard ticker sparklines to choose trading, closed, and unopened rendering states, with larger price text and currency on a second line.
 - Change Dashboard and Markets multi-day market chart X-axes to continuous Beijing-time trading-day indexes so weekends and no-data days do not create visual gaps.
 - Change Dashboard major market index rows into clickable controls that drive the HeroChart selection.

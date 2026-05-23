@@ -473,11 +473,13 @@
       "en": "English"
     },
     "retention": {
-      "title": "Data retention",
-      "days": "{count} days"
+      "title": "Data Retention",
+      "days": "{count} Days"
     },
     "reports": {
       "title": "Report configuration",
+      "all": "ALL",
+      "allMarkets": "ALL",
       "daily": "Daily",
       "weekly": "Weekly",
       "monthly": "Monthly",
@@ -729,6 +731,8 @@
       "keyName": "Key name",
       "keyValue": "API key",
       "tokenLimit": "Token limit",
+      "defaultKey": "Default",
+      "setDefault": "Set as default",
       "deleteKey": "Delete",
       "emptyKeys": "No API keys saved yet.",
       "keyCount": "{count, plural, =0 {No API keys} one {# API key} other {# API keys}}",
@@ -745,6 +749,19 @@
       "noUsageData": "No usage data yet.",
       "dailyTokenBudget": "Daily Token Budget",
       "dailyTokenBudgetCaption": "{tokens} of {limit} tokens used today.",
+      "userList": "Users",
+      "selectUser": "Select a user to view details",
+      "selectUserCaption": "Choose a user from the list to inspect their LLM keys, generated reports, and usage trend.",
+      "reportsByKey": "Reports by API Key",
+      "totalReports": "Total Reports",
+      "totalTokens": "Total Tokens",
+      "reportContent": "Report Content",
+      "tokenCost": "Token Cost",
+      "reportBreakdown": "Report breakdown",
+      "reportGeneration": "Report generation",
+      "reportGenerationToggle": "Toggle report generation",
+      "reportTitleSuffix": "intelligence report",
+      "tokenUnit": "tokens",
       "providers": {
         "anthropic": "Anthropic",
         "openai": "OpenAI",

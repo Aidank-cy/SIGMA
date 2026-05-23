@@ -23,18 +23,20 @@ import { useItems } from "@/hooks/useItems";
 import { useLLMSettings } from "@/hooks/useLLMSettings";
 import { useReportConfig, useSettingsMutations } from "@/hooks/useSettings";
 import { useLastCollectionStats } from "@/hooks/useStats";
+import { toggleMultiSelection } from "@/lib/selection";
 import type { Category, LLMConfig, LLMUsageResponse, Locale, Market, ReportType, UserReportConfig } from "@/lib/types";
 
-const retentionOptions = [7, 30, 60, 90, 180, 365] as const;
+const retentionOptions = [7, 30, 60, 90] as const;
 const categories: Category[] = ["politics", "finance", "technology", "macro"];
-const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "global"];
+const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "kr", "tw"];
 const reportTypes: ReportType[] = ["daily", "weekly", "monthly"];
 
 const defaultReportConfig: UserReportConfig = {
   categories: [],
   is_active: true,
   markets: [],
-  report_frequency: "daily"
+  report_frequency: "daily",
+  report_frequencies: []
 };
 
 const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((module) => module.TrendLine), {
@@ -101,8 +103,9 @@ export default function SettingsPage() {
     if (!reportConfig) {
       return;
     }
-    setReportPayload(reportConfig);
-    setReportBaseline(reportConfig);
+    const normalized = normalizeReportConfig(reportConfig);
+    setReportPayload(normalized);
+    setReportBaseline(normalized);
   }, [reportConfig]);
 
   const dirty = useMemo(
@@ -354,28 +357,29 @@ function ReportConfigSection({
   setPayload: (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => void;
 }) {
   const t = useTranslations("settings");
+  const activeReportFrequencies = payload.report_frequencies ?? (payload.report_frequency ? [payload.report_frequency] : []);
 
   return (
     <Card className="p-5">
       <div className="flex flex-col gap-5">
         <h2 className="text-base font-semibold text-foreground">{t("reports.title")}</h2>
-        <div className="overflow-x-auto pb-1 pt-1">
-          <SegmentControl
-            activeId={payload.report_frequency}
-            items={reportTypes.map((value) => ({ id: value, label: t(`reports.${value}`) }))}
-            onChange={(value) => setPayload((current) => ({ ...current, report_frequency: value as ReportType }))}
-          />
-        </div>
-        <ToggleSet
-          label={t("reports.markets")}
-          onToggle={(value) =>
+        <MultiSelectPills
+          allLabel={t("reports.all")}
+          label={t("reports.title")}
+          onChange={(values) =>
             setPayload((current) => ({
               ...current,
-              markets: current.markets.includes(value as Market)
-                ? current.markets.filter((item) => item !== value)
-                : [...current.markets, value as Market]
+              report_frequency: values[0] ?? "daily",
+              report_frequencies: values
             }))
           }
+          options={reportTypes.map((value) => ({ label: t(`reports.${value}`), value }))}
+          values={activeReportFrequencies}
+        />
+        <MultiSelectPills
+          allLabel={t("reports.allMarkets")}
+          label={t("reports.markets")}
+          onChange={(values) => setPayload((current) => ({ ...current, markets: values }))}
           options={markets.map((value) => ({ label: t(`markets.${value}`), value }))}
           values={payload.markets}
         />
@@ -604,9 +608,9 @@ function PasswordResetModal({ email, isOpen, onClose }: { email: string; isOpen:
   );
 }
 
-interface Option {
+interface Option<T extends string = string> {
   label: string;
-  value: string;
+  value: T;
 }
 
 function ToggleSet({
@@ -643,13 +647,66 @@ function ToggleSet({
   );
 }
 
+function MultiSelectPills<T extends string>({
+  allLabel,
+  label,
+  onChange,
+  options,
+  values
+}: {
+  allLabel: string;
+  label: string;
+  onChange: (values: T[]) => void;
+  options: Array<Option<T>>;
+  values: T[];
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          className={values.length === 0 ? activePillClass : inactivePillClass}
+          onClick={() => onChange([])}
+          type="button"
+        >
+          {allLabel}
+        </button>
+        {options.map((option) => (
+          <button
+            className={values.includes(option.value) ? activePillClass : inactivePillClass}
+            key={option.value}
+            onClick={() => onChange(toggleMultiSelection(values, option.value, options.length))}
+            type="button"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const activePillClass = "rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-200";
+const inactivePillClass = "rounded-xl bg-muted px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted/80 hover:text-foreground";
+
 function reportConfigsEqual(left: UserReportConfig, right: UserReportConfig) {
   return (
     left.is_active === right.is_active &&
-    left.report_frequency === right.report_frequency &&
+    stringArraysEqual(reportFrequencies(left), reportFrequencies(right)) &&
     stringArraysEqual(left.categories, right.categories) &&
     stringArraysEqual(left.markets, right.markets)
   );
+}
+
+function normalizeReportConfig(config: UserReportConfig): UserReportConfig {
+  return {
+    ...config,
+    report_frequencies: config.report_frequencies ?? (config.report_frequency ? [config.report_frequency] : [])
+  };
+}
+
+function reportFrequencies(config: UserReportConfig): ReportType[] {
+  return config.report_frequencies ?? (config.report_frequency ? [config.report_frequency] : []);
 }
 
 function stringArraysEqual(left: string[], right: string[]) {
