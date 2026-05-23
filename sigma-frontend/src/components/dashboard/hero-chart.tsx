@@ -101,6 +101,8 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
 
   const currentData = markets.find((market) => market.symbol === selectedMarket) ?? markets[0];
   const isPositive = (currentData?.change ?? 0) >= 0;
+  const changeSign = isPositive ? "+" : "";
+  const pointChange = (currentData?.price ?? 0) - (currentData?.previousClose ?? 0);
   const chartData = currentData?.dataByRange[activeRange] ?? currentData?.data ?? [];
   const chartSessions = currentData?.tradingHours.beijing_sessions?.length
     ? currentData.tradingHours.beijing_sessions
@@ -226,10 +228,7 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
             key={`${selectedMarket}-change`}
           >
             {isPositive ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
-            <span>
-              {isPositive ? "+" : ""}
-              {currentData?.change.toFixed(2)}%
-            </span>
+            <span>{`${changeSign}${pointChange.toFixed(2)} (${changeSign}${currentData.change.toFixed(2)}%)`}</span>
           </motion.div>
         </div>
       </div>

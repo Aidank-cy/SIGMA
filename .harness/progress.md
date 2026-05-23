@@ -1566,3 +1566,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: `notify_new_items` now clears `sigma:items:*` Redis cache keys after successful collection and item list cache TTL is reduced to 60 seconds. All API item/stat/watchlist/admin trend time windows now use `published_at` rather than `collected_at`. Verified targeted Ruff, focused tests (`17 passed, 1 warning`), full backend `python3 -m pytest --tb=short -q` (`170 passed, 1 warning`), and audit greps showing no `CollectedItem.collected_at` references remain under `sigma-backend/app/api`.
 - Timestamp: 2026-05-23T08:26:23Z
+
+### [Maintenance] Round 4 market and analytics fixes
+- Status: COMPLETE
+- Files modified: sigma-backend/app/collectors/api_collector.py, sigma-backend/tests/test_collectors.py, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Enriched repeated-title API collector content with available metadata, added a collector regression test, displayed market point changes beside percentages, filtered cluttered Asia 1D chart ticks, and switched Analytics 24h trend/volume charts to hourly buckets with a precise 24-hour query window.
+- Follow-ups: None.
+- Timestamp: 2026-05-23T09:28:06Z

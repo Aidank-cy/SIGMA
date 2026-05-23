@@ -120,6 +120,50 @@ async def test_api_collector_unwraps_nested_results_and_cleans_fields() -> None:
 
 
 @pytest.mark.asyncio
+async def test_api_collector_enriches_repeated_title_content() -> None:
+    """API collector enriches sparse metadata items when body text falls back to the title."""
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "releases": [
+                    {
+                        "name": "Federal Recovery Programs and BEA Statistics",
+                        "notes": None,
+                        "link": "https://fred.stlouisfed.org/release?rid=331",
+                        "realtime_start": "2026-05-22",
+                        "realtime_end": "2026-05-22",
+                    }
+                ]
+            },
+        )
+
+    source = _source(
+        SourceType.API,
+        {
+            "base_url": "https://api.test",
+            "endpoint": "/fred/releases",
+            "response_path": "releases",
+            "field_mapping": {
+                "title": "name",
+                "content": "notes",
+                "content_url": "link",
+                "published_at": "realtime_start",
+            },
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        items = await APICollector(source, client).collect()
+
+    assert items[0]["content"] == (
+        "Federal Recovery Programs and BEA Statistics. "
+        "link: https://fred.stlouisfed.org/release?rid=331; "
+        "realtime_start: 2026-05-22; realtime_end: 2026-05-22"
+    )
+
+
+@pytest.mark.asyncio
 async def test_rss_collector_parses_feed_entries() -> None:
     """RSS collector parses feed XML into raw items."""
 
