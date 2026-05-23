@@ -131,6 +131,7 @@ async def test_api_collector_enriches_repeated_title_content() -> None:
                     {
                         "name": "Federal Recovery Programs and BEA Statistics",
                         "notes": None,
+                        "press_release": True,
                         "link": "https://fred.stlouisfed.org/release?rid=331",
                         "realtime_start": "2026-05-22",
                         "realtime_end": "2026-05-22",
@@ -158,8 +159,9 @@ async def test_api_collector_enriches_repeated_title_content() -> None:
 
     assert items[0]["content"] == (
         "Federal Recovery Programs and BEA Statistics. "
-        "link: https://fred.stlouisfed.org/release?rid=331; "
-        "realtime_start: 2026-05-22; realtime_end: 2026-05-22"
+        "Release date: 2026-05-22. "
+        "This release includes a press release. "
+        "Source: https://fred.stlouisfed.org/release?rid=331"
     )
 
 

@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useInView } from "framer-motion"
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Clock, Search, X } from "lucide-react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useMemo, useRef, useState } from "react"
 
@@ -15,6 +15,7 @@ const categoryFilters: Array<Category | ""> = ["", "politics", "finance", "techn
 const marketFilters: Array<Market | ""> = ["", "us", "cn", "hk", "jp", "eu", "kr", "tw"]
 const sortOptions = ["latest", "relevant", "discussed"] as const
 const validCategories = new Set<Category>(["politics", "finance", "technology", "macro", "other"])
+const validMarkets = new Set<Market>(["us", "cn", "hk", "jp", "eu", "kr", "tw"])
 
 const stripeColors: Record<Category, string> = {
   finance: "bg-chart-1",
@@ -317,19 +318,36 @@ function toggleMultiSelection<T extends string>(current: T[], value: T | "", tot
   return next
 }
 
+function parseCategoriesParam(value: string): Category[] {
+  return value.split(",").filter((category): category is Category => validCategories.has(category as Category))
+}
+
+function parseMarketsParam(value: string): Market[] {
+  return value.split(",").filter((market): market is Market => validMarkets.has(market as Market))
+}
+
+function parsePageParam(value: string): number {
+  const page = Number.parseInt(value, 10)
+  return Number.isFinite(page) && page > 0 ? page : 1
+}
+
 export default function NewsPage() {
   const t = useTranslations("news")
   const feedT = useTranslations("feed")
+  const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const keywordParam = searchParams.get("keyword") ?? ""
   const categoryParam = searchParams.get("category") ?? ""
+  const marketParam = searchParams.get("market") ?? ""
+  const pageParam = searchParams.get("page") ?? ""
   const dateFromParam = searchParams.get("date_from") ?? undefined
-  const [searchQuery, setSearchQuery] = useState(keywordParam)
-  const [activeCategory, setActiveCategory] = useState<Category[]>([])
-  const [activeMarket, setActiveMarket] = useState<Market[]>([])
+  const [searchQuery, setSearchQuery] = useState(() => keywordParam)
+  const [activeCategory, setActiveCategory] = useState<Category[]>(() => parseCategoriesParam(categoryParam))
+  const [activeMarket, setActiveMarket] = useState<Market[]>(() => parseMarketsParam(marketParam))
   const [sortBy, setSortBy] = useState("latest")
   const [isFocused, setIsFocused] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(() => parsePageParam(pageParam))
   const categoryKey = activeCategory.join(",")
   const marketKey = activeMarket.join(",")
   const filters = useMemo<ItemFilters>(
@@ -348,20 +366,41 @@ export default function NewsPage() {
 
   useEffect(() => {
     setSearchQuery(keywordParam)
-  }, [keywordParam])
+    setActiveCategory(parseCategoriesParam(categoryParam))
+    setActiveMarket(parseMarketsParam(marketParam))
+    setCurrentPage(parsePageParam(pageParam))
+  }, [categoryParam, keywordParam, marketParam, pageParam])
 
   useEffect(() => {
-    if (validCategories.has(categoryParam as Category)) {
-      setActiveCategory([categoryParam as Category])
-      return
+    const params = new URLSearchParams()
+    if (categoryKey) {
+      params.set("category", categoryKey)
     }
-    setActiveCategory([])
-  }, [categoryParam])
+    if (marketKey) {
+      params.set("market", marketKey)
+    }
+    if (searchQuery.trim()) {
+      params.set("keyword", searchQuery.trim())
+    }
+    if (dateFromParam) {
+      params.set("date_from", dateFromParam)
+    }
+    if (currentPage > 1) {
+      params.set("page", String(currentPage))
+    }
+    const query = params.toString()
+    router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false })
+  }, [categoryKey, currentPage, dateFromParam, marketKey, pathname, router, searchQuery])
 
-  useEffect(() => {
+  function resetToFirstPage() {
     setCurrentPage(1)
     window.scrollTo(0, 0)
-  }, [categoryKey, dateFromParam, marketKey, searchQuery])
+  }
+
+  function handlePageChange(page: number) {
+    setCurrentPage(page)
+    window.scrollTo(0, 0)
+  }
 
   return (
     <div className="space-y-8 p-6 lg:p-8">
@@ -380,7 +419,10 @@ export default function NewsPage() {
             isFocused ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-muted-foreground/40"
           )}
           onBlur={() => setIsFocused(false)}
-          onChange={(event) => setSearchQuery(event.target.value)}
+          onChange={(event) => {
+            setSearchQuery(event.target.value)
+            setCurrentPage(1)
+          }}
           onFocus={() => setIsFocused(true)}
           placeholder={t("searchPlaceholder")}
           type="text"
@@ -393,7 +435,10 @@ export default function NewsPage() {
               className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors hover:bg-muted"
               exit={{ opacity: 0, scale: 0.8 }}
               initial={{ opacity: 0, scale: 0.8 }}
-              onClick={() => setSearchQuery("")}
+              onClick={() => {
+                setSearchQuery("")
+                resetToFirstPage()
+              }}
               type="button"
             >
               <X className="h-4 w-4 text-muted-foreground" />
@@ -413,11 +458,12 @@ export default function NewsPage() {
                   : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               )}
               key={category || "all"}
-              onClick={() =>
+              onClick={() => {
                 setActiveCategory((current) =>
                   toggleMultiSelection(current, category, categoryFilters.filter((item) => item !== "").length)
                 )
-              }
+                resetToFirstPage()
+              }}
               type="button"
               whileTap={{ scale: 0.95 }}
             >
@@ -436,11 +482,12 @@ export default function NewsPage() {
                   : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               )}
               key={market || "all-markets"}
-              onClick={() =>
+              onClick={() => {
                 setActiveMarket((current) =>
                   toggleMultiSelection(current, market, marketFilters.filter((item) => item !== "").length)
                 )
-              }
+                resetToFirstPage()
+              }}
               type="button"
               whileTap={{ scale: 0.95 }}
             >
@@ -476,7 +523,7 @@ export default function NewsPage() {
       <PaginationBar
         currentPage={currentPage}
         hasNext={data?.has_next ?? false}
-        onPageChange={setCurrentPage}
+        onPageChange={handlePageChange}
         totalPages={totalPages}
       />
     </div>
