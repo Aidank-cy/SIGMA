@@ -117,10 +117,10 @@ export interface ItemDetail extends ItemSummary {
 }
 
 export interface ItemFilters {
-  category?: Category;
+  category?: Category | string;
   date_from?: string;
   date_to?: string;
-  market?: Market;
+  market?: Market | string;
   keyword?: string;
   page_size?: number;
   source_id?: string;

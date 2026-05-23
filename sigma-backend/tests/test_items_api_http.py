@@ -60,6 +60,14 @@ def test_items_http_list_pagination_filters_formats_and_detail(client: TestClien
     combined = client.get("/api/v1/items?category=finance&market=us&keyword=stock").json()
     assert {item["title"] for item in combined["items"]} == {"AI stock rally", "Bank stock earnings"}
 
+    multi_category = client.get("/api/v1/items?category=finance,technology").json()
+    assert multi_category["total"] == 7
+    assert {item["category"] for item in multi_category["items"]} == {"finance", "technology"}
+
+    multi_market = client.get("/api/v1/items?market=us,cn").json()
+    assert multi_market["total"] == 8
+    assert {item["market"] for item in multi_market["items"]} == {"us", "cn"}
+
     minimal = client.get("/api/v1/items?format=minimal").json()
     assert "source_name" not in minimal["items"][0]
     assert "content_url" not in minimal["items"][0]

@@ -37,7 +37,8 @@ export function useItems(filters: ItemFilters = {}) {
     queryKey: ["items", filters],
     queryFn: ({ pageParam }) =>
       apiFetch<PaginatedResponse<ItemSummary>>(`/items?${buildItemQuery(filters, pageParam)}`),
-    getNextPageParam: (lastPage) => (lastPage.has_next ? lastPage.page + 1 : undefined)
+    getNextPageParam: (lastPage) => (lastPage.has_next ? lastPage.page + 1 : undefined),
+    placeholderData: undefined
   });
 
   return {
@@ -54,7 +55,8 @@ export function useItems(filters: ItemFilters = {}) {
 export function useItemsPaginated(filters: ItemFilters = {}, page: number) {
   const query = useQuery({
     queryKey: ["items", "paginated", filters, page],
-    queryFn: () => apiFetch<PaginatedResponse<ItemSummary>>(`/items?${buildItemQuery(filters, page)}`)
+    queryFn: () => apiFetch<PaginatedResponse<ItemSummary>>(`/items?${buildItemQuery(filters, page)}`),
+    placeholderData: undefined
   });
 
   return {

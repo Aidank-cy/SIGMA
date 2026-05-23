@@ -1536,3 +1536,17 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Admin Sources now renders US, CN, HK, JP, EU, and Global columns, groups unknown markets into Global, supports per-row active toggles and source collection, and opens create with the column market preselected. Verified with `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-23T03:16:37Z
+
+### [Maintenance] Sub-feature: Remove frontend watchlist surfaces
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/markets/page.tsx, sigma-frontend/src/components/dashboard/right-sidebar.tsx, sigma-frontend/src/components/markets/watchlist-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Removed the Markets Watchlist tab and deleted its component while preserving watchlist hooks, backend routes, models, and i18n keys for future use. The dashboard right sidebar now shows only trending keywords. Verified with `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-23T05:30:46Z
+
+### [Maintenance] Sub-feature: Dashboard and News feed restructuring
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/app/[locale]/(main)/news/page.tsx, sigma-frontend/src/hooks/useItems.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/api/v1/routes/items.py, sigma-backend/app/collectors/api_collector.py, sigma-backend/app/collectors/rss_collector.py, sigma-backend/app/collectors/normalizer.py, sigma-backend/tests/test_collectors.py, sigma-backend/tests/test_items_api_http.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Removed Dashboard search controls, replaced the Dashboard feed with four category columns, converted News to list-only pagination with multi-select category and market filters, removed News bookmarks, added comma-separated backend item filters, and hardened collector normalization for nested payloads, Atom content, HTML cleanup, and additional timestamps. Verified targeted Ruff, `python3 -m pytest tests/test_collectors.py tests/test_items_api_http.py --tb=short -q` (`15 passed, 1 warning`), `./hooks/post-file-edit.sh`, `npm run build`, and full backend `python3 -m pytest --tb=short -q` (`168 passed, 1 warning`).
+- Timestamp: 2026-05-23T06:54:08Z

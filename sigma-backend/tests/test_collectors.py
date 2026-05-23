@@ -70,6 +70,56 @@ async def test_api_collector_sends_default_user_agent() -> None:
 
 
 @pytest.mark.asyncio
+async def test_api_collector_unwraps_nested_results_and_cleans_fields() -> None:
+    """API collector unwraps nested payloads and normalizes mapped values."""
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "payload": {
+                    "data": {
+                        "results": [
+                            {
+                                "headline": "<b>Nested &amp; item</b>",
+                                "body": None,
+                                "links": [{"url": "https://api.test/nested"}],
+                                "providerPublishTime": 1_779_186_600_000,
+                            }
+                        ]
+                    }
+                }
+            },
+        )
+
+    source = _source(
+        SourceType.API,
+        {
+            "base_url": "https://api.test",
+            "endpoint": "/nested",
+            "response_path": "payload",
+            "field_mapping": {
+                "title": "headline",
+                "content": "body",
+                "content_url": "links.0.url",
+                "published_at": "providerPublishTime",
+            },
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        items = await APICollector(source, client).collect()
+
+    assert items == [
+        {
+            "title": "Nested & item",
+            "content": "Nested & item",
+            "content_url": "https://api.test/nested",
+            "published_at": "2026-05-19T10:30:00+00:00",
+        }
+    ]
+
+
+@pytest.mark.asyncio
 async def test_rss_collector_parses_feed_entries() -> None:
     """RSS collector parses feed XML into raw items."""
 
@@ -151,6 +201,33 @@ async def test_rss_collector_sends_default_user_agent() -> None:
 
 
 @pytest.mark.asyncio
+async def test_rss_collector_uses_atom_content_and_strips_html() -> None:
+    """RSS collector reads Atom content payloads and strips markup."""
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            text="""<?xml version="1.0"?>
+            <feed xmlns="http://www.w3.org/2005/Atom">
+              <entry>
+                <title>Atom &amp; Brief</title>
+                <link href="https://atom.test/item" />
+                <updated>2026-05-19T10:30:00Z</updated>
+                <content type="html">&lt;p&gt;Atom &amp;amp; content&lt;/p&gt;</content>
+              </entry>
+            </feed>""",
+        )
+
+    source = _source(SourceType.RSS, {"feed_url": "https://atom.test/feed.xml", "max_entries": 5})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        items = await RSSCollector(source, client).collect()
+
+    assert items[0]["title"] == "Atom & Brief"
+    assert items[0]["content"] == "Atom & content"
+    assert items[0]["content_url"] == "https://atom.test/item"
+
+
+@pytest.mark.asyncio
 async def test_scraper_collector_extracts_html_items() -> None:
     """Scraper collector extracts items with CSS selectors."""
 
@@ -229,15 +306,42 @@ def test_normalizer_parses_layer_five_datetime_formats() -> None:
         {"title": "Unix", "content": "Content", "published_at": 1_779_186_600},
         {"title": "Human", "content": "Content", "published_at": "May 19, 2026"},
         {"title": "Alpha", "content": "Content", "published_at": "20260519T103000"},
+        {"title": "DateOnly", "content": "Content", "published_at": "2026-05-19"},
+        {"title": "Slash", "content": "Content", "published_at": "2026/05/19 10:30:00"},
+        {"title": "DayMonth", "content": "Content", "published_at": "19 May 2026"},
+        {"title": "Millis", "content": "Content", "published_at": 1_779_186_600_000},
     ]
 
     normalized = normalize_items(source, raw_items)
 
-    assert [item.title for item in normalized] == ["ISO", "Unix", "Human", "Alpha"]
+    assert [item.title for item in normalized] == ["ISO", "Unix", "Human", "Alpha", "DateOnly", "Slash", "DayMonth", "Millis"]
     assert normalized[0].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
     assert normalized[1].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
     assert normalized[2].published_at.isoformat() == "2026-05-19T00:00:00+00:00"
     assert normalized[3].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
+    assert normalized[4].published_at.isoformat() == "2026-05-19T00:00:00+00:00"
+    assert normalized[5].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
+    assert normalized[6].published_at.isoformat() == "2026-05-19T00:00:00+00:00"
+    assert normalized[7].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
+
+
+def test_normalizer_cleans_title_and_content_text() -> None:
+    """Normalizer strips markup and entities from text fields."""
+    source = _source(SourceType.RSS, {"feed_url": "https://rss.test/feed.xml"})
+
+    normalized = normalize_items(
+        source,
+        [
+            {
+                "title": "<b>Clean &amp; Title</b>",
+                "content": "<p>Body&nbsp;text</p>",
+                "published_at": "2026-05-19T10:30:00Z",
+            }
+        ],
+    )
+
+    assert normalized[0].title == "Clean & Title"
+    assert normalized[0].content_raw == "Body text"
 
 
 def test_normalizer_skips_articles_older_than_thirty_days() -> None:

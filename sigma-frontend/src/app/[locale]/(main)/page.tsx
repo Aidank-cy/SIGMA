@@ -1,16 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useTranslations } from "next-intl";
+import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
-import { NewsFeed } from "@/components/dashboard/news-feed";
 import { RightSidebar } from "@/components/dashboard/right-sidebar";
-import { SearchBar } from "@/components/dashboard/search-bar";
+import { useItemsPaginated } from "@/hooks/useItems";
 import { useMarketIndices } from "@/hooks/useMarketIndices";
-import type { Category, ItemFilters, Market } from "@/lib/types";
+import type { Category, ItemFilters, ItemSummary } from "@/lib/types";
 
 const HeroChart = dynamic(() => import("@/components/dashboard/hero-chart").then((mod) => mod.HeroChart), {
   loading: () => <ChartSkeleton />,
@@ -24,6 +25,15 @@ const TickerCarousel = dynamic(() => import("@/components/dashboard/ticker-carou
   loading: () => <TickerSkeleton />,
   ssr: false
 });
+
+type DashboardNewsColumnKey = "politics" | "economy" | "finance" | "macro";
+
+const dashboardNewsColumns: Array<{ category: Category; key: DashboardNewsColumnKey }> = [
+  { category: "politics", key: "politics" },
+  { category: "technology", key: "economy" },
+  { category: "finance", key: "finance" },
+  { category: "macro", key: "macro" }
+];
 
 type GreetingKey =
   | "greetingMorning"
@@ -92,23 +102,102 @@ function StatsSkeleton() {
   );
 }
 
+function DashboardNewsByCategory({ baseFilters }: { baseFilters: ItemFilters }) {
+  const locale = useLocale();
+  const t = useTranslations("dashboard");
+  const politics = useItemsPaginated({ ...baseFilters, category: "politics", page_size: 4 }, 1);
+  const economy = useItemsPaginated({ ...baseFilters, category: "technology", page_size: 4 }, 1);
+  const finance = useItemsPaginated({ ...baseFilters, category: "finance", page_size: 4 }, 1);
+  const macro = useItemsPaginated({ ...baseFilters, category: "macro", page_size: 4 }, 1);
+  const queries = { economy, finance, macro, politics };
+
+  return (
+    <section className="space-y-5">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl font-bold text-foreground">{t("latestNews")}</h2>
+        <Link className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline" href={`/${locale}/news`}>
+          {t("viewAll")}
+          <ArrowUpRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4">
+        {dashboardNewsColumns.map((column) => (
+          <DashboardNewsColumn
+            category={column.category}
+            items={sortByPublishedAt(queries[column.key].data?.items ?? []).slice(0, 4)}
+            isLoading={queries[column.key].isLoading}
+            key={column.key}
+            title={t(`newsColumns.${column.key}`)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DashboardNewsColumn({
+  category,
+  isLoading,
+  items,
+  title
+}: {
+  category: Category;
+  isLoading: boolean;
+  items: ItemSummary[];
+  title: string;
+}) {
+  const locale = useLocale();
+  const t = useTranslations("dashboard");
+  const feedT = useTranslations("feed");
+
+  return (
+    <div className="flex min-h-[260px] flex-col rounded-xl border border-border bg-card p-4">
+      <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
+      <div className="flex flex-1 flex-col gap-2">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, index) => (
+            <div className="h-10 animate-pulse rounded-lg bg-muted" key={index} />
+          ))
+        ) : items.length > 0 ? (
+          items.map((item) => (
+            <Link
+              className="rounded-lg border border-border/70 bg-background/50 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+              href={`/${locale}/items/${item.id}`}
+              key={item.id}
+            >
+              <span className="block line-clamp-1">{item.title}</span>
+            </Link>
+          ))
+        ) : (
+          <p className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">{feedT("empty")}</p>
+        )}
+      </div>
+      <Link
+        className="mt-4 self-end text-sm font-semibold text-primary hover:underline"
+        href={`/${locale}/news?category=${category}`}
+      >
+        {t("viewDetails")}
+      </Link>
+    </div>
+  );
+}
+
+function sortByPublishedAt(items: ItemSummary[]): ItemSummary[] {
+  return [...items].sort((left, right) => new Date(right.published_at).getTime() - new Date(left.published_at).getTime());
+}
+
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
   const { user } = useAuth();
   const { data: marketData } = useMarketIndices();
-  const [category, setCategory] = useState<Category | "">("");
   const [greetingKey, setGreetingKey] = useState<GreetingKey>("greetingMorning");
-  const [market, setMarket] = useState<Market | "">("");
   const [activeMarket, setActiveMarket] = useState("");
-  const [query, setQuery] = useState("");
   const filters = useMemo<ItemFilters>(
     () => ({
-      category: category || undefined,
-      keyword: query.trim() || undefined,
-      market: market || undefined,
       page_size: 18
     }),
-    [category, market, query]
+    []
   );
 
   useEffect(() => {
@@ -176,19 +265,8 @@ export default function DashboardPage() {
           <StatsRow />
         </motion.section>
 
-        <motion.section animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} transition={{ delay: 0.4, duration: 0.4 }}>
-          <SearchBar
-            category={category}
-            market={market}
-            query={query}
-            setCategory={setCategory}
-            setMarket={setMarket}
-            setQuery={setQuery}
-          />
-        </motion.section>
-
         <motion.section animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} transition={{ delay: 0.5, duration: 0.4 }}>
-          <NewsFeed filters={filters} paginated />
+          <DashboardNewsByCategory baseFilters={filters} />
         </motion.section>
       </div>
 

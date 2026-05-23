@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+import html
+import re
+from typing import Any
 
 import feedparser
 import httpx
@@ -34,11 +37,12 @@ class RSSCollector(BaseCollector):
         items: list[RawCollectedItem] = []
         for entry in feed.entries[:max_entries]:
             published = self._parse_published(entry.get("published") or entry.get("updated"))
+            content = self._entry_content(entry)
             items.append(
                 {
-                    "title": str(entry.get("title", "")),
-                    "content": str(entry.get("summary", "")),
-                    "summary": str(entry.get("summary", "")) or None,
+                    "title": self._clean_text(entry.get("title", "")),
+                    "content": content,
+                    "summary": self._clean_text(entry.get("summary", "")) or None,
                     "content_url": entry.get("link"),
                     "published_at": published.isoformat(),
                     "metadata": {"source_format": "rss"},
@@ -57,3 +61,21 @@ class RSSCollector(BaseCollector):
         if parsed.tzinfo is None:
             return parsed.replace(tzinfo=timezone.utc)
         return parsed
+
+    @classmethod
+    def _entry_content(cls, entry: Any) -> str:
+        content = entry.get("summary", "")
+        content_entries = entry.get("content") or []
+        if content_entries:
+            first = content_entries[0]
+            if isinstance(first, dict):
+                content = first.get("value") or content
+            else:
+                content = getattr(first, "value", content)
+        return cls._clean_text(content)
+
+    @staticmethod
+    def _clean_text(value: object) -> str:
+        text = html.unescape(str(value or ""))
+        text = re.sub(r"<[^>]+>", " ", text)
+        return re.sub(r"\s+", " ", text).strip()

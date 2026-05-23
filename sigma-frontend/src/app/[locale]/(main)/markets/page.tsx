@@ -7,11 +7,10 @@ import { useState } from "react"
 import { IndicesTab } from "@/components/markets/indices-tab"
 import { MarketSummary } from "@/components/markets/market-summary"
 import { SectorsTab } from "@/components/markets/sectors-tab"
-import { WatchlistTab } from "@/components/markets/watchlist-tab"
 
-type MarketTab = "indices" | "watchlist" | "sectors"
+type MarketTab = "indices" | "sectors"
 
-const tabIds: MarketTab[] = ["indices", "watchlist", "sectors"]
+const tabIds: MarketTab[] = ["indices", "sectors"]
 
 export default function MarketsPage() {
   const t = useTranslations("markets")
@@ -27,6 +26,8 @@ export default function MarketsPage() {
         <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
         <p className="mt-1 text-foreground/60">{t("subtitle")}</p>
       </motion.div>
+
+      <MarketSummary />
 
       <motion.div
         animate={{ opacity: 1, y: 0 }}
@@ -63,12 +64,9 @@ export default function MarketsPage() {
           transition={{ duration: 0.3 }}
         >
           {activeTab === "indices" && <IndicesTab />}
-          {activeTab === "watchlist" && <WatchlistTab />}
           {activeTab === "sectors" && <SectorsTab />}
         </motion.div>
       </AnimatePresence>
-
-      <MarketSummary />
     </div>
   )
 }

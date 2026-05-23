@@ -1,4 +1,7 @@
+import html
 import os
+import re
+from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urljoin
 
@@ -45,10 +48,8 @@ class APICollector(BaseCollector):
             response = await client.request(method, url, headers=headers, params=params)
             response.raise_for_status()
             payload = response.json()
-            entries = self._extract_path(payload, self.config.get("response_path"))
-            if isinstance(entries, dict):
-                entries = [entries]
-            if not isinstance(entries, list) or not entries:
+            entries = self._extract_entries(self._extract_path(payload, self.config.get("response_path")))
+            if not entries:
                 break
             collected.extend(self._map_entry(entry) for entry in entries if isinstance(entry, dict))
         return collected
@@ -58,8 +59,19 @@ class APICollector(BaseCollector):
         item: RawCollectedItem = {}
         for target, source_path in mapping.items():
             value = self._extract_path(entry, source_path)
-            if value is not None:
+            value = self._coerce_value(value)
+            if value is None:
+                continue
+            if target == "published_at":
+                item[target] = self._coerce_datetime(value)
+            elif target in {"title", "content", "content_raw", "summary"}:
+                item[target] = self._clean_text(value)
+            else:
                 item[target] = str(value)
+        if not item.get("content") and not item.get("content_raw"):
+            title = item.get("title")
+            if title:
+                item["content"] = title
         metadata_fields = self.config.get("metadata_fields") or []
         metadata = {
             str(field): self._extract_path(entry, field)
@@ -69,6 +81,19 @@ class APICollector(BaseCollector):
         if metadata:
             item["metadata"] = metadata
         return item
+
+    @classmethod
+    def _extract_entries(cls, value: Any) -> list[dict[str, Any]]:
+        if isinstance(value, list):
+            return [entry for entry in value if isinstance(entry, dict)]
+        if isinstance(value, dict):
+            for key in ("data", "results", "articles", "items", "records", "news", "releases"):
+                nested = value.get(key)
+                nested_entries = cls._extract_entries(nested)
+                if nested_entries:
+                    return nested_entries
+            return [value]
+        return []
 
     @staticmethod
     def _extract_path(payload: Any, path: Any) -> Any:
@@ -85,6 +110,42 @@ class APICollector(BaseCollector):
             if value is None:
                 return None
         return value
+
+    @classmethod
+    def _coerce_value(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            for item in value:
+                coerced = cls._coerce_value(item)
+                if coerced not in (None, ""):
+                    return coerced
+            return None
+        return value
+
+    @staticmethod
+    def _coerce_datetime(value: Any) -> str:
+        if isinstance(value, datetime):
+            parsed = value
+        elif isinstance(value, int | float):
+            timestamp = float(value)
+            if timestamp > 10_000_000_000:
+                timestamp /= 1000
+            parsed = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        elif isinstance(value, str) and value.strip().isdigit():
+            timestamp = int(value.strip())
+            if timestamp > 10_000_000_000:
+                timestamp /= 1000
+            parsed = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        else:
+            return str(value)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.isoformat()
+
+    @staticmethod
+    def _clean_text(value: Any) -> str:
+        text = html.unescape(str(value or ""))
+        text = re.sub(r"<[^>]+>", " ", text)
+        return re.sub(r"\s+", " ", text).strip()
 
     @staticmethod
     def _resolve_env_values(values: dict[str, Any]) -> dict[str, Any]:

@@ -68,6 +68,13 @@
     "marketMovers": "主要市场指数",
     "latestNews": "最新资讯",
     "viewAll": "查看全部",
+    "viewDetails": "查看详情",
+    "newsColumns": {
+      "politics": "政治",
+      "economy": "经济",
+      "finance": "金融",
+      "macro": "宏观"
+    },
     "swipeHint": "滑动或使用方向键切换"
   },
   "pagination": {

@@ -107,9 +107,9 @@ def _item_predicate(
     if since:
         predicate.append(CollectedItem.collected_at >= since)
     if category:
-        predicate.append(CollectedItem.category == category)
+        predicate.append(CollectedItem.category.in_(_split_filter(category)))
     if market:
-        predicate.append(CollectedItem.market == market)
+        predicate.append(CollectedItem.market.in_(_split_filter(market)))
     if source_id:
         predicate.append(CollectedItem.source_id == source_id)
     if date_from:
@@ -120,6 +120,10 @@ def _item_predicate(
         pattern = f"%{keyword}%"
         predicate.append(or_(CollectedItem.title.ilike(pattern), CollectedItem.content_raw.ilike(pattern)))
     return predicate
+
+
+def _split_filter(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 
 def _minimal(item: CollectedItem) -> MinimalItem:

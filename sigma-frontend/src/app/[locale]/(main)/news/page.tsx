@@ -1,29 +1,20 @@
 "use client"
 
 import { AnimatePresence, motion, useInView } from "framer-motion"
-import { ArrowUpRight, Bookmark, BookmarkCheck, Check, ChevronDown, Clock, LayoutGrid, List, Loader2, Search, X } from "lucide-react"
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Clock, Search, X } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
-import { useItems } from "@/hooks/useItems"
+import { useItemsPaginated } from "@/hooks/useItems"
 import { cn } from "@/lib/utils"
 import type { Category, ItemFilters, ItemSummary, Market, Sentiment } from "@/lib/types"
-
-type ViewMode = "grid" | "list"
 
 const categoryFilters: Array<Category | ""> = ["", "politics", "finance", "technology", "macro"]
 const marketFilters: Array<Market | ""> = ["", "us", "cn", "hk", "jp", "eu", "kr", "tw"]
 const sortOptions = ["latest", "relevant", "discussed"] as const
-
-const categoryGradients: Record<Category, string> = {
-  finance: "from-emerald-600/80 via-emerald-500/60 to-emerald-400/40",
-  macro: "from-amber-500/80 via-amber-400/60 to-amber-300/40",
-  other: "from-muted-foreground/60 via-muted-foreground/40 to-muted/40",
-  politics: "from-indigo-600/80 via-indigo-500/60 to-indigo-400/40",
-  technology: "from-purple-600/80 via-purple-500/60 to-purple-400/40"
-}
+const validCategories = new Set<Category>(["politics", "finance", "technology", "macro", "other"])
 
 const stripeColors: Record<Category, string> = {
   finance: "bg-chart-1",
@@ -149,85 +140,12 @@ function SentimentBadge({ sentiment }: { sentiment: Sentiment }) {
   )
 }
 
-function GridNewsCard({
-  item,
-  index,
-  isBookmarked,
-  onToggleBookmark
-}: {
-  item: ItemSummary
-  index: number
-  isBookmarked: boolean
-  onToggleBookmark: (id: string) => void
-}) {
-  const t = useTranslations("feed")
-  const locale = useLocale()
-  const ref = useRef(null)
-  const isInView = useInView(ref, { margin: "-50px", once: true })
-  const sentiment = inferSentiment(item)
-  const time = useRelativeTime(item.published_at)
-
-  return (
-    <motion.article
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-      className="group relative overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
-      initial={{ opacity: 0, y: 40 }}
-      ref={ref}
-      transition={{ delay: index * 0.04, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-      whileHover={{ y: -6, transition: { duration: 0.25 } }}
-    >
-      <div className={cn("relative h-[120px] bg-gradient-to-br", categoryGradients[item.category])}>
-        <motion.button
-          className="absolute right-3 top-3 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/30"
-          onClick={() => onToggleBookmark(item.id)}
-          type="button"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-        </motion.button>
-        <div className="absolute bottom-3 left-3">
-          <span className="rounded-full bg-black/30 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-            {t(`categories.${item.category}`)}
-          </span>
-        </div>
-      </div>
-
-      <Link className="block p-5" href={`/${locale}/items/${item.id}`}>
-        <h3 className="mb-2 line-clamp-2 font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
-          {item.title}
-        </h3>
-        <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-foreground/60">
-          {item.summary ?? t("summaryFallback")}
-        </p>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2 text-xs text-foreground/55">
-            <span className="truncate font-semibold text-foreground/80">{item.source_name}</span>
-            <span className="text-foreground/35">|</span>
-            <span className="flex shrink-0 items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {time}
-            </span>
-          </div>
-          <SentimentBadge sentiment={sentiment} />
-        </div>
-      </Link>
-
-      <ArrowUpRight className="absolute right-5 top-5 h-5 w-5 opacity-0 text-primary transition-opacity group-hover:opacity-100" />
-    </motion.article>
-  )
-}
-
 function ListNewsCard({
   item,
-  index,
-  isBookmarked,
-  onToggleBookmark
+  index
 }: {
   item: ItemSummary
   index: number
-  isBookmarked: boolean
-  onToggleBookmark: (id: string) => void
 }) {
   const t = useTranslations("feed")
   const locale = useLocale()
@@ -263,38 +181,13 @@ function ListNewsCard({
 
         <div className="flex shrink-0 items-center gap-3">
           <SentimentBadge sentiment={sentiment} />
-          <motion.button
-            className={cn("rounded-xl p-2 transition-colors", isBookmarked ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground")}
-            onClick={() => onToggleBookmark(item.id)}
-            type="button"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            {isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-          </motion.button>
         </div>
       </div>
     </motion.article>
   )
 }
 
-function LoadingSkeleton({ viewMode }: { viewMode: ViewMode }) {
-  if (viewMode === "grid") {
-    return (
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {[1, 2, 3].map((key) => (
-          <div className="animate-pulse overflow-hidden rounded-xl border border-border bg-card" key={key}>
-            <div className="h-[120px] bg-muted" />
-            <div className="space-y-3 p-5">
-              <div className="h-4 w-3/4 rounded bg-muted" />
-              <div className="h-4 w-full rounded bg-muted" />
-              <div className="h-3 w-1/2 rounded bg-muted" />
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
+function LoadingSkeleton() {
   return (
     <div className="space-y-3">
       {[1, 2, 3].map((key) => (
@@ -311,78 +204,171 @@ function LoadingSkeleton({ viewMode }: { viewMode: ViewMode }) {
   )
 }
 
+function getPaginationItems(currentPage: number, totalPages: number): Array<number | "ellipsis-start" | "ellipsis-end"> {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1)
+  }
+
+  const windowSize = 5
+  const start = Math.max(1, Math.min(currentPage - 2, totalPages - windowSize + 1))
+  const end = Math.min(totalPages, start + windowSize - 1)
+  const items: Array<number | "ellipsis-start" | "ellipsis-end"> = []
+
+  if (start > 1) {
+    items.push(1)
+    if (start > 2) {
+      items.push("ellipsis-start")
+    }
+  }
+
+  for (let page = start; page <= end; page += 1) {
+    items.push(page)
+  }
+
+  if (end < totalPages) {
+    if (end < totalPages - 1) {
+      items.push("ellipsis-end")
+    }
+    items.push(totalPages)
+  }
+
+  return items
+}
+
+function PaginationBar({
+  currentPage,
+  hasNext,
+  onPageChange,
+  totalPages
+}: {
+  currentPage: number
+  hasNext: boolean
+  onPageChange: (page: number) => void
+  totalPages: number
+}) {
+  const t = useTranslations("pagination")
+  const items = getPaginationItems(currentPage, totalPages)
+  const previousDisabled = currentPage === 1
+  const nextDisabled = !hasNext
+
+  return (
+    <div className="mt-8 flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card/70 p-3 sm:flex-row">
+      <p className="text-sm font-medium text-foreground/65">{t("pageOf", { current: currentPage, total: totalPages })}</p>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          className="inline-flex h-10 items-center gap-1 rounded-lg border border-border px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+          disabled={previousDisabled}
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          type="button"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          {t("previous")}
+        </button>
+        {items.map((item) =>
+          typeof item === "number" ? (
+            <button
+              aria-current={item === currentPage ? "page" : undefined}
+              className={cn(
+                "h-10 min-w-10 rounded-lg border px-3 text-sm font-semibold transition-colors",
+                item === currentPage
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-foreground hover:bg-muted"
+              )}
+              key={item}
+              onClick={() => onPageChange(item)}
+              type="button"
+            >
+              {item}
+            </button>
+          ) : (
+            <span className="flex h-10 min-w-6 items-center justify-center text-sm font-semibold text-muted-foreground" key={item}>
+              ...
+            </span>
+          )
+        )}
+        <button
+          className="inline-flex h-10 items-center gap-1 rounded-lg border border-border px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+          disabled={nextDisabled}
+          onClick={() => onPageChange(currentPage + 1)}
+          type="button"
+        >
+          {t("next")}
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function toggleMultiSelection<T extends string>(current: T[], value: T | ""): T[] {
+  if (value === "") {
+    return []
+  }
+  if (current.length === 0) {
+    return []
+  }
+  if (current.includes(value)) {
+    return current.filter((item) => item !== value)
+  }
+  const next = [...current, value]
+  if (next.length >= 4) {
+    return []
+  }
+  return next.slice(0, 3)
+}
+
 export default function NewsPage() {
   const t = useTranslations("news")
   const feedT = useTranslations("feed")
   const searchParams = useSearchParams()
   const keywordParam = searchParams.get("keyword") ?? ""
+  const categoryParam = searchParams.get("category") ?? ""
   const dateFromParam = searchParams.get("date_from") ?? undefined
-  const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [searchQuery, setSearchQuery] = useState(keywordParam)
-  const [activeCategory, setActiveCategory] = useState<Category | "">("")
-  const [activeMarket, setActiveMarket] = useState<Market | "">("")
+  const [activeCategory, setActiveCategory] = useState<Category[]>([])
+  const [activeMarket, setActiveMarket] = useState<Market[]>([])
   const [sortBy, setSortBy] = useState("latest")
   const [isFocused, setIsFocused] = useState(false)
-  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
-  const loadMoreRef = useRef(null)
-  const isLoadMoreInView = useInView(loadMoreRef, { margin: "100px" })
+  const [currentPage, setCurrentPage] = useState(1)
+  const categoryKey = activeCategory.join(",")
+  const marketKey = activeMarket.join(",")
   const filters = useMemo<ItemFilters>(
     () => ({
-      category: activeCategory || undefined,
+      category: activeCategory.length > 0 ? activeCategory.join(",") : undefined,
       date_from: dateFromParam,
       keyword: searchQuery.trim() || undefined,
-      market: activeMarket || undefined,
-      page_size: 18
+      market: activeMarket.length > 0 ? activeMarket.join(",") : undefined,
+      page_size: 10
     }),
     [activeCategory, activeMarket, dateFromParam, searchQuery]
   )
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useItems(filters)
-  const items = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data])
-  const total = data?.pages[0]?.total ?? 0
-
-  useEffect(() => {
-    if (isLoadMoreInView && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage()
-    }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, isLoadMoreInView])
+  const { data, isLoading } = useItemsPaginated(filters, currentPage)
+  const items = data?.items ?? []
+  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / (data?.page_size ?? filters.page_size ?? 10)))
 
   useEffect(() => {
     setSearchQuery(keywordParam)
   }, [keywordParam])
 
-  const handleToggleBookmark = useCallback((id: string) => {
-    setBookmarked((current) => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
+  useEffect(() => {
+    if (validCategories.has(categoryParam as Category)) {
+      setActiveCategory([categoryParam as Category])
+      return
+    }
+    setActiveCategory([])
+  }, [categoryParam])
+
+  useEffect(() => {
+    setCurrentPage(1)
+    window.scrollTo(0, 0)
+  }, [categoryKey, dateFromParam, marketKey, searchQuery])
 
   return (
     <div className="space-y-8 p-6 lg:p-8">
-      <motion.div animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-4" initial={{ opacity: 0, y: 20 }}>
+      <motion.div animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }}>
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
           <p className="mt-1 text-sm text-foreground/60">{t("subtitle")}</p>
-        </div>
-        <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
-          <motion.button
-            className={cn("rounded-lg p-2.5 transition-all duration-200", viewMode === "grid" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-            onClick={() => setViewMode("grid")}
-            type="button"
-            whileTap={{ scale: 0.95 }}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </motion.button>
-          <motion.button
-            className={cn("rounded-lg p-2.5 transition-all duration-200", viewMode === "list" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-            onClick={() => setViewMode("list")}
-            type="button"
-            whileTap={{ scale: 0.95 }}
-          >
-            <List className="h-4 w-4" />
-          </motion.button>
         </div>
       </motion.div>
 
@@ -420,9 +406,14 @@ export default function NewsPage() {
         <div className="flex flex-wrap gap-2">
           {categoryFilters.map((category) => (
             <motion.button
-              className={cn("rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200", activeCategory === category ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground")}
+              className={cn(
+                "rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200",
+                (category === "" && activeCategory.length === 0) || (category !== "" && activeCategory.includes(category))
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+              )}
               key={category || "all"}
-              onClick={() => setActiveCategory(category)}
+              onClick={() => setActiveCategory((current) => toggleMultiSelection(current, category))}
               type="button"
               whileTap={{ scale: 0.95 }}
             >
@@ -434,9 +425,14 @@ export default function NewsPage() {
         <div className="flex flex-wrap gap-2">
           {marketFilters.map((market) => (
             <motion.button
-              className={cn("rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200", activeMarket === market ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground")}
+              className={cn(
+                "rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200",
+                (market === "" && activeMarket.length === 0) || (market !== "" && activeMarket.includes(market))
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+              )}
               key={market || "all-markets"}
-              onClick={() => setActiveMarket(market)}
+              onClick={() => setActiveMarket((current) => toggleMultiSelection(current, market))}
               type="button"
               whileTap={{ scale: 0.95 }}
             >
@@ -454,36 +450,27 @@ export default function NewsPage() {
       </motion.div>
 
       {isLoading ? (
-        <LoadingSkeleton viewMode={viewMode} />
+        <LoadingSkeleton />
       ) : items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-sm text-foreground/60">
           {feedT("empty")}
         </div>
       ) : (
         <AnimatePresence mode="sync">
-          {viewMode === "grid" ? (
-            <motion.div animate={{ opacity: 1 }} className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" exit={{ opacity: 0 }} initial={{ opacity: 0 }} key="grid">
-              {items.map((item, index) => (
-                <GridNewsCard index={index} isBookmarked={bookmarked.has(item.id)} item={item} key={item.id} onToggleBookmark={handleToggleBookmark} />
-              ))}
-            </motion.div>
-          ) : (
-            <motion.div animate={{ opacity: 1 }} className="space-y-3" exit={{ opacity: 0 }} initial={{ opacity: 0 }} key="list">
-              {items.map((item, index) => (
-                <ListNewsCard index={index} isBookmarked={bookmarked.has(item.id)} item={item} key={item.id} onToggleBookmark={handleToggleBookmark} />
-              ))}
-            </motion.div>
-          )}
+          <motion.div animate={{ opacity: 1 }} className="space-y-3" exit={{ opacity: 0 }} initial={{ opacity: 0 }} key="list">
+            {items.map((item, index) => (
+              <ListNewsCard index={index} item={item} key={item.id} />
+            ))}
+          </motion.div>
         </AnimatePresence>
       )}
 
-      <div className="py-8" ref={loadMoreRef}>
-        {isFetchingNextPage && <LoadingSkeleton viewMode={viewMode} />}
-        <motion.div animate={{ opacity: 1 }} className="mt-6 flex items-center justify-center gap-2 text-sm text-foreground/55" initial={{ opacity: 0 }}>
-          {isFetchingNextPage && <Loader2 className="h-4 w-4 animate-spin" />}
-          <span>{t("showing", { shown: items.length, total })}</span>
-        </motion.div>
-      </div>
+      <PaginationBar
+        currentPage={currentPage}
+        hasNext={data?.has_next ?? false}
+        onPageChange={setCurrentPage}
+        totalPages={totalPages}
+      />
     </div>
   )
 }

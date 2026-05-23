@@ -68,6 +68,13 @@
     "marketMovers": "Major Market Indices",
     "latestNews": "Latest News",
     "viewAll": "View All",
+    "viewDetails": "View details",
+    "newsColumns": {
+      "politics": "Politics",
+      "economy": "Economy",
+      "finance": "Finance",
+      "macro": "Macro"
+    },
     "swipeHint": "Swipe or use arrow keys to navigate"
   },
   "pagination": {
