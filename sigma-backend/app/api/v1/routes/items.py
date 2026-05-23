@@ -41,7 +41,7 @@ async def list_items(
         select(CollectedItem, DataSource.name)
         .join(DataSource, DataSource.id == CollectedItem.source_id)
         .where(*predicate)
-        .order_by(CollectedItem.collected_at.desc())
+        .order_by(CollectedItem.published_at.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )

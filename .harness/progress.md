@@ -1550,3 +1550,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Removed Dashboard search controls, replaced the Dashboard feed with four category columns, converted News to list-only pagination with multi-select category and market filters, removed News bookmarks, added comma-separated backend item filters, and hardened collector normalization for nested payloads, Atom content, HTML cleanup, and additional timestamps. Verified targeted Ruff, `python3 -m pytest tests/test_collectors.py tests/test_items_api_http.py --tb=short -q` (`15 passed, 1 warning`), `./hooks/post-file-edit.sh`, `npm run build`, and full backend `python3 -m pytest --tb=short -q` (`168 passed, 1 warning`).
 - Timestamp: 2026-05-23T06:54:08Z
+
+### [Maintenance] Sub-feature: News filter and collector normalization fixes
+- Status: COMPLETE
+- Files created: sigma-backend/app/collectors/utils.py, sigma-backend/alembic/versions/20260523_0004_collected_items_published_at_index.py
+- Files modified: sigma-frontend/src/app/[locale]/(main)/news/page.tsx, sigma-backend/app/api/v1/routes/items.py, sigma-backend/app/models/collected_item.py, sigma-backend/app/collectors/api_collector.py, sigma-backend/app/collectors/rss_collector.py, sigma-backend/app/collectors/scraper_collector.py, sigma-backend/app/collectors/normalizer.py, sigma-backend/tests/test_collectors.py, sigma-backend/tests/test_items_api_http.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Fixed News multi-select filters so choosing a category or market from the All state starts a real selection, removed the hard three-selection cap, and auto-reverts to All only when every non-All option is selected. Item listing now sorts by `published_at` with a new database index and migration. Collector text cleanup and datetime parsing now flow through shared utilities across API, RSS, scraper, and normalization paths. Verified no duplicated collector private parsing/cleaning helpers remain, targeted Ruff, targeted collector/items tests (`15 passed, 1 warning`), full backend `python3 -m pytest --tb=short -q` (`168 passed, 1 warning`), frontend `npm run build`, and `DATABASE_URL=postgresql+asyncpg://sigma:sigma@localhost:5432/sigma python3 -m alembic upgrade head`.
+- Timestamp: 2026-05-23T07:40:07Z

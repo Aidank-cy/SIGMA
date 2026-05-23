@@ -300,21 +300,21 @@ function PaginationBar({
   )
 }
 
-function toggleMultiSelection<T extends string>(current: T[], value: T | ""): T[] {
+function toggleMultiSelection<T extends string>(current: T[], value: T | "", totalOptions: number): T[] {
   if (value === "") {
     return []
   }
   if (current.length === 0) {
-    return []
+    return [value]
   }
   if (current.includes(value)) {
     return current.filter((item) => item !== value)
   }
   const next = [...current, value]
-  if (next.length >= 4) {
+  if (next.length >= totalOptions) {
     return []
   }
-  return next.slice(0, 3)
+  return next
 }
 
 export default function NewsPage() {
@@ -413,7 +413,11 @@ export default function NewsPage() {
                   : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               )}
               key={category || "all"}
-              onClick={() => setActiveCategory((current) => toggleMultiSelection(current, category))}
+              onClick={() =>
+                setActiveCategory((current) =>
+                  toggleMultiSelection(current, category, categoryFilters.filter((item) => item !== "").length)
+                )
+              }
               type="button"
               whileTap={{ scale: 0.95 }}
             >
@@ -432,7 +436,11 @@ export default function NewsPage() {
                   : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               )}
               key={market || "all-markets"}
-              onClick={() => setActiveMarket((current) => toggleMultiSelection(current, market))}
+              onClick={() =>
+                setActiveMarket((current) =>
+                  toggleMultiSelection(current, market, marketFilters.filter((item) => item !== "").length)
+                )
+              }
               type="button"
               whileTap={{ scale: 0.95 }}
             >

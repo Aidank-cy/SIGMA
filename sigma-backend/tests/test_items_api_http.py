@@ -86,8 +86,8 @@ def test_items_http_list_pagination_filters_formats_and_detail(client: TestClien
     missing = client.get(f"/api/v1/items/{uuid4()}")
     assert missing.status_code == 404
 
-    collected_at_values = [_parse_dt(item["collected_at"]) for item in full["items"]]
-    assert collected_at_values == sorted(collected_at_values, reverse=True)
+    published_at_values = [_parse_dt(item["published_at"]) for item in full["items"]]
+    assert published_at_values == sorted(published_at_values, reverse=True)
 
     empty = client.get("/api/v1/items?category=finance&market=us&keyword=xyznonexistent").json()
     assert empty["total"] == 0

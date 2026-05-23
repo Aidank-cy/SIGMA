@@ -22,6 +22,7 @@ class CollectedItem(UUIDPrimaryKeyMixin, Base):
     __table_args__ = (
         Index("ix_collected_items_category_market_collected_at", "category", "market", "collected_at"),
         Index("ix_collected_items_source_id_collected_at", "source_id", "collected_at"),
+        Index("ix_collected_items_published_at", "published_at"),
         Index("ix_collected_items_expires_at", "expires_at"),
         UniqueConstraint("content_url", name="uq_collected_items_content_url"),
     )

@@ -310,11 +310,12 @@ def test_normalizer_parses_layer_five_datetime_formats() -> None:
         {"title": "Slash", "content": "Content", "published_at": "2026/05/19 10:30:00"},
         {"title": "DayMonth", "content": "Content", "published_at": "19 May 2026"},
         {"title": "Millis", "content": "Content", "published_at": 1_779_186_600_000},
+        {"title": "Nanos", "content": "Content", "published_at": 1_779_186_600_000_000_000},
     ]
 
     normalized = normalize_items(source, raw_items)
 
-    assert [item.title for item in normalized] == ["ISO", "Unix", "Human", "Alpha", "DateOnly", "Slash", "DayMonth", "Millis"]
+    assert [item.title for item in normalized] == ["ISO", "Unix", "Human", "Alpha", "DateOnly", "Slash", "DayMonth", "Millis", "Nanos"]
     assert normalized[0].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
     assert normalized[1].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
     assert normalized[2].published_at.isoformat() == "2026-05-19T00:00:00+00:00"
@@ -323,6 +324,7 @@ def test_normalizer_parses_layer_five_datetime_formats() -> None:
     assert normalized[5].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
     assert normalized[6].published_at.isoformat() == "2026-05-19T00:00:00+00:00"
     assert normalized[7].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
+    assert normalized[8].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
 
 
 def test_normalizer_cleans_title_and_content_text() -> None:

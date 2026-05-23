@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add shared collector text/datetime utilities and a published-time item sort index.
 - Add a four-column dashboard news snapshot grouped by politics, economy, finance, and macro categories.
 - Add region-grouped Admin Sources columns with per-source toggles, sync actions, and market-prefilled source creation.
 - Add Playwright E2E coverage with deterministic backend seeding for auth, dashboard pagination, news infinite scroll, markets, analytics, reports, settings, admin, sync, item detail, i18n, and auth guards.
@@ -40,7 +41,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Sort item list results by source publication time instead of collection time.
 - Change the News page to list-only paginated results with multi-select category and market filters.
+- Centralize collector text cleaning and datetime parsing across API, RSS, scraper, and normalization flows.
 - Harden API, RSS, and normalization collectors for nested API payloads, Atom content, HTML cleanup, and broader timestamp formats.
 - Complete the final clean-state validation loop and Phase 6 sign-off across backend tests, Ruff, frontend build, Playwright E2E, browser smoke checks, Docker services, Swagger docs, and health checks.
 - Stabilize dashboard E2E live-indicator assertions when multiple live labels are visible.
@@ -118,6 +121,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix News multi-select filters so selecting from All starts a selection and auto-reverts only when every option is selected.
 - Fix News filter resets so category and market changes scroll to the top and avoid stale paginated data.
 - Scope Analytics sentiment, keyword, report, and article-volume data to the selected time range.
 - Filter source sync normalization so articles older than 30 days are skipped before storage.

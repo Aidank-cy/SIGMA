@@ -1,13 +1,11 @@
-import html
 import os
-import re
-from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urljoin
 
 import httpx
 
 from app.collectors.base import DEFAULT_USER_AGENT, BaseCollector, RawCollectedItem
+from app.collectors.utils import clean_text, parse_datetime
 
 
 class APICollector(BaseCollector):
@@ -63,9 +61,9 @@ class APICollector(BaseCollector):
             if value is None:
                 continue
             if target == "published_at":
-                item[target] = self._coerce_datetime(value)
+                item[target] = parse_datetime(value).isoformat()
             elif target in {"title", "content", "content_raw", "summary"}:
-                item[target] = self._clean_text(value)
+                item[target] = clean_text(value)
             else:
                 item[target] = str(value)
         if not item.get("content") and not item.get("content_raw"):
@@ -120,32 +118,6 @@ class APICollector(BaseCollector):
                     return coerced
             return None
         return value
-
-    @staticmethod
-    def _coerce_datetime(value: Any) -> str:
-        if isinstance(value, datetime):
-            parsed = value
-        elif isinstance(value, int | float):
-            timestamp = float(value)
-            if timestamp > 10_000_000_000:
-                timestamp /= 1000
-            parsed = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-        elif isinstance(value, str) and value.strip().isdigit():
-            timestamp = int(value.strip())
-            if timestamp > 10_000_000_000:
-                timestamp /= 1000
-            parsed = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-        else:
-            return str(value)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
-        return parsed.isoformat()
-
-    @staticmethod
-    def _clean_text(value: Any) -> str:
-        text = html.unescape(str(value or ""))
-        text = re.sub(r"<[^>]+>", " ", text)
-        return re.sub(r"\s+", " ", text).strip()
 
     @staticmethod
     def _resolve_env_values(values: dict[str, Any]) -> dict[str, Any]:

@@ -1,5 +1,4 @@
 import asyncio
-from datetime import datetime, timezone
 from itertools import cycle
 from urllib.parse import urljoin
 
@@ -7,6 +6,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from app.collectors.base import BaseCollector, RawCollectedItem
+from app.collectors.utils import parse_datetime
 
 USER_AGENTS = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15",
@@ -50,7 +50,7 @@ class ScraperCollector(BaseCollector):
             title = self._text(container, selectors.get("title"))
             content = self._text(container, selectors.get("content")) or title
             href = self._href(container, selectors.get("link"))
-            published = self._parse_date(self._text(container, selectors.get("date")))
+            published = parse_datetime(self._text(container, selectors.get("date")))
             if title and content:
                 items.append(
                     {
@@ -84,15 +84,3 @@ class ScraperCollector(BaseCollector):
             return None
         href = element.get("href")
         return str(href) if href else None
-
-    @staticmethod
-    def _parse_date(value: str) -> datetime:
-        if not value:
-            return datetime.now(timezone.utc)
-        try:
-            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError:
-            return datetime.now(timezone.utc)
-        if parsed.tzinfo is None:
-            return parsed.replace(tzinfo=timezone.utc)
-        return parsed
