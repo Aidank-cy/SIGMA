@@ -220,6 +220,55 @@ def test_market_cache_ttl_shortens_during_trading() -> None:
     """Market-index cache freshness uses a shorter TTL during live sessions."""
     assert market_indices._market_cache_ttl_seconds(datetime(2026, 5, 18, 14, 0, tzinfo=UTC)) == 15
     assert market_indices._market_cache_ttl_seconds(datetime(2026, 5, 18, 22, 30, tzinfo=UTC)) == 120
+    assert market_indices._market_cache_expiration_seconds(datetime(2026, 5, 18, 14, 0, tzinfo=UTC)) == 300
+    assert market_indices._market_cache_expiration_seconds(datetime(2026, 5, 18, 22, 30, tzinfo=UTC)) == 300
+
+
+@pytest.mark.asyncio
+async def test_get_market_indices_returns_stale_cache_without_blocking_refresh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A stale cache is returned immediately instead of blocking behind provider refreshes."""
+    cached = MarketIndicesResponse(
+        updated_at=datetime(2026, 5, 18, 12, 0, tzinfo=UTC),
+        indices=[
+            MarketIndex(
+                symbol="SPX",
+                name="S&P 500",
+                value=5842.15,
+                previous_close=5818.3,
+                change_pct=0.41,
+                market="us",
+                currency="USD",
+                is_trading=True,
+                trading_hours=TradingHours(
+                    open="09:30",
+                    close="16:00",
+                    timezone="America/New_York",
+                    sessions=[TradingSession(open="09:30", close="16:00")],
+                    beijing_sessions=[TradingSession(open="21:30", close="04:00")],
+                ),
+                sparkline_24h=[5830.0, 5842.15],
+                sparkline_times=["2026-05-18T21:30:00+08:00", "2026-05-18T21:31:00+08:00"],
+                sparkline_ranges={},
+            )
+        ],
+    )
+
+    async def fake_cache_get() -> str:
+        return cached.model_dump_json()
+
+    async def fail_refresh(*_args: object, **_kwargs: object) -> MarketIndicesResponse:
+        raise AssertionError("stale cache should avoid synchronous provider refresh")
+
+    monkeypatch.setattr(market_indices, "_cache_get", fake_cache_get)
+    monkeypatch.setattr(market_indices, "refresh_market_indices", fail_refresh)
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+
+    response = await market_indices.get_market_indices()
+
+    assert response.indices[0].symbol == "SPX"
+    assert response.updated_at == cached.updated_at
 
 
 def test_intraday_fallback_only_generates_elapsed_minutes_during_trading(
@@ -794,6 +843,22 @@ async def test_refresh_job_skips_when_all_markets_closed(monkeypatch: pytest.Mon
     await refresh_market_indices_job()
 
     assert called is False
+
+
+@pytest.mark.asyncio
+async def test_refresh_job_respects_fresh_market_index_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Scheduler refreshes use normal cache freshness checks instead of forced overwrites."""
+    calls: list[bool] = []
+
+    async def fake_refresh(*_args: object, force: bool = False, **_kwargs: object) -> None:
+        calls.append(force)
+
+    monkeypatch.setattr("app.scheduler.jobs.any_market_trading_now", lambda: True)
+    monkeypatch.setattr("app.scheduler.jobs.refresh_market_indices", fake_refresh)
+
+    await refresh_market_indices_job()
+
+    assert calls == [False]
 
 
 def test_scheduler_registers_market_indices_job() -> None:

@@ -38,6 +38,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Complete the final clean-state validation loop and Phase 6 sign-off across backend tests, Ruff, frontend build, Playwright E2E, browser smoke checks, Docker services, Swagger docs, and health checks.
+- Stabilize dashboard E2E live-indicator assertions when multiple live labels are visible.
 - Expand database infrastructure tests for app-startup source seeding and clean Alembic migration verification.
 - Expand middleware tests for allowed and rejected CORS preflights, quota behavior, rate limiting, and security headers.
 - Expand scheduler infrastructure tests for startup registration, source execution logs, and source job add/remove behavior.
@@ -111,6 +113,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix market-index responsiveness by returning stale cached data during refresh windows and avoiding forced scheduler refreshes when cache data is still fresh.
 - Fix API rate limiting so CORS preflight requests do not consume the browser-facing request quota.
 - Fix frontend login failures so invalid credentials show the localized error without triggering token refresh redirects.
 - Fix frontend registration so newly created users keep the returned access token and land on their locale dashboard.

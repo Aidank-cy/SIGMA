@@ -1499,3 +1499,19 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Completed Phase 4.1 through Phase 4.5 sequentially. Backend suite stands at `160 passed, 1 warning`; clean Alembic migration to head passed on Docker Postgres.
 - Timestamp: 2026-05-22T13:25:31Z
+
+### [Phase 5] Iterative bug-fix loop and clean-state confirmation
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/e2e/sigma.spec.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Ran the full bug-fix loop after Phases 2 through 4. Fixed a genuine market-index responsiveness issue by serving stale cached index data while refresh catches up and by preventing the scheduler from force-refreshing fresh deterministic cache data. Stabilized the dashboard E2E live-label assertion when multiple live indicators are present. Completed the mandated clean-state `docker compose down && docker compose up --build -d` confirmation with backend `python3 -m pytest --tb=short -q` (`162 passed, 1 warning`) and frontend `npm run test:e2e` (`5 passed`).
+- Timestamp: 2026-05-23T01:49:17Z
+
+### [Phase 6] Final validation checklist and sign-off
+- Status: COMPLETE
+- Files created: none
+- Files modified: CHANGELOG.md, .harness/progress.md, .harness/session-log.md
+- Tests: PASS
+- Notes: Completed the final checklist. Verified backend `python3 -m pytest --tb=short -q` (`162 passed, 1 warning`) and `python3 -m ruff check .` (`All checks passed!`). Verified frontend `npm run build`, dashboard pagination, News infinite-scroll regression, item detail, Markets index/watchlist/sector views, Analytics charts, report detail markdown/TOC content, Swagger docs, Docker service status, frontend root load, and `/api/v1/health` (`HTTP 200`, `{"status":"ok","service":"sigma-backend"}`). Phase 6 checklist is fully signed off.
+- Timestamp: 2026-05-23T01:49:17Z

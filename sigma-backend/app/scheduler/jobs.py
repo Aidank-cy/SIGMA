@@ -109,7 +109,7 @@ async def cleanup_expired_items(
 async def refresh_market_indices_job() -> None:
     """Refresh cached market index quotes while any configured market is open."""
     if any_market_trading_now():
-        await refresh_market_indices(force=True)
+        await refresh_market_indices(force=False)
 
 
 async def generate_scheduled_reports(

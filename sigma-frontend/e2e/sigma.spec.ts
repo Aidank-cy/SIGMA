@@ -139,7 +139,7 @@ test("3.2 dashboard renders backend data and paginates", async ({ page, request 
     await expect(page.getByText("Today's articles")).toBeVisible();
     await expect(page.getByPlaceholder("Search intelligence")).toBeVisible();
     await expect(page.getByText("Last updated")).toBeVisible();
-    await expect(page.getByText("Live")).toBeVisible();
+    await expect(page.getByText("Live").first()).toBeVisible();
   });
 
   await test.step("FE-D10/FE-D14 pagination bar reflects backend total", async () => {
