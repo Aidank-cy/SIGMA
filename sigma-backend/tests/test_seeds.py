@@ -1,7 +1,14 @@
+import asyncio
+
+from fastapi.testclient import TestClient
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.pool import StaticPool
 
 from app.collectors.seeds import seed_data_sources
+from app.main import create_app
+from app.models import Base
 from app.models.data_source import DataSource
 from app.models.enums import IntelligenceCategory, Market, SourceType
 
@@ -13,6 +20,48 @@ async def test_seed_data_sources_creates_seven_sources(db_session: AsyncSession)
 
     assert created == 7
     assert total == 7
+
+
+def test_app_startup_seeds_data_sources(monkeypatch) -> None:
+    """FastAPI startup creates seed data sources before serving requests."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    async def create_tables() -> None:
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
+
+    async def count_sources() -> int:
+        async with session_factory() as db:
+            return int(await db.scalar(select(func.count()).select_from(DataSource)) or 0)
+
+    async def drop_tables() -> None:
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
+
+    async def fake_start_scheduler(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    async def fake_stop_scheduler() -> None:
+        return None
+
+    monkeypatch.setattr("app.main.AsyncSessionLocal", session_factory)
+    monkeypatch.setattr("app.main.start_scheduler", fake_start_scheduler)
+    monkeypatch.setattr("app.main.stop_scheduler", fake_stop_scheduler)
+
+    asyncio.run(create_tables())
+    try:
+        app = create_app(enable_scheduler=True)
+        with TestClient(app) as client:
+            assert client.get("/api/v1/health").status_code == 200
+        assert asyncio.run(count_sources()) == 7
+    finally:
+        asyncio.run(drop_tables())
 
 
 async def test_seed_data_sources_replaces_obsolete_reuters_feed(db_session: AsyncSession) -> None:

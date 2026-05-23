@@ -1331,3 +1331,187 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Added a paginated item query hook, made Dashboard NewsFeed use numbered Previous/Next/page controls, reset pagination on filter changes, and kept News page infinite scroll unchanged. Verified `npm run build`, rebuilt Docker Compose, checked Dashboard pagination/filter/last-page behavior in Playwright, checked News still infinite-loads without pagination, and ran `python3 -m pytest tests/test_items_api.py::test_items_list_with_pagination_and_category_filter --tb=short -q`.
 - Timestamp: 2026-05-22T11:49:12Z
+
+### [Phase 2.1] Auth API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_auth.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Covered duplicate and invalid registration, nonexistent and inactive login, refresh cookie success/error paths, expired bearer token rejection, and invalid reset-token handling with real TestClient HTTP calls. Verified `python3 -m pytest tests/test_auth.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`144 passed, 1 warning`).
+- Timestamp: 2026-05-22T11:52:47Z
+
+### [Phase 2.2] Items API coverage
+- Status: COMPLETE
+- Files created: sigma-backend/tests/test_items_api_http.py
+- Files modified: sigma-backend/tests/conftest.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added HTTP-level TestClient coverage for item list pagination, category/market/source/date/keyword/combined filters, minimal/full formats, detail payloads, 404s, ordering, empty sets, and validation errors. Exposed the test session factory on the existing client fixture for direct data seeding while keeping endpoint calls as real HTTP calls. Verified `python3 -m pytest tests/test_items_api_http.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`145 passed, 1 warning`).
+- Timestamp: 2026-05-22T11:55:56Z
+
+### [Phase 2.3] Watchlists API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_watchlists_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added HTTP-level coverage for empty listing, create with simple/all fields, listing after creation, updates, deletion, missing deletion, filtered item feeds, stats, seven-day trend, cross-user ownership rejection, and unauthenticated create rejection. Verified `python3 -m pytest tests/test_watchlists_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`146 passed, 1 warning`).
+- Timestamp: 2026-05-22T11:57:53Z
+
+### [Phase 2.4] Reports API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_reports_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added HTTP-level coverage for report pagination, type/market/date filters, latest-by-type selection, detail and 404 responses, and admin-only manual generation. Verified `python3 -m pytest tests/test_reports_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`147 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:02:54Z
+
+### [Phase 2.5] Market indices API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added a real TestClient market-indices endpoint contract test for response timestamps, required index fields, and numeric sparkline data. Verified `python3 -m pytest tests/test_market_indices.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`148 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:04:34Z
+
+### [Phase 2.6] Sources API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_sources_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded HTTP coverage for authenticated source list shape, create/update/delete, preview via the current `/test` route, collection queueing, status responses with collector logs, and unauthenticated listing rejection. Verified `python3 -m pytest tests/test_sources_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`149 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:06:34Z
+
+### [Phase 2.7] Stats API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_stats_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added HTTP-level coverage for sentiment stats, trending keyword counts, and last successful collection freshness using real seeded database rows. Verified `python3 -m pytest tests/test_stats_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`150 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:08:18Z
+
+### [Phase 2.8] User settings API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_user_settings_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded HTTP coverage for report config, profile, retention, password success/error behavior, and current user LLM config and usage routes. Verified `python3 -m pytest tests/test_user_settings_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`152 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:10:43Z
+
+### [Phase 2.9] Admin dashboard API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_admin_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded admin dashboard HTTP coverage with seeded users, sources, items, collector activity, health, trend, LLM usage totals, root stats alias, and non-admin 403 rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`152 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:12:48Z
+
+### [Phase 2.10] Admin sources API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_admin_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded admin sources HTTP coverage for list, create, update, preview/test, per-source logs, aggregate stats, cascade deletion of source items/logs, and non-admin rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`152 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:14:50Z
+
+### [Phase 2.11] Admin users API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_admin_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded admin users HTTP coverage for list pagination, keyword search, role promotion, deactivation, self-modification rejection, deletion, and non-admin access rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`152 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:16:30Z
+
+### [Phase 2.12] Admin LLM API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_admin_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added admin LLM HTTP coverage for config reads, updates with API-key settings, seeded usage rollups, and non-admin access rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`153 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:18:22Z
+
+### [Phase 2.13] Admin logs API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_admin_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Expanded admin logs HTTP coverage for unfiltered listing, source/status/date-range/combined filters, page-two pagination, success-rate calculation, and non-admin access rejection. Verified `python3 -m pytest tests/test_admin_api.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`153 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:20:34Z
+
+### [Phase 2.14] Health API coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_health.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Aligned the health endpoint check with the shared TestClient fixture while preserving the current `/api/v1/health` contract. Verified `python3 -m pytest tests/test_health.py --tb=short -q` and full backend suite `python3 -m pytest --tb=short -q` (`153 passed, 1 warning`).
+- Timestamp: 2026-05-22T12:22:08Z
+
+### [Phase 3] Frontend-to-backend E2E coverage
+- Status: COMPLETE
+- Files created: sigma-backend/scripts/seed_e2e_data.py, sigma-frontend/playwright.config.ts, sigma-frontend/e2e/global-setup.ts, sigma-frontend/e2e/sigma.spec.ts
+- Files modified: sigma-backend/app/middleware/security.py, sigma-backend/tests/test_security.py, sigma-frontend/package.json, sigma-frontend/package-lock.json, sigma-frontend/src/lib/auth.ts, sigma-frontend/src/components/AuthProvider.tsx, sigma-frontend/src/app/[locale]/register/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added Playwright Chromium coverage for Phase 3 auth, dashboard pagination, news infinite scroll, markets, analytics, report detail, settings, admin panels, sync, item detail, i18n, and auth guards. Seeded deterministic users, sources, items, watchlists, reports, logs, LLM usage, and market-index cache data for Docker-backed E2E runs. Fixed genuine frontend auth bugs so invalid login stays on the form with an error toast and registration stores the returned token before redirecting to the dashboard. Fixed a genuine middleware bug so CORS preflight requests no longer consume the general API quota during browser flows. Verified `npm run test:e2e` (`5 passed`), `npm run build`, `python3 -m ruff check .`, and `python3 -m pytest --tb=short -q` (`154 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:08:28Z
+
+### [Phase 4.1] Collector infrastructure coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/tests/test_collectors.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Verified COL1 through COL5 with real collector implementations: RSS fetch plus normalization and persistence shape including `collected_at`, API collection, scraper extraction, URL/title deduplication, and source category/market normalization. Ran `python3 -m pytest tests/test_collectors.py --tb=short -q` (`10 passed, 1 warning`) and full backend suite `python3 -m pytest --tb=short -q` (`155 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:17:13Z
+
+### [Phase 4.2] Analyzer infrastructure coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: app/analyzers/llm_client.py, tests/test_summarizer.py, tests/test_report_generator.py, tests/test_llm.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Verified ANZ1 through ANZ4 with real analyzer code: batch summaries populate item summaries, failed summaries log warnings without crashing the batch, report generation persists markdown reports, LLM retry exhaustion is logged before raising, and token usage logging remains covered. Ran `python3 -m pytest tests/test_summarizer.py tests/test_report_generator.py tests/test_llm_client.py tests/test_llm.py --tb=short -q` (`34 passed, 1 warning`), targeted ruff, and full backend suite `python3 -m pytest --tb=short -q` (`156 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:19:36Z
+
+### [Phase 4.3] Scheduler infrastructure coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: tests/test_scheduler.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Verified SCH1 through SCH3 with the actual scheduler engine: startup starts APScheduler and registers source, cleanup, report, market-index, and candle jobs; source collection writes persisted items and CollectorLog rows; source add/remove operations update the scheduler registry. Ran `python3 -m pytest tests/test_scheduler.py --tb=short -q` (`8 passed, 1 warning`), targeted ruff, and full backend suite `python3 -m pytest --tb=short -q` (`158 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:21:31Z
+
+### [Phase 4.4] Middleware infrastructure coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: tests/test_security.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Verified MW1 through MW4 with the actual FastAPI middleware stack: allowed frontend CORS origin, rejected unknown-origin preflight, preflight requests excluded from quota consumption, login/general rate limiting, malformed bearer rejection, and browser security headers. Ran `python3 -m pytest tests/test_security.py --tb=short -q` (`8 passed, 1 warning`), targeted ruff, and full backend suite `python3 -m pytest --tb=short -q` (`159 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:23:04Z
+
+### [Phase 4.5] Database infrastructure coverage
+- Status: COMPLETE
+- Files created: none
+- Files modified: tests/test_seeds.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Verified DB1 and DB2: ran a clean `DATABASE_URL=postgresql+asyncpg://sigma:sigma@localhost:5432/sigma_migration_test python3 -m alembic upgrade head` against a freshly created Docker Postgres database, then dropped the test database; added FastAPI lifespan coverage that proves startup seeds the seven system data sources before serving requests. Ran `python3 -m pytest tests/test_seeds.py --tb=short -q` (`6 passed, 1 warning`), targeted ruff, and full backend suite `python3 -m pytest --tb=short -q` (`160 passed, 1 warning`).
+- Timestamp: 2026-05-22T13:25:31Z
+
+### [Phase 4] Backend services, scheduler, and infrastructure testing
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend collector, analyzer, scheduler, middleware, and seed tests plus LLM retry logging
+- Tests: PASS
+- Notes: Completed Phase 4.1 through Phase 4.5 sequentially. Backend suite stands at `160 passed, 1 warning`; clean Alembic migration to head passed on Docker Postgres.
+- Timestamp: 2026-05-22T13:25:31Z
+
+### [Phase 5] Iterative bug-fix loop and clean-state confirmation
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/e2e/sigma.spec.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Ran the full bug-fix loop after Phases 2 through 4. Fixed a genuine market-index responsiveness issue by serving stale cached index data while refresh catches up and by preventing the scheduler from force-refreshing fresh deterministic cache data. Stabilized the dashboard E2E live-label assertion when multiple live indicators are present. Completed the mandated clean-state `docker compose down && docker compose up --build -d` confirmation with backend `python3 -m pytest --tb=short -q` (`162 passed, 1 warning`) and frontend `npm run test:e2e` (`5 passed`).
+- Timestamp: 2026-05-23T01:49:17Z
+
+### [Phase 6] Final validation checklist and sign-off
+- Status: COMPLETE
+- Files created: none
+- Files modified: CHANGELOG.md, .harness/progress.md, .harness/session-log.md
+- Tests: PASS
+- Notes: Completed the final checklist. Verified backend `python3 -m pytest --tb=short -q` (`162 passed, 1 warning`) and `python3 -m ruff check .` (`All checks passed!`). Verified frontend `npm run build`, dashboard pagination, News infinite-scroll regression, item detail, Markets index/watchlist/sector views, Analytics charts, report detail markdown/TOC content, Swagger docs, Docker service status, frontend root load, and `/api/v1/health` (`HTTP 200`, `{"status":"ok","service":"sigma-backend"}`). Phase 6 checklist is fully signed off.
+- Timestamp: 2026-05-23T01:49:17Z

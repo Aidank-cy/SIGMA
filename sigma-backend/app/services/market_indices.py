@@ -19,6 +19,7 @@ from app.utils.redis_lock import create_redis_client
 CACHE_KEY = "sigma:market-indices"
 ACTIVE_CACHE_TTL_SECONDS = 15
 CLOSED_CACHE_TTL_SECONDS = 120
+STALE_CACHE_TTL_SECONDS = 300
 MARKET_INDEX_REFRESH_DELAY_SECONDS = 0.6
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 LOGGER = logging.getLogger(__name__)
@@ -88,8 +89,16 @@ INDEX_CONFIGS: tuple[IndexConfig, ...] = (
 async def get_market_indices() -> MarketIndicesResponse:
     """Return cached market indices or refresh them when missing."""
     cached = await _cache_get()
-    if cached is not None and _cached_payload_is_fresh(cached):
-        return MarketIndicesResponse.model_validate_json(cached)
+    if cached is not None:
+        try:
+            response = MarketIndicesResponse.model_validate_json(cached)
+        except Exception:
+            response = None
+        else:
+            if _cached_payload_is_fresh(cached):
+                return response
+            LOGGER.warning("Returning stale market-index cache while the scheduler refreshes provider data.")
+            return response
     return await refresh_market_indices(force=True)
 
 
@@ -700,6 +709,10 @@ def _market_cache_ttl_seconds(now: datetime | None = None) -> int:
     return ACTIVE_CACHE_TTL_SECONDS if any_market_trading_now(now) else CLOSED_CACHE_TTL_SECONDS
 
 
+def _market_cache_expiration_seconds(now: datetime | None = None) -> int:
+    return max(_market_cache_ttl_seconds(now), STALE_CACHE_TTL_SECONDS)
+
+
 def _cached_payload_is_fresh(value: str, now: datetime | None = None) -> bool:
     try:
         response = MarketIndicesResponse.model_validate_json(value)
@@ -735,7 +748,7 @@ async def _cache_get() -> str | None:
 async def _cache_set(value: str) -> None:
     client = create_redis_client()
     try:
-        await client.set(CACHE_KEY, value, ex=_market_cache_ttl_seconds())
+        await client.set(CACHE_KEY, value, ex=_market_cache_expiration_seconds())
     except Exception:
         return
     finally:

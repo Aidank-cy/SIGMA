@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add Playwright E2E coverage with deterministic backend seeding for auth, dashboard pagination, news infinite scroll, markets, analytics, reports, settings, admin, sync, item detail, i18n, and auth guards.
 - Add a source collection endpoint that queues real persisted collector runs from the Sync page.
 - Add PostgreSQL-backed market candle storage for 30-minute and daily chart ranges with Redis-backed 1D and 5D one-minute candles.
 - Add Beijing-time trading sessions to market-index API responses so chart axes can render in UTC+8 consistently.
@@ -37,6 +38,27 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Complete the final clean-state validation loop and Phase 6 sign-off across backend tests, Ruff, frontend build, Playwright E2E, browser smoke checks, Docker services, Swagger docs, and health checks.
+- Stabilize dashboard E2E live-indicator assertions when multiple live labels are visible.
+- Expand database infrastructure tests for app-startup source seeding and clean Alembic migration verification.
+- Expand middleware tests for allowed and rejected CORS preflights, quota behavior, rate limiting, and security headers.
+- Expand scheduler infrastructure tests for startup registration, source execution logs, and source job add/remove behavior.
+- Expand analyzer infrastructure tests for report persistence, summarization failure logging, and LLM retry exhaustion logging.
+- Expand collector infrastructure tests for RSS normalization, persistence shape, deduplication, and source metadata.
+- Align the health endpoint test with the shared backend TestClient fixture.
+- Expand admin logs tests for source, status, date-range, combined filters, pagination, and non-admin guards.
+- Expand admin LLM tests for config reads, updates, usage rollups, and non-admin guards.
+- Expand admin users tests for pagination, search, role updates, deactivation, deletion, self-protection, and non-admin guards.
+- Expand admin sources tests for list, create, update, preview, logs, stats, cascade delete, and non-admin guards.
+- Expand admin dashboard tests with seeded stats, trend, activity, source health, and non-admin guard coverage.
+- Expand user settings API tests for report/profile/retention/password sections and user-level LLM config usage.
+- Add HTTP-level stats API coverage for sentiment, trending keywords, and collection freshness.
+- Expand sources API tests for list shape, updates, status responses, and unauthenticated access.
+- Add HTTP-level market-indices API coverage for index quote response shape and sparkline data.
+- Expand reports API tests for pagination, filters, latest reports, detail responses, and admin-only generation.
+- Expand watchlist API tests for CRUD, ownership, filtered items, stats, trend, and unauthenticated access.
+- Add HTTP-level items API coverage for pagination, filters, formats, detail responses, and validation errors.
+- Expand auth API tests across registration, login, refresh, bearer-token, and password-reset error paths.
 - Replace Dashboard feed infinite scroll with numbered pagination while preserving infinite scroll on the News page.
 - Update market-index tests to cover the current urllib Yahoo fetch path and Redis-first candle warmup.
 - Change News to open in list view by default.
@@ -91,6 +113,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix market-index responsiveness by returning stale cached data during refresh windows and avoiding forced scheduler refreshes when cache data is still fresh.
+- Fix API rate limiting so CORS preflight requests do not consume the browser-facing request quota.
+- Fix frontend login failures so invalid credentials show the localized error without triggering token refresh redirects.
+- Fix frontend registration so newly created users keep the returned access token and land on their locale dashboard.
 - Fix Analytics time ranges so metrics, trend buckets, and article volume respect 24h, 7D, 14D, and 30D filters.
 - Fix Sync Now and Sync All so they queue persisted collection runs instead of source preview tests.
 - Fix flat mini sparklines by padding constant-value Sparkline domains and include item-derived times in generated report prompts and report detail subtitles.

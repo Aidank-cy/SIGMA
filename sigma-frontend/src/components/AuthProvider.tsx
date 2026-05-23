@@ -17,7 +17,7 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<User>;
   logout: () => void;
-  register: (payload: RegisterPayload) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<User>;
   user: User | null;
 }
 
@@ -53,7 +53,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const register = useCallback(async (payload: RegisterPayload) => {
-    await registerRequest(payload);
+    const registeredUser = await registerRequest(payload);
+    setUser(registeredUser);
+    return registeredUser;
   }, []);
 
   const logout = useCallback(() => {

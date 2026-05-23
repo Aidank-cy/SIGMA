@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -43,6 +44,97 @@ def test_watchlist_crud_and_items(client: TestClient) -> None:
     assert update_response.status_code == 200
     assert update_response.json()["name"] == "Global macro"
     assert delete_response.status_code == 204
+
+
+def test_watchlist_http_contract_with_items_stats_trend_and_auth_edges(client: TestClient) -> None:
+    """Watchlist HTTP endpoints cover ownership, filters, item feeds, stats, and trend."""
+    token = _token(client, "watchlist-contract@example.com")
+    headers = _auth(token)
+    seeded = _seed_watchlist_items(client)
+
+    empty_list = client.get("/api/v1/watchlists", headers=headers)
+    assert empty_list.status_code == 200
+    assert empty_list.json()["items"] == []
+
+    simple_create = client.post(
+        "/api/v1/watchlists",
+        headers=headers,
+        json={"name": "Simple", "keywords": [], "sources": [], "markets": []},
+    )
+    assert simple_create.status_code == 201
+    assert simple_create.json()["id"]
+
+    create_response = client.post(
+        "/api/v1/watchlists",
+        headers=headers,
+        json={
+            "name": "Chip Watch",
+            "keywords": [" chip "],
+            "sources": [seeded["source_id"]],
+            "markets": ["us"],
+        },
+    )
+    watchlist = create_response.json()
+    assert create_response.status_code == 201
+    assert watchlist["keywords"] == ["chip"]
+    assert watchlist["sources"] == [seeded["source_id"]]
+    assert watchlist["markets"] == ["us"]
+
+    list_response = client.get("/api/v1/watchlists", headers=headers)
+    assert list_response.status_code == 200
+    assert {item["name"] for item in list_response.json()["items"]} == {"Simple", "Chip Watch"}
+    chip_listed = next(item for item in list_response.json()["items"] if item["name"] == "Chip Watch")
+    assert chip_listed["item_count"] == 2
+
+    rename_response = client.put(
+        f"/api/v1/watchlists/{watchlist['id']}",
+        headers=headers,
+        json={"name": "Renamed Chip Watch", "keywords": ["chip"], "sources": [seeded["source_id"]], "markets": ["us"]},
+    )
+    assert rename_response.status_code == 200
+    assert rename_response.json()["name"] == "Renamed Chip Watch"
+
+    filter_update = client.put(
+        f"/api/v1/watchlists/{watchlist['id']}",
+        headers=headers,
+        json={"name": "Filtered Chip Watch", "keywords": ["chip", "risk"], "sources": [], "markets": ["us"]},
+    )
+    assert filter_update.status_code == 200
+    assert filter_update.json()["keywords"] == ["chip", "risk"]
+    assert filter_update.json()["markets"] == ["us"]
+
+    items_response = client.get(f"/api/v1/watchlists/{watchlist['id']}/items?page=1&page_size=5", headers=headers)
+    assert items_response.status_code == 200
+    items_payload = items_response.json()
+    assert items_payload["total"] == 2
+    assert {item["title"] for item in items_payload["items"]} == {"Chip rally", "Chip risk"}
+
+    stats_response = client.get(f"/api/v1/watchlists/{watchlist['id']}/stats", headers=headers)
+    assert stats_response.status_code == 200
+    assert stats_response.json() == {"matches_today": 1, "bullish_pct": 50}
+
+    trend_response = client.get(f"/api/v1/watchlists/{watchlist['id']}/trend", headers=headers)
+    assert trend_response.status_code == 200
+    assert len(trend_response.json()["days"]) == 7
+    assert sum(day["count"] for day in trend_response.json()["days"]) == 2
+
+    other_token = _token(client, "watchlist-other@example.com")
+    other_update = client.put(
+        f"/api/v1/watchlists/{watchlist['id']}",
+        headers=_auth(other_token),
+        json={"name": "Other", "keywords": [], "sources": [], "markets": []},
+    )
+    assert other_update.status_code == 404
+
+    delete_response = client.delete(f"/api/v1/watchlists/{watchlist['id']}", headers=headers)
+    missing_delete = client.delete(f"/api/v1/watchlists/{uuid4()}", headers=headers)
+    unauthenticated_create = client.post(
+        "/api/v1/watchlists",
+        json={"name": "No Auth", "keywords": [], "sources": [], "markets": []},
+    )
+    assert delete_response.status_code == 204
+    assert missing_delete.status_code == 404
+    assert unauthenticated_create.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -103,6 +195,27 @@ def _token(client: TestClient, email: str) -> str:
 
 def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+
+def _seed_watchlist_items(client: TestClient) -> dict[str, str]:
+    return asyncio.run(_seed_watchlist_items_async(client))
+
+
+async def _seed_watchlist_items_async(client: TestClient) -> dict[str, str]:
+    session_factory = client.app.state.session_factory
+    source = _source()
+    now = datetime.now(timezone.utc)
+    async with session_factory() as db:
+        db.add(source)
+        db.add_all(
+            [
+                _item(source, "Chip rally", "Strong bullish chip growth", now),
+                _item(source, "Chip risk", "Bearish chip risk", now - timedelta(days=2)),
+                _item(source, "Oil rally", "Strong energy growth", now),
+            ]
+        )
+        await db.commit()
+    return {"source_id": str(source.id)}
 
 
 def _source() -> DataSource:

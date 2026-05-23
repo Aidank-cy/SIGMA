@@ -35,6 +35,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.url.path.startswith("/api/v1/"):
+            if request.method == "OPTIONS":
+                return await call_next(request)
             limiter = _LimiterStore.for_request(request.app.state)
             authorization = request.headers.get("Authorization", "")
             if authorization.startswith("Bearer ") and not _has_valid_bearer_token(authorization):

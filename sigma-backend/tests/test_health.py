@@ -3,10 +3,8 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 
 
-def test_health_endpoint() -> None:
+def test_health_endpoint(client: TestClient) -> None:
     """Health endpoint returns service status."""
-    client = TestClient(create_app())
-
     response = client.get("/api/v1/health")
 
     assert response.status_code == 200

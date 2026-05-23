@@ -213,6 +213,7 @@ async def test_complete_retries_rate_limits_then_succeeds(
 async def test_complete_raises_after_retry_exhaustion(
     db_session: AsyncSession,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Complete raises the final HTTP error after exhausting retry attempts."""
     calls = 0
@@ -231,3 +232,4 @@ async def test_complete_raises_after_retry_exhaustion(
             await LLMClient(db_session, http_client=http_client).complete("system", "user", max_tokens=20)
 
     assert calls == 3
+    assert "LLM request failed after retries" in caplog.text

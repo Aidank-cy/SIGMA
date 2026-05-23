@@ -58,9 +58,9 @@ export default function RegisterPage() {
     }
     setIsSubmitting(true);
     try {
-      await register({ display_name: displayName.trim(), email, locale, password });
+      const registeredUser = await register({ display_name: displayName.trim(), email, locale, password });
       showToast(t("register.success"), "success");
-      router.push(`/${locale}/login`);
+      router.push(`/${registeredUser.locale}`);
     } catch {
       showToast(t("register.error"), "error");
     } finally {

@@ -92,6 +92,41 @@ async def test_rss_collector_parses_feed_entries() -> None:
 
 
 @pytest.mark.asyncio
+async def test_rss_collection_normalizes_and_persists_item_shape(db_session: AsyncSession) -> None:
+    """RSS collection produces persisted items with source metadata and collection time."""
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            text="""<?xml version="1.0"?>
+            <rss version="2.0"><channel><item>
+            <title>AI Market Brief</title><description>AI stock movement summary</description>
+            <link>https://rss.test/ai-market-brief</link>
+            <pubDate>Sat, 16 May 2026 03:00:00 GMT</pubDate>
+            </item></channel></rss>""",
+        )
+
+    source = _source(SourceType.RSS, {"feed_url": "https://rss.test/feed.xml", "max_entries": 5})
+    db_session.add(source)
+    await db_session.flush()
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        raw_items = await RSSCollector(source, client).collect()
+
+    normalized = normalize_items(source, raw_items)
+    persisted = CollectedItem(**normalized[0].model_dump())
+    db_session.add(persisted)
+    await db_session.commit()
+    await db_session.refresh(persisted)
+
+    assert persisted.title == "AI Market Brief"
+    assert persisted.content_raw == "AI stock movement summary"
+    assert persisted.content_url == "https://rss.test/ai-market-brief"
+    assert persisted.category == IntelligenceCategory.FINANCE
+    assert persisted.market == Market.US
+    assert persisted.collected_at is not None
+
+
+@pytest.mark.asyncio
 async def test_rss_collector_sends_default_user_agent() -> None:
     """RSS collector identifies itself to feeds that reject empty clients."""
     seen_user_agent = ""

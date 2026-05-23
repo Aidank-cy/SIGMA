@@ -1,11 +1,22 @@
+import asyncio
+from datetime import datetime, timezone
 from types import SimpleNamespace
+from uuid import UUID
 
 from fastapi.testclient import TestClient
+
+from app.models.collector_log import CollectorLog
+from app.models.enums import CollectorStatus
 
 
 def test_sources_create_list_and_delete(client: TestClient) -> None:
     """Users can create, list, and delete their own sources."""
     token = _token(client, "owner@example.com")
+
+    empty_response = client.get("/api/v1/sources", headers=_auth(token))
+    assert empty_response.status_code == 200
+    assert empty_response.json()["items"] == []
+
     response = client.post(
         "/api/v1/sources",
         headers=_auth(token),
@@ -17,10 +28,60 @@ def test_sources_create_list_and_delete(client: TestClient) -> None:
 
     list_response = client.get("/api/v1/sources", headers=_auth(token))
     assert list_response.status_code == 200
-    assert list_response.json()["total"] == 1
+    list_payload = list_response.json()
+    assert list_payload["page"] == 1
+    assert list_payload["page_size"] == 20
+    assert list_payload["total"] == 1
+    assert list_payload["has_next"] is False
+    assert list_payload["items"][0]["id"] == source_id
 
     delete_response = client.delete(f"/api/v1/sources/{source_id}", headers=_auth(token))
     assert delete_response.status_code == 204
+
+
+def test_source_update_status_and_auth_edges(client: TestClient) -> None:
+    """Source update and status endpoints follow the current HTTP contract."""
+    token = _token(client, "status@example.com")
+    create_response = client.post(
+        "/api/v1/sources",
+        headers=_auth(token),
+        json=_source_payload("Status RSS"),
+    )
+    assert create_response.status_code == 201
+    source_id = create_response.json()["id"]
+
+    update_response = client.put(
+        f"/api/v1/sources/{source_id}",
+        headers=_auth(token),
+        json={
+            "name": "Updated Status RSS",
+            "category": "macro",
+            "market": "global",
+            "config": {"feed_url": "https://rss.test/updated.xml"},
+            "schedule_cron": "*/10 * * * *",
+            "max_execution_seconds": 120,
+        },
+    )
+    assert update_response.status_code == 200
+    updated = update_response.json()
+    assert updated["id"] == source_id
+    assert updated["name"] == "Updated Status RSS"
+    assert updated["category"] == "macro"
+    assert updated["market"] == "global"
+    assert updated["config"]["feed_url"] == "https://rss.test/updated.xml"
+    assert updated["max_execution_seconds"] == 120
+
+    _seed_collector_log(client, source_id)
+    status_response = client.get(f"/api/v1/sources/{source_id}/status", headers=_auth(token))
+    assert status_response.status_code == 200
+    status_payload = status_response.json()
+    assert status_payload["last_status"] == "success"
+    assert status_payload["last_error"] is None
+    assert status_payload["last_executed_at"] is not None
+    assert status_payload["success_rate_24h"] == 1.0
+
+    unauthorized_response = client.get("/api/v1/sources")
+    assert unauthorized_response.status_code == 401
 
 
 def test_delete_system_source_forbidden(client: TestClient) -> None:
@@ -126,3 +187,23 @@ def _source_payload(name: str) -> dict[str, object]:
         "max_execution_seconds": 60,
         "is_active": True,
     }
+
+
+def _seed_collector_log(client: TestClient, source_id: str) -> None:
+    asyncio.run(_seed_collector_log_async(client, source_id))
+
+
+async def _seed_collector_log_async(client: TestClient, source_id: str) -> None:
+    session_factory = client.app.state.session_factory
+    async with session_factory() as db:
+        db.add(
+            CollectorLog(
+                source_id=UUID(source_id),
+                status=CollectorStatus.SUCCESS,
+                items_count=4,
+                error_message=None,
+                duration_ms=250,
+                executed_at=datetime.now(timezone.utc),
+            )
+        )
+        await db.commit()
