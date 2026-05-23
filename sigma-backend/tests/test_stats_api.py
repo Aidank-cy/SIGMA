@@ -49,9 +49,33 @@ async def test_sentiment_stats_uses_metadata_and_text_fallback(db_session: Async
     )
     await db_session.commit()
 
-    response = await get_sentiment_stats(db_session)
+    response = await get_sentiment_stats(db=db_session)
 
     assert response.bullish_pct == 33
+
+
+@pytest.mark.asyncio
+async def test_sentiment_stats_filters_by_days(db_session: AsyncSession) -> None:
+    """Sentiment stats can be scoped to a selected recent range."""
+    source = _source()
+    db_session.add(source)
+    db_session.add_all(
+        [
+            _item(source, "Recent", "Strong growth and gains", {"sentiment": "bullish"}),
+            _item(
+                source,
+                "Old",
+                "Bearish risk and losses",
+                {"sentiment": "bearish"},
+                collected_at=datetime.now(timezone.utc) - timedelta(days=10),
+            ),
+        ]
+    )
+    await db_session.commit()
+
+    response = await get_sentiment_stats(days=7, db=db_session)
+
+    assert response.bullish_pct == 100
 
 
 @pytest.mark.asyncio
@@ -67,10 +91,34 @@ async def test_trending_keywords_prefers_metadata_keywords(db_session: AsyncSess
     )
     await db_session.commit()
 
-    response = await get_trending_keywords(db_session)
+    response = await get_trending_keywords(db=db_session)
 
     assert response.items[0].keyword == "chips"
     assert response.items[0].count == 2
+
+
+@pytest.mark.asyncio
+async def test_trending_keywords_filters_by_days(db_session: AsyncSession) -> None:
+    """Trending keyword stats use the selected recent window."""
+    source = _source()
+    db_session.add(source)
+    db_session.add_all(
+        [
+            _item(source, "Recent AI demand", "growth", {"keywords": ["AI"]}),
+            _item(
+                source,
+                "Old chips demand",
+                "growth",
+                {"keywords": ["chips"]},
+                collected_at=datetime.now(timezone.utc) - timedelta(days=10),
+            ),
+        ]
+    )
+    await db_session.commit()
+
+    response = await get_trending_keywords(days=7, db=db_session)
+
+    assert [item.keyword for item in response.items] == ["AI"]
 
 
 @pytest.mark.asyncio
@@ -112,7 +160,9 @@ def _item(
     title: str,
     summary: str,
     metadata: dict[str, object] | None,
+    collected_at: datetime | None = None,
 ) -> CollectedItem:
+    collected = collected_at or datetime.now(timezone.utc)
     return CollectedItem(
         source_id=source.id,
         title=title,
@@ -122,8 +172,8 @@ def _item(
         category=IntelligenceCategory.FINANCE,
         market=Market.US,
         metadata_extra=metadata,
-        published_at=datetime.now(timezone.utc),
-        collected_at=datetime.now(timezone.utc),
+        published_at=collected,
+        collected_at=collected,
         expires_at=datetime.now(timezone.utc) + timedelta(days=30),
     )
 

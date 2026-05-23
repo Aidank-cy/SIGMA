@@ -18,7 +18,7 @@ router = APIRouter()
 @router.get("", response_model=ItemListResponse)
 async def list_items(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=20, ge=1, le=500),
     since: datetime | None = None,
     category: str | None = None,
     market: str | None = None,

@@ -1522,3 +1522,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Completed the final checklist. Verified backend `python3 -m pytest --tb=short -q` (`162 passed, 1 warning`) and `python3 -m ruff check .` (`All checks passed!`). Verified frontend `npm run build`, dashboard pagination, News infinite-scroll regression, item detail, Markets index/watchlist/sector views, Analytics charts, report detail markdown/TOC content, Swagger docs, Docker service status, frontend root load, and `/api/v1/health` (`HTTP 200`, `{"status":"ok","service":"sigma-backend"}`). Phase 6 checklist is fully signed off.
 - Timestamp: 2026-05-23T01:49:17Z
+
+### [Maintenance] Sub-feature: Analytics range-scoped stats
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/routes/stats.py, sigma-backend/app/api/v1/routes/items.py, sigma-backend/tests/test_stats_api.py, sigma-backend/tests/test_items_api_http.py, sigma-frontend/src/hooks/useStats.ts, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Analytics now passes selected range days to sentiment and keyword stats, fetches up to 500 items for chart buckets, and filters report cards by `generated_at`. Backend stats endpoints accept dynamic `days` windows, and the items API allows page sizes up to 500 for analytics. Verified with `./hooks/post-file-edit.sh` and `python3 -m pytest --tb=short -q`.
+- Timestamp: 2026-05-23T03:13:09Z

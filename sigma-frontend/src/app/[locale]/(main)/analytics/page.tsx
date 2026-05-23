@@ -168,18 +168,21 @@ export default function AnalyticsPage() {
   const { showToast } = useToast()
   const [timeRange, setTimeRange] = useState("7D")
   const [isGenerating, setIsGenerating] = useState(false)
-  const sentiment = useSentimentStats()
-  const keywords = useTrendingKeywords()
   const rangeDays = useMemo(() => timeRangeDays[timeRange] ?? 7, [timeRange])
   const dateFrom = useMemo(() => {
     const date = new Date()
     date.setDate(date.getDate() - rangeDays)
     return date.toISOString().slice(0, 10)
   }, [rangeDays])
-  const itemQuery = useItems({ date_from: dateFrom, page_size: 100 })
+  const sentiment = useSentimentStats(rangeDays)
+  const keywords = useTrendingKeywords(rangeDays)
+  const itemQuery = useItems({ date_from: dateFrom, page_size: 500 })
   const reportsQuery = useReports(undefined, 6)
   const items = useMemo(() => itemQuery.data?.pages.flatMap((page) => page.items) ?? [], [itemQuery.data])
-  const reports = useMemo(() => reportsQuery.data?.pages.flatMap((page) => page.items) ?? [], [reportsQuery.data])
+  const reports = useMemo(() => {
+    const all = reportsQuery.data?.pages.flatMap((page) => page.items) ?? []
+    return all.filter((report) => report.generated_at >= dateFrom)
+  }, [reportsQuery.data, dateFrom])
   const sentimentData = useMemo(() => {
     const itemSentiments = items.map(inferSentiment)
     const bullish = itemSentiments.length > 0

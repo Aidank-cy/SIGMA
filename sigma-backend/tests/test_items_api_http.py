@@ -86,7 +86,7 @@ def test_items_http_list_pagination_filters_formats_and_detail(client: TestClien
     assert empty["items"] == []
 
     assert client.get("/api/v1/items?page=0").status_code == 422
-    assert client.get("/api/v1/items?page_size=200").status_code == 422
+    assert client.get("/api/v1/items?page_size=501").status_code == 422
 
 
 def _seed_items(client: TestClient) -> dict[str, object]:

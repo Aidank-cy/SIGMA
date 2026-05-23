@@ -121,13 +121,14 @@ STOP_WORDS = {
 
 
 @router.get("/sentiment", response_model=SentimentStatsResponse)
-async def get_sentiment_stats(db: AsyncSession = Depends(get_db)) -> SentimentStatsResponse:
+async def get_sentiment_stats(days: int = 0, db: AsyncSession = Depends(get_db)) -> SentimentStatsResponse:
     """Return bullish percentage across recent summarized items."""
+    query = select(CollectedItem).where(CollectedItem.summary.is_not(None))
+    if days > 0:
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        query = query.where(CollectedItem.collected_at >= since)
     rows = await db.scalars(
-        select(CollectedItem)
-        .where(CollectedItem.summary.is_not(None))
-        .order_by(CollectedItem.collected_at.desc())
-        .limit(100)
+        query.order_by(CollectedItem.collected_at.desc()).limit(200)
     )
     sentiments = [_sentiment_for_item(item) for item in rows]
     if not sentiments:
@@ -137,9 +138,9 @@ async def get_sentiment_stats(db: AsyncSession = Depends(get_db)) -> SentimentSt
 
 
 @router.get("/trending-keywords", response_model=TrendingKeywordsResponse)
-async def get_trending_keywords(db: AsyncSession = Depends(get_db)) -> TrendingKeywordsResponse:
-    """Return top keyword mentions from the last 24 hours."""
-    since = datetime.now(timezone.utc) - timedelta(hours=24)
+async def get_trending_keywords(days: int = 1, db: AsyncSession = Depends(get_db)) -> TrendingKeywordsResponse:
+    """Return top keyword mentions from the selected recent window."""
+    since = datetime.now(timezone.utc) - timedelta(days=max(days, 1))
     rows = await db.scalars(
         select(CollectedItem)
         .where(CollectedItem.collected_at >= since)
