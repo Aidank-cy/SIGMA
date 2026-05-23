@@ -53,6 +53,14 @@ def test_items_http_list_pagination_filters_formats_and_detail(client: TestClien
     range_filtered = client.get("/api/v1/items", params={"date_from": date_to, "date_to": range_to}).json()
     assert {item["title"] for item in range_filtered["items"]} == {"China AI policy", "Bank stock earnings"}
 
+    since_filtered = client.get("/api/v1/items", params={"since": (seeded["base"] - timedelta(days=3)).isoformat()}).json()
+    assert {item["title"] for item in since_filtered["items"]} == {
+        "AI stock rally",
+        "China AI policy",
+        "Bank stock earnings",
+        "Macro inflation risk",
+    }
+
     keyword = client.get("/api/v1/items?keyword=AI").json()
     assert keyword["total"] == 2
     assert {item["title"] for item in keyword["items"]} == {"AI stock rally", "China AI policy"}
@@ -118,6 +126,7 @@ async def _seed_items_async(client: TestClient) -> dict[str, object]:
         _item(source_us, "Dividend desk note", IntelligenceCategory.FINANCE, Market.US, base - timedelta(days=7), 1, "Dividend note"),
     ]
     items[0].summary = '{"summary":"AI stock rally summary","sentiment":"bullish","keywords":["ai","stocks"]}'
+    items[-1].collected_at = base + timedelta(hours=1)
 
     async with session_factory() as db:
         db.add_all([source_us, source_cn, *items])

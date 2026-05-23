@@ -1558,3 +1558,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Fixed News multi-select filters so choosing a category or market from the All state starts a real selection, removed the hard three-selection cap, and auto-reverts to All only when every non-All option is selected. Item listing now sorts by `published_at` with a new database index and migration. Collector text cleanup and datetime parsing now flow through shared utilities across API, RSS, scraper, and normalization paths. Verified no duplicated collector private parsing/cleaning helpers remain, targeted Ruff, targeted collector/items tests (`15 passed, 1 warning`), full backend `python3 -m pytest --tb=short -q` (`168 passed, 1 warning`), frontend `npm run build`, and `DATABASE_URL=postgresql+asyncpg://sigma:sigma@localhost:5432/sigma python3 -m alembic upgrade head`.
 - Timestamp: 2026-05-23T07:40:07Z
+
+### [Maintenance] Sub-feature: Items cache invalidation and published-time API windows
+- Status: COMPLETE
+- Files created: sigma-backend/tests/test_event_hooks.py
+- Files modified: sigma-backend/app/utils/event_hooks.py, sigma-backend/app/api/v1/routes/items.py, sigma-backend/app/api/v1/routes/stats.py, sigma-backend/app/api/v1/routes/watchlists.py, sigma-backend/app/api/v1/admin/dashboard.py, sigma-backend/tests/test_items_api_http.py, sigma-backend/tests/test_stats_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: `notify_new_items` now clears `sigma:items:*` Redis cache keys after successful collection and item list cache TTL is reduced to 60 seconds. All API item/stat/watchlist/admin trend time windows now use `published_at` rather than `collected_at`. Verified targeted Ruff, focused tests (`17 passed, 1 warning`), full backend `python3 -m pytest --tb=short -q` (`170 passed, 1 warning`), and audit greps showing no `CollectedItem.collected_at` references remain under `sigma-backend/app/api`.
+- Timestamp: 2026-05-23T08:26:23Z

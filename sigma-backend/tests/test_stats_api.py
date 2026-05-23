@@ -67,7 +67,7 @@ async def test_sentiment_stats_filters_by_days(db_session: AsyncSession) -> None
                 "Old",
                 "Bearish risk and losses",
                 {"sentiment": "bearish"},
-                collected_at=datetime.now(timezone.utc) - timedelta(days=10),
+                published_at=datetime.now(timezone.utc) - timedelta(days=10),
             ),
         ]
     )
@@ -110,7 +110,7 @@ async def test_trending_keywords_filters_by_days(db_session: AsyncSession) -> No
                 "Old chips demand",
                 "growth",
                 {"keywords": ["chips"]},
-                collected_at=datetime.now(timezone.utc) - timedelta(days=10),
+                published_at=datetime.now(timezone.utc) - timedelta(days=10),
             ),
         ]
     )
@@ -160,9 +160,11 @@ def _item(
     title: str,
     summary: str,
     metadata: dict[str, object] | None,
+    published_at: datetime | None = None,
     collected_at: datetime | None = None,
 ) -> CollectedItem:
     collected = collected_at or datetime.now(timezone.utc)
+    published = published_at or collected
     return CollectedItem(
         source_id=source.id,
         title=title,
@@ -172,7 +174,7 @@ def _item(
         category=IntelligenceCategory.FINANCE,
         market=Market.US,
         metadata_extra=metadata,
-        published_at=collected,
+        published_at=published,
         collected_at=collected,
         expires_at=datetime.now(timezone.utc) + timedelta(days=30),
     )

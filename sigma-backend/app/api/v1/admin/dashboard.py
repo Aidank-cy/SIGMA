@@ -77,10 +77,10 @@ async def get_collection_trend(
     today = datetime.now(timezone.utc).date()
     start = today - timedelta(days=6)
     rows = await db.execute(
-        select(func.date(CollectedItem.collected_at).label("day"), func.count().label("items"))
-        .where(CollectedItem.collected_at >= datetime.combine(start, datetime.min.time(), timezone.utc))
-        .group_by(func.date(CollectedItem.collected_at))
-        .order_by(func.date(CollectedItem.collected_at))
+        select(func.date(CollectedItem.published_at).label("day"), func.count().label("items"))
+        .where(CollectedItem.published_at >= datetime.combine(start, datetime.min.time(), timezone.utc))
+        .group_by(func.date(CollectedItem.published_at))
+        .order_by(func.date(CollectedItem.published_at))
     )
     counts = {date.fromisoformat(str(row.day)): int(row.items) for row in rows}
     response = [

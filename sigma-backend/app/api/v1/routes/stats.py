@@ -126,10 +126,8 @@ async def get_sentiment_stats(days: int = 0, db: AsyncSession = Depends(get_db))
     query = select(CollectedItem).where(CollectedItem.summary.is_not(None))
     if days > 0:
         since = datetime.now(timezone.utc) - timedelta(days=days)
-        query = query.where(CollectedItem.collected_at >= since)
-    rows = await db.scalars(
-        query.order_by(CollectedItem.collected_at.desc()).limit(200)
-    )
+        query = query.where(CollectedItem.published_at >= since)
+    rows = await db.scalars(query.order_by(CollectedItem.published_at.desc()).limit(200))
     sentiments = [_sentiment_for_item(item) for item in rows]
     if not sentiments:
         return SentimentStatsResponse(bullish_pct=50)
@@ -143,8 +141,8 @@ async def get_trending_keywords(days: int = 1, db: AsyncSession = Depends(get_db
     since = datetime.now(timezone.utc) - timedelta(days=max(days, 1))
     rows = await db.scalars(
         select(CollectedItem)
-        .where(CollectedItem.collected_at >= since)
-        .order_by(CollectedItem.collected_at.desc())
+        .where(CollectedItem.published_at >= since)
+        .order_by(CollectedItem.published_at.desc())
         .limit(250)
     )
     counts: Counter[str] = Counter()

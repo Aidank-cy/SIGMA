@@ -102,7 +102,7 @@ async def list_watchlist_items(
             select(CollectedItem, DataSource.name)
             .join(DataSource, DataSource.id == CollectedItem.source_id)
             .where(*predicate)
-            .order_by(CollectedItem.collected_at.desc())
+            .order_by(CollectedItem.published_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
@@ -130,10 +130,10 @@ async def get_watchlist_stats(
     predicate = _item_predicate(watchlist)
     since = datetime.now(timezone.utc) - timedelta(hours=24)
     matches_today = await db.scalar(
-        select(func.count()).select_from(CollectedItem).where(*predicate, CollectedItem.collected_at >= since)
+        select(func.count()).select_from(CollectedItem).where(*predicate, CollectedItem.published_at >= since)
     )
     rows = await db.scalars(
-        select(CollectedItem).where(*predicate).order_by(CollectedItem.collected_at.desc()).limit(100)
+        select(CollectedItem).where(*predicate).order_by(CollectedItem.published_at.desc()).limit(100)
     )
     sentiments = [_sentiment_for_item(item) for item in rows]
     bullish_pct = round((sentiments.count("bullish") / len(sentiments)) * 100) if sentiments else 50
@@ -152,10 +152,10 @@ async def get_watchlist_trend(
     start = today - timedelta(days=6)
     start_at = datetime.combine(start, datetime.min.time(), timezone.utc)
     rows = await db.execute(
-        select(func.date(CollectedItem.collected_at).label("day"), func.count().label("count"))
-        .where(*_item_predicate(watchlist), CollectedItem.collected_at >= start_at)
-        .group_by(func.date(CollectedItem.collected_at))
-        .order_by(func.date(CollectedItem.collected_at))
+        select(func.date(CollectedItem.published_at).label("day"), func.count().label("count"))
+        .where(*_item_predicate(watchlist), CollectedItem.published_at >= start_at)
+        .group_by(func.date(CollectedItem.published_at))
+        .order_by(func.date(CollectedItem.published_at))
     )
     counts = {datetime.fromisoformat(str(row.day)).date(): int(row.count) for row in rows}
     return WatchlistTrendResponse(

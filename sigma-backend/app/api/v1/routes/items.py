@@ -105,7 +105,7 @@ def _item_predicate(
 ) -> list[object]:
     predicate: list[object] = []
     if since:
-        predicate.append(CollectedItem.collected_at >= since)
+        predicate.append(CollectedItem.published_at >= since)
     if category:
         predicate.append(CollectedItem.category.in_(_split_filter(category)))
     if market:
@@ -251,7 +251,7 @@ async def _cache_get(key: str) -> str | None:
 async def _cache_set(key: str, value: str) -> None:
     client = create_redis_client()
     try:
-        await client.set(key, value, ex=300)
+        await client.set(key, value, ex=60)
     except Exception:
         return
     finally:

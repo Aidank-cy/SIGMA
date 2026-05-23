@@ -41,6 +41,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Use source publication time for item, stats, watchlist, and admin trend time windows.
 - Sort item list results by source publication time instead of collection time.
 - Change the News page to list-only paginated results with multi-select category and market filters.
 - Centralize collector text cleaning and datetime parsing across API, RSS, scraper, and normalization flows.
@@ -121,6 +122,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Invalidate cached item list responses after successful collection and lower item cache TTL to reduce stale News results.
 - Fix News multi-select filters so selecting from All starts a selection and auto-reverts only when every option is selected.
 - Fix News filter resets so category and market changes scroll to the top and avoid stale paginated data.
 - Scope Analytics sentiment, keyword, report, and article-volume data to the selected time range.
