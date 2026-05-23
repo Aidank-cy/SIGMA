@@ -122,6 +122,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix FRED release collection so sparse metadata records produce summary-ready content instead of repeating the title.
+- Fix Dashboard and Markets index change labels to show absolute point moves alongside percentage changes.
+- Fix cluttered 1-day Asia market chart ticks for SSE Composite, Hang Seng Index, and Nikkei 225.
+- Fix Analytics 24h sentiment and article-volume charts by using hourly buckets and a precise 24-hour item query window.
 - Invalidate cached item list responses after successful collection and lower item cache TTL to reduce stale News results.
 - Fix News multi-select filters so selecting from All starts a selection and auto-reverts only when every option is selected.
 - Fix News filter resets so category and market changes scroll to the top and avoid stale paginated data.

@@ -32,6 +32,12 @@ const marketRegionMap = Object.fromEntries(
   regionOrder.flatMap((region) => regionMarkets[region].map((market) => [market, region]))
 ) as Partial<Record<Market, IndexRegion>>
 
+const SYMBOL_HIDDEN_TICKS: Record<string, number[]> = {
+  HSI: [120],
+  N225: [60],
+  SSE: [90],
+}
+
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
@@ -167,9 +173,16 @@ export function IndicesTab() {
                   now,
                   chartData
                 )
+                const hiddenTicks = activeRange === "1D"
+                  ? new Set(SYMBOL_HIDDEN_TICKS[index.symbol] ?? [])
+                  : new Set<number>()
+                const filteredTicks = chartTicks.filter((tick) => !hiddenTicks.has(tick))
                 const xAxisDomain = buildChartXAxisDomain(activeRange, chartSessions, chartData)
                 const isAwaitingOpen = isPreMarketClearWindow(index.trading_hours, now)
                 const displayChangePct = isAwaitingOpen ? 0 : index.change_pct
+                const changeSign = !isAwaitingOpen && isPositive ? "+" : ""
+                const pointChange = index.value - index.previous_close
+                const displayPointChange = isAwaitingOpen ? "0.00" : pointChange.toFixed(2)
                 const chartColor = isPositive
                   ? "oklch(0.65 0.22 145)"
                   : "oklch(0.6 0.22 25)"
@@ -215,10 +228,7 @@ export function IndicesTab() {
                         ) : (
                           <TrendingDown className="w-4 h-4" />
                         )}
-                        <span>
-                          {!isAwaitingOpen && isPositive ? "+" : ""}
-                          {displayChangePct.toFixed(2)}%
-                        </span>
+                        <span>{`${changeSign}${displayPointChange} (${displayChangePct.toFixed(2)}%)`}</span>
                       </div>
                     </div>
 
@@ -251,7 +261,7 @@ export function IndicesTab() {
                             }
                             tickLine={false}
                             tickMargin={8}
-                            ticks={chartTicks}
+                            ticks={filteredTicks}
                             padding={{ left: 12, right: 12 }}
                             type="number"
                           />

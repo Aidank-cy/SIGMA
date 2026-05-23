@@ -70,6 +70,18 @@ class APICollector(BaseCollector):
             title = item.get("title")
             if title:
                 item["content"] = title
+        if item.get("content") == item.get("title") or item.get("content_raw") == item.get("title"):
+            extra_parts = []
+            for field in ("press_release", "link", "notes", "realtime_start", "realtime_end"):
+                value = self._extract_path(entry, field)
+                value_text = str(value).strip() if value is not None else ""
+                if value_text and value_text != item.get("title", ""):
+                    extra_parts.append(f"{field}: {value_text}")
+            if extra_parts:
+                enriched = f"{item.get('title', '')}. {'; '.join(extra_parts)}"
+                item["content"] = enriched
+                if "content_raw" in item:
+                    item["content_raw"] = enriched
         metadata_fields = self.config.get("metadata_fields") or []
         metadata = {
             str(field): self._extract_path(entry, field)

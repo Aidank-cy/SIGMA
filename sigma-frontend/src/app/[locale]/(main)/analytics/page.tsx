@@ -50,6 +50,10 @@ function readingTime(content: string) {
 }
 
 function buildDailyVolume(items: ItemSummary[], locale: string, days = 7) {
+  if (days <= 1) {
+    return buildHourlyVolume(items, locale)
+  }
+
   const counts = new Map<string, number>()
   const dateFormat: Intl.DateTimeFormatOptions = days <= 7 ? { weekday: "short" } : { month: "short", day: "numeric" }
   for (let offset = days - 1; offset >= 0; offset -= 1) {
@@ -68,7 +72,31 @@ function buildDailyVolume(items: ItemSummary[], locale: string, days = 7) {
   }))
 }
 
+function buildHourlyVolume(items: ItemSummary[], locale: string) {
+  const now = new Date()
+  const counts = new Map<string, number>()
+  const hourKeys: string[] = []
+  for (let offset = 23; offset >= 0; offset -= 1) {
+    const date = new Date(now.getTime() - offset * 3600_000)
+    const key = date.toISOString().slice(0, 13)
+    hourKeys.push(key)
+    counts.set(key, 0)
+  }
+  items.forEach((item) => {
+    const key = item.published_at.slice(0, 13)
+    if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1)
+  })
+  return hourKeys.map((key) => ({
+    articles: counts.get(key) ?? 0,
+    day: new Intl.DateTimeFormat(locale, { hour: "2-digit", hour12: false }).format(new Date(`${key}:00:00Z`))
+  }))
+}
+
 function buildDailySentiment(items: ItemSummary[], locale: string, days = 7) {
+  if (days <= 1) {
+    return buildHourlySentiment(items, locale)
+  }
+
   const buckets = new Map<string, { bullish: number; total: number }>()
   const dateFormat: Intl.DateTimeFormatOptions = days <= 7 ? { weekday: "short" } : { month: "short", day: "numeric" }
   for (let offset = days - 1; offset >= 0; offset -= 1) {
@@ -90,6 +118,36 @@ function buildDailySentiment(items: ItemSummary[], locale: string, days = 7) {
     sentiment: bucket.total > 0 ? Math.round((bucket.bullish / bucket.total) * 100) : 0,
     total: bucket.total
   }))
+}
+
+function buildHourlySentiment(items: ItemSummary[], locale: string) {
+  const now = new Date()
+  const buckets = new Map<string, { bullish: number; total: number }>()
+  const hourKeys: string[] = []
+  for (let offset = 23; offset >= 0; offset -= 1) {
+    const date = new Date(now.getTime() - offset * 3600_000)
+    const key = date.toISOString().slice(0, 13)
+    hourKeys.push(key)
+    buckets.set(key, { bullish: 0, total: 0 })
+  }
+  items.forEach((item) => {
+    const key = item.published_at.slice(0, 13)
+    const bucket = buckets.get(key)
+    if (!bucket) return
+    bucket.total += 1
+    if (inferSentiment(item) === "bullish") {
+      bucket.bullish += 1
+    }
+  })
+  return hourKeys.map((key) => {
+    const bucket = buckets.get(key)!
+    const hour = new Date(`${key}:00:00Z`)
+    return {
+      day: new Intl.DateTimeFormat(locale, { hour: "2-digit", hour12: false }).format(hour),
+      sentiment: bucket.total > 0 ? Math.round((bucket.bullish / bucket.total) * 100) : 0,
+      total: bucket.total
+    }
+  })
 }
 
 function buildSourceData(items: ItemSummary[]) {
@@ -171,8 +229,12 @@ export default function AnalyticsPage() {
   const rangeDays = useMemo(() => timeRangeDays[timeRange] ?? 7, [timeRange])
   const dateFrom = useMemo(() => {
     const date = new Date()
-    date.setDate(date.getDate() - rangeDays)
-    return date.toISOString().slice(0, 10)
+    if (rangeDays <= 1) {
+      date.setHours(date.getHours() - 24)
+    } else {
+      date.setDate(date.getDate() - rangeDays)
+    }
+    return date.toISOString().slice(0, rangeDays <= 1 ? 19 : 10)
   }, [rangeDays])
   const sentiment = useSentimentStats(rangeDays)
   const keywords = useTrendingKeywords(rangeDays)
