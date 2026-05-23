@@ -1582,3 +1582,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Made FRED fallback content human-readable, hid metadata-only raw item bodies behind localized source-link UI, preserved News category/market/keyword/page state in URL params, changed Analytics date windows to full ISO sliding timestamps, skipped Alpha Vantage for DAX while rejecting suspiciously small quotes, and corrected the Nikkei 225 hidden tick to 10:00.
 - Follow-ups: None.
 - Timestamp: 2026-05-23T10:19:42Z
+
+### [Maintenance] Analytics one-minute sentiment trend
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Changed only Sentiment Trend to build one-minute buckets across the selected published-time window, carry forward the last known sentiment through empty buckets, and auto-fetch all item pages so Sentiment Overview, Sentiment Trend, Article Volume, and Source Distribution share the same complete selected range.
+- Follow-ups: None.
+- Timestamp: 2026-05-23T11:33:51Z

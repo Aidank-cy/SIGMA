@@ -5,7 +5,7 @@ import { ArrowRight, FileText, Plus, Sparkles, TrendingDown, TrendingUp } from "
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import type { ReactNode } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Area, AreaChart, Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts"
 
 import { useAuth } from "@/components/AuthProvider"
@@ -92,46 +92,25 @@ function buildHourlyVolume(items: ItemSummary[], locale: string) {
   }))
 }
 
-function buildDailySentiment(items: ItemSummary[], locale: string, days = 7) {
-  if (days <= 1) {
-    return buildHourlySentiment(items, locale)
-  }
-
-  const buckets = new Map<string, { bullish: number; total: number }>()
-  const dateFormat: Intl.DateTimeFormatOptions = days <= 7 ? { weekday: "short" } : { month: "short", day: "numeric" }
-  for (let offset = days - 1; offset >= 0; offset -= 1) {
-    const date = new Date()
-    date.setDate(date.getDate() - offset)
-    buckets.set(date.toISOString().slice(0, 10), { bullish: 0, total: 0 })
-  }
-  items.forEach((item) => {
-    const key = item.published_at.slice(0, 10)
-    const bucket = buckets.get(key)
-    if (!bucket) return
-    bucket.total += 1
-    if (inferSentiment(item) === "bullish") {
-      bucket.bullish += 1
-    }
-  })
-  return Array.from(buckets.entries()).map(([day, bucket]) => ({
-    day: new Intl.DateTimeFormat(locale, dateFormat).format(new Date(`${day}T00:00:00Z`)),
-    sentiment: bucket.total > 0 ? Math.round((bucket.bullish / bucket.total) * 100) : 0,
-    total: bucket.total
-  }))
-}
-
-function buildHourlySentiment(items: ItemSummary[], locale: string) {
+function buildMinuteSentiment(items: ItemSummary[], locale: string, days = 7) {
   const now = new Date()
+  const start = new Date(now)
+  if (days <= 1) {
+    start.setHours(start.getHours() - 24)
+  } else {
+    start.setDate(start.getDate() - days)
+  }
+  start.setSeconds(0, 0)
+  now.setSeconds(0, 0)
   const buckets = new Map<string, { bullish: number; total: number }>()
-  const hourKeys: string[] = []
-  for (let offset = 23; offset >= 0; offset -= 1) {
-    const date = new Date(now.getTime() - offset * 3600_000)
-    const key = date.toISOString().slice(0, 13)
-    hourKeys.push(key)
+  const minuteKeys: string[] = []
+  for (let timestamp = start.getTime(); timestamp <= now.getTime(); timestamp += 60_000) {
+    const key = new Date(timestamp).toISOString().slice(0, 16)
+    minuteKeys.push(key)
     buckets.set(key, { bullish: 0, total: 0 })
   }
   items.forEach((item) => {
-    const key = item.published_at.slice(0, 13)
+    const key = new Date(item.published_at).toISOString().slice(0, 16)
     const bucket = buckets.get(key)
     if (!bucket) return
     bucket.total += 1
@@ -139,12 +118,23 @@ function buildHourlySentiment(items: ItemSummary[], locale: string) {
       bucket.bullish += 1
     }
   })
-  return hourKeys.map((key) => {
+  let lastSentiment = 0
+  const formatter = new Intl.DateTimeFormat(locale, {
+    day: days > 1 ? "numeric" : undefined,
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    month: days > 1 ? "short" : undefined
+  })
+  return minuteKeys.map((key) => {
     const bucket = buckets.get(key)!
-    const hour = new Date(`${key}:00:00Z`)
+    if (bucket.total > 0) {
+      lastSentiment = Math.round((bucket.bullish / bucket.total) * 100)
+    }
+    const minute = new Date(`${key}:00Z`)
     return {
-      day: new Intl.DateTimeFormat(locale, { hour: "2-digit", hour12: false }).format(hour),
-      sentiment: bucket.total > 0 ? Math.round((bucket.bullish / bucket.total) * 100) : 0,
+      day: formatter.format(minute),
+      sentiment: lastSentiment,
       total: bucket.total
     }
   })
@@ -245,6 +235,13 @@ export default function AnalyticsPage() {
     const all = reportsQuery.data?.pages.flatMap((page) => page.items) ?? []
     return all.filter((report) => report.generated_at >= dateFrom)
   }, [reportsQuery.data, dateFrom])
+
+  useEffect(() => {
+    if (itemQuery.hasNextPage && !itemQuery.isFetchingNextPage) {
+      void itemQuery.fetchNextPage()
+    }
+  }, [itemQuery.data?.pages.length, itemQuery.fetchNextPage, itemQuery.hasNextPage, itemQuery.isFetchingNextPage])
+
   const sentimentData = useMemo(() => {
     const itemSentiments = items.map(inferSentiment)
     const bullish = itemSentiments.length > 0
@@ -259,7 +256,7 @@ export default function AnalyticsPage() {
     ]
   }, [feedT, items, sentiment.data?.bullish_pct])
   const bullishValue = sentimentData[0]?.value ?? 0
-  const trendData = useMemo(() => buildDailySentiment(items, locale, rangeDays), [items, locale, rangeDays])
+  const trendData = useMemo(() => buildMinuteSentiment(items, locale, rangeDays), [items, locale, rangeDays])
   const trendChange = useMemo(() => {
     const observed = trendData.filter((point) => point.total > 0)
     if (observed.length < 2) {
