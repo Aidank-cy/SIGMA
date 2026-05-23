@@ -122,6 +122,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Analytics sentiment trend to use one-minute buckets with carried-forward sentiment while loading the full selected item window.
 - Fix DAX quote selection so Alpha Vantage ETF prices are skipped and suspiciously tiny index quotes are discarded.
 - Fix FRED release content enrichment to use readable metadata sentences and hide metadata-only raw content behind a source link.
 - Fix News filters and pagination so category, market, keyword, and page state survive item-detail back navigation through URL parameters.
