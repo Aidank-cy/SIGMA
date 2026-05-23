@@ -14,12 +14,15 @@ def normalize_items(source: DataSource, raw_items: list[RawCollectedItem]) -> li
     creator = source.__dict__.get("creator")
     retention_days = getattr(creator, "data_retention_days", None) or settings.default_retention_days
     expires_at = datetime.now(timezone.utc) + timedelta(days=retention_days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
     for raw in raw_items:
         title = str(raw.get("title") or "").strip()
         content_raw = str(raw.get("content_raw") or raw.get("content") or raw.get("summary") or "").strip()
         if not title or not content_raw:
             continue
         published_at = _parse_datetime(raw.get("published_at"))
+        if published_at < cutoff:
+            continue
         normalized.append(
             CollectedItemCreate(
                 source_id=source.id,

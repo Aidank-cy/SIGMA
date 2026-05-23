@@ -215,6 +215,13 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Verified with `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-16T04:20:30Z
 
+### [Maintenance] Sub-feature: Sync recency filter
+- Status: COMPLETE
+- Files modified: sigma-backend/app/collectors/normalizer.py, sigma-backend/tests/test_collectors.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Normalization now skips raw source items with `published_at` older than 30 days before persistence. Verified with `./hooks/post-file-edit.sh` and `python3 -m pytest --tb=short -q`.
+- Timestamp: 2026-05-23T00:00:00Z
+
 ### Completed
 - Phase 2 sub-features 2.1 through 2.11.
 

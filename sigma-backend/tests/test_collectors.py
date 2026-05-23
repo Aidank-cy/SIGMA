@@ -240,6 +240,30 @@ def test_normalizer_parses_layer_five_datetime_formats() -> None:
     assert normalized[3].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
 
 
+def test_normalizer_skips_articles_older_than_thirty_days() -> None:
+    """Normalizer excludes stale source content before persistence."""
+    source = _source(SourceType.RSS, {"feed_url": "https://rss.test/feed.xml"})
+    now = datetime.now(timezone.utc)
+
+    normalized = normalize_items(
+        source,
+        [
+            {
+                "title": "Old article",
+                "content": "Stale content",
+                "published_at": (now - timedelta(days=31)).isoformat(),
+            },
+            {
+                "title": "Recent article",
+                "content": "Fresh content",
+                "published_at": (now - timedelta(days=2)).isoformat(),
+            },
+        ],
+    )
+
+    assert [item.title for item in normalized] == ["Recent article"]
+
+
 @pytest.mark.asyncio
 async def test_dedup_filters_existing_title_for_source(db_session: AsyncSession) -> None:
     """Dedup removes same-source title repeats even when URL differs."""

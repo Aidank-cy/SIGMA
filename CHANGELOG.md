@@ -113,6 +113,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Filter source sync normalization so articles older than 30 days are skipped before storage.
 - Fix market-index responsiveness by returning stale cached data during refresh windows and avoiding forced scheduler refreshes when cache data is still fresh.
 - Fix API rate limiting so CORS preflight requests do not consume the browser-facing request quota.
 - Fix frontend login failures so invalid credentials show the localized error without triggering token refresh redirects.
