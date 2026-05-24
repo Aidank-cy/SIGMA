@@ -103,6 +103,81 @@ def test_admin_user_management_guards(client: TestClient) -> None:
     assert forbidden_response.status_code == 403
 
 
+def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
+    """Admins can manage another user's LLM config and custom sources."""
+    admin_token = _token(client, "admin-user-detail@example.com")
+    _token(client, "managed-detail@example.com")
+    regular_token = _token(client, "regular-user-detail@example.com")
+    headers = _auth(admin_token)
+    managed_id = client.get("/api/v1/admin/users?q=managed-detail", headers=headers).json()["items"][0]["id"]
+    self_id = client.get("/api/v1/auth/me", headers=headers).json()["id"]
+
+    llm_update = client.put(
+        f"/api/v1/admin/users/{managed_id}/llm/config",
+        headers=headers,
+        json={
+            "daily_token_limit": 42_000,
+            "cost_guard_enabled": True,
+            "api_keys": [
+                {
+                    "name": "Managed Gemini",
+                    "key": "gemini-managed-key",
+                    "provider": "gemini",
+                    "token_limit": 42_000,
+                    "is_default": True,
+                }
+            ],
+        },
+    )
+    llm_read = client.get(f"/api/v1/admin/users/{managed_id}/llm/config", headers=headers)
+    source_create = client.post(
+        f"/api/v1/admin/users/{managed_id}/sources",
+        headers=headers,
+        json={
+            "name": "Managed detail RSS",
+            "source_type": "rss",
+            "category": "finance",
+            "market": "us",
+            "config": {"feed_url": "https://managed-detail.test/feed.xml"},
+            "schedule_cron": "0 * * * *",
+            "max_execution_seconds": 60,
+            "is_active": True,
+        },
+    )
+    source_id = source_create.json()["id"]
+    asyncio.run(_seed_user_source_dependents(client, source_id))
+    source_list = client.get(f"/api/v1/admin/users/{managed_id}/sources", headers=headers)
+    source_update = client.put(
+        f"/api/v1/admin/users/{managed_id}/sources/{source_id}",
+        headers=headers,
+        json={"is_active": False, "schedule_cron": "*/15 * * * *"},
+    )
+    users_after_counts = client.get("/api/v1/admin/users?q=managed-detail", headers=headers)
+    source_delete = client.delete(f"/api/v1/admin/users/{managed_id}/sources/{source_id}", headers=headers)
+    self_llm_response = client.get(f"/api/v1/admin/users/{self_id}/llm/config", headers=headers)
+    forbidden_response = client.get(f"/api/v1/admin/users/{managed_id}/sources", headers=_auth(regular_token))
+
+    assert llm_update.status_code == 200
+    assert llm_update.json()["api_keys"][0]["provider"] == "gemini"
+    assert llm_read.status_code == 200
+    assert llm_read.json()["daily_token_limit"] == 42_000
+    assert source_create.status_code == 201
+    assert source_create.json()["created_by"] == managed_id
+    assert source_create.json()["is_system"] is False
+    assert source_list.status_code == 200
+    assert source_list.json()["total"] == 1
+    assert source_update.status_code == 200
+    assert source_update.json()["is_active"] is False
+    assert source_update.json()["schedule_cron"] == "*/15 * * * *"
+    assert users_after_counts.status_code == 200
+    assert users_after_counts.json()["items"][0]["llm_key_count"] == 1
+    assert users_after_counts.json()["items"][0]["source_count"] == 1
+    assert source_delete.status_code == 204
+    assert client.get(f"/api/v1/admin/users/{managed_id}/sources", headers=headers).json()["total"] == 0
+    assert self_llm_response.status_code == 403
+    assert forbidden_response.status_code == 403
+
+
 def test_admin_sources_endpoints_removed(client: TestClient) -> None:
     """Admin source management endpoints are no longer registered."""
     token = _token(client, "admin-sources@example.com")
@@ -347,6 +422,38 @@ async def _seed_admin_logs_data(client: TestClient) -> str:
         db.add_all([source_a, source_b, *logs])
         await db.commit()
     return str(source_a.id)
+
+
+async def _seed_user_source_dependents(client: TestClient, source_id: str) -> None:
+    session_factory = client.app.state.session_factory
+    source_uuid = UUID(source_id)
+    now = datetime.now(timezone.utc)
+    async with session_factory() as db:
+        db.add(
+            CollectorLog(
+                source_id=source_uuid,
+                status=CollectorStatus.SUCCESS,
+                items_count=1,
+                error_message=None,
+                duration_ms=50,
+                executed_at=now,
+            )
+        )
+        db.add(
+            CollectedItem(
+                source_id=source_uuid,
+                title="Managed detail item",
+                content_raw="Managed detail item body",
+                content_url=f"https://managed-detail.test/{uuid4()}",
+                summary="Managed detail summary",
+                category=IntelligenceCategory.FINANCE,
+                market=Market.US,
+                published_at=now,
+                collected_at=now,
+                expires_at=now + timedelta(days=30),
+            )
+        )
+        await db.commit()
 
 
 def _collector_log(source_id: UUID, status: CollectorStatus, executed_at: datetime) -> CollectorLog:

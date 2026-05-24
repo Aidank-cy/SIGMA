@@ -65,6 +65,8 @@ class AdminUserRead(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    llm_key_count: int = 0
+    source_count: int = 0
 
 
 class AdminUserListResponse(BaseModel):

@@ -18,7 +18,7 @@ export function Input({ className, error, id, label, labelMode = "floating", pla
 
   if (isStacked) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         <label className="block px-1 text-sm font-medium text-muted-foreground" htmlFor={inputId}>
           {label}
         </label>

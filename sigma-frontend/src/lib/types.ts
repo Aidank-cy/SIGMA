@@ -195,6 +195,7 @@ export interface DataSource {
   max_execution_seconds?: number;
   is_active: boolean;
   is_system?: boolean;
+  created_by?: string | null;
   created_at?: string;
   updated_at?: string;
 }
