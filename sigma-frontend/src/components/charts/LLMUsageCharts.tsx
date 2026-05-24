@@ -62,7 +62,6 @@ export function TokenTrendChart({
       </LineChart>
       <div className="mt-2 flex items-center justify-center gap-2 text-xs text-sigma-muted">
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[rgb(var(--sigma-accent))]" />
-        <span>/</span>
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[rgb(var(--sigma-success))]" />
         <span className="font-medium">{label}</span>
       </div>
@@ -100,10 +99,10 @@ export function FunctionUsageChart({ data }: { data: FunctionUsagePoint[] }) {
     <ChartFrame>
       <BarChart data={data} margin={{ bottom: 5, left: -18, right: 5, top: 5 }}>
         <CartesianGrid stroke="rgb(var(--sigma-line))" vertical={false} />
-        <XAxis dataKey="name" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
-        <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} width={42} />
+        <XAxis axisLine={false} dataKey="name" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} tickLine={false} />
+        <YAxis axisLine={false} tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} tickLine={false} width={42} />
         <Tooltip />
-        <Bar dataKey="tokens" fill="rgb(var(--sigma-accent))" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="tokens" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ChartFrame>
   );

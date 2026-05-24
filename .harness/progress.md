@@ -1679,3 +1679,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, `./hooks/post-file-edit.sh`, and `git diff --check`.
 - Follow-up: Rebuild the backend container with `docker compose up -d --build sigma-backend` before validating Docker-backed NewsData collection.
 - Timestamp: 2026-05-24T08:57:39Z
+
+### [Maintenance] SIGMA UI and collector hardening
+- Status: COMPLETE
+- Files modified: sigma-backend/app/collectors/scraper_collector.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_collectors.py, sigma-backend/tests/test_scheduler.py, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/charts/LLMUsageCharts.tsx, sigma-frontend/src/components/admin/AdminDashboardPanel.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Scraper collection now strips trailing numeric title noise, expands duplicate title content, and can follow article links for richer body text. Collection persistence now skips duplicate `content_url` conflicts. Settings moved global save into the password card, disables LLM configuration when scheduled reports are off, initializes an empty key row, tightens key scrolling/alignment, adjusts usage card height, refines LLM charts, and reorganizes Admin Dashboard trend/activity/health into a three-card row.
+- Verification: `python3 -m pytest tests/test_collectors.py::test_scraper_collector_cleans_title_noise_and_expands_duplicate_content tests/test_collectors.py::test_scraper_collector_can_follow_links_for_article_body tests/test_scheduler.py::test_insert_new_items_skips_duplicate_content_url -q --tb=short`, `python3 -m ruff check app/collectors/scraper_collector.py app/scheduler/jobs.py tests/test_collectors.py tests/test_scheduler.py`, `npm run build`, `python3 -m pytest --tb=short -q`, `python3 -m ruff check .`, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-24T10:12:52Z

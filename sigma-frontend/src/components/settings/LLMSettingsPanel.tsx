@@ -78,21 +78,42 @@ export function LLMSettingsPanel({
 
   useEffect(() => {
     if (configData) {
+      const apiKeys = (configData.api_keys ?? []).map((entry) => ({
+        ...entry,
+        is_default: Boolean(entry.is_default),
+        provider: entry.provider || "anthropic",
+        token_limit: entry.token_limit || 1_000_000
+      }));
+      if (apiKeys.length === 0) {
+        apiKeys.push({
+          is_default: true,
+          key: "",
+          name: t("newKeyName"),
+          provider: "anthropic",
+          token_limit: 1_000_000
+        });
+      }
       setForm({
         ...configData,
-        api_keys: (configData.api_keys ?? []).map((entry) => ({
-          ...entry,
-          is_default: Boolean(entry.is_default),
-          provider: entry.provider || "anthropic",
-          token_limit: entry.token_limit || 1_000_000
-        }))
+        api_keys: apiKeys
       });
       return;
     }
     if (!isConfigLoading) {
-      setForm({ ...defaultConfig, api_keys: [] });
+      setForm({
+        ...defaultConfig,
+        api_keys: [
+          {
+            is_default: true,
+            key: "",
+            name: t("newKeyName"),
+            provider: "anthropic",
+            token_limit: 1_000_000
+          }
+        ]
+      });
     }
-  }, [configData, isConfigLoading]);
+  }, [configData, isConfigLoading, t]);
 
   const totals = useMemo(() => {
     const now = new Date();
@@ -286,14 +307,14 @@ export function LLMSettingsPanel({
             {form.api_keys.length === 0 ? (
               <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
             ) : (
-              <div className="max-h-[12rem] space-y-3 overflow-y-auto pr-1">
+              <div className="max-h-[8rem] space-y-3 overflow-y-auto pr-1">
                 <div className="space-y-2">
                   {form.api_keys.map((entry, index) => {
                     const isDefault = entry.is_default || (!hasExplicitDefault && index === 0);
                     return (
                       <div
                         className={cn(
-                          "grid gap-2 rounded-lg p-2 lg:grid-cols-[auto_0.85fr_1fr_1fr_auto]",
+                          "grid items-center gap-2 rounded-lg p-2 lg:grid-cols-[auto_0.85fr_1fr_1fr_auto]",
                           isDefault ? "bg-primary/5" : "bg-sigma-elevated"
                         )}
                         key={index}
@@ -480,7 +501,7 @@ function UsageCard({ label, tokens }: { label: string; tokens: number }) {
   const t = useTranslations("admin.llm");
 
   return (
-    <Card className="flex items-center justify-between gap-4 px-5 py-3">
+    <Card className="flex items-center justify-between gap-4 px-5 py-5">
       <p className="text-sm font-medium text-sigma-muted">{label}</p>
       <p className="text-xl font-semibold tabular-nums text-sigma-text">{tokens.toLocaleString()}</p>
       <span className="text-xs font-medium text-sigma-muted">{t("tokens")}</span>

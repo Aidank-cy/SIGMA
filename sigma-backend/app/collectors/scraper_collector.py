@@ -1,5 +1,6 @@
 import asyncio
 from itertools import cycle
+import re
 from urllib.parse import urljoin
 
 import httpx
@@ -58,10 +59,25 @@ class ScraperCollector(BaseCollector):
         items: list[RawCollectedItem] = []
         max_entries = int(self.config.get("max_entries") or 0)
         min_content_length = int(self.config.get("min_content_length") or 30)
+        request_interval = float(self.config.get("request_interval_sec", 0))
+        follow_link = bool(self.config.get("follow_link", False))
+        article_selector = str(self.config.get("article_content_selector") or "article p, .article-body p")
         for container in soup.select(str(selectors["item_container"])):
-            title = self._text(container, selectors.get("title")) or self._container_text(container)
+            title = self._clean_title(self._text(container, selectors.get("title")) or self._container_text(container))
             content = self._text(container, selectors.get("content")) or title
             href = self._href(container, selectors.get("link"))
+            content_url = urljoin(target_url, href) if href else None
+            if self._content_matches_title(content, title):
+                content = self._richer_content(container, selectors.get("content"), title) or content
+            if follow_link and content_url and self._content_matches_title(content, title):
+                if request_interval > 0:
+                    await asyncio.sleep(request_interval)
+                content = await self._linked_article_content(
+                    client,
+                    content_url,
+                    headers,
+                    article_selector,
+                ) or content
             published = parse_datetime(self._text(container, selectors.get("date")))
             combined_length = len(f"{title} {content}".strip())
             if title and content and combined_length >= min_content_length:
@@ -69,7 +85,7 @@ class ScraperCollector(BaseCollector):
                     {
                         "title": title,
                         "content": content,
-                        "content_url": urljoin(target_url, href) if href else None,
+                        "content_url": content_url,
                         "published_at": published.isoformat(),
                         "metadata": {"source_format": "html"},
                     }
@@ -84,11 +100,31 @@ class ScraperCollector(BaseCollector):
         return next(_USER_AGENT_POOL)
 
     @staticmethod
+    def _clean_title(text: str) -> str:
+        """Remove trailing standalone numbers such as comment or share counts."""
+        return re.sub(r"\s+\d+\s*$", "", text).strip()
+
+    @staticmethod
     def _text(container: BeautifulSoup, selector: object) -> str:
         if not selector:
             return ""
         element = container.select_one(str(selector))
         return element.get_text(" ", strip=True) if element else ""
+
+    @staticmethod
+    def _richer_content(container: BeautifulSoup, selector: object, title: str) -> str:
+        content_parts: list[str] = []
+        for element in container.select(str(selector or "p")):
+            part = element.get_text(" ", strip=True)
+            if part and not ScraperCollector._content_matches_title(part, title):
+                content_parts.append(part)
+        if content_parts:
+            return " ".join(content_parts)
+
+        container_text = ScraperCollector._container_text(container)
+        if container_text.startswith(title):
+            return re.sub(r"^\s*\d+\s*", "", container_text[len(title):]).strip()
+        return re.sub(r"^\s*\d+\s*", "", container_text.replace(title, "", 1)).strip()
 
     @staticmethod
     def _container_text(container: BeautifulSoup) -> str:
@@ -103,3 +139,29 @@ class ScraperCollector(BaseCollector):
             return None
         href = element.get("href")
         return str(href) if href else None
+
+    @staticmethod
+    def _content_matches_title(content: str, title: str) -> bool:
+        content_text = content.strip()
+        title_text = title.strip()
+        return bool(content_text and title_text and (content_text == title_text or content_text in title_text))
+
+    @staticmethod
+    async def _linked_article_content(
+        client: httpx.AsyncClient,
+        url: str,
+        headers: dict[str, str],
+        selector: str,
+    ) -> str:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+        except httpx.HTTPError:
+            return ""
+        soup = BeautifulSoup(response.text, "html.parser")
+        parts = [
+            element.get_text(" ", strip=True)
+            for element in soup.select(selector)
+            if element.get_text(" ", strip=True)
+        ]
+        return " ".join(parts)[:2000].strip()
