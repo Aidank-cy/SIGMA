@@ -746,6 +746,7 @@
       "tokenLimit": "Token 上限",
       "defaultKey": "默认",
       "setDefault": "设为默认",
+      "selectKey": "选择 Key",
       "deleteKey": "删除",
       "emptyKeys": "还没有保存 API Key。",
       "keyCount": "{count} 个 API Key",

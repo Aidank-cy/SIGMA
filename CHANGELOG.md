@@ -145,6 +145,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Analytics sentiment trend point density for 24h, 7D, 14D, and 30D sliding-window ranges.
+- Fix Settings LLM key rows with flat default toggles, aligned icon deletes, unclipped provider menus, horizontal usage totals, and the password card in the right column.
+- Fix API collector requests so full endpoint URLs keep their query strings when no config params are supplied.
 - Fix Analytics sentiment trend to render sliding-window points across the selected timeline instead of one repeated live snapshot value.
 - Fix Sync source delete to keep a successful delete toast after 204 responses while immediately removing the source from cached UI state.
 - Fix user-created API and scraper source collection defaults for common content, link, timestamp, title, and selector fields.

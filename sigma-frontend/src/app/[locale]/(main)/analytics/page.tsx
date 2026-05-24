@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
   const trendData = useMemo(() => {
     const now = new Date()
     const windowMs = rangeDays <= 1 ? 24 * 60 * 60 * 1000 : rangeDays * 24 * 60 * 60 * 1000
-    const numPoints = rangeDays <= 1 ? 24 : Math.min(rangeDays, 30)
+    const numPoints = rangeDays <= 1 ? 24 : rangeDays <= 7 ? 28 : rangeDays <= 14 ? 28 : 30
     const labelFormatter =
       rangeDays <= 1
         ? new Intl.DateTimeFormat(locale, { hour: "2-digit", hour12: false, minute: "2-digit" })

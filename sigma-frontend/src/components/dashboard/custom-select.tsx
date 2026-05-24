@@ -2,8 +2,9 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
 
@@ -45,10 +46,46 @@ export function CustomSelect({
 }: CustomSelectProps) {
   const generatedId = useId();
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selected = options.find((option) => option.value === value);
   const hasLeadingIcon = leadingIcon !== undefined;
   const isStacked = labelMode === "stacked";
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || !buttonRef.current) {
+      return;
+    }
+
+    function updateDropdownPosition() {
+      if (!buttonRef.current) {
+        return;
+      }
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        left: rect.left,
+        position: "fixed",
+        top: rect.bottom + 4,
+        width: rect.width,
+        zIndex: 50
+      });
+    }
+
+    updateDropdownPosition();
+    window.addEventListener("resize", updateDropdownPosition);
+    window.addEventListener("scroll", updateDropdownPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateDropdownPosition);
+      window.removeEventListener("scroll", updateDropdownPosition, true);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -56,7 +93,10 @@ export function CustomSelect({
     }
 
     function handleMouseDown(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const insideRoot = rootRef.current?.contains(target);
+      const insideDropdown = dropdownRef.current?.contains(target);
+      if (!insideRoot && !insideDropdown) {
         setIsOpen(false);
       }
     }
@@ -109,6 +149,7 @@ export function CustomSelect({
           disabled={disabled}
           id={generatedId}
           onClick={() => setIsOpen((current) => !current)}
+          ref={buttonRef}
           type="button"
         >
           <span className="block min-w-0 truncate">{selected?.label ?? ""}</span>
@@ -133,41 +174,48 @@ export function CustomSelect({
             isOpen ? "rotate-180" : ""
           )}
         />
-        <AnimatePresence>
-        {isOpen ? (
-          <motion.div
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className={cn("absolute left-0 z-30 w-full rounded-2xl border border-border bg-popover p-2 shadow-apple", isStacked ? "top-full mt-2" : "top-14")}
-            exit={{ opacity: 0, scale: 0.98, y: -6 }}
-            initial={{ opacity: 0, scale: 0.98, y: -6 }}
-            transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
-          >
-            <div aria-label={label} className="space-y-1" role="listbox">
-              {options.map((option) => {
-                const isSelected = option.value === value;
-                return (
-                  <button
-                    aria-selected={isSelected}
-                    className={cn(
-                      "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-semibold",
-                      isSelected
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground hover:bg-card hover:text-foreground"
-                    )}
-                    key={option.value}
-                    onClick={() => selectOption(option.value)}
-                    role="option"
-                    type="button"
+        {isMounted
+          ? createPortal(
+              <AnimatePresence>
+                {isOpen ? (
+                  <motion.div
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className="rounded-2xl border border-border bg-popover p-2 shadow-apple"
+                    exit={{ opacity: 0, scale: 0.98, y: -6 }}
+                    initial={{ opacity: 0, scale: 0.98, y: -6 }}
+                    ref={dropdownRef}
+                    style={dropdownStyle}
+                    transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
                   >
-                    <span className="min-w-0 truncate">{option.label}</span>
-                    {isSelected ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : null}
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
-        ) : null}
-        </AnimatePresence>
+                    <div aria-label={label} className="space-y-1" role="listbox">
+                      {options.map((option) => {
+                        const isSelected = option.value === value;
+                        return (
+                          <button
+                            aria-selected={isSelected}
+                            className={cn(
+                              "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-semibold",
+                              isSelected
+                                ? "bg-foreground text-background"
+                                : "text-muted-foreground hover:bg-card hover:text-foreground"
+                            )}
+                            key={option.value}
+                            onClick={() => selectOption(option.value)}
+                            role="option"
+                            type="button"
+                          >
+                            <span className="min-w-0 truncate">{option.label}</span>
+                            {isSelected ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>,
+              document.body
+            )
+          : null}
       </div>
       {error ? <p className="px-1 text-xs font-medium text-destructive">{error}</p> : null}
     </div>
