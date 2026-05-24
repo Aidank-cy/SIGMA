@@ -45,7 +45,7 @@ export function AdminDashboardPanel() {
         <StatCard icon="tokens" label={t("stats.tokens")} value={stats.data?.tokens_today} />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="grid gap-4 xl:grid-cols-3">
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">{t("trend")}</h2>
@@ -60,7 +60,7 @@ export function AdminDashboardPanel() {
           </div>
           <div className="max-h-80 overflow-auto">
             {(activity.data ?? []).map((item) => (
-              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-sigma-line p-4" key={item.id}>
+              <div className="grid grid-cols-[1fr_auto] gap-1 border-b border-sigma-line px-3 py-2" key={item.id}>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-sigma-text">{item.source_name}</p>
                   <p className="text-xs text-sigma-muted">
@@ -75,41 +75,41 @@ export function AdminDashboardPanel() {
             ) : null}
           </div>
         </Card>
-      </section>
 
-      <Card className="overflow-hidden">
-        <div className="border-b border-sigma-line p-5">
-          <h2 className="text-lg font-semibold">{t("health")}</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-sigma-elevated text-xs uppercase tracking-normal text-sigma-muted">
-              <tr>
-                <th className="px-5 py-3 font-medium">{t("source")}</th>
-                <th className="px-5 py-3 font-medium">{t("type")}</th>
-                <th className="px-5 py-3 font-medium">{t("lastSuccess")}</th>
-                <th className="px-5 py-3 font-medium">{t("rate")}</th>
-                <th className="px-5 py-3 font-medium">{t("state")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(health.data ?? []).map((item) => (
-                <tr className="border-t border-sigma-line" key={item.source_id}>
-                  <td className="px-5 py-4 font-medium">{item.name}</td>
-                  <td className="px-5 py-4 text-sigma-muted">{item.source_type}</td>
-                  <td className="px-5 py-4 text-sigma-muted">
-                    {item.last_success ? new Date(item.last_success).toLocaleString() : t("never")}
-                  </td>
-                  <td className="px-5 py-4 text-sigma-muted">{Math.round(item.rate_24h * 100)}%</td>
-                  <td className="px-5 py-4">
-                    <HealthDot label={statusT(item.status)} status={item.status} />
-                  </td>
+        <Card className="overflow-hidden">
+          <div className="border-b border-sigma-line p-5">
+            <h2 className="text-lg font-semibold">{t("health")}</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-0 text-left text-sm">
+              <thead className="bg-sigma-elevated text-xs uppercase tracking-normal text-sigma-muted">
+                <tr>
+                  <th className="px-3 py-3 font-medium">{t("source")}</th>
+                  <th className="px-3 py-3 font-medium">{t("type")}</th>
+                  <th className="px-3 py-3 font-medium">{t("lastSuccess")}</th>
+                  <th className="px-3 py-3 font-medium">{t("rate")}</th>
+                  <th className="px-3 py-3 font-medium">{t("state")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody>
+                {(health.data ?? []).map((item) => (
+                  <tr className="border-t border-sigma-line" key={item.source_id}>
+                    <td className="px-3 py-2 font-medium">{item.name}</td>
+                    <td className="px-3 py-2 text-sigma-muted">{item.source_type}</td>
+                    <td className="px-3 py-2 text-sigma-muted">
+                      {item.last_success ? new Date(item.last_success).toLocaleString() : t("never")}
+                    </td>
+                    <td className="px-3 py-2 text-sigma-muted">{Math.round(item.rate_24h * 100)}%</td>
+                    <td className="px-3 py-2">
+                      <HealthDot label={statusT(item.status)} status={item.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </section>
     </div>
   );
 }

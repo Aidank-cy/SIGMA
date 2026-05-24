@@ -47,6 +47,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change Settings global save action to live inside the Change Password card and disable the LLM configuration panel when scheduled reports are off.
+- Change Settings LLM usage cards, API key defaults, API key scrolling, and key-row alignment for denser report configuration layout.
+- Change Admin Dashboard collection trend, recent activity, and source health into one three-column card row.
+- Change LLM function usage chart styling to match the admin collection trend bar treatment.
 - Change Settings LLM API key rows to remove per-key token-limit controls, scroll after two keys, and stack usage totals as horizontal rows.
 - Compact the Settings LLM API key cards, merge cost guard with daily token limit, and label usage totals as tokens.
 - Move Settings LLM usage charts below the save-config card and constrain the API key list to a scrollable area.
@@ -145,6 +149,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix scraper collectors to remove trailing numeric title noise, avoid title-only content, and optionally follow article links for richer body text.
+- Fix collector persistence so duplicate `content_url` conflicts are skipped instead of failing the whole collection run.
+- Fix LLM token trend legend by removing the redundant separator between input and output markers.
 - Fix Analytics sentiment trend point density for 24h, 7D, 14D, and 30D sliding-window ranges.
 - Fix Settings LLM key rows with flat default toggles, aligned icon deletes, unclipped provider menus, horizontal usage totals, and the password card in the right column.
 - Fix API collector requests so full endpoint URLs keep their query strings when no config params are supplied.

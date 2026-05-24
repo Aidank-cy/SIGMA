@@ -4,6 +4,8 @@ from time import perf_counter
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.analyzers.report_generator import generate_report
@@ -17,6 +19,7 @@ from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, IntelligenceCategory, Market, ReportType
 from app.models.user_report_config import UserReportConfig
+from app.schemas.item import CollectedItemCreate
 from app.services.market_candles import candle_refresh_job
 from app.services.market_indices import any_market_trading_now, refresh_market_indices
 from app.utils.event_hooks import notify_new_items
@@ -59,24 +62,7 @@ async def collect_from_source(
             )
             normalized = normalize_items(source, raw_items)
             new_items = await filter_new_items(db, normalized)
-            item_models = [
-                CollectedItem(
-                    source_id=item.source_id,
-                    title=item.title,
-                    content_raw=item.content_raw,
-                    content_url=item.content_url,
-                    summary=item.summary,
-                    category=IntelligenceCategory(item.category),
-                    market=Market(item.market),
-                    published_at=item.published_at,
-                    expires_at=item.expires_at,
-                    metadata_extra=item.metadata_extra,
-                )
-                for item in new_items
-            ]
-            db.add_all(item_models)
-            await db.flush()
-            item_ids = [item.id for item in item_models]
+            item_ids = await _insert_new_items(db, new_items)
             if item_ids:
                 await notify_new_items(item_ids)
             items_count = len(item_ids)
@@ -171,3 +157,48 @@ async def _write_log(
         )
     )
     await db.commit()
+
+
+async def _insert_new_items(db: AsyncSession, new_items: list[CollectedItemCreate]) -> list[UUID]:
+    if not new_items:
+        return []
+
+    items_data = [
+        {
+            "source_id": item.source_id,
+            "title": item.title,
+            "content_raw": item.content_raw,
+            "content_url": item.content_url,
+            "summary": item.summary,
+            "category": IntelligenceCategory(item.category),
+            "market": Market(item.market),
+            "published_at": item.published_at,
+            "expires_at": item.expires_at,
+            "metadata_extra": item.metadata_extra,
+        }
+        for item in new_items
+    ]
+    dialect = db.bind.dialect.name if db.bind is not None else ""
+    if dialect == "postgresql":
+        statement = (
+            postgresql_insert(CollectedItem)
+            .values(items_data)
+            .on_conflict_do_nothing(index_elements=["content_url"])
+            .returning(CollectedItem.id)
+        )
+        result = await db.execute(statement)
+        return list(result.scalars())
+    if dialect == "sqlite":
+        statement = (
+            sqlite_insert(CollectedItem)
+            .values(items_data)
+            .on_conflict_do_nothing(index_elements=["content_url"])
+            .returning(CollectedItem.id)
+        )
+        result = await db.execute(statement)
+        return list(result.scalars())
+
+    item_models = [CollectedItem(**item_data) for item_data in items_data]
+    db.add_all(item_models)
+    await db.flush()
+    return [item.id for item in item_models]

@@ -501,6 +501,84 @@ async def test_scraper_collector_accepts_user_created_config_aliases() -> None:
 
 
 @pytest.mark.asyncio
+async def test_scraper_collector_cleans_title_noise_and_expands_duplicate_content() -> None:
+    """Scraper collector removes title counters and avoids title-only content."""
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            text="""<html><article class="item">
+            <a class="title" href="/news/1">Global arms sale <span>13</span></a>
+            <p class="summary">Global arms sale</p>
+            <p class="summary">Diplomatic context with enough detail for summarization.</p>
+            </article></html>""",
+        )
+
+    source = _source(
+        SourceType.SCRAPER,
+        {
+            "target_url": "https://ap.test/world",
+            "selectors": {
+                "item_container": ".item",
+                "title": ".title",
+                "content": ".summary",
+                "link": ".title",
+            },
+            "min_content_length": 10,
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        items = await ScraperCollector(source, client).collect()
+
+    assert items[0]["title"] == "Global arms sale"
+    assert items[0]["content"] == "Diplomatic context with enough detail for summarization."
+
+
+@pytest.mark.asyncio
+async def test_scraper_collector_can_follow_links_for_article_body() -> None:
+    """Scraper collector can fetch linked article bodies when cards only repeat titles."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == "https://site.test/news/1":
+            return httpx.Response(
+                200,
+                text="""<html><article>
+                <p>Full article paragraph with policy details and market impact.</p>
+                <p>Second paragraph adds enough body text for summarization.</p>
+                </article></html>""",
+            )
+        return httpx.Response(
+            200,
+            text="""<html><article class="item">
+            <a class="title" href="/news/1">Policy update</a>
+            <p>Policy update</p>
+            </article></html>""",
+        )
+
+    source = _source(
+        SourceType.SCRAPER,
+        {
+            "target_url": "https://site.test/list",
+            "selectors": {
+                "item_container": ".item",
+                "title": ".title",
+                "content": "p",
+                "link": ".title",
+            },
+            "follow_link": True,
+            "min_content_length": 10,
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        items = await ScraperCollector(source, client).collect()
+
+    assert items[0]["content"] == (
+        "Full article paragraph with policy details and market impact. "
+        "Second paragraph adds enough body text for summarization."
+    )
+
+
+@pytest.mark.asyncio
 async def test_dedup_filters_existing_url(db_session: AsyncSession) -> None:
     """Dedup removes items already persisted by content URL."""
     source = _source(SourceType.RSS, {"feed_url": "https://rss.test/feed.xml"})

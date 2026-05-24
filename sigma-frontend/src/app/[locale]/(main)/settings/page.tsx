@@ -19,6 +19,8 @@ import { useToast } from "@/components/ui/Toast";
 import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
 import { useLLMSettings } from "@/hooks/useLLMSettings";
 import { useReportConfig, useSettingsMutations } from "@/hooks/useSettings";
+import type { User } from "@/lib/auth";
+import { cn } from "@/lib/cn";
 import { toggleMultiSelection } from "@/lib/selection";
 import type { Category, LLMConfig, LLMUsageResponse, Locale, Market, ReportType, UserReportConfig } from "@/lib/types";
 
@@ -142,7 +144,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <section className="flex flex-col gap-6 p-6 pb-24 lg:p-8">
+    <section className="flex flex-col gap-6 p-6 lg:p-8">
       <header className="border-b border-border pb-6">
         <p className="text-sm font-medium uppercase text-primary">{t("eyebrow")}</p>
         <h1 className="mt-2 text-3xl font-semibold text-foreground sm:text-4xl">{t("title")}</h1>
@@ -173,30 +175,26 @@ export default function SettingsPage() {
           )}
         </div>
         <div className="flex min-w-0 flex-col gap-5">
-          <LLMConfigSection
-            configData={llmSettings.config.data}
-            isConfigLoading={llmSettings.config.isLoading}
-            isSaving={llmSettings.update.isPending}
-            onSave={llmSettings.update.mutateAsync}
-            usageData={llmSettings.usage.data}
+          <div className={cn(!reportPayload.is_active && "pointer-events-none select-none opacity-40")}>
+            <LLMConfigSection
+              configData={llmSettings.config.data}
+              isConfigLoading={llmSettings.config.isLoading}
+              isSaving={llmSettings.update.isPending}
+              onSave={llmSettings.update.mutateAsync}
+              usageData={llmSettings.usage.data}
+            />
+          </div>
+          <PasswordSection
+            hasChanges={hasChanges}
+            isSaving={isSaving}
+            onOpen={() => setIsPasswordOpen(true)}
+            onSaveAll={handleSaveAll}
+            user={user}
           />
-          <PasswordSection onOpen={() => setIsPasswordOpen(true)} />
         </div>
       </div>
 
       {user?.role === "admin" ? <AdminSettingsSection /> : null}
-
-      <div className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-6xl rounded-full border border-border bg-card/95 p-2 shadow-apple backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 px-3 text-sm font-medium text-muted-foreground">
-            {hasChanges ? t("unsaved") : t("noChanges")}
-          </p>
-          <Button disabled={!hasChanges || user === null} isLoading={isSaving} onClick={handleSaveAll}>
-            <Save className="h-4 w-4" aria-hidden />
-            {t("save")}
-          </Button>
-        </div>
-      </div>
 
       {user ? (
         <PasswordResetModal
@@ -353,20 +351,38 @@ function ReportConfigSection({
   );
 }
 
-function PasswordSection({ onOpen }: { onOpen: () => void }) {
+function PasswordSection({
+  hasChanges,
+  isSaving,
+  onOpen,
+  onSaveAll,
+  user
+}: {
+  hasChanges: boolean;
+  isSaving: boolean;
+  onOpen: () => void;
+  onSaveAll: () => void;
+  user: User | null;
+}) {
   const t = useTranslations("settings");
 
   return (
     <Card className="p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">{t("password.title")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t("password.caption")}</p>
         </div>
-        <Button onClick={onOpen} variant="secondary">
-          <KeyRound className="h-4 w-4" aria-hidden />
-          {t("password.open")}
-        </Button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button disabled={!hasChanges || user === null} isLoading={isSaving} onClick={onSaveAll}>
+            <Save className="h-4 w-4" aria-hidden />
+            {t("save")}
+          </Button>
+          <Button onClick={onOpen} variant="secondary">
+            <KeyRound className="h-4 w-4" aria-hidden />
+            {t("password.open")}
+          </Button>
+        </div>
       </div>
     </Card>
   );

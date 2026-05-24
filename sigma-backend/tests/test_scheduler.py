@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -5,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from app.collectors.normalizer import normalize_items
 from app.models import Base
 from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
@@ -21,7 +23,7 @@ from app.scheduler.engine import (
     start_scheduler,
     stop_scheduler,
 )
-from app.scheduler.jobs import _period_for, collect_from_source
+from app.scheduler.jobs import _insert_new_items, _period_for, collect_from_source
 
 
 @pytest.mark.asyncio
@@ -141,6 +143,64 @@ async def test_collect_from_source_triggers_summarizer(
     assert len(logs) == 1
     assert logs[0].status == CollectorStatus.SUCCESS
     assert logs[0].items_count == 1
+
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_insert_new_items_skips_duplicate_content_url() -> None:
+    """Collector persistence skips URL conflicts instead of failing the run."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    source = _source(11)
+    now = datetime.now(timezone.utc)
+    async with session_factory() as db:
+        db.add(source)
+        db.add(
+            CollectedItem(
+                source_id=source.id,
+                title="Existing",
+                content_raw="Existing content",
+                content_url="https://duplicate.test/item",
+                category=IntelligenceCategory.FINANCE,
+                market=Market.US,
+                published_at=now,
+                expires_at=now + timedelta(days=30),
+            )
+        )
+        await db.commit()
+
+        normalized = normalize_items(
+            source,
+            [
+                {
+                    "title": "Overlap",
+                    "content": "Overlapping content",
+                    "content_url": "https://duplicate.test/item",
+                    "published_at": now.isoformat(),
+                },
+                {
+                    "title": "Fresh",
+                    "content": "Fresh content",
+                    "content_url": "https://fresh.test/item",
+                    "published_at": now.isoformat(),
+                },
+            ],
+        )
+        inserted_ids = await _insert_new_items(db, normalized)
+        await db.commit()
+        items = list(await db.scalars(select(CollectedItem).order_by(CollectedItem.title)))
+
+    assert len(inserted_ids) == 1
+    assert [item.title for item in items] == ["Existing", "Fresh"]
 
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.drop_all)
