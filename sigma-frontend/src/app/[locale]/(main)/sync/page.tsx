@@ -32,9 +32,12 @@ import { useSources } from "@/hooks/useSources"
 import { apiFetch } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import type { Category, DataSource, Market, SourcePayload } from "@/lib/types"
-import type { AdminLogResponse, CollectorStatus, SourcePreviewResponse } from "@/hooks/useAdmin"
+import type { AdminLogResponse, CollectorStatus } from "@/hooks/useAdmin"
 
 type LogFilter = CollectorStatus | "all"
+interface SourcePreviewResponse {
+  items: Record<string, unknown>[]
+}
 
 const sourceTypes = ["rss", "api", "scraper"] as const
 const categories: Category[] = ["politics", "finance", "technology", "macro", "other"]

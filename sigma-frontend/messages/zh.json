@@ -554,7 +554,6 @@
       "title": "管理后台",
       "dashboard": "总览",
       "users": "用户",
-      "sources": "数据源",
       "llm": "LLM",
       "logs": "日志",
       "back": "返回应用",
@@ -618,90 +617,6 @@
       "roles": {
         "admin": "管理员",
         "user": "用户"
-      }
-    },
-    "sources": {
-      "eyebrow": "采集控制",
-      "title": "数据源管理",
-      "add": "新增数据源",
-      "addTitle": "新增数据源",
-      "editTitle": "编辑数据源",
-      "name": "名称",
-      "type": "类型",
-      "category": "类别",
-      "market": "市场",
-      "cron": "Cron 计划",
-      "timeout": "超时秒数",
-      "status": "状态",
-      "actions": "操作",
-      "active": "启用",
-      "inactive": "停用",
-      "edit": "编辑",
-      "logs": "日志",
-      "delete": "删除",
-      "back": "上一步",
-      "next": "下一步",
-      "save": "保存",
-      "runTest": "测试采集",
-      "tested": "采集测试已通过。",
-      "testOk": "预览返回 {count} 条。",
-      "testError": "采集测试失败。",
-      "saved": "数据源已保存。",
-      "error": "无法保存数据源。",
-      "nextRun": "下次运行预览：{time}",
-      "logsTitle": "{name} 的日志",
-      "items": "条",
-      "emptyLogs": "此数据源暂无日志。",
-      "emptyRegion": "此区域暂无数据源。",
-      "sourceCount": "{count} 个数据源",
-      "toggleSource": "切换 {name}",
-      "syncQueued": "数据源同步已加入队列。",
-      "syncError": "无法同步此数据源。",
-      "syncSource": "同步 {name}",
-      "types": {
-        "rss": "RSS",
-        "api": "API",
-        "scraper": "网页抓取"
-      },
-      "categories": {
-        "politics": "政治",
-        "finance": "金融",
-        "technology": "科技",
-        "macro": "宏观",
-        "other": "其他"
-      },
-      "markets": {
-        "us": "美国",
-        "cn": "中国",
-        "jp": "日本",
-        "eu": "欧洲",
-        "hk": "香港",
-        "kr": "韩国",
-        "tw": "台湾",
-        "global": "全球"
-      },
-      "fields": {
-        "feedUrl": "Feed URL",
-        "endpoint": "接口地址",
-        "itemsPath": "条目路径",
-        "url": "页面 URL",
-        "selector": "条目选择器"
-      },
-      "presets": {
-        "5m": "每 5 分钟",
-        "hourly": "每小时",
-        "daily": "每天"
-      },
-      "steps": {
-        "1": "类型",
-        "2": "配置",
-        "3": "计划",
-        "4": "测试"
-      },
-      "logStatus": {
-        "success": "成功",
-        "fail": "失败",
-        "timeout": "超时"
       }
     },
     "llm": {

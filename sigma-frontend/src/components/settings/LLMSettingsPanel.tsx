@@ -84,7 +84,6 @@ export function LLMSettingsPanel({
   usageData
 }: LLMSettingsPanelProps) {
   const t = useTranslations("admin.llm");
-  const settingsT = useTranslations("settings.llm");
   const locale = useLocale();
   const toast = useToast();
   const [form, setForm] = useState<LLMConfig>(defaultConfig);
@@ -403,7 +402,7 @@ export function LLMSettingsPanel({
           <section className="grid gap-4 xl:grid-cols-[3fr_1fr]">
             <Card className="p-5">
               <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>
-              <TokenTrendChart data={trendData} legendLabel={settingsT("legendInputOutput")} />
+              <TokenTrendChart data={trendData} locale={locale} />
             </Card>
             <Card className="p-5">
               <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>

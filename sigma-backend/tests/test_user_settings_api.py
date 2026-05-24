@@ -154,6 +154,23 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
                     "key": "sk-user-test",
                     "provider": "deepseek",
                     "token_limit": 4321,
+                    "is_default": True,
+                }
+            ],
+        },
+    )
+    minimal_update_response = client.put(
+        "/api/v1/me/llm/config",
+        headers=headers,
+        json={
+            "cost_guard_enabled": True,
+            "api_keys": [
+                {
+                    "name": "Default Only",
+                    "key": "sk-default-only",
+                    "provider": "anthropic",
+                    "token_limit": 100000,
+                    "is_default": True,
                 }
             ],
         },
@@ -176,9 +193,15 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
                 "key": "sk-user-test",
                 "provider": "deepseek",
                 "token_limit": 4321,
+                "is_default": True,
             }
         ],
     }
+    assert minimal_update_response.status_code == 200
+    assert minimal_update_response.json()["provider"] == "anthropic"
+    assert minimal_update_response.json()["model"] == "claude-sonnet-4-20250514"
+    assert minimal_update_response.json()["daily_token_limit"] == 1_000_000
+    assert minimal_update_response.json()["api_keys"][0]["is_default"] is True
     assert usage_response.status_code == 200
     usage_items = usage_response.json()["items"]
     assert usage_items[0]["function_type"] == "summary"

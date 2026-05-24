@@ -31,12 +31,6 @@ class DataSourceCreate(DataSourceBase):
     """Data source create payload."""
 
 
-class SystemDataSourceCreate(DataSourceBase):
-    """Admin payload for system data source creation."""
-
-    is_system: bool = True
-
-
 class DataSourceUpdate(BaseModel):
     """Data source update payload."""
 
@@ -90,14 +84,6 @@ class SourceStatusResponse(BaseModel):
     last_error: str | None = None
     last_executed_at: datetime | None = None
     success_rate_24h: float
-
-
-class SourceStatsResponse(BaseModel):
-    """Admin aggregate source stats response."""
-
-    total: int
-    active: int
-    system: int
 
 
 SCRIPT_PATTERN = re.compile(

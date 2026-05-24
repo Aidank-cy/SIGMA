@@ -7,8 +7,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CustomSelect } from "@/components/dashboard/custom-select";
-import { useAdminLogs, useAdminSources } from "@/hooks/useAdmin";
+import { useAdminLogs } from "@/hooks/useAdmin";
 import type { CollectorStatus } from "@/hooks/useAdmin";
+import { useSources } from "@/hooks/useSources";
 import { cn } from "@/lib/cn";
 
 const statuses: Array<CollectorStatus | "all"> = ["all", "success", "fail", "timeout"];
@@ -22,7 +23,7 @@ export function AdminLogsPanel() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const t = useTranslations("admin.logs");
   const statusT = useTranslations("admin.status");
-  const sources = useAdminSources();
+  const sources = useSources();
   const logs = useAdminLogs({ dateFrom, dateTo, page, sourceId, status });
   const today = new Date().toISOString().split("T")[0];
   const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString().split("T")[0];
@@ -56,7 +57,7 @@ export function AdminLogsPanel() {
             }}
             options={[
               { label: t("allSources"), value: "" },
-              ...(sources.list.data?.items ?? []).map((source) => ({ label: source.name, value: source.id }))
+              ...(sources.data?.items ?? []).map((source) => ({ label: source.name, value: source.id }))
             ]}
             selectClassName="rounded-xl"
             value={sourceId}

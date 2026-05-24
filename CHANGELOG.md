@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add authenticated user-level source log API responses scoped to system and user-owned sources.
 - Add user-facing Sync collection logs with source/status/date filters, pagination, success-rate footer, and local fallback rows for development.
 - Add shared collector text/datetime utilities and a published-time item sort index.
 - Add a four-column dashboard news snapshot grouped by politics, economy, finance, and macro categories.
@@ -43,6 +44,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change LLM config updates to accept default provider/model/token-limit values and preserve per-key default selection.
 - Change Settings to show only the LLM configuration in the right column and localize LLM token trend date labels and legend text.
 - Darken the shared modal backdrop so source and password modals reduce page distraction.
 - Redesign Sync data sources into market-grouped compact columns with per-market user source creation.
@@ -123,6 +125,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Removed
+- Remove the Admin Sources tab, frontend panel, hook mutations, translations, and backend admin source routes.
 - Remove source creation, editing, and deletion controls from the Admin Sources UI.
 - Remove the Markets Watchlist tab and dashboard sidebar watchlist card from the frontend.
 - Remove Dashboard HeroChart previous/next arrow controls, drag-to-switch gestures, and keyboard market switching.
@@ -132,6 +135,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix the LLM token trend legend by rendering a single centered custom input/output legend.
 - Fix Federal Reserve and FRED seed collectors so release listings are capped and metadata fragments are filtered before becoming intelligence items.
 - Fix Analytics sentiment trend to use the selected window's rolling bullish aggregate with one-minute live refresh snapshots.
 - Fix Analytics sentiment trend to use one-minute buckets with carried-forward sentiment while loading the full selected item window.

@@ -1614,3 +1614,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Tightened Federal Reserve and FRED seed configs with capped collection and content filters, added collector tests for max-entry and fragment filtering, removed Admin Sources create/edit/delete controls, reduced Settings right column to LLM only, darkened shared modal backdrops, and localized LLM token trend date/legend labels. Verified live Federal Reserve scraping returns 30 capped meaningful entries; FRED live verification was skipped because `FRED_API_KEY` is not set.
 - Timestamp: 2026-05-24T02:09:50Z
+
+### [Maintenance] Backend alignment and admin sources removal
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/routes/sources.py, sigma-backend/app/api/v1/router.py, sigma-backend/app/schemas/admin.py, sigma-backend/app/schemas/llm.py, sigma-backend/app/schemas/source.py, sigma-backend/app/services/llm_settings.py, sigma-backend/tests/test_sources_api.py, sigma-backend/tests/test_admin_api.py, sigma-backend/tests/test_user_settings_api.py, sigma-backend/tests/test_reports_api.py, sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/src/components/admin/AdminLogsPanel.tsx, sigma-frontend/src/components/admin/AdminSettingsSection.tsx, sigma-frontend/src/components/charts/LLMUsageCharts.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/hooks/useAdmin.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Files deleted: sigma-backend/app/api/v1/admin/sources.py, sigma-frontend/src/components/admin/AdminSourcesPanel.tsx
+- Tests: PASS
+- Notes: Added `/api/v1/sources/logs` with visible-source scoping and success-rate pagination, made LLM config saves tolerant of omitted legacy config fields while passing through per-key defaults, removed the Admin Sources tab/backend routes, and replaced the token trend Recharts legend with a custom centered legend. Verified targeted Ruff, targeted backend tests (`23 passed, 1 warning`), full backend Ruff, full backend tests (`176 passed, 1 warning`), frontend `npm run build`, message JSON parsing, and `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-24T03:07:08Z

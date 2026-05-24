@@ -554,7 +554,6 @@
       "title": "Admin",
       "dashboard": "Dashboard",
       "users": "Users",
-      "sources": "Sources",
       "llm": "LLM",
       "logs": "Logs",
       "back": "Back to app",
@@ -618,90 +617,6 @@
       "roles": {
         "admin": "Admin",
         "user": "User"
-      }
-    },
-    "sources": {
-      "eyebrow": "Collection control",
-      "title": "Source management",
-      "add": "Add source",
-      "addTitle": "Add source",
-      "editTitle": "Edit source",
-      "name": "Name",
-      "type": "Type",
-      "category": "Category",
-      "market": "Market",
-      "cron": "Cron schedule",
-      "timeout": "Timeout seconds",
-      "status": "Status",
-      "actions": "Actions",
-      "active": "Active",
-      "inactive": "Inactive",
-      "edit": "Edit",
-      "logs": "Logs",
-      "delete": "Delete",
-      "back": "Back",
-      "next": "Next",
-      "save": "Save",
-      "runTest": "Test collect",
-      "tested": "Collection test passed.",
-      "testOk": "Preview returned {count} items.",
-      "testError": "Collection test failed.",
-      "saved": "Source saved.",
-      "error": "Unable to save source.",
-      "nextRun": "Next run preview: {time}",
-      "logsTitle": "Logs for {name}",
-      "items": "items",
-      "emptyLogs": "No logs for this source.",
-      "emptyRegion": "No sources in this region.",
-      "sourceCount": "{count, plural, =0 {No sources} one {# source} other {# sources}}",
-      "toggleSource": "Toggle {name}",
-      "syncQueued": "Source sync queued.",
-      "syncError": "Unable to sync this source.",
-      "syncSource": "Sync {name}",
-      "types": {
-        "rss": "RSS",
-        "api": "API",
-        "scraper": "Scraper"
-      },
-      "categories": {
-        "politics": "Politics",
-        "finance": "Finance",
-        "technology": "Technology",
-        "macro": "Macro",
-        "other": "Other"
-      },
-      "markets": {
-        "us": "United States",
-        "cn": "China",
-        "jp": "Japan",
-        "eu": "Europe",
-        "hk": "Hong Kong",
-        "kr": "Korea",
-        "tw": "Taiwan",
-        "global": "Global"
-      },
-      "fields": {
-        "feedUrl": "Feed URL",
-        "endpoint": "Endpoint",
-        "itemsPath": "Items path",
-        "url": "Page URL",
-        "selector": "Item selector"
-      },
-      "presets": {
-        "5m": "Every 5 minutes",
-        "hourly": "Hourly",
-        "daily": "Daily"
-      },
-      "steps": {
-        "1": "Type",
-        "2": "Config",
-        "3": "Schedule",
-        "4": "Test"
-      },
-      "logStatus": {
-        "success": "Success",
-        "fail": "Failed",
-        "timeout": "Timeout"
       }
     },
     "llm": {

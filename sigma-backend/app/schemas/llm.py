@@ -16,6 +16,7 @@ class LLMApiKey(BaseModel):
     key: str = Field(min_length=1, max_length=500)
     provider: LLMProvider
     token_limit: int = Field(gt=0)
+    is_default: bool = False
 
     @model_validator(mode="before")
     @classmethod
@@ -26,6 +27,7 @@ class LLMApiKey(BaseModel):
         return {
             "provider": "anthropic",
             "token_limit": 1_000_000,
+            "is_default": False,
             **data,
         }
 
@@ -47,9 +49,9 @@ class LLMConfigUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    provider: LLMProvider
-    model: str = Field(min_length=1, max_length=160)
-    daily_token_limit: int = Field(gt=0)
+    provider: LLMProvider = "anthropic"
+    model: str = Field(default="claude-sonnet-4-20250514", min_length=1, max_length=160)
+    daily_token_limit: int = Field(default=1_000_000, gt=0)
     cost_guard_enabled: bool = True
     api_keys: list[LLMApiKey] = Field(default_factory=list, max_length=20)
 

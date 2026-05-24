@@ -15,7 +15,8 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import type { ReactElement } from "react";
+import { Children, isValidElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 interface TokenTrendPoint {
   day: string;
@@ -39,7 +40,16 @@ interface DailyUsagePoint {
   tokens: number;
 }
 
-export function TokenTrendChart({ data, legendLabel = "Input/Output" }: { data: TokenTrendPoint[]; legendLabel?: string }) {
+export function TokenTrendChart({
+  data,
+  legendLabel,
+  locale
+}: {
+  data: TokenTrendPoint[];
+  legendLabel?: string;
+  locale?: string;
+}) {
+  const label = legendLabel ?? (locale?.startsWith("zh") ? "输入/输出" : "Input/Output");
   return (
     <ChartFrame>
       <LineChart data={data} margin={{ bottom: 5, left: -18, right: 5, top: 5 }}>
@@ -47,22 +57,16 @@ export function TokenTrendChart({ data, legendLabel = "Input/Output" }: { data: 
         <XAxis dataKey="day" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
         <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} width={42} />
         <Tooltip />
-        <Legend content={() => <TokenTrendLegend label={legendLabel} />} verticalAlign="bottom" />
         <Line dataKey="input" dot={false} stroke="rgb(var(--sigma-accent))" />
         <Line dataKey="output" dot={false} stroke="rgb(var(--sigma-success))" />
       </LineChart>
+      <div className="mt-2 flex items-center justify-center gap-2 text-xs text-sigma-muted">
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[rgb(var(--sigma-accent))]" />
+        <span>/</span>
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[rgb(var(--sigma-success))]" />
+        <span className="font-medium">{label}</span>
+      </div>
     </ChartFrame>
-  );
-}
-
-function TokenTrendLegend({ label }: { label: string }) {
-  return (
-    <div className="flex items-center justify-center gap-2 pt-2 text-xs font-medium text-sigma-muted">
-      <span className="h-2 w-2 rounded-full bg-[rgb(var(--sigma-accent))]" />
-      <span className="text-sigma-muted">/</span>
-      <span className="h-2 w-2 rounded-full bg-[rgb(var(--sigma-success))]" />
-      <span>{label}</span>
-    </div>
   );
 }
 
@@ -118,12 +122,20 @@ export function DailyUsageSparkline({ data }: { data: DailyUsagePoint[] }) {
   );
 }
 
-function ChartFrame({ children }: { children: ReactElement }) {
+function ChartFrame({ children }: { children: ReactNode }) {
+  const [chart, ...extra] = Children.toArray(children);
+  if (!isValidElement(chart)) {
+    return <div className="h-72">{children}</div>;
+  }
+
   return (
     <div className="h-72">
-      <ResponsiveContainer height="100%" width="100%">
-        {children}
-      </ResponsiveContainer>
+      <div className={extra.length > 0 ? "h-[calc(100%-2rem)]" : "h-full"}>
+        <ResponsiveContainer height="100%" width="100%">
+          {chart as ReactElement}
+        </ResponsiveContainer>
+      </div>
+      {extra}
     </div>
   );
 }

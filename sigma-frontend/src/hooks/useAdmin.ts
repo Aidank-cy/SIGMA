@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import type { DataSource, LLMConfig, LLMUsageResponse, PaginatedResponse, SourcePayload } from "@/lib/types";
+import type { LLMConfig, LLMUsageResponse, PaginatedResponse } from "@/lib/types";
 import type { User } from "@/lib/auth";
 
 export type CollectorStatus = "success" | "fail" | "timeout";
@@ -48,10 +48,6 @@ export interface AdminUser extends User {
 
 export interface AdminLogResponse extends PaginatedResponse<AdminActivity> {
   success_rate: number;
-}
-
-export interface SourcePreviewResponse {
-  items: Record<string, unknown>[];
 }
 
 export type { LLMConfig, LLMUsageResponse } from "@/lib/types";
@@ -114,46 +110,6 @@ export function useAdminUsers(q: string) {
   });
 
   return { list, remove, update };
-}
-
-export function useAdminSources() {
-  const queryClient = useQueryClient();
-  const list = useQuery({
-    queryKey: ["sources"],
-    queryFn: () => apiFetch<PaginatedResponse<DataSource>>("/sources?page=1&page_size=100")
-  });
-  const create = useMutation({
-    mutationFn: (payload: SourcePayload) =>
-      apiFetch<DataSource>("/admin/sources", {
-        body: JSON.stringify(payload),
-        method: "POST"
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sources"] })
-  });
-  const update = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<SourcePayload> }) =>
-      apiFetch<DataSource>(`/admin/sources/${id}`, {
-        body: JSON.stringify(payload),
-        method: "PUT"
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sources"] })
-  });
-  const remove = useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/admin/sources/${id}`, { method: "DELETE" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sources"] })
-  });
-  const preview = useMutation({
-    mutationFn: (payload: SourcePayload) =>
-      apiFetch<SourcePreviewResponse>("/admin/sources/test", {
-        body: JSON.stringify(payload),
-        method: "POST"
-      })
-  });
-  const logs = useMutation({
-    mutationFn: (id: string) => apiFetch<{ items: AdminActivity[] }>(`/admin/sources/${id}/logs`)
-  });
-
-  return { create, list, logs, preview, remove, update };
 }
 
 export function useAdminLLM() {

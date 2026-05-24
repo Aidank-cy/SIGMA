@@ -1,12 +1,13 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
 from app.models.collector_log import CollectorLog
-from app.models.enums import CollectorStatus
+from app.models.data_source import DataSource
+from app.models.enums import CollectorStatus, IntelligenceCategory, Market, SourceType
 
 
 def test_sources_create_list_and_delete(client: TestClient) -> None:
@@ -87,13 +88,7 @@ def test_source_update_status_and_auth_edges(client: TestClient) -> None:
 def test_delete_system_source_forbidden(client: TestClient) -> None:
     """System sources cannot be deleted through user CRUD."""
     token = _token(client, "admin@example.com")
-    create_response = client.post(
-        "/api/v1/admin/sources",
-        headers=_auth(token),
-        json=_source_payload("System RSS"),
-    )
-    assert create_response.status_code == 201
-    source_id = create_response.json()["id"]
+    source_id = asyncio.run(_seed_system_source(client, "System RSS"))
 
     delete_response = client.delete(f"/api/v1/sources/{source_id}", headers=_auth(token))
 
@@ -158,6 +153,40 @@ def test_source_collect_queues_background_collection(client: TestClient, monkeyp
     assert queued == [source_id]
 
 
+def test_source_logs_endpoint_scopes_logs_to_visible_sources(client: TestClient) -> None:
+    """Source logs are available to regular users and scoped to their visible sources."""
+    _token(client, "logs-admin@example.com")
+    owner_token = _token(client, "logs-owner@example.com")
+    other_token = _token(client, "logs-other@example.com")
+    owner_source = client.post(
+        "/api/v1/sources",
+        headers=_auth(owner_token),
+        json=_source_payload("Owner Logs RSS"),
+    ).json()["id"]
+    other_source = client.post(
+        "/api/v1/sources",
+        headers=_auth(other_token),
+        json=_source_payload("Other Logs RSS"),
+    ).json()["id"]
+    asyncio.run(_seed_collector_logs(client, owner_source, other_source))
+
+    response = client.get("/api/v1/sources/logs?page=1&page_size=10", headers=_auth(owner_token))
+    success_response = client.get("/api/v1/sources/logs?status=success", headers=_auth(owner_token))
+    hidden_source_response = client.get(f"/api/v1/sources/logs?source_id={other_source}", headers=_auth(owner_token))
+    unauthenticated_response = client.get("/api/v1/sources/logs")
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 2
+    assert response.json()["success_rate"] == 0.5
+    assert {item["source_id"] for item in response.json()["items"]} == {owner_source}
+    assert success_response.status_code == 200
+    assert success_response.json()["total"] == 1
+    assert success_response.json()["items"][0]["status"] == "success"
+    assert hidden_source_response.status_code == 200
+    assert hidden_source_response.json()["total"] == 0
+    assert unauthenticated_response.status_code == 401
+
+
 def _token(client: TestClient, email: str) -> str:
     register_response = client.post(
         "/api/v1/auth/register",
@@ -193,6 +222,26 @@ def _seed_collector_log(client: TestClient, source_id: str) -> None:
     asyncio.run(_seed_collector_log_async(client, source_id))
 
 
+async def _seed_system_source(client: TestClient, name: str) -> str:
+    session_factory = client.app.state.session_factory
+    source = DataSource(
+        id=uuid4(),
+        name=name,
+        source_type=SourceType.RSS,
+        category=IntelligenceCategory.FINANCE,
+        market=Market.US,
+        config={"feed_url": "https://rss.test/system.xml"},
+        schedule_cron="*/5 * * * *",
+        max_execution_seconds=60,
+        is_active=True,
+        is_system=True,
+    )
+    async with session_factory() as db:
+        db.add(source)
+        await db.commit()
+    return str(source.id)
+
+
 async def _seed_collector_log_async(client: TestClient, source_id: str) -> None:
     session_factory = client.app.state.session_factory
     async with session_factory() as db:
@@ -205,5 +254,40 @@ async def _seed_collector_log_async(client: TestClient, source_id: str) -> None:
                 duration_ms=250,
                 executed_at=datetime.now(timezone.utc),
             )
+        )
+        await db.commit()
+
+
+async def _seed_collector_logs(client: TestClient, owner_source: str, other_source: str) -> None:
+    session_factory = client.app.state.session_factory
+    now = datetime.now(timezone.utc)
+    async with session_factory() as db:
+        db.add_all(
+            [
+                CollectorLog(
+                    source_id=UUID(owner_source),
+                    status=CollectorStatus.SUCCESS,
+                    items_count=4,
+                    error_message=None,
+                    duration_ms=250,
+                    executed_at=now,
+                ),
+                CollectorLog(
+                    source_id=UUID(owner_source),
+                    status=CollectorStatus.FAIL,
+                    items_count=0,
+                    error_message="fail",
+                    duration_ms=150,
+                    executed_at=now - timedelta(minutes=5),
+                ),
+                CollectorLog(
+                    source_id=UUID(other_source),
+                    status=CollectorStatus.SUCCESS,
+                    items_count=3,
+                    error_message=None,
+                    duration_ms=175,
+                    executed_at=now - timedelta(minutes=10),
+                ),
+            ]
         )
         await db.commit()

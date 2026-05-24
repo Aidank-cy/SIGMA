@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
 
 from app.api.v1.admin import dashboard as admin_dashboard
 from app.models.collected_item import CollectedItem
@@ -104,58 +103,19 @@ def test_admin_user_management_guards(client: TestClient) -> None:
     assert forbidden_response.status_code == 403
 
 
-def test_admin_source_preview_crud_stats_and_guards(client: TestClient, monkeypatch) -> None:
-    """Admins can manage system sources, inspect logs/stats, and cascade delete source data."""
+def test_admin_sources_endpoints_removed(client: TestClient) -> None:
+    """Admin source management endpoints are no longer registered."""
     token = _token(client, "admin-sources@example.com")
     user_token = _token(client, "regular-sources@example.com")
     headers = _auth(token)
+    source_id = uuid4()
 
-    class FakeCollector:
-        async def collect(self) -> list[dict[str, object]]:
-            return [{"title": "Preview", "content": "Text"}]
-
-        async def validate_config(self) -> bool:
-            return True
-
-    monkeypatch.setattr("app.api.v1.admin.sources.create_collector", lambda _source: FakeCollector())
-    payload = _source_payload("Admin RSS")
-    initial_list_response = client.get("/api/v1/admin/sources", headers=headers)
-    preview_response = client.post("/api/v1/admin/sources/test", headers=headers, json=payload)
-    create_response = client.post("/api/v1/admin/sources", headers=headers, json=payload)
-    source_id = create_response.json()["id"]
-    list_response = client.get("/api/v1/admin/sources", headers=headers)
-    update_response = client.put(
-        f"/api/v1/admin/sources/{source_id}",
-        headers=headers,
-        json={"name": "Admin RSS Updated", "is_active": False},
-    )
-    asyncio.run(_seed_source_artifacts(client, source_id))
-    logs_response = client.get(f"/api/v1/admin/sources/{source_id}/logs", headers=headers)
-    stats_response = client.get("/api/v1/admin/sources/stats", headers=headers)
-    forbidden_response = client.get("/api/v1/admin/sources", headers=_auth(user_token))
-    delete_response = client.delete(f"/api/v1/admin/sources/{source_id}", headers=headers)
-    artifacts_remaining = asyncio.run(_source_artifact_count(client, source_id))
-
-    assert initial_list_response.status_code == 200
-    assert initial_list_response.json()["items"] == []
-    assert preview_response.status_code == 200
-    assert preview_response.json()["items"][0]["title"] == "Preview"
-    assert create_response.status_code == 201
-    assert create_response.json()["is_system"] is True
-    assert list_response.status_code == 200
-    assert list_response.json()["total"] == 1
-    assert list_response.json()["items"][0]["id"] == source_id
-    assert update_response.status_code == 200
-    assert update_response.json()["name"] == "Admin RSS Updated"
-    assert update_response.json()["is_active"] is False
-    assert logs_response.status_code == 200
-    assert logs_response.json()["items"][0]["source_name"] == "Admin RSS Updated"
-    assert logs_response.json()["items"][0]["status"] == "success"
-    assert stats_response.status_code == 200
-    assert stats_response.json() == {"total": 1, "active": 0, "system": 1}
-    assert forbidden_response.status_code == 403
-    assert delete_response.status_code == 204
-    assert artifacts_remaining == 0
+    assert client.get("/api/v1/admin/sources", headers=headers).status_code == 404
+    assert client.post("/api/v1/admin/sources/test", headers=headers, json={}).status_code == 404
+    assert client.put(f"/api/v1/admin/sources/{source_id}", headers=headers, json={}).status_code == 404
+    assert client.get(f"/api/v1/admin/sources/{source_id}/logs", headers=headers).status_code == 404
+    assert client.get("/api/v1/admin/sources/stats", headers=headers).status_code == 404
+    assert client.get("/api/v1/admin/sources", headers=_auth(user_token)).status_code == 404
 
 
 def test_admin_llm_config_usage_and_guards(client: TestClient) -> None:
@@ -180,6 +140,7 @@ def test_admin_llm_config_usage_and_guards(client: TestClient) -> None:
                     "key": "sk-admin-gemini",
                     "provider": "gemini",
                     "token_limit": 6543,
+                    "is_default": True,
                 }
             ],
         },
@@ -203,6 +164,7 @@ def test_admin_llm_config_usage_and_guards(client: TestClient) -> None:
                 "key": "sk-admin-gemini",
                 "provider": "gemini",
                 "token_limit": 6543,
+                "is_default": True,
             }
         ],
     }
@@ -298,19 +260,6 @@ def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _source_payload(name: str) -> dict[str, object]:
-    return {
-        "name": name,
-        "source_type": "rss",
-        "category": "finance",
-        "market": "us",
-        "config": {"feed_url": "https://rss.test/feed.xml"},
-        "schedule_cron": "*/5 * * * *",
-        "max_execution_seconds": 60,
-        "is_active": True,
-    }
-
-
 async def _seed_admin_dashboard_data(client: TestClient) -> str:
     session_factory = client.app.state.session_factory
     source = DataSource(
@@ -361,49 +310,6 @@ async def _seed_admin_dashboard_data(client: TestClient) -> str:
         )
         await db.commit()
     return str(source.id)
-
-
-async def _seed_source_artifacts(client: TestClient, source_id: str) -> None:
-    session_factory = client.app.state.session_factory
-    now = datetime.now(timezone.utc)
-    async with session_factory() as db:
-        db.add_all(
-            [
-                CollectedItem(
-                    source_id=UUID(source_id),
-                    title="Admin source item",
-                    content_raw="Admin source content",
-                    content_url=f"https://admin-source.test/{uuid4()}",
-                    summary="Admin source summary",
-                    category=IntelligenceCategory.FINANCE,
-                    market=Market.US,
-                    published_at=now,
-                    collected_at=now,
-                    expires_at=now + timedelta(days=30),
-                ),
-                CollectorLog(
-                    source_id=UUID(source_id),
-                    status=CollectorStatus.SUCCESS,
-                    items_count=2,
-                    error_message=None,
-                    duration_ms=150,
-                    executed_at=now,
-                ),
-            ]
-        )
-        await db.commit()
-
-
-async def _source_artifact_count(client: TestClient, source_id: str) -> int:
-    session_factory = client.app.state.session_factory
-    async with session_factory() as db:
-        item_count = await db.scalar(
-            select(func.count()).select_from(CollectedItem).where(CollectedItem.source_id == UUID(source_id))
-        )
-        log_count = await db.scalar(
-            select(func.count()).select_from(CollectorLog).where(CollectorLog.source_id == UUID(source_id))
-        )
-    return int(item_count or 0) + int(log_count or 0)
 
 
 async def _seed_admin_llm_usage(client: TestClient) -> None:

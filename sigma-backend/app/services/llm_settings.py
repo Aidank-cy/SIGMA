@@ -42,6 +42,17 @@ async def update_llm_config(db: AsyncSession, payload: LLMConfigUpdate, user_id:
     )
 
 
+async def get_default_api_key(db: AsyncSession, user_id: UUID) -> LLMApiKey | None:
+    """Return the user's default API key, or the first key if none is marked default."""
+    keys = await _api_keys_value(db, user_id)
+    if not keys:
+        return None
+    for key in keys:
+        if key.is_default:
+            return key
+    return keys[0]
+
+
 async def get_llm_usage(db: AsyncSession) -> LLMUsageResponse:
     """Return LLM usage totals grouped by day, function, provider, and model."""
     day_expr = func.date(LLMUsageLog.created_at)

@@ -1,13 +1,10 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.models.enums import (
     CollectorStatus,
-    IntelligenceCategory,
-    Market,
-    SourceType,
     UserLocale,
     UserRole,
 )
@@ -96,22 +93,3 @@ class AdminLogListResponse(BaseModel):
     has_next: bool
     success_rate: float
     items: list[RecentActivityItem]
-
-
-class AdminSourceLogsResponse(BaseModel):
-    """Recent source logs used by the source drawer."""
-
-    items: list[RecentActivityItem]
-
-
-class AdminSourcePreviewPayload(BaseModel):
-    """Preview an unsaved or edited source config."""
-
-    name: str = Field(min_length=1, max_length=160)
-    source_type: SourceType
-    category: IntelligenceCategory
-    market: Market
-    config: dict[str, object] = Field(default_factory=dict)
-    schedule_cron: str = Field(min_length=9, max_length=120)
-    max_execution_seconds: int = Field(default=300, ge=1, le=3600)
-    is_active: bool = True
