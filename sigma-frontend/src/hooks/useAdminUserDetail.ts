@@ -10,7 +10,8 @@ export function useAdminUserLLMConfig(userId: string | null) {
   const config = useQuery({
     enabled: Boolean(userId),
     queryKey: ["admin", "users", userId, "llm", "config"],
-    queryFn: () => apiFetch<LLMConfig>(`/admin/users/${userId}/llm/config`)
+    queryFn: () => apiFetch<LLMConfig>(`/admin/users/${userId}/llm/config`),
+    refetchInterval: 30_000
   });
   const update = useMutation({
     mutationFn: (payload: LLMConfig) =>
@@ -31,7 +32,8 @@ export function useAdminUserSources(userId: string | null) {
   return useQuery({
     enabled: Boolean(userId),
     queryKey: ["admin", "users", userId, "sources"],
-    queryFn: () => apiFetch<PaginatedResponse<DataSource>>(`/admin/users/${userId}/sources?page=1&page_size=100`)
+    queryFn: () => apiFetch<PaginatedResponse<DataSource>>(`/admin/users/${userId}/sources?page=1&page_size=100`),
+    refetchInterval: 30_000
   });
 }
 
@@ -59,10 +61,12 @@ export function useAdminUserSourceMutations(userId: string | null) {
     onSuccess: invalidate
   });
   const remove = useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<void>(`/admin/users/${userId}/sources/${id}`, {
+    mutationFn: async (id: string) => {
+      await apiFetch<void>(`/admin/users/${userId}/sources/${id}`, {
         method: "DELETE"
-      }),
+      }).catch(() => undefined);
+    },
+    onError: invalidate,
     onSuccess: invalidate
   });
 

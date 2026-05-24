@@ -1696,3 +1696,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, and browser smoke at `http://localhost:3001/en/settings`.
 - Follow-up: Rebuild Docker services before validating admin user detail flows against a persistent local database.
 - Timestamp: 2026-05-24T13:20:00+08:00
+
+### [Maintenance] Admin dashboard logs and rate-limit backoff
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/components/admin/AdminDashboardPanel.tsx, sigma-frontend/src/components/admin/AdminSettingsSection.tsx, sigma-frontend/src/components/admin/AdminUserSourcesDetail.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/collectors/api_collector.py, sigma-backend/app/scheduler/engine.py, sigma-backend/tests/test_collectors.py, sigma-backend/tests/test_scheduler.py, CHANGELOG.md, .harness/progress.md
+- Files deleted: sigma-frontend/src/components/admin/AdminLogsPanel.tsx
+- Tests: PASS
+- Notes: Moved Admin Logs into the dashboard below the operational cards, removed the standalone Logs tab, made log cards start collapsed with success details expandable, moved the scheduled-report toggle to the Report Configuration header, hardened user source delete refreshes, added admin detail polling, and added API 429 backoff plus source-job jitter.
+- Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, targeted backend tests for 429 retry and scheduler jitter, and message JSON parsing.
+- Timestamp: 2026-05-24T19:48:51+08:00

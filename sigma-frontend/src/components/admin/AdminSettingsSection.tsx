@@ -5,11 +5,10 @@ import { useEffect } from "react";
 import { useState } from "react";
 
 import { AdminDashboardPanel } from "@/components/admin/AdminDashboardPanel";
-import { AdminLogsPanel } from "@/components/admin/AdminLogsPanel";
 import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
 import { SegmentControl } from "@/components/ui/SegmentControl";
 
-const panels = ["dashboard", "users", "logs"] as const;
+const panels = ["dashboard", "users"] as const;
 type AdminPanel = (typeof panels)[number];
 
 function isAdminPanel(value: string | null): value is AdminPanel {
@@ -49,7 +48,6 @@ export function AdminSettingsSection() {
 
       {activePanel === "dashboard" ? <AdminDashboardPanel /> : null}
       {activePanel === "users" ? <AdminUsersPanel /> : null}
-      {activePanel === "logs" ? <AdminLogsPanel /> : null}
     </section>
   );
 }

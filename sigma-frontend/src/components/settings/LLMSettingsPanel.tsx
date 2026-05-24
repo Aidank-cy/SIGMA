@@ -293,7 +293,7 @@ export function LLMSettingsPanel({
     <div className="flex flex-1 flex-col gap-6">
       <section className="space-y-4">
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
-          <Card className="flex h-[22rem] flex-col space-y-3 p-5">
+          <Card className="flex h-[22rem] flex-col gap-3 p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-sigma-text">{t("apiKeys")}</h3>
@@ -307,7 +307,7 @@ export function LLMSettingsPanel({
             {form.api_keys.length === 0 ? (
               <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
             ) : (
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                 <div className="space-y-2">
                   {form.api_keys.map((entry, index) => {
                     const isDefault = entry.is_default || (!hasExplicitDefault && index === 0);
@@ -377,7 +377,7 @@ export function LLMSettingsPanel({
               <ShieldCheck className="h-4 w-4 text-sigma-muted" aria-hidden />
               {t("costGuard")}
             </label>
-            <div className={cn(!form.cost_guard_enabled && "pointer-events-none opacity-40")}>
+            <div className={cn(!form.cost_guard_enabled && "pointer-events-none select-none opacity-40")}>
               <TokenLimitInput
                 label={t("dailyLimit")}
                 onChange={(value) => setForm({ ...form, daily_token_limit: value })}
@@ -413,7 +413,7 @@ export function LLMSettingsPanel({
                 </div>
               )}
             </Card>
-            <Card className="space-y-4 p-5">
+            <Card className={cn("space-y-4 p-5", !form.cost_guard_enabled && "pointer-events-none select-none opacity-40")}>
               <div>
                 <h3 className="text-lg font-semibold text-foreground">{t("dailyTokenBudget")}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
