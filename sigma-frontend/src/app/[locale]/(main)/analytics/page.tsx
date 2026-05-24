@@ -95,34 +95,6 @@ function buildHourlyVolume(items: ItemSummary[], locale: string) {
   }))
 }
 
-function calculateWindowSentiment(items: ItemSummary[], dateFrom: string, now: Date) {
-  const startTime = new Date(dateFrom).getTime()
-  const endTime = now.getTime()
-  const windowItems = items.filter((item) => {
-    const publishedAt = new Date(item.published_at).getTime()
-    return publishedAt >= startTime && publishedAt <= endTime
-  })
-  const total = windowItems.length
-  if (total === 0) {
-    return { sentiment: 0, total }
-  }
-  const bullish = windowItems.filter((item) => inferSentiment(item) === "bullish").length
-  return {
-    sentiment: Math.round((bullish / total) * 100),
-    total
-  }
-}
-
-function formatSentimentSnapshotLabel(date: Date, locale: string, days = 7) {
-  return new Intl.DateTimeFormat(locale, {
-    day: days > 1 ? "numeric" : undefined,
-    hour: "2-digit",
-    hour12: false,
-    minute: "2-digit",
-    month: days > 1 ? "short" : undefined
-  }).format(date)
-}
-
 function buildSourceData(items: ItemSummary[]) {
   const counts = new Map<string, number>()
   items.forEach((item) => counts.set(item.source_name, (counts.get(item.source_name) ?? 0) + 1))
@@ -200,7 +172,6 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState("7D")
   const [isGenerating, setIsGenerating] = useState(false)
   const [liveTick, setLiveTick] = useState(0)
-  const [sentimentSnapshots, setSentimentSnapshots] = useState<Array<{ day: string; sentiment: number; timestamp: number; total: number }>>([])
   const rangeDays = useMemo(() => timeRangeDays[timeRange] ?? 7, [timeRange])
   const dateFrom = useMemo(() => {
     const date = new Date()
@@ -211,11 +182,28 @@ export default function AnalyticsPage() {
     }
     return date.toISOString()
   }, [liveTick, rangeDays])
+  const dataFetchFrom = useMemo(() => {
+    const date = new Date()
+    if (rangeDays <= 1) {
+      date.setHours(date.getHours() - 48)
+    } else {
+      date.setDate(date.getDate() - rangeDays * 2)
+    }
+    return date.toISOString()
+  }, [liveTick, rangeDays])
   const sentiment = useSentimentStats(rangeDays)
   const keywords = useTrendingKeywords(rangeDays)
-  const itemQuery = useItems({ date_from: dateFrom, page_size: 500 })
+  const itemQuery = useItems({ date_from: dataFetchFrom, page_size: 500 })
   const reportsQuery = useReports(undefined, 6)
   const items = useMemo(() => itemQuery.data?.pages.flatMap((page) => page.items) ?? [], [itemQuery.data])
+  const rangeItems = useMemo(() => {
+    const startTime = new Date(dateFrom).getTime()
+    const now = Date.now()
+    return items.filter((item) => {
+      const publishedAt = new Date(item.published_at).getTime()
+      return publishedAt >= startTime && publishedAt <= now
+    })
+  }, [dateFrom, items, liveTick])
   const reports = useMemo(() => {
     const all = reportsQuery.data?.pages.flatMap((page) => page.items) ?? []
     return all.filter((report) => report.generated_at >= dateFrom)
@@ -236,12 +224,8 @@ export default function AnalyticsPage() {
     return () => window.clearInterval(interval)
   }, [itemQuery.mutate, sentiment.mutate])
 
-  useEffect(() => {
-    setSentimentSnapshots([])
-  }, [timeRange])
-
   const sentimentData = useMemo(() => {
-    const itemSentiments = items.map(inferSentiment)
+    const itemSentiments = rangeItems.map(inferSentiment)
     const bullish = itemSentiments.length > 0
       ? Math.round((itemSentiments.filter((value) => value === "bullish").length / itemSentiments.length) * 100)
       : Math.round(sentiment.data?.bullish_pct ?? 0)
@@ -252,57 +236,54 @@ export default function AnalyticsPage() {
       { color: "oklch(0.6 0.22 25)", name: feedT("sentiment.bearish"), value: bearish },
       { color: "oklch(0.4 0 0)", name: feedT("sentiment.neutral"), value: neutral }
     ]
-  }, [feedT, items, sentiment.data?.bullish_pct])
-  const bullishValue = sentimentData[0]?.value ?? 0
-  const currentWindowSentiment = useMemo(
-    () => calculateWindowSentiment(items, dateFrom, new Date()),
-    [dateFrom, items, liveTick]
-  )
-  useEffect(() => {
-    const timestamp = Date.now()
-    const minuteKey = Math.floor(timestamp / 60_000)
-    const snapshot = {
-      day: formatSentimentSnapshotLabel(new Date(timestamp), locale, rangeDays),
-      sentiment: currentWindowSentiment.sentiment,
-      timestamp,
-      total: currentWindowSentiment.total
-    }
-    setSentimentSnapshots((current) => {
-      const withoutSameMinute = current.filter((entry) => Math.floor(entry.timestamp / 60_000) !== minuteKey)
-      return [...withoutSameMinute, snapshot].slice(-60)
-    })
-  }, [currentWindowSentiment.sentiment, currentWindowSentiment.total, locale, rangeDays, liveTick])
+  }, [feedT, rangeItems, sentiment.data?.bullish_pct])
 
+  const currentWindowSentiment = useMemo(() => {
+    const total = rangeItems.length
+    const bullish = rangeItems.filter((item) => inferSentiment(item) === "bullish").length
+    return { sentiment: total > 0 ? Math.round((bullish / total) * 100) : 0, total }
+  }, [rangeItems])
+  const bullishValue = currentWindowSentiment.sentiment
   const trendData = useMemo(() => {
-    if (sentimentSnapshots.length > 1) {
-      return sentimentSnapshots
-    }
     const now = new Date()
-    const previous = new Date(now.getTime() - 60_000)
-    return [
-      {
-        day: formatSentimentSnapshotLabel(previous, locale, rangeDays),
-        sentiment: currentWindowSentiment.sentiment,
-        timestamp: previous.getTime(),
-        total: currentWindowSentiment.total
-      },
-      {
-        day: formatSentimentSnapshotLabel(now, locale, rangeDays),
-        sentiment: currentWindowSentiment.sentiment,
-        timestamp: now.getTime(),
-        total: currentWindowSentiment.total
+    const windowMs = rangeDays <= 1 ? 24 * 60 * 60 * 1000 : rangeDays * 24 * 60 * 60 * 1000
+    const numPoints = rangeDays <= 1 ? 24 : Math.min(rangeDays, 30)
+    const labelFormatter =
+      rangeDays <= 1
+        ? new Intl.DateTimeFormat(locale, { hour: "2-digit", hour12: false, minute: "2-digit" })
+        : new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" })
+
+    return Array.from({ length: numPoints + 1 }, (_, index) => {
+      const fraction = index / numPoints
+      const windowEnd = new Date(now.getTime() - windowMs * (1 - fraction))
+      const windowStart = new Date(windowEnd.getTime() - windowMs)
+      const startTime = windowStart.getTime()
+      const endTime = windowEnd.getTime()
+      const windowItems = items.filter((item) => {
+        const publishedAt = new Date(item.published_at).getTime()
+        return publishedAt >= startTime && publishedAt <= endTime
+      })
+      const total = windowItems.length
+      const bullish = windowItems.filter((item) => inferSentiment(item) === "bullish").length
+      const sentimentValue = total > 0 ? Math.round((bullish / total) * 100) : 0
+
+      return {
+        day: labelFormatter.format(windowEnd),
+        sentiment: sentimentValue,
+        total
       }
-    ]
-  }, [currentWindowSentiment.sentiment, currentWindowSentiment.total, locale, rangeDays, sentimentSnapshots])
+    })
+  }, [items, liveTick, locale, rangeDays])
   const trendChange = useMemo(() => {
-    if (currentWindowSentiment.total === 0 || sentimentSnapshots.length < 2) {
+    const withData = trendData.filter((point) => point.total > 0)
+    if (withData.length < 2) {
       return null
     }
-    return currentWindowSentiment.sentiment - sentimentSnapshots[0].sentiment
-  }, [currentWindowSentiment.sentiment, currentWindowSentiment.total, sentimentSnapshots])
-  const volumeData = useMemo(() => buildDailyVolume(items, locale, rangeDays), [items, locale, rangeDays])
-  const sourceData = useMemo(() => buildSourceData(items), [items])
-  const categoryData = useMemo(() => buildCategoryRows(items, feedT), [feedT, items])
+    return withData[withData.length - 1].sentiment - withData[0].sentiment
+  }, [trendData])
+  const volumeData = useMemo(() => buildDailyVolume(rangeItems, locale, rangeDays), [rangeItems, locale, rangeDays])
+  const sourceData = useMemo(() => buildSourceData(rangeItems), [rangeItems])
+  const categoryData = useMemo(() => buildCategoryRows(rangeItems, feedT), [feedT, rangeItems])
 
   async function handleGenerateReport() {
     if (user?.role !== "admin") {
@@ -401,7 +382,7 @@ export default function AnalyticsPage() {
             </BarChart>
           </ResponsiveContainer>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-2xl font-bold text-foreground">{items.length}</span>
+            <span className="text-2xl font-bold text-foreground">{rangeItems.length}</span>
             <span className="text-xs text-muted-foreground">{t("articlesInRange", { range: timeRange })}</span>
           </div>
         </MetricCard>

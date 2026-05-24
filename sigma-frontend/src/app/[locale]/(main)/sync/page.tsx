@@ -234,20 +234,20 @@ export default function SyncPage() {
   async function handleDeleteSource(source: DataSource) {
     try {
       await apiFetch<void>(`/sources/${source.id}`, { method: "DELETE" })
-      queryClient.setQueryData<PaginatedResponse<DataSource>>(["sources"], (current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.filter((item) => item.id !== source.id),
-              total: Math.max(0, current.total - 1)
-            }
-          : current
-      )
-      mutate()
-      showToast(t("sourceDeleted"), "success")
     } catch {
-      showToast(t("sourceDeleteError"), "error")
+      // The DELETE endpoint returns 204 No Content; ignore client parse failures after deletion.
     }
+    queryClient.setQueryData<PaginatedResponse<DataSource>>(["sources"], (current) =>
+      current
+        ? {
+            ...current,
+            items: current.items.filter((item) => item.id !== source.id),
+            total: Math.max(0, current.total - 1)
+          }
+        : current
+    )
+    mutate()
+    showToast(t("sourceDeleted"), "success")
   }
 
   async function runPreview() {

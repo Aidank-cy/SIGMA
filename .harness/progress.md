@@ -1661,3 +1661,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, `./hooks/post-file-edit.sh`, and `git diff --check`.
 - Follow-up: Rebuild the backend container with `docker compose up -d --build sigma-backend` before validating the fixes through Docker.
 - Timestamp: 2026-05-24T08:03:57Z
+
+### [Maintenance] Sliding sentiment trend and source delete refinements
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-backend/app/collectors/api_collector.py, sigma-backend/app/collectors/scraper_collector.py, sigma-backend/tests/test_collectors.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Analytics now fetches twice the selected item window and renders fixed sliding-window sentiment points, while overview/volume/source/category cards remain scoped to the selected range. Sync delete ignores 204 parse failures, keeps immediate cache removal, and always shows the delete success toast after the delete attempt. API collector defaults now select common content/link/timestamp keys present in each entry, and scraper collector aliases now fill default title/content/link selectors for UI-created sources.
+- Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, `./hooks/post-file-edit.sh`, `git diff --check`, and an in-app browser route smoke check of `http://localhost:3001/en/analytics` redirecting cleanly to login with no console errors.
+- Follow-up: Rebuild the backend container with `docker compose up -d --build sigma-backend` before validating Docker-backed source collection.
+- Timestamp: 2026-05-24T08:35:13Z
