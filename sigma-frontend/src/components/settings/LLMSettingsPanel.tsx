@@ -195,8 +195,7 @@ export function LLMSettingsPanel({
     (entry) =>
       entry.name.trim().length === 0 ||
       entry.key.trim().length === 0 ||
-      entry.provider.trim().length === 0 ||
-      entry.token_limit <= 0
+      entry.provider.trim().length === 0
   );
 
   const groupedApiKeys = useMemo(
@@ -283,7 +282,7 @@ export function LLMSettingsPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-full flex-col gap-6">
       <section className="space-y-4">
         <Card className="space-y-3 p-5">
           <section className="space-y-3 rounded-lg border border-sigma-line p-3">
@@ -300,7 +299,7 @@ export function LLMSettingsPanel({
             {form.api_keys.length === 0 ? (
               <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
             ) : (
-              <div className="max-h-[16rem] space-y-3 overflow-y-auto pr-1">
+              <div className="max-h-[12rem] space-y-3 overflow-y-auto pr-1">
                 {groupedApiKeys.map((group) => (
                   <div className="space-y-2" key={group.provider}>
                     <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-sigma-muted">
@@ -311,11 +310,10 @@ export function LLMSettingsPanel({
                         const isDefault = entry.is_default || (!hasExplicitDefault && index === 0);
                         return (
                           <div
-                            className={
-                              isDefault
-                                ? "grid gap-2 rounded-lg border-l-4 border-primary bg-primary/5 p-2 lg:grid-cols-[0.85fr_1fr_1fr_0.85fr_auto]"
-                                : "grid gap-2 rounded-lg bg-sigma-elevated p-2 lg:grid-cols-[0.85fr_1fr_1fr_0.85fr_auto]"
-                            }
+                            className={cn(
+                              "grid gap-2 rounded-lg p-2 lg:grid-cols-[0.85fr_1fr_1fr_auto]",
+                              isDefault ? "bg-primary/5" : "bg-sigma-elevated"
+                            )}
                             key={index}
                           >
                             <CustomSelect
@@ -337,11 +335,6 @@ export function LLMSettingsPanel({
                               onChange={(event) => updateApiKey(index, "key", event.target.value)}
                               type="password"
                               value={entry.key}
-                            />
-                            <TokenLimitInput
-                              label={t("tokenLimit")}
-                              onChange={(value) => updateApiKey(index, "token_limit", value)}
-                              value={entry.token_limit}
                             />
                             <div className="flex flex-col gap-2 self-center">
                               <Button
@@ -444,7 +437,7 @@ export function LLMSettingsPanel({
         ) : null}
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="mt-auto flex flex-col gap-3">
         <UsageCard label={t("today")} tokens={totals.today} />
         <UsageCard label={t("week")} tokens={totals.week} />
         <UsageCard label={t("month")} tokens={totals.month} />
@@ -511,14 +504,10 @@ function UsageCard({ label, tokens }: { label: string; tokens: number }) {
   const t = useTranslations("admin.llm");
 
   return (
-    <Card className="p-5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-sigma-muted">{label}</p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums text-sigma-text">{tokens.toLocaleString()}</p>
-        </div>
-        <span className="text-xs font-medium text-sigma-muted">{t("tokens")}</span>
-      </div>
+    <Card className="flex items-center justify-between gap-4 px-5 py-3">
+      <p className="text-sm font-medium text-sigma-muted">{label}</p>
+      <p className="text-xl font-semibold tabular-nums text-sigma-text">{tokens.toLocaleString()}</p>
+      <span className="text-xs font-medium text-sigma-muted">{t("tokens")}</span>
     </Card>
   );
 }

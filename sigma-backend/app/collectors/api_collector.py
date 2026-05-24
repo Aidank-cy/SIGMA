@@ -23,7 +23,7 @@ class APICollector(BaseCollector):
         if self._client is not None:
             return await self._collect_with_client(self._client)
 
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             return await self._collect_with_client(client)
 
     async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
