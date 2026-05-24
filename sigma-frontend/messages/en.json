@@ -340,6 +340,8 @@
     "adminOnly": "Only admins can enable or disable sources.",
     "sourceUpdated": "Source updated.",
     "sourceUpdateError": "Unable to update source.",
+    "sourceDeleted": "Source deleted",
+    "sourceDeleteError": "Unable to delete source",
     "filters": {
       "all": "All",
       "success": "Success",

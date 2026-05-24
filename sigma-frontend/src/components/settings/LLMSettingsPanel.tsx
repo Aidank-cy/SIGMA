@@ -282,10 +282,10 @@ export function LLMSettingsPanel({
   }
 
   return (
-    <div className="flex h-full flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <section className="space-y-4">
-        <Card className="space-y-3 p-5">
-          <section className="space-y-3 rounded-lg border border-sigma-line p-3">
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+          <Card className="space-y-3 p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-sigma-text">{t("apiKeys")}</h3>
@@ -365,9 +365,12 @@ export function LLMSettingsPanel({
                 ))}
               </div>
             )}
-          </section>
-          <div className="flex flex-col gap-4 rounded-lg border border-sigma-line p-3 sm:flex-row sm:items-center">
-            <label className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-medium text-sigma-text">
+            <Button className="w-full" disabled={!showCharts && hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
+              {t("save")}
+            </Button>
+          </Card>
+          <Card className="flex flex-col gap-4 self-start p-4">
+            <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-sigma-text">
               <ToggleSwitch
                 checked={form.cost_guard_enabled}
                 label={t("costGuard")}
@@ -376,18 +379,15 @@ export function LLMSettingsPanel({
               <ShieldCheck className="h-4 w-4 text-sigma-muted" aria-hidden />
               {t("costGuard")}
             </label>
-            <div className={cn("flex-1", !form.cost_guard_enabled && "pointer-events-none opacity-40")}>
+            <div className={cn(!form.cost_guard_enabled && "pointer-events-none opacity-40")}>
               <TokenLimitInput
                 label={t("dailyLimit")}
                 onChange={(value) => setForm({ ...form, daily_token_limit: value })}
                 value={form.cost_guard_enabled ? form.daily_token_limit : defaultConfig.daily_token_limit}
               />
             </div>
-          </div>
-          <Button className="w-full" disabled={!showCharts && hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
-            {t("save")}
-          </Button>
-        </Card>
+          </Card>
+        </section>
         <section className="grid gap-4 xl:grid-cols-[3fr_1fr]">
           <Card className="p-5">
             <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>

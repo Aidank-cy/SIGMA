@@ -145,6 +145,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Settings LLM layout so API keys sit beside cost guard controls and usage totals align with the password card.
+- Fix user-created API and scraper source saves by accepting Sync wizard config field aliases in collectors.
+- Fix Sync source deletion feedback and optimistically remove deleted sources from the visible source list.
 - Fix RSS, API, and scraper collectors to follow HTTP redirects and clean dependent collection rows before deleting synced user sources.
 - Fix Sync source log shortcuts so they scroll the collection logs section into view after filtering.
 - Fix Sync market card heights, internal source scrolling, date-picker click targets, and Analytics sentiment keyword coverage.

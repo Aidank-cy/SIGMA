@@ -340,6 +340,8 @@
     "adminOnly": "只有管理员可以启用或停用数据源。",
     "sourceUpdated": "数据源已更新。",
     "sourceUpdateError": "无法更新数据源。",
+    "sourceDeleted": "数据源已删除",
+    "sourceDeleteError": "删除数据源失败",
     "filters": {
       "all": "全部",
       "success": "成功",

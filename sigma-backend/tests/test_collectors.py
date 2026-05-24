@@ -70,6 +70,51 @@ async def test_api_collector_sends_default_user_agent() -> None:
 
 
 @pytest.mark.asyncio
+async def test_api_collector_accepts_user_created_config_aliases() -> None:
+    """API collector accepts the Sync wizard endpoint and items_path fields."""
+    seen_url = ""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal seen_url
+        seen_url = str(request.url)
+        return httpx.Response(
+            200,
+            json={
+                "payload": {
+                    "items": [
+                        {
+                            "title": "Alias item",
+                            "description": "Alias description",
+                            "pubDate": "2026-05-22T12:00:00Z",
+                        }
+                    ]
+                }
+            },
+        )
+
+    source = _source(
+        SourceType.API,
+        {
+            "endpoint": "https://api.test/user-items",
+            "items_path": "payload.items",
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        collector = APICollector(source, client)
+        assert await collector.validate_config()
+        items = await collector.collect()
+
+    assert seen_url == "https://api.test/user-items"
+    assert items == [
+        {
+            "title": "Alias item",
+            "content": "Alias description",
+            "published_at": "2026-05-22T12:00:00+00:00",
+        }
+    ]
+
+
+@pytest.mark.asyncio
 async def test_api_collector_unwraps_nested_results_and_cleans_fields() -> None:
     """API collector unwraps nested payloads and normalizes mapped values."""
 
@@ -395,6 +440,37 @@ async def test_scraper_collector_filters_short_items_and_caps_entries() -> None:
     assert len(items) == 1
     assert items[0]["title"] == "Federal Reserve Board announces supervisory policy update"
     assert items[0]["published_at"] == "2026-05-22T00:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_scraper_collector_accepts_user_created_config_aliases() -> None:
+    """Scraper collector accepts the Sync wizard url and item_selector fields."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert str(request.url) == "https://site.test/news"
+        return httpx.Response(
+            200,
+            text="""<html><article class="item">
+            <a href="/news/alias">Alias scraper item</a>
+            <p>Readable market article summary with enough detail</p>
+            </article></html>""",
+        )
+
+    source = _source(
+        SourceType.SCRAPER,
+        {
+            "url": "https://site.test/news",
+            "item_selector": ".item",
+            "min_content_length": 10,
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        collector = ScraperCollector(source, client)
+        assert await collector.validate_config()
+        items = await collector.collect()
+
+    assert items[0]["title"] == "Alias scraper item Readable market article summary with enough detail"
+    assert items[0]["content"] == items[0]["title"]
 
 
 @pytest.mark.asyncio

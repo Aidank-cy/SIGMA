@@ -173,7 +173,7 @@ export default function SettingsPage() {
           )}
           <PasswordSection onOpen={() => setIsPasswordOpen(true)} />
         </div>
-        <div className="flex h-full min-w-0 flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-5">
           <LLMConfigSection
             configData={llmSettings.config.data}
             isConfigLoading={llmSettings.config.isLoading}
@@ -225,7 +225,7 @@ function LLMConfigSection({
   const t = useTranslations("settings.llm");
 
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="flex flex-1 flex-col gap-3">
       <div>
         <h2 className="text-base font-semibold text-foreground">{t("title")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t("caption")}</p>

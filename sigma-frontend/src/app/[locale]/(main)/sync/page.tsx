@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
+import { useQueryClient } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
@@ -32,7 +33,7 @@ import { useSources } from "@/hooks/useSources"
 import { apiFetch } from "@/lib/api"
 import { toggleMultiSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
-import type { Category, DataSource, Market, SourcePayload } from "@/lib/types"
+import type { Category, DataSource, Market, PaginatedResponse, SourcePayload } from "@/lib/types"
 import type { AdminLogResponse, CollectorStatus } from "@/hooks/useAdmin"
 
 type LogFilter = CollectorStatus | "all"
@@ -85,6 +86,7 @@ export default function SyncPage() {
   const marketT = useTranslations("markets")
   const locale = useLocale()
   const { showToast } = useToast()
+  const queryClient = useQueryClient()
   const { data, isLoading, mutate } = useSources()
   const todayIso = useMemo(() => todayStart(), [])
   const todayItems = useItems({ date_from: todayIso, page_size: 1 })
@@ -232,10 +234,19 @@ export default function SyncPage() {
   async function handleDeleteSource(source: DataSource) {
     try {
       await apiFetch<void>(`/sources/${source.id}`, { method: "DELETE" })
+      queryClient.setQueryData<PaginatedResponse<DataSource>>(["sources"], (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.filter((item) => item.id !== source.id),
+              total: Math.max(0, current.total - 1)
+            }
+          : current
+      )
       mutate()
-      showToast(t("sourceUpdated"), "success")
+      showToast(t("sourceDeleted"), "success")
     } catch {
-      showToast(t("sourceUpdateError"), "error")
+      showToast(t("sourceDeleteError"), "error")
     }
   }
 
