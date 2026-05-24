@@ -145,6 +145,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Analytics sentiment trend to render sliding-window points across the selected timeline instead of one repeated live snapshot value.
+- Fix Sync source delete to keep a successful delete toast after 204 responses while immediately removing the source from cached UI state.
+- Fix user-created API and scraper source collection defaults for common content, link, timestamp, title, and selector fields.
 - Fix Settings LLM layout so API keys sit beside cost guard controls and usage totals align with the password card.
 - Fix user-created API and scraper source saves by accepting Sync wizard config field aliases in collectors.
 - Fix Sync source deletion feedback and optimistically remove deleted sources from the visible source list.

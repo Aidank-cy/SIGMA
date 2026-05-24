@@ -85,6 +85,7 @@ async def test_api_collector_accepts_user_created_config_aliases() -> None:
                         {
                             "title": "Alias item",
                             "description": "Alias description",
+                            "link": "https://api.test/alias",
                             "pubDate": "2026-05-22T12:00:00Z",
                         }
                     ]
@@ -109,6 +110,7 @@ async def test_api_collector_accepts_user_created_config_aliases() -> None:
         {
             "title": "Alias item",
             "content": "Alias description",
+            "content_url": "https://api.test/alias",
             "published_at": "2026-05-22T12:00:00+00:00",
         }
     ]
@@ -469,8 +471,9 @@ async def test_scraper_collector_accepts_user_created_config_aliases() -> None:
         assert await collector.validate_config()
         items = await collector.collect()
 
-    assert items[0]["title"] == "Alias scraper item Readable market article summary with enough detail"
-    assert items[0]["content"] == items[0]["title"]
+    assert items[0]["title"] == "Alias scraper item"
+    assert items[0]["content"] == "Readable market article summary with enough detail"
+    assert items[0]["content_url"] == "https://site.test/news/alias"
 
 
 @pytest.mark.asyncio

@@ -69,9 +69,13 @@ class APICollector(BaseCollector):
         return collected
 
     def _map_entry(self, entry: dict[str, Any]) -> RawCollectedItem | None:
-        mapping = dict(self.config.get("field_mapping") or self._default_field_mapping())
+        mapping = dict(self.config.get("field_mapping") or {})
+        if not mapping:
+            mapping = self._default_field_mapping(entry)
         item: RawCollectedItem = {}
         for target, source_path in mapping.items():
+            if source_path in (None, ""):
+                continue
             value = self._extract_path(entry, source_path)
             value = self._coerce_value(value)
             if value is None:
@@ -129,11 +133,15 @@ class APICollector(BaseCollector):
         return item
 
     @staticmethod
-    def _default_field_mapping() -> dict[str, Any]:
+    def _default_field_mapping(entry: dict[str, Any]) -> dict[str, Any]:
         return {
             "title": "title",
-            "content": ("content", "description"),
-            "published_at": ("published_at", "pubDate"),
+            "content": next((key for key in ("description", "content", "summary", "body") if key in entry), "title"),
+            "content_url": next((key for key in ("link", "url", "source_url") if key in entry), ""),
+            "published_at": next(
+                (key for key in ("pubDate", "published_at", "publishedAt", "date", "created_at") if key in entry),
+                "",
+            ),
         }
 
     @classmethod

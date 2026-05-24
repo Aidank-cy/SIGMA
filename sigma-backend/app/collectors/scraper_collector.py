@@ -42,12 +42,18 @@ class ScraperCollector(BaseCollector):
 
     async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
         headers = {"User-Agent": self._user_agent()}
-        target_url = str(self.config.get("target_url") or self.config.get("url"))
+        target_url = str(self.config.get("target_url") or self.config.get("url", ""))
+        selectors = dict(self.config.get("selectors") or {})
+        if not selectors.get("item_container") and self.config.get("item_selector"):
+            selectors["item_container"] = self.config["item_selector"]
+        if not selectors.get("title"):
+            selectors["title"] = "h2, h3, a"
+        if not selectors.get("content"):
+            selectors["content"] = "p"
+        if not selectors.get("link"):
+            selectors["link"] = "a"
         response = await client.get(target_url, headers=headers)
         response.raise_for_status()
-        selectors = self.config.get("selectors") or {}
-        if not selectors and self.config.get("item_selector"):
-            selectors = {"item_container": self.config["item_selector"]}
         soup = BeautifulSoup(response.text, "html.parser")
         items: list[RawCollectedItem] = []
         max_entries = int(self.config.get("max_entries") or 0)
