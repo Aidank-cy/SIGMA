@@ -1,25 +1,44 @@
 "use client";
 
-import { Shield, Trash2, UserCheck, UserX } from "lucide-react";
+import { Database, KeyRound, Shield, Trash2, UserCheck, UserX } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { AdminUserLLMDetail } from "@/components/admin/AdminUserLLMDetail";
+import { AdminUserSourcesDetail } from "@/components/admin/AdminUserSourcesDetail";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { SegmentControl } from "@/components/ui/SegmentControl";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useAdminUsers } from "@/hooks/useAdmin";
 import type { AdminUser } from "@/hooks/useAdmin";
+import { cn } from "@/lib/cn";
+
+type DetailTab = "llm" | "sources";
 
 export function AdminUsersPanel() {
   const [query, setQuery] = useState("");
   const [pendingDelete, setPendingDelete] = useState<AdminUser | null>(null);
   const [confirmation, setConfirmation] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>("llm");
   const t = useTranslations("admin.users");
   const common = useTranslations("common");
+  const llmT = useTranslations("admin.llm");
+  const syncT = useTranslations("sync");
   const toast = useToast();
   const { list, remove, update } = useAdminUsers(query);
+  const users = list.data?.items ?? [];
+  const selectedUser = users.find((user) => user.id === selectedUserId) ?? null;
+
+  useEffect(() => {
+    if (selectedUserId !== null && users.some((user) => user.id === selectedUserId)) {
+      return;
+    }
+    setSelectedUserId(users[0]?.id ?? null);
+  }, [selectedUserId, users]);
 
   const handleUpdate = async (user: AdminUser, payload: { role?: "admin" | "user"; is_active?: boolean }) => {
     try {
@@ -47,78 +66,155 @@ export function AdminUsersPanel() {
   return (
     <div className="space-y-6">
       <Header eyebrow={t("eyebrow")} title={t("title")} />
-      <Card className="overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-sigma-line p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="w-full sm:max-w-sm">
-            <Input
-              label={t("search")}
-              onChange={(event) => setQuery(event.target.value)}
-              value={query}
-            />
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <Card className="overflow-hidden">
+          <div className="flex flex-col gap-3 border-b border-sigma-line p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full sm:max-w-sm">
+              <Input
+                label={t("search")}
+                onChange={(event) => setQuery(event.target.value)}
+                value={query}
+              />
+            </div>
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left text-sm">
-            <thead className="bg-sigma-elevated text-xs uppercase tracking-normal text-sigma-muted">
-              <tr>
-                <th className="px-5 py-3 font-medium">{t("user")}</th>
-                <th className="px-5 py-3 font-medium">{t("role")}</th>
-                <th className="px-5 py-3 font-medium">{t("status")}</th>
-                <th className="px-5 py-3 font-medium">{t("created")}</th>
-                <th className="px-5 py-3 text-right font-medium">{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(list.data?.items ?? []).map((user) => (
-                <tr className="border-t border-sigma-line" key={user.id}>
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-sigma-text">{user.display_name}</p>
-                    <p className="text-xs text-sigma-muted">{user.email}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <button
-                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
-                      onClick={() =>
-                        handleUpdate(user, { role: user.role === "admin" ? "user" : "admin" })
-                      }
-                      type="button"
-                    >
-                      <Shield className="h-3.5 w-3.5" aria-hidden />
-                      {t(`roles.${user.role}`)}
-                    </button>
-                  </td>
-                  <td className="px-5 py-4">
-                    <button
-                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
-                      onClick={() => handleUpdate(user, { is_active: !user.is_active })}
-                      type="button"
-                    >
-                      {user.is_active ? (
-                        <UserCheck className="h-3.5 w-3.5 text-sigma-success" aria-hidden />
-                      ) : (
-                        <UserX className="h-3.5 w-3.5 text-sigma-danger" aria-hidden />
-                      )}
-                      {user.is_active ? t("active") : t("disabled")}
-                    </button>
-                  </td>
-                  <td className="px-5 py-4 text-sigma-muted">
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <Button onClick={() => setPendingDelete(user)} size="sm" variant="ghost">
-                      <Trash2 className="h-4 w-4" aria-hidden />
-                      {t("delete")}
-                    </Button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[960px] text-left text-sm">
+              <thead className="bg-sigma-elevated text-xs uppercase tracking-normal text-sigma-muted">
+                <tr>
+                  <th className="px-3 py-3 font-medium">{t("user")}</th>
+                  <th className="px-3 py-3 font-medium">{t("role")}</th>
+                  <th className="px-3 py-3 font-medium">{t("status")}</th>
+                  <th className="px-3 py-3 font-medium">{t("created")}</th>
+                  <th className="px-3 py-3 font-medium">{t("llm")}</th>
+                  <th className="px-3 py-3 font-medium">{t("sources")}</th>
+                  <th className="px-3 py-3 text-right font-medium">{t("actions")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {!list.isLoading && (list.data?.items ?? []).length === 0 ? (
-            <p className="p-5 text-sm text-sigma-muted">{t("empty")}</p>
-          ) : null}
-        </div>
-      </Card>
+              </thead>
+              <tbody>
+                {users.map((user) => {
+                  const isSelected = selectedUserId === user.id;
+                  return (
+                    <tr
+                      className={cn(
+                        "cursor-pointer border-t border-sigma-line transition-colors hover:bg-sigma-elevated/60",
+                        isSelected ? "bg-primary/5" : ""
+                      )}
+                      key={user.id}
+                      onClick={() => setSelectedUserId(user.id)}
+                    >
+                      <td className="px-3 py-4">
+                        <p className="font-medium text-sigma-text">{user.display_name}</p>
+                        <p className="text-xs text-sigma-muted">{user.email}</p>
+                      </td>
+                      <td className="px-3 py-4">
+                        <button
+                          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleUpdate(user, { role: user.role === "admin" ? "user" : "admin" });
+                          }}
+                          type="button"
+                        >
+                          <Shield className="h-3.5 w-3.5" aria-hidden />
+                          {t(`roles.${user.role}`)}
+                        </button>
+                      </td>
+                      <td className="px-3 py-4">
+                        <button
+                          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleUpdate(user, { is_active: !user.is_active });
+                          }}
+                          type="button"
+                        >
+                          {user.is_active ? (
+                            <UserCheck className="h-3.5 w-3.5 text-sigma-success" aria-hidden />
+                          ) : (
+                            <UserX className="h-3.5 w-3.5 text-sigma-danger" aria-hidden />
+                          )}
+                          {user.is_active ? t("active") : t("disabled")}
+                        </button>
+                      </td>
+                      <td className="px-3 py-4 text-sigma-muted">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-3 py-4">
+                        <CountBadge
+                          icon="llm"
+                          label={t("llmCount", { count: user.llm_key_count })}
+                          onClick={() => {
+                            setSelectedUserId(user.id);
+                            setActiveDetailTab("llm");
+                          }}
+                        />
+                      </td>
+                      <td className="px-3 py-4">
+                        <CountBadge
+                          icon="sources"
+                          label={t("sourceCount", { count: user.source_count })}
+                          onClick={() => {
+                            setSelectedUserId(user.id);
+                            setActiveDetailTab("sources");
+                          }}
+                        />
+                      </td>
+                      <td className="px-3 py-4 text-right">
+                        <Button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setPendingDelete(user);
+                          }}
+                          size="sm"
+                          variant="ghost"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                          {t("delete")}
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!list.isLoading && users.length === 0 ? (
+              <p className="p-5 text-sm text-sigma-muted">{t("empty")}</p>
+            ) : null}
+          </div>
+        </Card>
+
+        <Card className="min-h-[42rem] overflow-hidden p-4">
+          {selectedUser ? (
+            <div className="flex h-full min-h-0 flex-col gap-4">
+              <div className="flex flex-col gap-3 border-b border-sigma-line pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="truncate text-lg font-semibold text-sigma-text">{selectedUser.display_name}</h2>
+                  <p className="truncate text-sm text-sigma-muted">{selectedUser.email}</p>
+                </div>
+                <SegmentControl
+                  activeId={activeDetailTab}
+                  items={[
+                    { id: "llm", label: llmT("apiKeys") },
+                    { id: "sources", label: syncT("dataSources") }
+                  ]}
+                  onChange={(value) => setActiveDetailTab(value as DetailTab)}
+                />
+              </div>
+              <div className="min-h-0 flex-1 overflow-auto pr-1">
+                {activeDetailTab === "llm" ? <AdminUserLLMDetail userId={selectedUser.id} /> : null}
+                {activeDetailTab === "sources" ? <AdminUserSourcesDetail userId={selectedUser.id} /> : null}
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full min-h-[36rem] items-center justify-center p-8 text-center">
+              <div>
+                <p className="text-lg font-semibold text-sigma-text">{t("selectUser")}</p>
+                <p className="mt-2 max-w-sm text-sm text-sigma-muted">{t("selectUserCaption")}</p>
+              </div>
+            </div>
+          )}
+        </Card>
+      </section>
 
       <Modal
         closeLabel={common("close")}
@@ -160,6 +256,31 @@ export function AdminUsersPanel() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+function CountBadge({
+  icon,
+  label,
+  onClick
+}: {
+  icon: "llm" | "sources";
+  label: string;
+  onClick: () => void;
+}) {
+  const Icon = icon === "llm" ? KeyRound : Database;
+  return (
+    <button
+      className="inline-flex min-h-10 items-center gap-2 rounded-full border border-sigma-line px-3 py-1 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      type="button"
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+      {label}
+    </button>
   );
 }
 

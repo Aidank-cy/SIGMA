@@ -1687,3 +1687,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Scraper collection now strips trailing numeric title noise, expands duplicate title content, and can follow article links for richer body text. Collection persistence now skips duplicate `content_url` conflicts. Settings moved global save into the password card, disables LLM configuration when scheduled reports are off, initializes an empty key row, tightens key scrolling/alignment, adjusts usage card height, refines LLM charts, and reorganizes Admin Dashboard trend/activity/health into a three-card row.
 - Verification: `python3 -m pytest tests/test_collectors.py::test_scraper_collector_cleans_title_noise_and_expands_duplicate_content tests/test_collectors.py::test_scraper_collector_can_follow_links_for_article_body tests/test_scheduler.py::test_insert_new_items_skips_duplicate_content_url -q --tb=short`, `python3 -m ruff check app/collectors/scraper_collector.py app/scheduler/jobs.py tests/test_collectors.py tests/test_scheduler.py`, `npm run build`, `python3 -m pytest --tb=short -q`, `python3 -m ruff check .`, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-24T10:12:52Z
+
+### [Maintenance] Admin user detail settings and scraper parsing polish
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/admin/users.py, sigma-backend/app/collectors/scraper_collector.py, sigma-backend/app/schemas/admin.py, sigma-backend/tests/test_admin_api.py, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/admin/*, sigma-frontend/src/components/charts/TrendLine.tsx, sigma-frontend/src/components/dashboard/custom-select.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/ui/Input.tsx, sigma-frontend/src/hooks/useAdmin.ts, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/lib/types.ts
+- Tests: PASS
+- Notes: Added per-user admin LLM/source detail APIs and UI, removed the standalone admin LLM panel, tightened Settings/Admin Dashboard layout behavior, and extended scraper follow-link body selectors.
+- Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, and browser smoke at `http://localhost:3001/en/settings`.
+- Follow-up: Rebuild Docker services before validating admin user detail flows against a persistent local database.
+- Timestamp: 2026-05-24T13:20:00+08:00

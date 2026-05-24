@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add per-user admin detail management for user LLM settings and custom data sources from the Admin Users panel.
 - Add Sync market-region filter pills for data source cards.
 - Add example helper text to the Sync add-source wizard fields and include Korea/Taiwan source regions.
 - Add a data migration that removes deprecated system-level LLM config rows from `system_config`.
@@ -47,6 +48,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Move the Settings save action beside the Change Password card and keep LLM API key and cost guard cards fixed-height.
+- Remove the standalone Admin LLM settings panel now that LLM management lives in per-user admin details.
 - Change Settings global save action to live inside the Change Password card and disable the LLM configuration panel when scheduled reports are off.
 - Change Settings LLM usage cards, API key defaults, API key scrolling, and key-row alignment for denser report configuration layout.
 - Change Admin Dashboard collection trend, recent activity, and source health into one three-column card row.
@@ -149,6 +152,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Admin Dashboard chart card heights, source-health scrolling, and scraper linked-article body selector coverage.
 - Fix scraper collectors to remove trailing numeric title noise, avoid title-only content, and optionally follow article links for richer body text.
 - Fix collector persistence so duplicate `content_url` conflicts are skipped instead of failing the whole collection run.
 - Fix LLM token trend legend by removing the redundant separator between input and output markers.

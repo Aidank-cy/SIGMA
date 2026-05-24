@@ -121,7 +121,7 @@ export function CustomSelect({
   }
 
   return (
-    <div className={cn(isStacked ? "space-y-3" : "space-y-2", wrapperClassName)} ref={rootRef}>
+    <div className={cn(isStacked ? "space-y-1" : "space-y-2", wrapperClassName)} ref={rootRef}>
       {isStacked ? (
         <label className="block px-1 text-sm font-medium text-muted-foreground" htmlFor={generatedId}>
           {label}

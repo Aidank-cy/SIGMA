@@ -293,7 +293,7 @@ export function LLMSettingsPanel({
     <div className="flex flex-1 flex-col gap-6">
       <section className="space-y-4">
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
-          <Card className="space-y-3 p-5">
+          <Card className="flex h-[22rem] flex-col space-y-3 p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-sigma-text">{t("apiKeys")}</h3>
@@ -307,19 +307,19 @@ export function LLMSettingsPanel({
             {form.api_keys.length === 0 ? (
               <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
             ) : (
-              <div className="max-h-[8rem] space-y-3 overflow-y-auto pr-1">
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
                 <div className="space-y-2">
                   {form.api_keys.map((entry, index) => {
                     const isDefault = entry.is_default || (!hasExplicitDefault && index === 0);
                     return (
                       <div
                         className={cn(
-                          "grid items-center gap-2 rounded-lg p-2 lg:grid-cols-[auto_0.85fr_1fr_1fr_auto]",
+                          "grid items-end gap-2 rounded-lg p-2 lg:grid-cols-[auto_0.85fr_1fr_1fr_auto]",
                           isDefault ? "bg-primary/5" : "bg-sigma-elevated"
                         )}
                         key={index}
                       >
-                        <div className="flex items-center justify-center px-1">
+                        <div className="flex h-12 items-center justify-center px-1">
                           <ToggleSwitch
                             checked={isDefault}
                             label={t("selectKey")}
@@ -346,7 +346,7 @@ export function LLMSettingsPanel({
                           type="password"
                           value={entry.key}
                         />
-                        <div className="flex items-center justify-center">
+                        <div className="flex h-12 items-center justify-center">
                           <Button
                             aria-label={t("deleteKey")}
                             onClick={() => removeApiKey(index)}
@@ -367,7 +367,7 @@ export function LLMSettingsPanel({
               {t("save")}
             </Button>
           </Card>
-          <Card className="flex flex-col gap-4 p-4">
+          <Card className="flex h-[22rem] flex-col gap-4 p-4">
             <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-sigma-text">
               <ToggleSwitch
                 checked={form.cost_guard_enabled}

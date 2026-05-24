@@ -184,13 +184,18 @@ export default function SettingsPage() {
               usageData={llmSettings.usage.data}
             />
           </div>
-          <PasswordSection
-            hasChanges={hasChanges}
-            isSaving={isSaving}
-            onOpen={() => setIsPasswordOpen(true)}
-            onSaveAll={handleSaveAll}
-            user={user}
-          />
+          <div className="flex items-stretch gap-3">
+            <PasswordSection onOpen={() => setIsPasswordOpen(true)} className="flex-1" />
+            <Button
+              className="shrink-0 self-center"
+              disabled={!hasChanges || user === null}
+              isLoading={isSaving}
+              onClick={handleSaveAll}
+            >
+              <Save className="h-4 w-4" aria-hidden />
+              {t("save")}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -352,37 +357,25 @@ function ReportConfigSection({
 }
 
 function PasswordSection({
-  hasChanges,
-  isSaving,
+  className,
   onOpen,
-  onSaveAll,
-  user
 }: {
-  hasChanges: boolean;
-  isSaving: boolean;
+  className?: string;
   onOpen: () => void;
-  onSaveAll: () => void;
-  user: User | null;
 }) {
   const t = useTranslations("settings");
 
   return (
-    <Card className="p-5">
+    <Card className={cn("p-5", className)}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">{t("password.title")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t("password.caption")}</p>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button disabled={!hasChanges || user === null} isLoading={isSaving} onClick={onSaveAll}>
-            <Save className="h-4 w-4" aria-hidden />
-            {t("save")}
-          </Button>
-          <Button onClick={onOpen} variant="secondary">
-            <KeyRound className="h-4 w-4" aria-hidden />
-            {t("password.open")}
-          </Button>
-        </div>
+        <Button className="shrink-0" onClick={onOpen} variant="secondary">
+          <KeyRound className="h-4 w-4" aria-hidden />
+          {t("password.open")}
+        </Button>
       </div>
     </Card>
   );

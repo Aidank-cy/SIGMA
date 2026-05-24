@@ -17,7 +17,7 @@ const statIcons = {
 } as const;
 
 const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((module) => module.TrendLine), {
-  loading: () => <Skeleton className="h-[280px] w-full" />,
+  loading: () => <Skeleton className="h-[240px] w-full" />,
   ssr: false
 });
 
@@ -45,8 +45,8 @@ export function AdminDashboardPanel() {
         <StatCard icon="tokens" label={t("stats.tokens")} value={stats.data?.tokens_today} />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-3">
-        <Card className="p-5">
+      <section className="grid gap-4 xl:grid-cols-3 [&>*]:h-[420px]">
+        <Card className="flex flex-col p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">{t("trend")}</h2>
             <span className="text-xs font-medium text-sigma-muted">{t("refresh")}</span>
@@ -80,7 +80,7 @@ export function AdminDashboardPanel() {
           <div className="border-b border-sigma-line p-5">
             <h2 className="text-lg font-semibold">{t("health")}</h2>
           </div>
-          <div className="overflow-x-auto">
+          <div className="max-h-80 overflow-auto">
             <table className="w-full min-w-0 text-left text-sm">
               <thead className="bg-sigma-elevated text-xs uppercase tracking-normal text-sigma-muted">
                 <tr>

@@ -61,7 +61,9 @@ class ScraperCollector(BaseCollector):
         min_content_length = int(self.config.get("min_content_length") or 30)
         request_interval = float(self.config.get("request_interval_sec", 0))
         follow_link = bool(self.config.get("follow_link", False))
-        article_selector = str(self.config.get("article_content_selector") or "article p, .article-body p")
+        article_selector = str(
+            self.config.get("article_content_selector") or "article p, .article-body p, .story-body p"
+        )
         for container in soup.select(str(selectors["item_container"])):
             title = self._clean_title(self._text(container, selectors.get("title")) or self._container_text(container))
             content = self._text(container, selectors.get("content")) or title

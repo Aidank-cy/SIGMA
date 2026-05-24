@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import type { LLMUsageResponse, PaginatedResponse } from "@/lib/types";
+import type { PaginatedResponse } from "@/lib/types";
 import type { User } from "@/lib/auth";
 
 export type CollectorStatus = "success" | "fail" | "timeout";
@@ -44,6 +44,8 @@ export interface SourceHealth {
 
 export interface AdminUser extends User {
   updated_at: string;
+  llm_key_count: number;
+  source_count: number;
 }
 
 export interface AdminLogResponse extends PaginatedResponse<AdminActivity> {
@@ -110,16 +112,6 @@ export function useAdminUsers(q: string) {
   });
 
   return { list, remove, update };
-}
-
-export function useAdminLLM() {
-  const usage = useQuery({
-    queryKey: ["admin", "llm", "usage"],
-    queryFn: () => apiFetch<LLMUsageResponse>("/admin/llm/usage"),
-    refetchInterval: 30_000
-  });
-
-  return { usage };
 }
 
 export function useAdminLogs(filters: AdminLogFilters) {

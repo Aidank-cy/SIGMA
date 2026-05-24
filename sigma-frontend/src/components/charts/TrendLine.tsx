@@ -22,7 +22,7 @@ interface TrendLineProps {
   variant?: "bar" | "line";
 }
 
-export function TrendLine({ data, height = 280, variant = "line" }: TrendLineProps) {
+export function TrendLine({ data, height = 240, variant = "line" }: TrendLineProps) {
   return (
     <div style={{ height }}>
       <ResponsiveContainer height="100%" width="100%">
