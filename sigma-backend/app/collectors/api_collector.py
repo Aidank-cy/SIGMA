@@ -37,6 +37,7 @@ class APICollector(BaseCollector):
         max_pages = int(pagination.get("max_pages", 1))
         page_param = pagination.get("param", "page")
         page_start = int(pagination.get("start", 1))
+        max_entries = int(self.config.get("max_entries") or 0)
 
         collected: list[RawCollectedItem] = []
         for page_index in range(max_pages):
@@ -49,10 +50,18 @@ class APICollector(BaseCollector):
             entries = self._extract_entries(self._extract_path(payload, self.config.get("response_path")))
             if not entries:
                 break
-            collected.extend(self._map_entry(entry) for entry in entries if isinstance(entry, dict))
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                item = self._map_entry(entry)
+                if item is None:
+                    continue
+                collected.append(item)
+                if max_entries > 0 and len(collected) >= max_entries:
+                    return collected
         return collected
 
-    def _map_entry(self, entry: dict[str, Any]) -> RawCollectedItem:
+    def _map_entry(self, entry: dict[str, Any]) -> RawCollectedItem | None:
         mapping = dict(self.config.get("field_mapping") or {})
         item: RawCollectedItem = {}
         for target, source_path in mapping.items():
@@ -74,7 +83,8 @@ class APICollector(BaseCollector):
             title = item.get("title", "")
             link = self._extract_path(entry, "link")
             press_release = self._extract_path(entry, "press_release")
-            realtime_start = self._extract_path(entry, "realtime_start")
+            release_id = self._extract_path(entry, "release_id")
+            realtime_start = self._extract_path(entry, "realtime_start") or self._extract_path(entry, "date")
             realtime_end = self._extract_path(entry, "realtime_end")
             parts = [title]
             if realtime_start:
@@ -84,8 +94,11 @@ class APICollector(BaseCollector):
                 parts.append(release_date)
             if press_release:
                 parts.append("This release includes a press release")
+            if release_id and not link:
+                link = f"https://fred.stlouisfed.org/release?rid={release_id}"
             if link:
                 parts.append(f"Source: {link}")
+                item.setdefault("content_url", str(link))
             enriched = ". ".join(part for part in parts if part)
             item["content"] = enriched
             if "content_raw" in item:
@@ -98,6 +111,14 @@ class APICollector(BaseCollector):
         }
         if metadata:
             item["metadata"] = metadata
+        min_title_length = int(self.config.get("min_title_length") or 0)
+        title = item.get("title") or ""
+        if min_title_length > 0 and len(str(title).strip()) < min_title_length:
+            return None
+        min_content_length = int(self.config.get("min_content_length") or 0)
+        content = item.get("content") or item.get("content_raw") or item.get("summary") or ""
+        if min_content_length > 0 and len(str(content).strip()) < min_content_length:
+            return None
         return item
 
     @classmethod

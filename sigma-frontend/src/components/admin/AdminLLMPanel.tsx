@@ -261,7 +261,7 @@ export function AdminLLMPanel() {
                   </Card>
                   <Card className="p-4">
                     <h3 className="mb-4 text-base font-semibold text-sigma-text">{t("tokenTrend")}</h3>
-                    <TokenTrendChart data={tokenTrendData} />
+                    <TokenTrendChart data={tokenTrendData} legendLabel={t("legendInputOutput")} />
                   </Card>
                   <Card className="p-4">
                     <h3 className="mb-4 text-base font-semibold text-sigma-text">{t("usageByFunction")}</h3>

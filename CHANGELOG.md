@@ -43,6 +43,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change Settings to show only the LLM configuration in the right column and localize LLM token trend date labels and legend text.
+- Darken the shared modal backdrop so source and password modals reduce page distraction.
 - Redesign Sync data sources into market-grouped compact columns with per-market user source creation.
 - Move Settings LLM configuration into the right column and show user token/function charts below the save action.
 - Tighten LLM usage chart axis spacing and align admin LLM user toggles near the row edge.
@@ -121,6 +123,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Removed
+- Remove source creation, editing, and deletion controls from the Admin Sources UI.
 - Remove the Markets Watchlist tab and dashboard sidebar watchlist card from the frontend.
 - Remove Dashboard HeroChart previous/next arrow controls, drag-to-switch gestures, and keyboard market switching.
 - Remove the standalone demo data seeding script and its demo-content tests.
@@ -129,6 +132,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Federal Reserve and FRED seed collectors so release listings are capped and metadata fragments are filtered before becoming intelligence items.
 - Fix Analytics sentiment trend to use the selected window's rolling bullish aggregate with one-minute live refresh snapshots.
 - Fix Analytics sentiment trend to use one-minute buckets with carried-forward sentiment while loading the full selected item window.
 - Fix DAX quote selection so Alpha Vantage ETF prices are skipped and suspiciously tiny index quotes are discarded.

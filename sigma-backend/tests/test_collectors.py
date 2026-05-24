@@ -166,6 +166,60 @@ async def test_api_collector_enriches_repeated_title_content() -> None:
 
 
 @pytest.mark.asyncio
+async def test_api_collector_filters_short_content_and_caps_entries() -> None:
+    """API collector skips sparse metadata rows and stops at max_entries."""
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "release_dates": [
+                    {"release_id": 1, "release_name": "CPI", "date": "2026-05-22"},
+                    {
+                        "release_id": 2,
+                        "release_name": "Consumer Price Index",
+                        "date": "2026-05-22",
+                    },
+                    {
+                        "release_id": 3,
+                        "release_name": "Employment Situation",
+                        "date": "2026-05-21",
+                    },
+                ]
+            },
+        )
+
+    source = _source(
+        SourceType.API,
+        {
+            "base_url": "https://api.test",
+            "endpoint": "/fred/releases/dates",
+            "response_path": "release_dates",
+            "max_entries": 1,
+            "min_content_length": 50,
+            "min_title_length": 12,
+            "metadata_fields": ["release_id"],
+            "field_mapping": {
+                "title": "release_name",
+                "content": "release_name",
+                "published_at": "date",
+            },
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        items = await APICollector(source, client).collect()
+
+    assert len(items) == 1
+    assert items[0]["title"] == "Consumer Price Index"
+    assert items[0]["content"] == (
+        "Consumer Price Index. "
+        "Release date: 2026-05-22. "
+        "Source: https://fred.stlouisfed.org/release?rid=2"
+    )
+    assert items[0]["content_url"] == "https://fred.stlouisfed.org/release?rid=2"
+
+
+@pytest.mark.asyncio
 async def test_rss_collector_parses_feed_entries() -> None:
     """RSS collector parses feed XML into raw items."""
 
@@ -282,7 +336,7 @@ async def test_scraper_collector_extracts_html_items() -> None:
             200,
             text="""<html><article class="item">
             <a class="title" href="/news/1">Fed Update</a>
-            <p class="body">Policy signal</p><time>2026-05-16T03:00:00Z</time>
+            <p class="body">Policy signal for market supervision conditions</p><time>2026-05-16T03:00:00Z</time>
             </article></html>""",
         )
 
@@ -304,6 +358,43 @@ async def test_scraper_collector_extracts_html_items() -> None:
 
     assert items[0]["title"] == "Fed Update"
     assert items[0]["content_url"] == "https://fed.test/news/1"
+
+
+@pytest.mark.asyncio
+async def test_scraper_collector_filters_short_items_and_caps_entries() -> None:
+    """Scraper collector skips structural fragments and honors max_entries."""
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            text="""<html>
+            <div class="entry"><a href="/noise">Fed</a><p>One</p><time>5/22/2026</time></div>
+            <div class="entry"><a href="/news/1">Federal Reserve Board announces supervisory policy update</a><p>Other Announcements</p><time>5/22/2026</time></div>
+            <div class="entry"><a href="/news/2">Federal Reserve Board releases banking application order</a><p>Orders on Banking Applications</p><time>5/21/2026</time></div>
+            </html>""",
+        )
+
+    source = _source(
+        SourceType.SCRAPER,
+        {
+            "target_url": "https://fed.test/releases",
+            "selectors": {
+                "item_container": ".entry",
+                "title": "a",
+                "content": "p",
+                "link": "a",
+                "date": "time",
+            },
+            "max_entries": 1,
+            "min_content_length": 30,
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        items = await ScraperCollector(source, client).collect()
+
+    assert len(items) == 1
+    assert items[0]["title"] == "Federal Reserve Board announces supervisory policy update"
+    assert items[0]["published_at"] == "2026-05-22T00:00:00+00:00"
 
 
 @pytest.mark.asyncio

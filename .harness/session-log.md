@@ -230,6 +230,17 @@
 **Uncommitted work:** YES — pending user review/commit after this refactor.
 
 ---
+## Session 22 — 2026-05-24T02:09:50Z
+**Phase:** Maintenance
+**Resuming from:** Clean `main`; user requested Round N collector bug fixes and UI polish.
+**Prior status from progress.md:** Settings, analytics, and sync refactor complete. Work started on `codex/round-n-bugfix-ui-polish`.
+
+**Ending at:** Round N bug fixes and UI polish
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Run live FRED collector verification once `FRED_API_KEY` is available, or continue with the next UI/backend polish pass.
+**Uncommitted work:** YES — pending user review/commit after this refactor.
+
+---
 ## Session 21 — 2026-05-19T02:04:07Z
 **Phase:** Release
 **Resuming from:** Clean `main` with v1.0.0 tagged and post-release changes accumulated under `[Unreleased]`.

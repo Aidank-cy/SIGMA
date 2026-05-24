@@ -46,12 +46,15 @@ class ScraperCollector(BaseCollector):
         selectors = self.config["selectors"]
         soup = BeautifulSoup(response.text, "html.parser")
         items: list[RawCollectedItem] = []
+        max_entries = int(self.config.get("max_entries") or 0)
+        min_content_length = int(self.config.get("min_content_length") or 30)
         for container in soup.select(str(selectors["item_container"])):
             title = self._text(container, selectors.get("title"))
             content = self._text(container, selectors.get("content")) or title
             href = self._href(container, selectors.get("link"))
             published = parse_datetime(self._text(container, selectors.get("date")))
-            if title and content:
+            combined_length = len(f"{title} {content}".strip())
+            if title and content and combined_length >= min_content_length:
                 items.append(
                     {
                         "title": title,
@@ -61,6 +64,8 @@ class ScraperCollector(BaseCollector):
                         "metadata": {"source_format": "html"},
                     }
                 )
+                if max_entries > 0 and len(items) >= max_entries:
+                    break
         return items
 
     def _user_agent(self) -> str:

@@ -491,7 +491,8 @@
     },
     "llm": {
       "title": "LLM configuration",
-      "caption": "Choose the model, daily token budget, and cost guard used by SIGMA analysis."
+      "caption": "Choose the model, daily token budget, and cost guard used by SIGMA analysis.",
+      "legendInputOutput": "Input/Output"
     },
     "admin": {
       "eyebrow": "Administrator controls",
@@ -506,15 +507,6 @@
       "apikeys": "API keys",
       "security": "Security"
     },
-    "theme": {
-      "title": "Appearance",
-      "caption": "Theme controls now live in the top navigation.",
-      "light": "Light",
-      "dark": "Dark"
-    },
-    "dataFreshness": "Data freshness",
-    "lastUpdated": "Last successful collection",
-    "noCollection": "No successful collection yet",
     "password": {
       "title": "Change password",
       "caption": "Use an email verification code before setting a new password.",
@@ -539,12 +531,6 @@
         "verify": "Verify",
         "reset": "Reset"
       }
-    },
-    "trend": {
-      "title": "Signal trend",
-      "caption": "Seven-day intelligence volume from collected items.",
-      "day": "{count}d",
-      "today": "Today"
     },
     "categories": {
       "politics": "Politics",
@@ -746,6 +732,7 @@
       "week": "This week",
       "month": "This month",
       "tokenTrend": "14-day token trend",
+      "legendInputOutput": "Input/Output",
       "usageByFunction": "Usage by function",
       "providerUsageDistribution": "Provider Usage Distribution",
       "noUsageData": "No usage data yet.",

@@ -1,10 +1,8 @@
 "use client";
 
-import { Clock3, KeyRound, Save } from "lucide-react";
-import dynamic from "next/dynamic";
+import { KeyRound, Save } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
@@ -19,10 +17,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
-import { useItems } from "@/hooks/useItems";
 import { useLLMSettings } from "@/hooks/useLLMSettings";
 import { useReportConfig, useSettingsMutations } from "@/hooks/useSettings";
-import { useLastCollectionStats } from "@/hooks/useStats";
 import { toggleMultiSelection } from "@/lib/selection";
 import type { Category, LLMConfig, LLMUsageResponse, Locale, Market, ReportType, UserReportConfig } from "@/lib/types";
 
@@ -39,30 +35,6 @@ const defaultReportConfig: UserReportConfig = {
   report_frequencies: []
 };
 
-const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((module) => module.TrendLine), {
-  loading: () => <Skeleton className="h-56 w-full" />,
-  ssr: false
-});
-
-function buildSevenDayTrend(items: Array<{ published_at: string }>, t: (key: string, values?: Record<string, number>) => string) {
-  const counts = new Map<string, number>();
-  for (let offset = 6; offset >= 0; offset -= 1) {
-    const date = new Date();
-    date.setDate(date.getDate() - offset);
-    counts.set(date.toISOString().slice(0, 10), 0);
-  }
-  items.forEach((item) => {
-    const key = item.published_at.slice(0, 10);
-    if (counts.has(key)) {
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-  });
-  return Array.from(counts.entries()).map(([day, value], index) => ({
-    label: index === 6 ? t("trend.today") : t("trend.day", { count: 6 - index }),
-    value
-  }));
-}
-
 export default function SettingsPage() {
   const t = useTranslations("settings");
   const locale = useLocale() as Locale;
@@ -71,12 +43,8 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { data: reportConfig, isLoading } = useReportConfig();
-  const trendItems = useItems({ page_size: 100 });
-  const lastCollection = useLastCollectionStats();
   const llmSettings = useLLMSettings();
   const { updateProfile, updateReportConfig, updateRetention } = useSettingsMutations();
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme !== "light";
   const [displayName, setDisplayName] = useState("");
   const [selectedLocale, setSelectedLocale] = useState<Locale>(locale);
   const [retentionDays, setRetentionDays] = useState(30);
@@ -118,10 +86,6 @@ export default function SettingsPage() {
     [displayName, profileBaseline, reportBaseline, reportPayload, retentionBaseline, retentionDays, selectedLocale]
   );
   const hasChanges = Object.values(dirty).some(Boolean);
-  const sevenDayTrend = useMemo(
-    () => buildSevenDayTrend(trendItems.data?.pages.flatMap((page) => page.items) ?? [], t),
-    [t, trendItems.data]
-  );
 
   async function handleSaveAll() {
     if (!hasChanges || user === null) {
@@ -217,20 +181,6 @@ export default function SettingsPage() {
             onSave={llmSettings.update.mutateAsync}
             usageData={llmSettings.usage.data}
           />
-          <ThemeSection isDark={isDark} />
-          <DataFreshnessCard
-            isLoading={lastCollection.isLoading}
-            lastSuccess={lastCollection.data?.last_success ?? null}
-          />
-          <Card className="p-5">
-            <h2 className="text-base font-semibold text-foreground">{t("trend.title")}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{t("trend.caption")}</p>
-            <div className="mt-5">
-              <TrendLine
-                data={sevenDayTrend}
-              />
-            </div>
-          </Card>
         </div>
       </div>
 
@@ -403,57 +353,6 @@ function ReportConfigSection({
             onChange={(checked) => setPayload((current) => ({ ...current, is_active: checked }))}
           />
           {t("reports.active")}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function ThemeSection({ isDark }: { isDark: boolean }) {
-  const t = useTranslations("settings");
-
-  return (
-    <Card className="p-5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">{t("theme.title")}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t("theme.caption")}</p>
-        </div>
-        <span className="rounded-full bg-card px-3 py-1 text-sm font-medium text-foreground">
-          {isDark ? t("theme.dark") : t("theme.light")}
-        </span>
-      </div>
-    </Card>
-  );
-}
-
-function DataFreshnessCard({ isLoading, lastSuccess }: { isLoading: boolean; lastSuccess: string | null }) {
-  const locale = useLocale() as Locale;
-  const t = useTranslations("settings");
-  const formatted = useMemo(() => {
-    if (!lastSuccess) {
-      return t("noCollection");
-    }
-    return new Intl.DateTimeFormat(locale, {
-      dateStyle: "medium",
-      timeStyle: "short"
-    }).format(new Date(lastSuccess));
-  }, [lastSuccess, locale, t]);
-
-  return (
-    <Card className="p-5">
-      <div className="flex items-start gap-3">
-        <span className="rounded-full bg-primary/10 p-2 text-primary">
-          <Clock3 className="h-4 w-4" aria-hidden />
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold text-foreground">{t("dataFreshness")}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t("lastUpdated")}</p>
-          {isLoading ? (
-            <Skeleton className="mt-4 h-5 w-40" />
-          ) : (
-            <p className="mt-4 text-sm font-medium text-foreground">{formatted}</p>
-          )}
         </div>
       </div>
     </Card>

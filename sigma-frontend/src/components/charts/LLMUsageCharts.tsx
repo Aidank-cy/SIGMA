@@ -39,7 +39,7 @@ interface DailyUsagePoint {
   tokens: number;
 }
 
-export function TokenTrendChart({ data }: { data: TokenTrendPoint[] }) {
+export function TokenTrendChart({ data, legendLabel = "Input/Output" }: { data: TokenTrendPoint[]; legendLabel?: string }) {
   return (
     <ChartFrame>
       <LineChart data={data} margin={{ bottom: 5, left: -18, right: 5, top: 5 }}>
@@ -47,11 +47,22 @@ export function TokenTrendChart({ data }: { data: TokenTrendPoint[] }) {
         <XAxis dataKey="day" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
         <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} width={42} />
         <Tooltip />
-        <Legend />
+        <Legend content={() => <TokenTrendLegend label={legendLabel} />} verticalAlign="bottom" />
         <Line dataKey="input" dot={false} stroke="rgb(var(--sigma-accent))" />
         <Line dataKey="output" dot={false} stroke="rgb(var(--sigma-success))" />
       </LineChart>
     </ChartFrame>
+  );
+}
+
+function TokenTrendLegend({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center gap-2 pt-2 text-xs font-medium text-sigma-muted">
+      <span className="h-2 w-2 rounded-full bg-[rgb(var(--sigma-accent))]" />
+      <span className="text-sigma-muted">/</span>
+      <span className="h-2 w-2 rounded-full bg-[rgb(var(--sigma-success))]" />
+      <span>{label}</span>
+    </div>
   );
 }
 

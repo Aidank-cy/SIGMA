@@ -56,7 +56,13 @@ OBSOLETE_SEED_SOURCE_NAMES = {
     "CNBC Business RSS": "Dow Jones Markets RSS",
     "NewsAPI Business": "BBC Business RSS",
 }
-SYNC_SEED_SOURCE_NAMES = {"Yahoo Finance News", "BBC Business RSS", "Dow Jones Markets RSS"}
+SYNC_SEED_SOURCE_NAMES = {
+    "Yahoo Finance News",
+    "FRED Releases",
+    "BBC Business RSS",
+    "Dow Jones Markets RSS",
+    "Federal Reserve Announcements",
+}
 LAYER_6_SEED_SOURCE_NAMES = {"Alpha Vantage News"}
 
 
@@ -93,14 +99,22 @@ SEED_SOURCES: list[dict[str, object]] = [
         "is_system": True,
         "config": {
             "base_url": "https://api.stlouisfed.org",
-            "endpoint": "/fred/releases",
-            "params": {"api_key": "$ENV:FRED_API_KEY", "file_type": "json"},
-            "response_path": "releases",
+            "endpoint": "/fred/releases/dates",
+            "params": {
+                "api_key": "$ENV:FRED_API_KEY",
+                "file_type": "json",
+                "limit": 20,
+                "sort_order": "desc",
+            },
+            "response_path": "release_dates",
+            "max_entries": 20,
+            "min_content_length": 50,
+            "min_title_length": 12,
+            "metadata_fields": ["release_id", "release_name", "date"],
             "field_mapping": {
-                "title": "name",
-                "content": "notes",
-                "content_url": "link",
-                "published_at": "realtime_start",
+                "title": "release_name",
+                "content": "release_name",
+                "published_at": "date",
             },
         },
     },
@@ -163,14 +177,16 @@ SEED_SOURCES: list[dict[str, object]] = [
         "max_execution_seconds": 120,
         "is_system": True,
         "config": {
-            "target_url": "https://www.federalreserve.gov/newsevents/pressreleases.htm",
+            "target_url": "https://www.federalreserve.gov/newsevents/pressreleases/2026-press.htm",
             "selectors": {
-                "item_container": ".row",
-                "title": "a",
-                "content": "p",
-                "link": "a",
+                "item_container": ".eventlist > .col-xs-12 > .row",
+                "title": ".eventlist__event a",
+                "content": ".eventlist__event",
+                "link": ".eventlist__event a",
                 "date": "time",
             },
+            "max_entries": 30,
+            "min_content_length": 30,
             "request_interval_sec": 1,
             "user_agent_rotate": True,
         },

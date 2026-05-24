@@ -2,7 +2,7 @@
 
 import { DollarSign, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
@@ -84,6 +84,8 @@ export function LLMSettingsPanel({
   usageData
 }: LLMSettingsPanelProps) {
   const t = useTranslations("admin.llm");
+  const settingsT = useTranslations("settings.llm");
+  const locale = useLocale();
   const toast = useToast();
   const [form, setForm] = useState<LLMConfig>(defaultConfig);
 
@@ -131,22 +133,23 @@ export function LLMSettingsPanel({
   }, [usageData]);
 
   const trendData = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
     const days = Array.from({ length: 14 }, (_, index) => {
       const day = new Date();
       day.setDate(day.getDate() - (13 - index));
       const key = day.toISOString().slice(0, 10);
-      return { day: key.slice(5), input: 0, output: 0 };
+      return { day: formatter.format(day), input: 0, key, output: 0 };
     });
     for (const item of usageData?.items ?? []) {
-      const key = item.day.slice(5);
-      const row = days.find((entry) => entry.day === key);
+      const key = item.day.slice(0, 10);
+      const row = days.find((entry) => entry.key === key);
       if (row) {
         row.input += item.input_tokens;
         row.output += item.output_tokens;
       }
     }
-    return days;
-  }, [usageData]);
+    return days.map(({ day, input, output }) => ({ day, input, output }));
+  }, [locale, usageData]);
 
   const functionData = useMemo(() => {
     const rows = { report: 0, summary: 0 };
@@ -400,7 +403,7 @@ export function LLMSettingsPanel({
           <section className="grid gap-4 xl:grid-cols-[3fr_1fr]">
             <Card className="p-5">
               <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>
-              <TokenTrendChart data={trendData} />
+              <TokenTrendChart data={trendData} legendLabel={settingsT("legendInputOutput")} />
             </Card>
             <Card className="p-5">
               <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>

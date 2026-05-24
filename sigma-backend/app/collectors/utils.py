@@ -50,6 +50,7 @@ def _parse_string(value: str) -> datetime:
         lambda candidate: datetime.fromisoformat(candidate.replace("Z", "+00:00")),
         lambda candidate: datetime.strptime(candidate, "%Y-%m-%d"),
         lambda candidate: datetime.strptime(candidate, "%Y/%m/%d %H:%M:%S"),
+        lambda candidate: datetime.strptime(candidate, "%m/%d/%Y"),
         lambda candidate: datetime.strptime(candidate, "%Y%m%dT%H%M%S"),
         lambda candidate: datetime.strptime(candidate, "%Y%m%dT%H%M"),
         lambda candidate: datetime.strptime(candidate, "%B %d, %Y"),

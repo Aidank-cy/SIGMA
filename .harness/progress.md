@@ -1607,3 +1607,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Analytics sentiment now uses a rolling selected-window aggregate with one-minute refresh snapshots. Settings moves LLM configuration into the right column and exposes user token/function charts below save. Sync now uses market-grouped source columns, user source creation, and user-facing logs with fallback mock rows when `/sources/logs` is unavailable.
 - Follow-ups: Add a backend `GET /api/v1/sources/logs` endpoint so the Sync logs panel can use persisted user-scoped collection logs instead of the development fallback when that route is missing.
 - Timestamp: 2026-05-24T01:32:03Z
+
+### [Maintenance] Round N bug fixes and UI polish
+- Status: COMPLETE
+- Files modified: sigma-backend/app/collectors/api_collector.py, sigma-backend/app/collectors/scraper_collector.py, sigma-backend/app/collectors/seeds.py, sigma-backend/app/collectors/utils.py, sigma-backend/tests/test_collectors.py, sigma-frontend/src/components/admin/AdminSourcesPanel.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/ui/Modal.tsx, sigma-frontend/src/components/charts/LLMUsageCharts.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/admin/AdminLLMPanel.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Tightened Federal Reserve and FRED seed configs with capped collection and content filters, added collector tests for max-entry and fragment filtering, removed Admin Sources create/edit/delete controls, reduced Settings right column to LLM only, darkened shared modal backdrops, and localized LLM token trend date/legend labels. Verified live Federal Reserve scraping returns 30 capped meaningful entries; FRED live verification was skipped because `FRED_API_KEY` is not set.
+- Timestamp: 2026-05-24T02:09:50Z
