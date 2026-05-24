@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add user-facing Sync collection logs with source/status/date filters, pagination, success-rate footer, and local fallback rows for development.
 - Add shared collector text/datetime utilities and a published-time item sort index.
 - Add a four-column dashboard news snapshot grouped by politics, economy, finance, and macro categories.
 - Add region-grouped Admin Sources columns with per-source toggles, sync actions, and market-prefilled source creation.
@@ -42,6 +43,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Redesign Sync data sources into market-grouped compact columns with per-market user source creation.
+- Move Settings LLM configuration into the right column and show user token/function charts below the save action.
+- Tighten LLM usage chart axis spacing and align admin LLM user toggles near the row edge.
 - Use source publication time for item, stats, watchlist, and admin trend time windows.
 - Sort item list results by source publication time instead of collection time.
 - Change the News page to list-only paginated results with multi-select category and market filters.
@@ -125,6 +129,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Analytics sentiment trend to use the selected window's rolling bullish aggregate with one-minute live refresh snapshots.
 - Fix Analytics sentiment trend to use one-minute buckets with carried-forward sentiment while loading the full selected item window.
 - Fix DAX quote selection so Alpha Vantage ETF prices are skipped and suspiciously tiny index quotes are discarded.
 - Fix FRED release content enrichment to use readable metadata sentences and hide metadata-only raw content behind a source link.

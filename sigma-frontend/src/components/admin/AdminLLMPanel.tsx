@@ -89,7 +89,7 @@ export function AdminLLMPanel() {
                   return (
                     <div
                       className={cn(
-                        "grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-lg border p-3 text-left transition",
+                        "grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-lg border py-3 pl-3 pr-5 text-left transition",
                         isSelected
                           ? "border-primary bg-primary/5"
                           : "border-transparent bg-sigma-elevated hover:border-sigma-line"
@@ -109,13 +109,15 @@ export function AdminLLMPanel() {
                           <span className="block truncate text-xs text-sigma-muted">{user.email}</span>
                         </span>
                       </button>
-                      <ToggleSwitch
-                        checked={isReportActive}
-                        label={t("reportGenerationToggle")}
-                        onChange={(checked) =>
-                          setLocalReportStatus((current) => ({ ...current, [user.id]: checked }))
-                        }
-                      />
+                      <div className="ml-auto flex justify-end">
+                        <ToggleSwitch
+                          checked={isReportActive}
+                          label={t("reportGenerationToggle")}
+                          onChange={(checked) =>
+                            setLocalReportStatus((current) => ({ ...current, [user.id]: checked }))
+                          }
+                        />
+                      </div>
                     </div>
                   );
                 })}

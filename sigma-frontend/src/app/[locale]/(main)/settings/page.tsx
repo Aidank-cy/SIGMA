@@ -185,8 +185,8 @@ export default function SettingsPage() {
         <p className="mt-2 text-sm text-foreground/60">{t("subtitle")}</p>
       </header>
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
-        <div className="flex flex-col gap-5">
+      <div className="grid gap-5 xl:grid-cols-[auto_minmax(0,1fr)]">
+        <div className="flex w-full flex-col gap-5 xl:w-[34rem] xl:max-w-[34rem]">
           {user ? (
             <ProfileSection
               displayName={displayName}
@@ -207,6 +207,9 @@ export default function SettingsPage() {
           ) : (
             <ReportConfigSection payload={reportPayload} setPayload={setReportPayload} />
           )}
+          <PasswordSection onOpen={() => setIsPasswordOpen(true)} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-5">
           <LLMConfigSection
             configData={llmSettings.config.data}
             isConfigLoading={llmSettings.config.isLoading}
@@ -214,9 +217,6 @@ export default function SettingsPage() {
             onSave={llmSettings.update.mutateAsync}
             usageData={llmSettings.usage.data}
           />
-          <PasswordSection onOpen={() => setIsPasswordOpen(true)} />
-        </div>
-        <div className="flex flex-col gap-5">
           <ThemeSection isDark={isDark} />
           <DataFreshnessCard
             isLoading={lastCollection.isLoading}

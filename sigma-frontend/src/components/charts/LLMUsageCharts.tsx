@@ -42,10 +42,10 @@ interface DailyUsagePoint {
 export function TokenTrendChart({ data }: { data: TokenTrendPoint[] }) {
   return (
     <ChartFrame>
-      <LineChart data={data}>
+      <LineChart data={data} margin={{ bottom: 5, left: -18, right: 5, top: 5 }}>
         <CartesianGrid stroke="rgb(var(--sigma-line))" vertical={false} />
         <XAxis dataKey="day" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
-        <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
+        <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} width={42} />
         <Tooltip />
         <Legend />
         <Line dataKey="input" dot={false} stroke="rgb(var(--sigma-accent))" />
@@ -83,10 +83,10 @@ export function ProviderUsageDistributionChart({ data }: { data: ProviderUsagePo
 export function FunctionUsageChart({ data }: { data: FunctionUsagePoint[] }) {
   return (
     <ChartFrame>
-      <BarChart data={data}>
+      <BarChart data={data} margin={{ bottom: 5, left: -18, right: 5, top: 5 }}>
         <CartesianGrid stroke="rgb(var(--sigma-line))" vertical={false} />
         <XAxis dataKey="name" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
-        <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
+        <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} width={42} />
         <Tooltip />
         <Bar dataKey="tokens" fill="rgb(var(--sigma-accent))" radius={[6, 6, 0, 0]} />
       </BarChart>

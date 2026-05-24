@@ -325,6 +325,8 @@
     "collectedToday": "今日已采集",
     "activeRatio": "活跃比例",
     "dataSources": "数据源",
+    "logsEyebrow": "采集审计",
+    "logsTitle": "采集日志",
     "adminLogsOnly": "采集日志仅管理员可见。",
     "collectedItems": "采集 {count} 条，用时 {duration} ms。",
     "manual": "手动",

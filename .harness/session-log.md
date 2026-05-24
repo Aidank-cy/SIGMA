@@ -219,6 +219,17 @@
 **Uncommitted work:** NO — committing in this session as the tooltip/ticker/axis refinement checkpoint.
 
 ---
+## Session 21 — 2026-05-24T01:32:03Z
+**Phase:** Maintenance
+**Resuming from:** Settings and admin LLM panel refactor complete; user requested Settings, Analytics, and Sync refinements.
+**Prior status from progress.md:** Previous maintenance work completed through Settings/admin LLM panel refactor. Harness context read and work started from clean `main` on `codex/refactor-settings-analytics-sync`.
+
+**Ending at:** Settings, analytics, and sync refactor
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Add or verify a backend user-scoped `GET /api/v1/sources/logs` endpoint if persisted Sync logs are required beyond the frontend fallback, or perform authenticated browser QA with a seeded backend.
+**Uncommitted work:** YES — pending user review/commit after this refactor.
+
+---
 ## Session 21 — 2026-05-19T02:04:07Z
 **Phase:** Release
 **Resuming from:** Clean `main` with v1.0.0 tagged and post-release changes accumulated under `[Unreleased]`.

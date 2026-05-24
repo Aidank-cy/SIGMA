@@ -325,6 +325,8 @@
     "collectedToday": "collected today",
     "activeRatio": "active ratio",
     "dataSources": "Data sources",
+    "logsEyebrow": "Collector audit",
+    "logsTitle": "Collection logs",
     "adminLogsOnly": "Collector logs are available to administrators only.",
     "collectedItems": "Collected {count} items in {duration} ms.",
     "manual": "Manual",

@@ -1599,3 +1599,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Added shared multi-select toggle behavior for News and Settings, capped retention options at 90 days, switched report frequency and market filters to ALL-aware pill controls, added default API-key handling with K/M token-limit parsing, moved user cost guard and user-scoped LLM usage charts into the configuration card, replaced the admin LLM wrapper with a user list/detail development view, and changed the admin collection trend to a bar chart. Verified `git diff --check`, `npm run build`, and a browser smoke check of `/en/settings`; direct `npm run lint` still prompts for first-time ESLint configuration in this repo.
 - Follow-ups: Replace the admin LLM panel's existing-hook fallback data with dedicated user-scoped admin endpoints once the backend contract is added.
 - Timestamp: 2026-05-23T12:37:53Z
+
+### [Maintenance] Settings, analytics, and sync refactor
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/admin/AdminLLMPanel.tsx, sigma-frontend/src/components/charts/LLMUsageCharts.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Analytics sentiment now uses a rolling selected-window aggregate with one-minute refresh snapshots. Settings moves LLM configuration into the right column and exposes user token/function charts below save. Sync now uses market-grouped source columns, user source creation, and user-facing logs with fallback mock rows when `/sources/logs` is unavailable.
+- Follow-ups: Add a backend `GET /api/v1/sources/logs` endpoint so the Sync logs panel can use persisted user-scoped collection logs instead of the development fallback when that route is missing.
+- Timestamp: 2026-05-24T01:32:03Z

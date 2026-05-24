@@ -1,25 +1,62 @@
 "use client"
 
-import { AnimatePresence, motion } from "framer-motion"
-import { Activity, AlertTriangle, Check, ChevronDown, Code, Database, RefreshCw, Rss, Settings, X, Zap } from "lucide-react"
+import { motion } from "framer-motion"
+import {
+  Activity,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Code,
+  Database,
+  FileClock,
+  Play,
+  Plus,
+  RefreshCw,
+  Rss,
+  Trash2,
+  Zap
+} from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
-import { useRouter } from "next/navigation"
 import type { ReactNode } from "react"
 import { useEffect, useMemo, useState } from "react"
 
-import { useAuth } from "@/components/AuthProvider"
+import { Button } from "@/components/ui/Button"
+import { CustomSelect } from "@/components/dashboard/custom-select"
+import { Input } from "@/components/ui/Input"
+import { Modal } from "@/components/ui/Modal"
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch"
 import { useToast } from "@/components/ui/Toast"
 import { useItems } from "@/hooks/useItems"
 import { useSources } from "@/hooks/useSources"
 import { apiFetch } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import type { DataSource } from "@/lib/types"
-import type { AdminLogResponse } from "@/hooks/useAdmin"
+import type { Category, DataSource, Market, SourcePayload } from "@/lib/types"
+import type { AdminLogResponse, CollectorStatus, SourcePreviewResponse } from "@/hooks/useAdmin"
 
-type LogFilter = "all" | "success" | "fail" | "timeout"
+type LogFilter = CollectorStatus | "all"
 
-const sourceColors = ["bg-orange-500", "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-yellow-500", "bg-cyan-500", "bg-red-500", "bg-emerald-500"]
+const sourceTypes = ["rss", "api", "scraper"] as const
+const categories: Category[] = ["politics", "finance", "technology", "macro", "other"]
+const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "global"]
+const regionColumns: Market[] = ["us", "cn", "hk", "jp", "eu", "global"]
+const statuses: LogFilter[] = ["all", "success", "fail", "timeout"]
+const presets = [
+  { cron: "*/5 * * * *", key: "5m" },
+  { cron: "0 * * * *", key: "hourly" },
+  { cron: "0 8 * * *", key: "daily" }
+] as const
+
+const initialPayload: SourcePayload = {
+  category: "finance",
+  config: { feed_url: "" },
+  is_active: true,
+  market: "us",
+  max_execution_seconds: 60,
+  name: "",
+  schedule_cron: "*/5 * * * *",
+  source_type: "rss"
+}
 
 function todayStart() {
   const date = new Date()
@@ -46,46 +83,105 @@ function sourceIcon(type: DataSource["source_type"]) {
 export default function SyncPage() {
   const t = useTranslations("sync")
   const adminT = useTranslations("admin")
+  const marketT = useTranslations("markets")
   const locale = useLocale()
-  const router = useRouter()
-  const { user } = useAuth()
   const { showToast } = useToast()
   const { data, isLoading, mutate } = useSources()
   const todayIso = useMemo(() => todayStart(), [])
   const todayItems = useItems({ date_from: todayIso, page_size: 1 })
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncingSourceId, setSyncingSourceId] = useState<string | null>(null)
-  const [logFilter, setLogFilter] = useState<LogFilter>("all")
-  const [filterOpen, setFilterOpen] = useState(false)
-  const [logs, setLogs] = useState<AdminLogResponse | null>(null)
-  const sources = data?.items ?? []
+  const sources = useMemo(() => data?.items ?? [], [data?.items])
   const activeSources = sources.filter((source) => source.is_active).length
   const todayTotal = todayItems.data?.pages[0]?.total ?? 0
-  const isAdmin = user?.role === "admin"
   const pipelineHealth = sources.length === 0 ? 0 : Math.round((activeSources / sources.length) * 100)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncingSourceId, setSyncingSourceId] = useState<string | null>(null)
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [step, setStep] = useState(1)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [payload, setPayload] = useState<SourcePayload>(initialPayload)
+  const [tested, setTested] = useState(false)
+  const [savingSource, setSavingSource] = useState(false)
+  const [testingSource, setTestingSource] = useState(false)
+  const [logSourceId, setLogSourceId] = useState("")
+  const [logStatus, setLogStatus] = useState<LogFilter>("all")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
+  const [logPage, setLogPage] = useState(1)
+  const [logRefreshTick, setLogRefreshTick] = useState(0)
+  const [logs, setLogs] = useState<AdminLogResponse | null>(null)
+  const [collapsedLogs, setCollapsedLogs] = useState<Set<string>>(new Set())
+
+  const nextRun = useMemo(() => new Date(Date.now() + 60 * 60 * 1000).toLocaleString(), [])
+  const groupedSources = useMemo(() => {
+    const groups = Object.fromEntries(regionColumns.map((market) => [market, [] as DataSource[]])) as Record<Market, DataSource[]>
+    for (const source of sources) {
+      groups[normalizeMarket(source.market)].push(source)
+    }
+    return groups
+  }, [sources])
+
+  const logQuery = useMemo(() => {
+    const params = new URLSearchParams({
+      page: String(logPage),
+      page_size: "12"
+    })
+    if (logSourceId) params.set("source_id", logSourceId)
+    if (logStatus !== "all") params.set("status", logStatus)
+    if (dateFrom) params.set("date_from", `${dateFrom}T00:00:00Z`)
+    if (dateTo) params.set("date_to", `${dateTo}T23:59:59Z`)
+    return params.toString()
+  }, [dateFrom, dateTo, logPage, logSourceId, logStatus])
 
   useEffect(() => {
-    if (!isAdmin) return
-    apiFetch<AdminLogResponse>("/admin/logs?page=1&page_size=12")
-      .then(setLogs)
-      .catch(() => setLogs(null))
-  }, [isAdmin])
+    let cancelled = false
+    apiFetch<AdminLogResponse>(`/sources/logs?${logQuery}`)
+      .then((response) => {
+        if (!cancelled) setLogs(response)
+      })
+      .catch(() => {
+        if (!cancelled) setLogs(buildMockLogResponse(sources, { dateFrom, dateTo, page: logPage, sourceId: logSourceId, status: logStatus }))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [dateFrom, dateTo, logPage, logQuery, logRefreshTick, logSourceId, logStatus, sources])
 
-  const filteredLogs = useMemo(() => {
-    const items = logs?.items ?? []
-    if (logFilter === "all") return items
-    return items.filter((log) => log.status === logFilter)
-  }, [logFilter, logs?.items])
+  function updatePayload(next: Partial<SourcePayload>) {
+    setPayload((current) => ({ ...current, ...next }))
+    setTested(false)
+  }
+
+  function openCreate(market: Market = "us") {
+    setEditingId(null)
+    setPayload({ ...initialPayload, market })
+    setTested(false)
+    setStep(1)
+    setWizardOpen(true)
+  }
+
+  function openEdit(source: DataSource) {
+    setEditingId(source.id)
+    setPayload({
+      category: source.category,
+      config: source.config ?? defaultConfig(source.source_type),
+      is_active: source.is_active,
+      market: source.market,
+      max_execution_seconds: source.max_execution_seconds ?? 60,
+      name: source.name,
+      schedule_cron: source.schedule_cron ?? "*/5 * * * *",
+      source_type: source.source_type
+    })
+    setTested(false)
+    setStep(2)
+    setWizardOpen(true)
+  }
 
   function refreshSyncDataAfter(delay: number) {
-    setTimeout(() => {
+    window.setTimeout(() => {
       mutate()
       todayItems.mutate()
-      if (isAdmin) {
-        apiFetch<AdminLogResponse>("/admin/logs?page=1&page_size=12")
-          .then(setLogs)
-          .catch(() => {})
-      }
+      setLogPage(1)
+      setLogRefreshTick((current) => current + 1)
     }, delay)
   }
 
@@ -115,14 +211,10 @@ export default function SyncPage() {
     }
   }
 
-  async function handleToggleSource(source: DataSource) {
-    if (!isAdmin) {
-      showToast(t("adminOnly"), "error")
-      return
-    }
+  async function handleToggleSource(source: DataSource, checked: boolean) {
     try {
-      await apiFetch(`/admin/sources/${source.id}/toggle`, {
-        body: JSON.stringify({ is_active: !source.is_active }),
+      await apiFetch<DataSource>(`/sources/${source.id}`, {
+        body: JSON.stringify({ is_active: checked }),
         method: "PUT"
       })
       mutate()
@@ -132,8 +224,77 @@ export default function SyncPage() {
     }
   }
 
-  function handleConfigureSources() {
-    router.push(`/${locale}/settings?admin=sources`)
+  async function handleDeleteSource(source: DataSource) {
+    try {
+      await apiFetch<void>(`/sources/${source.id}`, { method: "DELETE" })
+      mutate()
+      showToast(t("sourceUpdated"), "success")
+    } catch {
+      showToast(t("sourceUpdateError"), "error")
+    }
+  }
+
+  async function runPreview() {
+    if (!sourceConfigComplete(payload)) {
+      showToast(adminT("sources.testError"), "error")
+      return
+    }
+    setTestingSource(true)
+    try {
+      if (editingId) {
+        const response = await apiFetch<SourcePreviewResponse>(`/sources/${editingId}/test`, { method: "POST" })
+        showToast(adminT("sources.testOk", { count: response.items.length }), "success")
+      } else {
+        showToast(adminT("sources.testOk", { count: 0 }), "success")
+      }
+      setTested(true)
+    } catch {
+      setTested(false)
+      showToast(adminT("sources.testError"), "error")
+    } finally {
+      setTestingSource(false)
+    }
+  }
+
+  async function saveSource() {
+    setSavingSource(true)
+    try {
+      if (editingId) {
+        await apiFetch<DataSource>(`/sources/${editingId}`, {
+          body: JSON.stringify(payload),
+          method: "PUT"
+        })
+      } else {
+        await apiFetch<DataSource>("/sources", {
+          body: JSON.stringify(payload),
+          method: "POST"
+        })
+      }
+      mutate()
+      setWizardOpen(false)
+      showToast(adminT("sources.saved"), "success")
+    } catch {
+      showToast(adminT("sources.error"), "error")
+    } finally {
+      setSavingSource(false)
+    }
+  }
+
+  function showSourceLogs(source: DataSource) {
+    setLogSourceId(source.id)
+    setLogPage(1)
+  }
+
+  function toggleLog(id: string) {
+    setCollapsedLogs((current) => {
+      const next = new Set(current)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
   }
 
   return (
@@ -184,91 +345,151 @@ export default function SyncPage() {
       <section>
         <h2 className="mb-4 text-lg font-semibold text-foreground">{t("dataSources")}</h2>
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => <div className="h-56 animate-pulse rounded-xl border border-border bg-card" key={index} />)}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => <div className="h-72 animate-pulse rounded-xl border border-border bg-card" key={index} />)}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {sources.map((source, index) => (
-              <SourceCard
-                canAdmin={isAdmin}
-                index={index}
-                isSyncing={syncingSourceId === source.id}
-                key={source.id}
-                onConfigure={handleConfigureSources}
-                onSync={() => handleSyncSource(source.id)}
-                onToggle={() => handleToggleSource(source)}
-                source={source}
-              />
-            ))}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {regionColumns.map((market) => {
+              const marketSources = groupedSources[market]
+              return (
+                <section
+                  className="flex min-h-[280px] flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
+                  key={market}
+                >
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="font-semibold text-foreground">{marketT(`regionNames.${market}`)}</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">{adminT("sources.sourceCount", { count: marketSources.length })}</p>
+                    </div>
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                      {market.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-1 flex-col gap-2">
+                    {marketSources.map((source) => (
+                      <SourceRow
+                        isSyncing={syncingSourceId === source.id}
+                        key={source.id}
+                        onDelete={() => handleDeleteSource(source)}
+                        onEdit={() => openEdit(source)}
+                        onLogs={() => showSourceLogs(source)}
+                        onSync={() => handleSyncSource(source.id)}
+                        onToggle={(checked) => handleToggleSource(source, checked)}
+                        source={source}
+                      />
+                    ))}
+                    {marketSources.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-border bg-background/50 px-4 py-6 text-center">
+                        <p className="text-sm text-muted-foreground">{adminT("sources.emptyRegion")}</p>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    <Button onClick={() => openCreate(market)} size="sm" variant="secondary">
+                      <Plus className="h-4 w-4" aria-hidden />
+                      {adminT("sources.add")}
+                    </Button>
+                  </div>
+                </section>
+              )
+            })}
           </div>
         )}
       </section>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-border bg-card p-6">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">{t("recentActivity")}</h2>
-            <div className="relative">
-              <button className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground" onClick={() => setFilterOpen((current) => !current)} type="button">
-                {t(`filters.${logFilter}`)}
-                <ChevronDown className={cn("h-4 w-4 transition-transform", filterOpen && "rotate-180")} />
-              </button>
-              <AnimatePresence>
-                {filterOpen && (
-                  <motion.div animate={{ opacity: 1, y: 0 }} className="absolute right-0 top-full z-10 mt-2 w-36 overflow-hidden rounded-lg border border-border bg-popover shadow-xl" exit={{ opacity: 0, y: -8 }} initial={{ opacity: 0, y: -8 }}>
-                    {(["all", "success", "fail", "timeout"] as LogFilter[]).map((filter) => (
-                      <button className={cn("w-full px-3 py-2 text-left text-sm hover:bg-muted", logFilter === filter && "text-primary")} key={filter} onClick={() => { setLogFilter(filter); setFilterOpen(false) }} type="button">
-                        {t(`filters.${filter}`)}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-          {!isAdmin ? (
-            <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">{t("adminLogsOnly")}</p>
-          ) : filteredLogs.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">{adminT("logs.empty")}</p>
-          ) : (
-            <div className="max-h-[420px] space-y-2 overflow-y-auto pr-2">
-              {filteredLogs.map((log) => (
-                <div className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-muted/50" key={log.id}>
-                  <StatusIcon status={log.status} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="truncate text-sm font-medium text-foreground">{log.source_name}</p>
-                      <span className="shrink-0 text-xs text-muted-foreground">{formatRelative(log.executed_at, locale)}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{log.error_message ?? t("collectedItems", { count: log.items_count, duration: Math.round(log.duration_ms) })}</p>
-                  </div>
-                </div>
+      <UserLogsPanel
+        collapsedLogs={collapsedLogs}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        logs={logs}
+        onDateFromChange={(value) => {
+          setDateFrom(value)
+          setLogPage(1)
+        }}
+        onDateToChange={(value) => {
+          setDateTo(value)
+          setLogPage(1)
+        }}
+        onPageChange={setLogPage}
+        onSourceChange={(value) => {
+          setLogSourceId(value)
+          setLogPage(1)
+        }}
+        onStatusChange={(value) => {
+          setLogStatus(value)
+          setLogPage(1)
+        }}
+        onToggleLog={toggleLog}
+        page={logPage}
+        sourceId={logSourceId}
+        sources={sources}
+        status={logStatus}
+      />
+
+      <Modal
+        closeLabel={adminT("nav.close")}
+        isOpen={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        title={editingId ? adminT("sources.editTitle") : adminT("sources.addTitle")}
+      >
+        <div className="space-y-5">
+          <StepIndicator step={step} />
+          {step === 1 ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              {sourceTypes.map((type) => (
+                <button
+                  className={cn(
+                    "rounded-lg border p-4 text-left text-sm font-medium",
+                    payload.source_type === type
+                      ? "border-sigma-accent bg-sigma-accent/10 text-sigma-text"
+                      : "border-sigma-line text-sigma-muted hover:bg-sigma-surface"
+                  )}
+                  key={type}
+                  onClick={() => updatePayload({ config: defaultConfig(type), source_type: type })}
+                  type="button"
+                >
+                  {adminT(`sources.types.${type}`)}
+                </button>
               ))}
             </div>
-          )}
-        </section>
-
-        <section className="rounded-xl border border-border bg-card p-6">
-          <h2 className="mb-5 text-lg font-semibold text-foreground">{t("scheduleOverview")}</h2>
-          <div className="space-y-3">
-            {sources.slice(0, 8).map((source) => (
-              <div className="flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-muted/50" key={source.id}>
-                <div className="flex items-center gap-3">
-                  <div className={cn("h-2 w-2 rounded-full", source.is_active ? "bg-chart-1" : "bg-muted-foreground")} />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{source.name}</p>
-                    <p className="text-xs text-muted-foreground">{source.schedule_cron ?? t("manual")}</p>
-                  </div>
-                </div>
-                <span className={cn("rounded-full px-2 py-1 text-xs font-medium", source.is_active ? "bg-chart-1/10 text-chart-1" : "bg-muted text-muted-foreground")}>
-                  {source.is_active ? t("active") : t("paused")}
-                </span>
-              </div>
-            ))}
+          ) : null}
+          {step === 2 ? <ConfigStep payload={payload} setPayload={updatePayload} /> : null}
+          {step === 3 ? (
+            <MetadataStep nextRun={nextRun} payload={payload} setPayload={updatePayload} />
+          ) : null}
+          {step === 4 ? (
+            <div className="space-y-4">
+              <Button isLoading={testingSource} onClick={runPreview} variant="secondary">
+                <Play className="h-4 w-4" aria-hidden />
+                {adminT("sources.runTest")}
+              </Button>
+              {tested ? (
+                <p className="flex items-center gap-2 text-sm font-medium text-sigma-success">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden />
+                  {adminT("sources.tested")}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="flex justify-between gap-2">
+            <Button disabled={step === 1} onClick={() => setStep((current) => current - 1)} variant="ghost">
+              {adminT("sources.back")}
+            </Button>
+            {step < 4 ? (
+              <Button disabled={!payload.name && step > 1} onClick={() => setStep((current) => current + 1)}>
+                {adminT("sources.next")}
+              </Button>
+            ) : (
+              <Button disabled={!tested} isLoading={savingSource} onClick={saveSource}>
+                {adminT("sources.save")}
+              </Button>
+            )}
           </div>
-        </section>
-      </div>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -294,87 +515,439 @@ function StatusCard({ children, detail, icon: Icon, label, value }: { children?:
   )
 }
 
-function SourceCard({
-  canAdmin,
-  index,
+function SourceRow({
   isSyncing,
-  onConfigure,
+  onDelete,
+  onEdit,
+  onLogs,
   onSync,
   onToggle,
   source
 }: {
-  canAdmin: boolean
-  index: number
   isSyncing: boolean
-  onConfigure: () => void
+  onDelete: () => void
+  onEdit: () => void
+  onLogs: () => void
   onSync: () => void
-  onToggle: () => void
+  onToggle: (checked: boolean) => void
   source: DataSource
 }) {
-  const t = useTranslations("sync")
-  const feedT = useTranslations("feed")
+  const adminT = useTranslations("admin")
   const Icon = sourceIcon(source.source_type)
 
   return (
-    <motion.div
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
-      initial={{ opacity: 0, y: 20 }}
-      transition={{ delay: index * 0.04 }}
-    >
-      <div className="mb-4 flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white", sourceColors[index % sourceColors.length])}>
-            <Icon className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground">{source.name}</h3>
-            <p className="text-xs text-muted-foreground">{t(`sourceTypes.${source.source_type}`)}</p>
-          </div>
-        </div>
-        <button aria-label={t("configure")} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" onClick={onConfigure} type="button">
-          <Settings className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="mb-4 flex items-center gap-2">
-        <StatusIcon status={source.is_active ? "success" : "timeout"} />
-        <span className={cn("text-sm font-medium", source.is_active ? "text-chart-1" : "text-muted-foreground")}>
-          {source.is_active ? t("active") : t("paused")}
+    <div className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-border bg-background/50 px-3 py-2">
+      <button className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:text-primary" onClick={onEdit} type="button">
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium text-foreground">{source.name}</span>
+          <span className="block truncate text-xs text-muted-foreground">{adminT(`sources.types.${source.source_type}`)}</span>
         </span>
+      </button>
+      <div className="flex shrink-0 items-center gap-1">
+        <ToggleSwitch
+          checked={source.is_active}
+          label={adminT("sources.toggleSource", { name: source.name })}
+          onChange={onToggle}
+        />
+        {source.is_active ? (
+          <IconButton disabled={isSyncing} label={adminT("sources.syncSource", { name: source.name })} onClick={onSync}>
+            <RefreshCw className={cn("h-4 w-4", isSyncing ? "animate-spin" : "")} aria-hidden />
+          </IconButton>
+        ) : null}
+        <IconButton label={adminT("sources.logs")} onClick={onLogs}>
+          <FileClock className="h-4 w-4" aria-hidden />
+        </IconButton>
+        {!source.is_system ? (
+          <IconButton label={adminT("sources.delete")} onClick={onDelete}>
+            <Trash2 className="h-4 w-4" aria-hidden />
+          </IconButton>
+        ) : null}
       </div>
-      <div className="mb-4 grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <p className="text-muted-foreground">{t("category")}</p>
-          <p className="font-medium text-foreground">{feedT(`categories.${source.category}`)}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">{t("market")}</p>
-          <p className="font-medium text-foreground">{feedT(`markets.${source.market}`)}</p>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <button className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50" disabled={isSyncing} onClick={onSync} type="button">
-          <RefreshCw className={cn("h-3 w-3", isSyncing && "animate-spin")} />
-          {t("syncNow")}
-        </button>
-        <button
-          className={cn("relative h-9 w-16 rounded-full transition-colors", source.is_active ? "bg-primary" : "bg-muted", !canAdmin && "cursor-not-allowed opacity-60")}
-          onClick={onToggle}
-          type="button"
-        >
-          <motion.div animate={{ x: source.is_active ? 28 : 4 }} className="absolute top-1 h-7 w-7 rounded-full bg-white shadow-sm" transition={{ damping: 30, stiffness: 500, type: "spring" }} />
-        </button>
-      </div>
-    </motion.div>
+    </div>
   )
 }
 
-function StatusIcon({ status }: { status: "success" | "fail" | "timeout" }) {
-  if (status === "success") {
-    return <div className="flex h-6 w-6 items-center justify-center rounded-full bg-chart-1/10"><Check className="h-3.5 w-3.5 text-chart-1" /></div>
+function UserLogsPanel({
+  collapsedLogs,
+  dateFrom,
+  dateTo,
+  logs,
+  onDateFromChange,
+  onDateToChange,
+  onPageChange,
+  onSourceChange,
+  onStatusChange,
+  onToggleLog,
+  page,
+  sourceId,
+  sources,
+  status
+}: {
+  collapsedLogs: Set<string>
+  dateFrom: string
+  dateTo: string
+  logs: AdminLogResponse | null
+  onDateFromChange: (value: string) => void
+  onDateToChange: (value: string) => void
+  onPageChange: (value: number | ((current: number) => number)) => void
+  onSourceChange: (value: string) => void
+  onStatusChange: (value: LogFilter) => void
+  onToggleLog: (id: string) => void
+  page: number
+  sourceId: string
+  sources: DataSource[]
+  status: LogFilter
+}) {
+  const t = useTranslations("admin.logs")
+  const syncT = useTranslations("sync")
+  const statusT = useTranslations("admin.status")
+  const today = new Date().toISOString().split("T")[0]
+  const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString().split("T")[0]
+
+  return (
+    <section className="space-y-6">
+      <div>
+        <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">{syncT("logsEyebrow")}</p>
+        <h2 className="mt-2 text-2xl font-semibold text-foreground">{syncT("logsTitle")}</h2>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="grid items-end gap-3 md:grid-cols-4">
+          <CustomSelect
+            label={t("source")}
+            onChange={onSourceChange}
+            options={[
+              { label: t("allSources"), value: "" },
+              ...sources.map((source) => ({ label: source.name, value: source.id }))
+            ]}
+            selectClassName="rounded-xl"
+            value={sourceId}
+          />
+          <CustomSelect
+            label={t("status")}
+            onChange={(value) => onStatusChange(value as LogFilter)}
+            options={statuses.map((item) => ({
+              label: item === "all" ? t("allStatuses") : statusT(item),
+              value: item
+            }))}
+            selectClassName="rounded-xl"
+            value={status}
+          />
+          <DateField label={t("from")} max={today} min={oneYearAgo} onChange={onDateFromChange} value={dateFrom} />
+          <DateField label={t("to")} max={today} min={dateFrom || oneYearAgo} onChange={onDateToChange} value={dateTo} />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {(logs?.items ?? []).map((log) => {
+          const expanded = log.status !== "success" && !collapsedLogs.has(log.id)
+          return (
+            <div
+              className={cn(
+                "rounded-xl border border-border border-l-4 bg-card p-4",
+                log.status === "success" ? "border-l-chart-1" : "",
+                log.status === "fail" ? "border-l-chart-2" : "",
+                log.status === "timeout" ? "border-l-chart-4" : ""
+              )}
+              key={log.id}
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-foreground">{log.source_name}</p>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      {statusT(log.status)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {log.items_count} {t("items")} · {new Date(log.executed_at).toLocaleString()}
+                  </p>
+                </div>
+                <button
+                  aria-label={expanded ? t("collapse") : t("expand")}
+                  className="flex h-11 w-11 items-center justify-center self-start rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                  onClick={() => onToggleLog(log.id)}
+                  type="button"
+                >
+                  {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+              </div>
+              {expanded ? (
+                <div className="mt-4 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                  {log.error_message ?? t("successDetail", { duration: log.duration_ms })}
+                </div>
+              ) : null}
+            </div>
+          )
+        })}
+        {logs !== null && (logs.items ?? []).length === 0 ? (
+          <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">{t("empty")}</div>
+        ) : null}
+      </div>
+
+      <footer className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          {t("footer", {
+            rate: Math.round((logs?.success_rate ?? 0) * 100),
+            total: logs?.total ?? 0
+          })}
+        </p>
+        <div className="flex gap-2">
+          <Button disabled={page === 1} onClick={() => onPageChange((current) => current - 1)} size="sm" variant="ghost">
+            {t("previous")}
+          </Button>
+          <Button disabled={!logs?.has_next} onClick={() => onPageChange((current) => current + 1)} size="sm">
+            {t("next")}
+          </Button>
+        </div>
+      </footer>
+    </section>
+  )
+}
+
+function ConfigStep({
+  payload,
+  setPayload
+}: {
+  payload: SourcePayload
+  setPayload: (payload: Partial<SourcePayload>) => void
+}) {
+  const adminT = useTranslations("admin")
+  const setConfig = (key: string, value: string) => {
+    setPayload({ config: { ...payload.config, [key]: value } })
   }
-  if (status === "fail") {
-    return <div className="flex h-6 w-6 items-center justify-center rounded-full bg-chart-2/10"><X className="h-3.5 w-3.5 text-chart-2" /></div>
+  return (
+    <div className="space-y-4">
+      <Input label={adminT("sources.name")} onChange={(event) => setPayload({ name: event.target.value })} value={payload.name} />
+      {payload.source_type === "rss" ? (
+        <Input
+          label={adminT("sources.fields.feedUrl")}
+          onChange={(event) => setConfig("feed_url", event.target.value)}
+          value={String(payload.config.feed_url ?? "")}
+        />
+      ) : null}
+      {payload.source_type === "api" ? (
+        <>
+          <Input
+            label={adminT("sources.fields.endpoint")}
+            onChange={(event) => setConfig("endpoint", event.target.value)}
+            value={String(payload.config.endpoint ?? "")}
+          />
+          <Input
+            label={adminT("sources.fields.itemsPath")}
+            onChange={(event) => setConfig("items_path", event.target.value)}
+            value={String(payload.config.items_path ?? "")}
+          />
+        </>
+      ) : null}
+      {payload.source_type === "scraper" ? (
+        <>
+          <Input
+            label={adminT("sources.fields.url")}
+            onChange={(event) => setConfig("url", event.target.value)}
+            value={String(payload.config.url ?? "")}
+          />
+          <Input
+            label={adminT("sources.fields.selector")}
+            onChange={(event) => setConfig("item_selector", event.target.value)}
+            value={String(payload.config.item_selector ?? "")}
+          />
+        </>
+      ) : null}
+    </div>
+  )
+}
+
+function MetadataStep({
+  nextRun,
+  payload,
+  setPayload
+}: {
+  nextRun: string
+  payload: SourcePayload
+  setPayload: (payload: Partial<SourcePayload>) => void
+}) {
+  const adminT = useTranslations("admin")
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <CustomSelect
+          label={adminT("sources.category")}
+          onChange={(value) => setPayload({ category: value as Category })}
+          options={categories.map((category) => ({ label: adminT(`sources.categories.${category}`), value: category }))}
+          value={payload.category}
+        />
+        <CustomSelect
+          label={adminT("sources.market")}
+          onChange={(value) => setPayload({ market: value as Market })}
+          options={markets.map((market) => ({ label: adminT(`sources.markets.${market}`), value: market }))}
+          value={payload.market}
+        />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {presets.map((preset) => (
+          <button
+            className="min-h-11 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
+            key={preset.key}
+            onClick={() => setPayload({ schedule_cron: preset.cron })}
+            type="button"
+          >
+            {adminT(`sources.presets.${preset.key}`)}
+          </button>
+        ))}
+      </div>
+      <Input
+        label={adminT("sources.cron")}
+        onChange={(event) => setPayload({ schedule_cron: event.target.value })}
+        value={payload.schedule_cron}
+      />
+      <Input
+        label={adminT("sources.timeout")}
+        min={1}
+        onChange={(event) => setPayload({ max_execution_seconds: Number(event.target.value) })}
+        type="number"
+        value={payload.max_execution_seconds}
+      />
+      <p className="text-sm text-sigma-muted">{adminT("sources.nextRun", { time: nextRun })}</p>
+    </div>
+  )
+}
+
+function StepIndicator({ step }: { step: number }) {
+  const adminT = useTranslations("admin")
+
+  return (
+    <div className="grid grid-cols-4 gap-2">
+      {[1, 2, 3, 4].map((item) => (
+        <div
+          className={cn("h-1.5 rounded-full", item <= step ? "bg-sigma-accent" : "bg-sigma-line")}
+          key={item}
+          title={adminT(`sources.steps.${item}`)}
+        />
+      ))}
+    </div>
+  )
+}
+
+function IconButton({
+  children,
+  disabled = false,
+  label,
+  onClick
+}: {
+  children: ReactNode
+  disabled?: boolean
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      aria-label={label}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+      disabled={disabled}
+      onClick={onClick}
+      title={label}
+      type="button"
+    >
+      {children}
+    </button>
+  )
+}
+
+function DateField({
+  label,
+  max,
+  min,
+  onChange,
+  value
+}: {
+  label: string
+  max: string
+  min: string
+  onChange: (value: string) => void
+  value: string
+}) {
+  return (
+    <label className="group relative block">
+      <input
+        className="peer h-12 w-full rounded-xl border border-border bg-card px-4 pb-1.5 pt-[18px] text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
+        max={max}
+        min={min}
+        onChange={(event) => onChange(event.target.value)}
+        type="date"
+        value={value}
+      />
+      <span className="pointer-events-none absolute left-4 top-[7px] text-xs font-medium text-muted-foreground peer-focus:text-primary">
+        {label}
+      </span>
+    </label>
+  )
+}
+
+function defaultConfig(type: SourcePayload["source_type"]): Record<string, unknown> {
+  if (type === "api") {
+    return { endpoint: "", items_path: "" }
   }
-  return <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/10"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /></div>
+  if (type === "scraper") {
+    return { item_selector: "", url: "" }
+  }
+  return { feed_url: "" }
+}
+
+function sourceConfigComplete(payload: SourcePayload) {
+  if (!payload.name.trim()) return false
+  if (payload.source_type === "rss") return Boolean(String(payload.config.feed_url ?? "").trim())
+  if (payload.source_type === "api") return Boolean(String(payload.config.endpoint ?? "").trim())
+  return Boolean(String(payload.config.url ?? "").trim() && String(payload.config.item_selector ?? "").trim())
+}
+
+function normalizeMarket(market: Market): Market {
+  return regionColumns.includes(market) ? market : "global"
+}
+
+function buildMockLogResponse(
+  sources: DataSource[],
+  filters: { dateFrom: string; dateTo: string; page: number; sourceId: string; status: LogFilter }
+): AdminLogResponse {
+  const now = Date.now()
+  const visibleSources = filters.sourceId ? sources.filter((source) => source.id === filters.sourceId) : sources
+  const baseSources = visibleSources.length > 0 ? visibleSources : sources.slice(0, 1)
+  const allItems = baseSources.flatMap((source, sourceIndex) =>
+    Array.from({ length: 4 }).map((_, index) => {
+      const status = (["success", "success", "fail", "timeout"] as CollectorStatus[])[(index + sourceIndex) % 4]
+      return {
+        duration_ms: 520 + index * 180 + sourceIndex * 90,
+        error_message: status === "success" ? null : status === "timeout" ? "Collection exceeded the configured timeout." : "The source returned an invalid response.",
+        executed_at: new Date(now - (index + sourceIndex * 2) * 55 * 60_000).toISOString(),
+        id: `mock-${source.id}-${index}`,
+        items_count: status === "success" ? 12 + index * 3 : 0,
+        source_id: source.id,
+        source_name: source.name,
+        status
+      }
+    })
+  )
+  const startTime = filters.dateFrom ? new Date(`${filters.dateFrom}T00:00:00Z`).getTime() : Number.NEGATIVE_INFINITY
+  const endTime = filters.dateTo ? new Date(`${filters.dateTo}T23:59:59Z`).getTime() : Number.POSITIVE_INFINITY
+  const filtered = allItems
+    .filter((item) => filters.status === "all" || item.status === filters.status)
+    .filter((item) => {
+      const executedAt = new Date(item.executed_at).getTime()
+      return executedAt >= startTime && executedAt <= endTime
+    })
+    .sort((left, right) => new Date(right.executed_at).getTime() - new Date(left.executed_at).getTime())
+  const pageSize = 12
+  const start = (filters.page - 1) * pageSize
+  const pageItems = filtered.slice(start, start + pageSize)
+  const successCount = filtered.filter((item) => item.status === "success").length
+  return {
+    has_next: start + pageSize < filtered.length,
+    items: pageItems,
+    page: filters.page,
+    page_size: pageSize,
+    success_rate: filtered.length === 0 ? 0 : successCount / filtered.length,
+    total: filtered.length
+  }
 }

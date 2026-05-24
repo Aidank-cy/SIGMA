@@ -92,52 +92,32 @@ function buildHourlyVolume(items: ItemSummary[], locale: string) {
   }))
 }
 
-function buildMinuteSentiment(items: ItemSummary[], locale: string, days = 7) {
-  const now = new Date()
-  const start = new Date(now)
-  if (days <= 1) {
-    start.setHours(start.getHours() - 24)
-  } else {
-    start.setDate(start.getDate() - days)
-  }
-  start.setSeconds(0, 0)
-  now.setSeconds(0, 0)
-  const buckets = new Map<string, { bullish: number; total: number }>()
-  const minuteKeys: string[] = []
-  for (let timestamp = start.getTime(); timestamp <= now.getTime(); timestamp += 60_000) {
-    const key = new Date(timestamp).toISOString().slice(0, 16)
-    minuteKeys.push(key)
-    buckets.set(key, { bullish: 0, total: 0 })
-  }
-  items.forEach((item) => {
-    const key = new Date(item.published_at).toISOString().slice(0, 16)
-    const bucket = buckets.get(key)
-    if (!bucket) return
-    bucket.total += 1
-    if (inferSentiment(item) === "bullish") {
-      bucket.bullish += 1
-    }
+function calculateWindowSentiment(items: ItemSummary[], dateFrom: string, now: Date) {
+  const startTime = new Date(dateFrom).getTime()
+  const endTime = now.getTime()
+  const windowItems = items.filter((item) => {
+    const publishedAt = new Date(item.published_at).getTime()
+    return publishedAt >= startTime && publishedAt <= endTime
   })
-  let lastSentiment = 0
-  const formatter = new Intl.DateTimeFormat(locale, {
+  const total = windowItems.length
+  if (total === 0) {
+    return { sentiment: 0, total }
+  }
+  const bullish = windowItems.filter((item) => inferSentiment(item) === "bullish").length
+  return {
+    sentiment: Math.round((bullish / total) * 100),
+    total
+  }
+}
+
+function formatSentimentSnapshotLabel(date: Date, locale: string, days = 7) {
+  return new Intl.DateTimeFormat(locale, {
     day: days > 1 ? "numeric" : undefined,
     hour: "2-digit",
     hour12: false,
     minute: "2-digit",
     month: days > 1 ? "short" : undefined
-  })
-  return minuteKeys.map((key) => {
-    const bucket = buckets.get(key)!
-    if (bucket.total > 0) {
-      lastSentiment = Math.round((bucket.bullish / bucket.total) * 100)
-    }
-    const minute = new Date(`${key}:00Z`)
-    return {
-      day: formatter.format(minute),
-      sentiment: lastSentiment,
-      total: bucket.total
-    }
-  })
+  }).format(date)
 }
 
 function buildSourceData(items: ItemSummary[]) {
@@ -216,6 +196,8 @@ export default function AnalyticsPage() {
   const { showToast } = useToast()
   const [timeRange, setTimeRange] = useState("7D")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [liveTick, setLiveTick] = useState(0)
+  const [sentimentSnapshots, setSentimentSnapshots] = useState<Array<{ day: string; sentiment: number; timestamp: number; total: number }>>([])
   const rangeDays = useMemo(() => timeRangeDays[timeRange] ?? 7, [timeRange])
   const dateFrom = useMemo(() => {
     const date = new Date()
@@ -225,7 +207,7 @@ export default function AnalyticsPage() {
       date.setDate(date.getDate() - rangeDays)
     }
     return date.toISOString()
-  }, [rangeDays])
+  }, [liveTick, rangeDays])
   const sentiment = useSentimentStats(rangeDays)
   const keywords = useTrendingKeywords(rangeDays)
   const itemQuery = useItems({ date_from: dateFrom, page_size: 500 })
@@ -242,6 +224,19 @@ export default function AnalyticsPage() {
     }
   }, [itemQuery.data?.pages.length, itemQuery.fetchNextPage, itemQuery.hasNextPage, itemQuery.isFetchingNextPage])
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setLiveTick((current) => current + 1)
+      itemQuery.mutate()
+      sentiment.mutate()
+    }, 60_000)
+    return () => window.clearInterval(interval)
+  }, [itemQuery.mutate, sentiment.mutate])
+
+  useEffect(() => {
+    setSentimentSnapshots([])
+  }, [timeRange])
+
   const sentimentData = useMemo(() => {
     const itemSentiments = items.map(inferSentiment)
     const bullish = itemSentiments.length > 0
@@ -256,14 +251,52 @@ export default function AnalyticsPage() {
     ]
   }, [feedT, items, sentiment.data?.bullish_pct])
   const bullishValue = sentimentData[0]?.value ?? 0
-  const trendData = useMemo(() => buildMinuteSentiment(items, locale, rangeDays), [items, locale, rangeDays])
+  const currentWindowSentiment = useMemo(
+    () => calculateWindowSentiment(items, dateFrom, new Date()),
+    [dateFrom, items, liveTick]
+  )
+  useEffect(() => {
+    const timestamp = Date.now()
+    const minuteKey = Math.floor(timestamp / 60_000)
+    const snapshot = {
+      day: formatSentimentSnapshotLabel(new Date(timestamp), locale, rangeDays),
+      sentiment: currentWindowSentiment.sentiment,
+      timestamp,
+      total: currentWindowSentiment.total
+    }
+    setSentimentSnapshots((current) => {
+      const withoutSameMinute = current.filter((entry) => Math.floor(entry.timestamp / 60_000) !== minuteKey)
+      return [...withoutSameMinute, snapshot].slice(-60)
+    })
+  }, [currentWindowSentiment.sentiment, currentWindowSentiment.total, locale, rangeDays, liveTick])
+
+  const trendData = useMemo(() => {
+    if (sentimentSnapshots.length > 1) {
+      return sentimentSnapshots
+    }
+    const now = new Date()
+    const previous = new Date(now.getTime() - 60_000)
+    return [
+      {
+        day: formatSentimentSnapshotLabel(previous, locale, rangeDays),
+        sentiment: currentWindowSentiment.sentiment,
+        timestamp: previous.getTime(),
+        total: currentWindowSentiment.total
+      },
+      {
+        day: formatSentimentSnapshotLabel(now, locale, rangeDays),
+        sentiment: currentWindowSentiment.sentiment,
+        timestamp: now.getTime(),
+        total: currentWindowSentiment.total
+      }
+    ]
+  }, [currentWindowSentiment.sentiment, currentWindowSentiment.total, locale, rangeDays, sentimentSnapshots])
   const trendChange = useMemo(() => {
-    const observed = trendData.filter((point) => point.total > 0)
-    if (observed.length < 2) {
+    if (currentWindowSentiment.total === 0 || sentimentSnapshots.length < 2) {
       return null
     }
-    return observed[observed.length - 1].sentiment - observed[0].sentiment
-  }, [trendData])
+    return currentWindowSentiment.sentiment - sentimentSnapshots[0].sentiment
+  }, [currentWindowSentiment.sentiment, currentWindowSentiment.total, sentimentSnapshots])
   const volumeData = useMemo(() => buildDailyVolume(items, locale, rangeDays), [items, locale, rangeDays])
   const sourceData = useMemo(() => buildSourceData(items), [items])
   const categoryData = useMemo(() => buildCategoryRows(items, feedT), [feedT, items])

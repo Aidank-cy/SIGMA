@@ -394,6 +394,19 @@ export function LLMSettingsPanel({
               onChange={(checked) => setForm({ ...form, cost_guard_enabled: checked })}
             />
           </label>
+          <Button className="w-full" disabled={!showCharts && hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
+            {t("save")}
+          </Button>
+          <section className="grid gap-4 xl:grid-cols-[3fr_1fr]">
+            <Card className="p-5">
+              <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>
+              <TokenTrendChart data={trendData} />
+            </Card>
+            <Card className="p-5">
+              <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>
+              <FunctionUsageChart data={functionData} />
+            </Card>
+          </section>
           {showCharts ? (
             <section className="grid gap-4 xl:grid-cols-2">
               <Card className="p-5">
@@ -431,19 +444,6 @@ export function LLMSettingsPanel({
               </Card>
             </section>
           ) : null}
-          <section className="grid gap-4 xl:grid-cols-[3fr_1fr]">
-            <Card className="p-5">
-              <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>
-              <TokenTrendChart data={trendData} />
-            </Card>
-            <Card className="p-5">
-              <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>
-              <FunctionUsageChart data={functionData} />
-            </Card>
-          </section>
-          <Button className="w-full" disabled={!showCharts && hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
-            {t("save")}
-          </Button>
         </Card>
       </section>
 
