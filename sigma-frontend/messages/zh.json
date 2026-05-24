@@ -350,6 +350,99 @@
       "api": "API",
       "rss": "RSS",
       "scraper": "网页抓取"
+    },
+    "nav": {
+      "close": "关闭弹窗"
+    },
+    "sources": {
+      "add": "新增数据源",
+      "addTitle": "新增数据源",
+      "editTitle": "编辑数据源",
+      "name": "名称",
+      "type": "类型",
+      "category": "类别",
+      "market": "市场",
+      "cron": "Cron 计划",
+      "timeout": "超时秒数",
+      "active": "启用",
+      "inactive": "停用",
+      "logs": "日志",
+      "delete": "删除",
+      "back": "上一步",
+      "next": "下一步",
+      "save": "保存",
+      "runTest": "测试采集",
+      "tested": "采集测试已通过。",
+      "testOk": "预览返回 {count} 条。",
+      "testError": "采集测试失败。",
+      "saved": "数据源已保存。",
+      "error": "无法保存数据源。",
+      "nextRun": "下次运行预览：{time}",
+      "emptyRegion": "此区域暂无数据源。",
+      "sourceCount": "{count} 个数据源",
+      "toggleSource": "切换 {name}",
+      "syncSource": "同步 {name}",
+      "types": {
+        "rss": "RSS",
+        "api": "API",
+        "scraper": "网页抓取"
+      },
+      "categories": {
+        "politics": "政治",
+        "finance": "金融",
+        "technology": "科技",
+        "macro": "宏观",
+        "other": "其他"
+      },
+      "markets": {
+        "us": "美国",
+        "cn": "中国",
+        "jp": "日本",
+        "eu": "欧洲",
+        "hk": "香港",
+        "kr": "韩国",
+        "tw": "台湾",
+        "global": "全球"
+      },
+      "fields": {
+        "feedUrl": "Feed URL",
+        "endpoint": "接口地址",
+        "itemsPath": "条目路径",
+        "url": "页面 URL",
+        "selector": "条目选择器"
+      },
+      "presets": {
+        "5m": "每 5 分钟",
+        "hourly": "每小时",
+        "daily": "每天"
+      },
+      "steps": {
+        "1": "类型",
+        "2": "配置",
+        "3": "计划",
+        "4": "测试"
+      }
+    },
+    "logs": {
+      "source": "数据源",
+      "status": "状态",
+      "from": "开始",
+      "to": "结束",
+      "allSources": "全部数据源",
+      "allStatuses": "全部状态",
+      "items": "条",
+      "collapse": "收起条目",
+      "expand": "展开条目",
+      "successDetail": "耗时 {duration} ms 完成。",
+      "empty": "没有匹配的日志。",
+      "footer": "{total} 条日志，成功率 {rate}%",
+      "previous": "上一页",
+      "next": "下一页"
+    },
+    "logStatus": {
+      "success": "成功",
+      "fail": "失败",
+      "timeout": "超时"
     }
   },
   "itemDetail": {
@@ -491,7 +584,7 @@
     },
     "llm": {
       "title": "LLM 配置",
-      "caption": "选择 SIGMA 分析使用的模型、每日 Token 预算和成本保护。",
+      "caption": "管理 SIGMA 分析使用的 API Key、每日 Token 预算和成本保护。",
       "legendInputOutput": "输入/输出"
     },
     "admin": {

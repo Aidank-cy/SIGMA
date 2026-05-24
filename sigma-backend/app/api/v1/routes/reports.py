@@ -81,14 +81,14 @@ async def get_report(report_id: UUID, db: AsyncSession = Depends(get_db)) -> Rep
 @router.post("/generate", status_code=status.HTTP_202_ACCEPTED)
 async def generate_report_endpoint(
     payload: ManualReportGenerateRequest,
-    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    admin: User = Depends(require_role(UserRole.ADMIN)),
 ) -> dict[str, str]:
     """Queue manual report generation."""
-    asyncio.create_task(_generate_report_task(payload))
+    asyncio.create_task(_generate_report_task(payload, admin.id))
     return {"status": "accepted"}
 
 
-async def _generate_report_task(payload: ManualReportGenerateRequest) -> None:
+async def _generate_report_task(payload: ManualReportGenerateRequest, user_id: UUID) -> None:
     async with AsyncSessionLocal() as db:
         await generate_report(
             db,
@@ -98,6 +98,7 @@ async def _generate_report_task(payload: ManualReportGenerateRequest) -> None:
             payload.period_start,
             payload.period_end,
             payload.locale,
+            user_id,
         )
         await db.commit()
 

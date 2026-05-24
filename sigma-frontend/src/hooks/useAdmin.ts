@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import type { LLMConfig, LLMUsageResponse, PaginatedResponse } from "@/lib/types";
+import type { LLMUsageResponse, PaginatedResponse } from "@/lib/types";
 import type { User } from "@/lib/auth";
 
 export type CollectorStatus = "success" | "fail" | "timeout";
@@ -113,30 +113,13 @@ export function useAdminUsers(q: string) {
 }
 
 export function useAdminLLM() {
-  const queryClient = useQueryClient();
-  const config = useQuery({
-    queryKey: ["admin", "llm", "config"],
-    queryFn: () => apiFetch<LLMConfig>("/admin/llm/config"),
-    staleTime: 0
-  });
   const usage = useQuery({
     queryKey: ["admin", "llm", "usage"],
     queryFn: () => apiFetch<LLMUsageResponse>("/admin/llm/usage"),
     refetchInterval: 30_000
   });
-  const update = useMutation({
-    mutationFn: (payload: LLMConfig) =>
-      apiFetch<LLMConfig>("/admin/llm/config", {
-        body: JSON.stringify(payload),
-        method: "PUT"
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "llm", "config"] });
-      queryClient.invalidateQueries({ queryKey: ["llm", "config"] });
-    }
-  });
 
-  return { config, update, usage };
+  return { usage };
 }
 
 export function useAdminLogs(filters: AdminLogFilters) {

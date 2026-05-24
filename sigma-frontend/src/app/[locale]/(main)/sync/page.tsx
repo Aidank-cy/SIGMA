@@ -85,7 +85,6 @@ function sourceIcon(type: DataSource["source_type"]) {
 
 export default function SyncPage() {
   const t = useTranslations("sync")
-  const adminT = useTranslations("admin")
   const marketT = useTranslations("markets")
   const locale = useLocale()
   const { showToast } = useToast()
@@ -239,21 +238,21 @@ export default function SyncPage() {
 
   async function runPreview() {
     if (!sourceConfigComplete(payload)) {
-      showToast(adminT("sources.testError"), "error")
+      showToast(t("sources.testError"), "error")
       return
     }
     setTestingSource(true)
     try {
       if (editingId) {
         const response = await apiFetch<SourcePreviewResponse>(`/sources/${editingId}/test`, { method: "POST" })
-        showToast(adminT("sources.testOk", { count: response.items.length }), "success")
+        showToast(t("sources.testOk", { count: response.items.length }), "success")
       } else {
-        showToast(adminT("sources.testOk", { count: 0 }), "success")
+        showToast(t("sources.testOk", { count: 0 }), "success")
       }
       setTested(true)
     } catch {
       setTested(false)
-      showToast(adminT("sources.testError"), "error")
+      showToast(t("sources.testError"), "error")
     } finally {
       setTestingSource(false)
     }
@@ -275,9 +274,9 @@ export default function SyncPage() {
       }
       mutate()
       setWizardOpen(false)
-      showToast(adminT("sources.saved"), "success")
+      showToast(t("sources.saved"), "success")
     } catch {
-      showToast(adminT("sources.error"), "error")
+      showToast(t("sources.error"), "error")
     } finally {
       setSavingSource(false)
     }
@@ -363,7 +362,7 @@ export default function SyncPage() {
                   <div className="mb-5 flex items-start justify-between gap-4">
                     <div>
                       <h3 className="font-semibold text-foreground">{marketT(`regionNames.${market}`)}</h3>
-                      <p className="mt-1 text-xs text-muted-foreground">{adminT("sources.sourceCount", { count: marketSources.length })}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t("sources.sourceCount", { count: marketSources.length })}</p>
                     </div>
                     <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
                       {market.toUpperCase()}
@@ -385,7 +384,7 @@ export default function SyncPage() {
                     ))}
                     {marketSources.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-border bg-background/50 px-4 py-6 text-center">
-                        <p className="text-sm text-muted-foreground">{adminT("sources.emptyRegion")}</p>
+                        <p className="text-sm text-muted-foreground">{t("sources.emptyRegion")}</p>
                       </div>
                     ) : null}
                   </div>
@@ -393,7 +392,7 @@ export default function SyncPage() {
                   <div className="mt-4 flex justify-end">
                     <Button onClick={() => openCreate(market)} size="sm" variant="secondary">
                       <Plus className="h-4 w-4" aria-hidden />
-                      {adminT("sources.add")}
+                      {t("sources.add")}
                     </Button>
                   </div>
                 </section>
@@ -433,10 +432,10 @@ export default function SyncPage() {
       />
 
       <Modal
-        closeLabel={adminT("nav.close")}
+        closeLabel={t("nav.close")}
         isOpen={wizardOpen}
         onClose={() => setWizardOpen(false)}
-        title={editingId ? adminT("sources.editTitle") : adminT("sources.addTitle")}
+        title={editingId ? t("sources.editTitle") : t("sources.addTitle")}
       >
         <div className="space-y-5">
           <StepIndicator step={step} />
@@ -454,7 +453,7 @@ export default function SyncPage() {
                   onClick={() => updatePayload({ config: defaultConfig(type), source_type: type })}
                   type="button"
                 >
-                  {adminT(`sources.types.${type}`)}
+                  {t(`sources.types.${type}`)}
                 </button>
               ))}
             </div>
@@ -467,27 +466,27 @@ export default function SyncPage() {
             <div className="space-y-4">
               <Button isLoading={testingSource} onClick={runPreview} variant="secondary">
                 <Play className="h-4 w-4" aria-hidden />
-                {adminT("sources.runTest")}
+                {t("sources.runTest")}
               </Button>
               {tested ? (
                 <p className="flex items-center gap-2 text-sm font-medium text-sigma-success">
                   <CheckCircle2 className="h-4 w-4" aria-hidden />
-                  {adminT("sources.tested")}
+                  {t("sources.tested")}
                 </p>
               ) : null}
             </div>
           ) : null}
           <div className="flex justify-between gap-2">
             <Button disabled={step === 1} onClick={() => setStep((current) => current - 1)} variant="ghost">
-              {adminT("sources.back")}
+              {t("sources.back")}
             </Button>
             {step < 4 ? (
               <Button disabled={!payload.name && step > 1} onClick={() => setStep((current) => current + 1)}>
-                {adminT("sources.next")}
+                {t("sources.next")}
               </Button>
             ) : (
               <Button disabled={!tested} isLoading={savingSource} onClick={saveSource}>
-                {adminT("sources.save")}
+                {t("sources.save")}
               </Button>
             )}
           </div>
@@ -535,7 +534,7 @@ function SourceRow({
   onToggle: (checked: boolean) => void
   source: DataSource
 }) {
-  const adminT = useTranslations("admin")
+  const t = useTranslations("sync")
   const Icon = sourceIcon(source.source_type)
 
   return (
@@ -544,25 +543,25 @@ function SourceRow({
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium text-foreground">{source.name}</span>
-          <span className="block truncate text-xs text-muted-foreground">{adminT(`sources.types.${source.source_type}`)}</span>
+          <span className="block truncate text-xs text-muted-foreground">{t(`sources.types.${source.source_type}`)}</span>
         </span>
       </button>
       <div className="flex shrink-0 items-center gap-1">
         <ToggleSwitch
           checked={source.is_active}
-          label={adminT("sources.toggleSource", { name: source.name })}
+          label={t("sources.toggleSource", { name: source.name })}
           onChange={onToggle}
         />
         {source.is_active ? (
-          <IconButton disabled={isSyncing} label={adminT("sources.syncSource", { name: source.name })} onClick={onSync}>
+          <IconButton disabled={isSyncing} label={t("sources.syncSource", { name: source.name })} onClick={onSync}>
             <RefreshCw className={cn("h-4 w-4", isSyncing ? "animate-spin" : "")} aria-hidden />
           </IconButton>
         ) : null}
-        <IconButton label={adminT("sources.logs")} onClick={onLogs}>
+        <IconButton label={t("sources.logs")} onClick={onLogs}>
           <FileClock className="h-4 w-4" aria-hidden />
         </IconButton>
         {!source.is_system ? (
-          <IconButton label={adminT("sources.delete")} onClick={onDelete}>
+          <IconButton label={t("sources.delete")} onClick={onDelete}>
             <Trash2 className="h-4 w-4" aria-hidden />
           </IconButton>
         ) : null}
@@ -602,9 +601,9 @@ function UserLogsPanel({
   sources: DataSource[]
   status: LogFilter
 }) {
-  const t = useTranslations("admin.logs")
+  const t = useTranslations("sync.logs")
   const syncT = useTranslations("sync")
-  const statusT = useTranslations("admin.status")
+  const statusT = useTranslations("sync.logStatus")
   const today = new Date().toISOString().split("T")[0]
   const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString().split("T")[0]
 
@@ -716,16 +715,16 @@ function ConfigStep({
   payload: SourcePayload
   setPayload: (payload: Partial<SourcePayload>) => void
 }) {
-  const adminT = useTranslations("admin")
+  const t = useTranslations("sync")
   const setConfig = (key: string, value: string) => {
     setPayload({ config: { ...payload.config, [key]: value } })
   }
   return (
     <div className="space-y-4">
-      <Input label={adminT("sources.name")} onChange={(event) => setPayload({ name: event.target.value })} value={payload.name} />
+      <Input label={t("sources.name")} onChange={(event) => setPayload({ name: event.target.value })} value={payload.name} />
       {payload.source_type === "rss" ? (
         <Input
-          label={adminT("sources.fields.feedUrl")}
+          label={t("sources.fields.feedUrl")}
           onChange={(event) => setConfig("feed_url", event.target.value)}
           value={String(payload.config.feed_url ?? "")}
         />
@@ -733,12 +732,12 @@ function ConfigStep({
       {payload.source_type === "api" ? (
         <>
           <Input
-            label={adminT("sources.fields.endpoint")}
+            label={t("sources.fields.endpoint")}
             onChange={(event) => setConfig("endpoint", event.target.value)}
             value={String(payload.config.endpoint ?? "")}
           />
           <Input
-            label={adminT("sources.fields.itemsPath")}
+            label={t("sources.fields.itemsPath")}
             onChange={(event) => setConfig("items_path", event.target.value)}
             value={String(payload.config.items_path ?? "")}
           />
@@ -747,12 +746,12 @@ function ConfigStep({
       {payload.source_type === "scraper" ? (
         <>
           <Input
-            label={adminT("sources.fields.url")}
+            label={t("sources.fields.url")}
             onChange={(event) => setConfig("url", event.target.value)}
             value={String(payload.config.url ?? "")}
           />
           <Input
-            label={adminT("sources.fields.selector")}
+            label={t("sources.fields.selector")}
             onChange={(event) => setConfig("item_selector", event.target.value)}
             value={String(payload.config.item_selector ?? "")}
           />
@@ -771,21 +770,21 @@ function MetadataStep({
   payload: SourcePayload
   setPayload: (payload: Partial<SourcePayload>) => void
 }) {
-  const adminT = useTranslations("admin")
+  const t = useTranslations("sync")
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <CustomSelect
-          label={adminT("sources.category")}
+          label={t("sources.category")}
           onChange={(value) => setPayload({ category: value as Category })}
-          options={categories.map((category) => ({ label: adminT(`sources.categories.${category}`), value: category }))}
+          options={categories.map((category) => ({ label: t(`sources.categories.${category}`), value: category }))}
           value={payload.category}
         />
         <CustomSelect
-          label={adminT("sources.market")}
+          label={t("sources.market")}
           onChange={(value) => setPayload({ market: value as Market })}
-          options={markets.map((market) => ({ label: adminT(`sources.markets.${market}`), value: market }))}
+          options={markets.map((market) => ({ label: t(`sources.markets.${market}`), value: market }))}
           value={payload.market}
         />
       </div>
@@ -797,29 +796,29 @@ function MetadataStep({
             onClick={() => setPayload({ schedule_cron: preset.cron })}
             type="button"
           >
-            {adminT(`sources.presets.${preset.key}`)}
+            {t(`sources.presets.${preset.key}`)}
           </button>
         ))}
       </div>
       <Input
-        label={adminT("sources.cron")}
+        label={t("sources.cron")}
         onChange={(event) => setPayload({ schedule_cron: event.target.value })}
         value={payload.schedule_cron}
       />
       <Input
-        label={adminT("sources.timeout")}
+        label={t("sources.timeout")}
         min={1}
         onChange={(event) => setPayload({ max_execution_seconds: Number(event.target.value) })}
         type="number"
         value={payload.max_execution_seconds}
       />
-      <p className="text-sm text-sigma-muted">{adminT("sources.nextRun", { time: nextRun })}</p>
+      <p className="text-sm text-sigma-muted">{t("sources.nextRun", { time: nextRun })}</p>
     </div>
   )
 }
 
 function StepIndicator({ step }: { step: number }) {
-  const adminT = useTranslations("admin")
+  const t = useTranslations("sync")
 
   return (
     <div className="grid grid-cols-4 gap-2">
@@ -827,7 +826,7 @@ function StepIndicator({ step }: { step: number }) {
         <div
           className={cn("h-1.5 rounded-full", item <= step ? "bg-sigma-accent" : "bg-sigma-line")}
           key={item}
-          title={adminT(`sources.steps.${item}`)}
+          title={t(`sources.steps.${item}`)}
         />
       ))}
     </div>

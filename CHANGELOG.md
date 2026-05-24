@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add a data migration that removes deprecated system-level LLM config rows from `system_config`.
 - Add authenticated user-level source log API responses scoped to system and user-owned sources.
 - Add user-facing Sync collection logs with source/status/date filters, pagination, success-rate footer, and local fallback rows for development.
 - Add shared collector text/datetime utilities and a published-time item sort index.
@@ -44,6 +45,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change user LLM settings to store only user-scoped daily limits, cost guard state, and per-key provider credentials.
+- Change report generation to resolve provider, model, and API key from the requesting user's default LLM key.
 - Change LLM config updates to accept default provider/model/token-limit values and preserve per-key default selection.
 - Change Settings to show only the LLM configuration in the right column and localize LLM token trend date labels and legend text.
 - Darken the shared modal backdrop so source and password modals reduce page distraction.
@@ -125,6 +128,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Removed
+- Remove admin LLM config read/write endpoints while keeping admin LLM usage reporting.
 - Remove the Admin Sources tab, frontend panel, hook mutations, translations, and backend admin source routes.
 - Remove source creation, editing, and deletion controls from the Admin Sources UI.
 - Remove the Markets Watchlist tab and dashboard sidebar watchlist card from the frontend.
@@ -135,6 +139,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Sync page source-management labels to use the Sync i18n namespace and soften modal backdrops.
+- Fix source updates so non-admin users cannot edit protected system sources.
 - Fix the LLM token trend legend by rendering a single centered custom input/output legend.
 - Fix Federal Reserve and FRED seed collectors so release listings are capped and metadata fragments are filtered before becoming intelligence items.
 - Fix Analytics sentiment trend to use the selected window's rolling bullish aggregate with one-minute live refresh snapshots.

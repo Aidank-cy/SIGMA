@@ -66,7 +66,7 @@ def test_reports_http_filters_latest_detail_and_generation(client: TestClient, m
     assert detail_response.json()["content"] == "# Daily\nFull content"
     assert missing_response.status_code == 404
 
-    async def fake_generate_task(_payload: object) -> None:
+    async def fake_generate_task(_payload: object, _user_id: object) -> None:
         return None
 
     monkeypatch.setattr(reports_routes, "_generate_report_task", fake_generate_task)
@@ -145,44 +145,20 @@ def test_user_profile_retention_and_password_updates(client: TestClient) -> None
     assert login_response.status_code == 200
 
 
-def test_admin_llm_config_and_usage(client: TestClient) -> None:
-    """Admins can update LLM config and read usage rollups."""
+def test_admin_llm_config_removed_and_usage_available(client: TestClient) -> None:
+    """Admins can inspect usage, but global LLM config endpoints are removed."""
     token = _token(client, "llm-admin@example.com")
 
     update_response = client.put(
         "/api/v1/admin/llm/config",
         headers=_auth(token),
-        json={
-            "provider": "openai",
-            "model": "gpt-test",
-            "daily_token_limit": 12345,
-            "api_keys": [
-                {
-                    "name": "Operations",
-                    "key": "sk-admin-test",
-                    "provider": "openai",
-                    "token_limit": 12345,
-                    "is_default": True,
-                }
-            ],
-        },
+        json={"daily_token_limit": 12345, "api_keys": []},
     )
     get_response = client.get("/api/v1/admin/llm/config", headers=_auth(token))
     usage_response = client.get("/api/v1/admin/llm/usage", headers=_auth(token))
 
-    assert update_response.status_code == 200
-    assert get_response.status_code == 200
-    assert get_response.json()["provider"] == "openai"
-    assert get_response.json()["model"] == "gpt-test"
-    assert get_response.json()["api_keys"] == [
-        {
-            "name": "Operations",
-            "key": "sk-admin-test",
-            "provider": "openai",
-            "token_limit": 12345,
-            "is_default": True,
-        }
-    ]
+    assert update_response.status_code == 404
+    assert get_response.status_code == 404
     assert usage_response.status_code == 200
     assert usage_response.json()["items"] == []
 
@@ -196,8 +172,6 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
         "/api/v1/me/llm/config",
         headers=_auth(token),
         json={
-            "provider": "anthropic",
-            "model": "claude-test",
             "daily_token_limit": 67890,
             "cost_guard_enabled": False,
             "api_keys": [
@@ -222,8 +196,6 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
         "/api/v1/me/llm/config",
         headers=_auth(second_token),
         json={
-            "provider": "anthropic",
-            "model": "claude-test",
             "daily_token_limit": 67890,
             "cost_guard_enabled": False,
             "api_keys": [
@@ -242,8 +214,6 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
         "/api/v1/me/llm/config",
         headers=_auth(token),
         json={
-            "provider": "anthropic",
-            "model": "claude-test",
             "daily_token_limit": 67890,
             "cost_guard_enabled": False,
             "api_keys": [
@@ -266,7 +236,8 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
     assert edited_response.status_code == 200
     assert update_response.json()["cost_guard_enabled"] is False
     assert get_response.status_code == 200
-    assert get_response.json()["model"] == "claude-test"
+    assert "provider" not in get_response.json()
+    assert "model" not in get_response.json()
     assert get_response.json()["api_keys"] == [
         {
             "name": "Work",

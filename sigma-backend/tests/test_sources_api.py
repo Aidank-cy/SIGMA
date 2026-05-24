@@ -87,12 +87,19 @@ def test_source_update_status_and_auth_edges(client: TestClient) -> None:
 
 def test_delete_system_source_forbidden(client: TestClient) -> None:
     """System sources cannot be deleted through user CRUD."""
-    token = _token(client, "admin@example.com")
+    _token(client, "system-source-admin@example.com")
+    token = _token(client, "system-source-user@example.com")
     source_id = asyncio.run(_seed_system_source(client, "System RSS"))
 
     delete_response = client.delete(f"/api/v1/sources/{source_id}", headers=_auth(token))
+    update_response = client.put(
+        f"/api/v1/sources/{source_id}",
+        headers=_auth(token),
+        json={"name": "Edited System RSS"},
+    )
 
     assert delete_response.status_code == 403
+    assert update_response.status_code == 403
 
 
 def test_source_test_returns_preview(client: TestClient, monkeypatch) -> None:

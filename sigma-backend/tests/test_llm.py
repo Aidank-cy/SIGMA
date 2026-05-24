@@ -1,11 +1,14 @@
-import pytest
+from uuid import UUID
+
 import httpx
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.analyzers.llm_client import BudgetExceededError, LLMClient, _extract_json_object
 from app.core.config import settings
 from app.models.enums import LLMFunctionType
 from app.models.llm_usage_log import LLMUsageLog
+from app.models.system_config import SystemConfig
 from app.services.llm import build_prompt
 
 
@@ -101,6 +104,47 @@ def test_headers_for_anthropic_provider(
     assert headers["x-api-key"] == "sk-anthropic"
     assert headers["anthropic-version"] == "2023-06-01"
     assert headers["content-type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_runtime_config_uses_user_default_api_key(db_session: AsyncSession) -> None:
+    """User-scoped report calls resolve provider/model/API key from the default saved key."""
+    user_id = UUID("11111111-1111-1111-1111-111111111111")
+    db_session.add_all(
+        [
+            SystemConfig(
+                key=f"sigma.user.{user_id}.llm.api_keys",
+                value={
+                    "value": [
+                        {
+                            "name": "Backup",
+                            "key": "sk-backup",
+                            "provider": "anthropic",
+                            "token_limit": 1000,
+                            "is_default": False,
+                        },
+                        {
+                            "name": "Report key",
+                            "key": "sk-report",
+                            "provider": "openai",
+                            "token_limit": 2000,
+                            "is_default": True,
+                        },
+                    ]
+                },
+            ),
+            SystemConfig(key=f"sigma.user.{user_id}.llm.daily_token_limit", value={"value": 12345}),
+        ]
+    )
+    await db_session.commit()
+
+    runtime = await LLMClient(db_session, user_id=user_id)._runtime_config()
+    headers = LLMClient(db_session)._headers(runtime.provider, runtime.api_key)
+
+    assert runtime.provider == "openai"
+    assert runtime.model == "gpt-4o"
+    assert runtime.daily_token_limit == 12345
+    assert headers["authorization"] == "Bearer sk-report"
 
 
 @pytest.mark.parametrize(

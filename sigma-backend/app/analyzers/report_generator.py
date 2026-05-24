@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import date, datetime, time, timezone
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,11 +21,22 @@ async def generate_report(
     period_start: date,
     period_end: date,
     locale: str = "zh",
+    user_id: UUID | None = None,
 ) -> Report:
     """Generate and persist a market intelligence report."""
     resolved_type = ReportType(report_type)
     items = await _load_items(db, market_scope, category_scope, period_start, period_end)
-    content = await _generate_content(db, resolved_type, market_scope, category_scope, period_start, period_end, locale, items)
+    content = await _generate_content(
+        db,
+        resolved_type,
+        market_scope,
+        category_scope,
+        period_start,
+        period_end,
+        locale,
+        items,
+        user_id,
+    )
     report = Report(
         report_type=resolved_type,
         title=f"{resolved_type.value.title()} Intelligence Report",
@@ -71,8 +83,9 @@ async def _generate_content(
     period_end: date,
     locale: str,
     items: list[CollectedItem],
+    user_id: UUID | None,
 ) -> str:
-    client = LLMClient(db, function_type=LLMFunctionType.REPORT)
+    client = LLMClient(db, function_type=LLMFunctionType.REPORT, user_id=user_id)
     system_prompt = report_system_prompt(locale)
     if len(items) <= 30:
         user_prompt = report_user_prompt(

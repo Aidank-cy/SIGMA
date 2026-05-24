@@ -11,22 +11,20 @@ from app.schemas.llm import LLMApiKey, LLMConfigRead, LLMConfigUpdate, LLMUsageD
 
 
 async def get_llm_config(db: AsyncSession, user_id: UUID | None = None) -> LLMConfigRead:
-    """Return runtime LLM provider, model, and budget settings."""
+    """Return user-scoped LLM budget and API key settings."""
+    prefix = _llm_config_prefix(user_id)
     return LLMConfigRead(
-        provider=str(await _config_value(db, "sigma.llm.provider", settings.default_llm_provider)),
-        model=str(await _config_value(db, "sigma.llm.model", settings.default_llm_model)),
-        daily_token_limit=int(await _config_value(db, "sigma.llm.daily_token_limit", settings.daily_token_limit)),
-        cost_guard_enabled=bool(await _config_value(db, "sigma.llm.cost_guard_enabled", True)),
+        daily_token_limit=int(await _config_value(db, f"{prefix}.daily_token_limit", settings.daily_token_limit)),
+        cost_guard_enabled=bool(await _config_value(db, f"{prefix}.cost_guard_enabled", True)),
         api_keys=await _api_keys_value(db, user_id),
     )
 
 
 async def update_llm_config(db: AsyncSession, payload: LLMConfigUpdate, user_id: UUID | None = None) -> LLMConfigRead:
-    """Update runtime LLM provider, model, and budget settings."""
-    await _upsert_config(db, "sigma.llm.provider", payload.provider)
-    await _upsert_config(db, "sigma.llm.model", payload.model)
-    await _upsert_config(db, "sigma.llm.daily_token_limit", payload.daily_token_limit)
-    await _upsert_config(db, "sigma.llm.cost_guard_enabled", payload.cost_guard_enabled)
+    """Update user-scoped LLM budget and API key settings."""
+    prefix = _llm_config_prefix(user_id)
+    await _upsert_config(db, f"{prefix}.daily_token_limit", payload.daily_token_limit)
+    await _upsert_config(db, f"{prefix}.cost_guard_enabled", payload.cost_guard_enabled)
     await _upsert_config(
         db,
         _api_keys_config_key(user_id),
@@ -34,8 +32,6 @@ async def update_llm_config(db: AsyncSession, payload: LLMConfigUpdate, user_id:
     )
     await db.commit()
     return LLMConfigRead(
-        provider=payload.provider,
-        model=payload.model,
         daily_token_limit=payload.daily_token_limit,
         cost_guard_enabled=payload.cost_guard_enabled,
         api_keys=payload.api_keys,
@@ -113,3 +109,9 @@ def _api_keys_config_key(user_id: UUID | None) -> str:
     if user_id is None:
         return "sigma.llm.api_keys"
     return f"sigma.user.{user_id}.llm.api_keys"
+
+
+def _llm_config_prefix(user_id: UUID | None) -> str:
+    if user_id is None:
+        return "sigma.llm"
+    return f"sigma.user.{user_id}.llm"

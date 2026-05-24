@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, time, timezone
 from typing import Any
+from uuid import UUID
 
 import httpx
 from sqlalchemy import func, select
@@ -15,6 +16,7 @@ from app.core.config import settings
 from app.models.enums import LLMFunctionType
 from app.models.llm_usage_log import LLMUsageLog
 from app.models.system_config import SystemConfig
+from app.services.llm_settings import get_default_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ class LLMRuntimeConfig:
     provider: str
     model: str
     daily_token_limit: int
+    api_key: str | None = None
 
 
 OPENAI_COMPATIBLE_BASE_URLS = {
@@ -38,6 +41,15 @@ OPENAI_COMPATIBLE_BASE_URLS = {
     "minimax": "https://api.minimax.io/v1",
     "kimi": "https://api.moonshot.cn/v1",
     "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
+}
+
+DEFAULT_PROVIDER_MODELS = {
+    "anthropic": "claude-sonnet-4-20250514",
+    "openai": "gpt-4o",
+    "deepseek": "deepseek-chat",
+    "minimax": "minimax-01",
+    "kimi": "moonshot-v1-128k",
+    "gemini": "gemini-2.5-flash",
 }
 
 
@@ -49,10 +61,12 @@ class LLMClient:
         db: AsyncSession,
         function_type: LLMFunctionType = LLMFunctionType.SUMMARY,
         http_client: httpx.AsyncClient | None = None,
+        user_id: UUID | None = None,
     ) -> None:
         self.db = db
         self.function_type = function_type
         self.http_client = http_client
+        self.user_id = user_id
 
     async def complete(
         self,
@@ -67,7 +81,7 @@ class LLMClient:
         await self._check_budget(runtime.daily_token_limit, max_tokens)
         prompt = build_prompt(user_prompt, context_docs)
         payload = self._payload(runtime.provider, runtime.model, system_prompt, prompt, max_tokens, temperature)
-        headers = self._headers(runtime.provider)
+        headers = self._headers(runtime.provider, runtime.api_key)
         url = self._url(runtime.provider)
         response = await self._post_with_retry(url, headers, payload)
         text, input_tokens, output_tokens = self._parse_response(runtime.provider, response)
@@ -99,13 +113,24 @@ class LLMClient:
         return parsed
 
     async def _runtime_config(self) -> LLMRuntimeConfig:
-        provider = await self._config_value("sigma.llm.provider", settings.default_llm_provider)
-        model = await self._config_value("sigma.llm.model", settings.default_llm_model)
-        daily_limit = await self._config_value("sigma.llm.daily_token_limit", settings.daily_token_limit)
+        if self.user_id is not None:
+            default_key = await get_default_api_key(self.db, self.user_id)
+            daily_limit = await self._config_value(
+                f"sigma.user.{self.user_id}.llm.daily_token_limit",
+                settings.daily_token_limit,
+            )
+            if default_key is not None:
+                provider = default_key.provider.lower()
+                return LLMRuntimeConfig(
+                    provider=provider,
+                    model=DEFAULT_PROVIDER_MODELS[provider],
+                    daily_token_limit=int(daily_limit),
+                    api_key=default_key.key,
+                )
         return LLMRuntimeConfig(
-            provider=str(provider).lower(),
-            model=str(model),
-            daily_token_limit=int(daily_limit),
+            provider=str(settings.default_llm_provider).lower(),
+            model=str(settings.default_llm_model),
+            daily_token_limit=int(settings.daily_token_limit),
         )
 
     async def _config_value(self, key: str, default: object) -> object:
@@ -126,16 +151,16 @@ class LLMClient:
         if int(used or 0) + max_tokens > daily_token_limit:
             raise BudgetExceededError("Daily LLM token budget exceeded")
 
-    def _headers(self, provider: str) -> dict[str, str]:
+    def _headers(self, provider: str, api_key: str | None = None) -> dict[str, str]:
         if provider == "anthropic":
             return {
-                "x-api-key": settings.anthropic_api_key,
+                "x-api-key": api_key or settings.anthropic_api_key,
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json",
             }
         if provider in OPENAI_COMPATIBLE_BASE_URLS:
             return {
-                "authorization": f"Bearer {self._api_key(provider)}",
+                "authorization": f"Bearer {api_key or self._api_key(provider)}",
                 "content-type": "application/json",
             }
         raise ValueError(f"Unsupported LLM provider: {provider}")

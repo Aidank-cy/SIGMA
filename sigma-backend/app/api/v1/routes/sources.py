@@ -152,6 +152,8 @@ async def update_source(
 ) -> DataSourceRead:
     """Update a source owned by the user or any source as admin."""
     source = await _get_owned_source(db, source_id, current_user)
+    if source.is_system and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="System source is protected")
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(source, key, value)
     await _validate_source(source)

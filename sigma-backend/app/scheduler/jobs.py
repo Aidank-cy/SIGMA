@@ -118,18 +118,18 @@ async def generate_scheduled_reports(
 ) -> None:
     """Generate deduplicated reports for active user report configurations."""
     async with session_factory() as db:
-        configs = await db.scalars(
+        configs = list(await db.scalars(
             select(UserReportConfig).where(
                 UserReportConfig.is_active.is_(True),
                 UserReportConfig.report_frequency == report_type,
             )
-        )
+        ))
         scopes = {
-            (tuple(config.markets), tuple(config.categories))
+            (config.user_id, tuple(config.markets), tuple(config.categories))
             for config in configs
         }
         period_start, period_end = _period_for(report_type)
-        for markets, categories in scopes:
+        for user_id, markets, categories in scopes:
             await generate_report(
                 db,
                 report_type,
@@ -137,6 +137,7 @@ async def generate_scheduled_reports(
                 list(categories),
                 period_start,
                 period_end,
+                user_id=user_id,
             )
         await db.commit()
 

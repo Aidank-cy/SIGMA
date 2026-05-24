@@ -37,8 +37,6 @@ class LLMConfigRead(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    provider: LLMProvider
-    model: str
     daily_token_limit: int
     cost_guard_enabled: bool = True
     api_keys: list[LLMApiKey] = Field(default_factory=list)
@@ -49,8 +47,6 @@ class LLMConfigUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    provider: LLMProvider = "anthropic"
-    model: str = Field(default="claude-sonnet-4-20250514", min_length=1, max_length=160)
     daily_token_limit: int = Field(default=1_000_000, gt=0)
     cost_guard_enabled: bool = True
     api_keys: list[LLMApiKey] = Field(default_factory=list, max_length=20)

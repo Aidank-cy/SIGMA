@@ -118,8 +118,8 @@ def test_admin_sources_endpoints_removed(client: TestClient) -> None:
     assert client.get("/api/v1/admin/sources", headers=_auth(user_token)).status_code == 404
 
 
-def test_admin_llm_config_usage_and_guards(client: TestClient) -> None:
-    """Admins can manage global LLM config, inspect usage, and reject non-admins."""
+def test_admin_llm_config_removed_usage_and_guards(client: TestClient) -> None:
+    """Admins can inspect usage, while global config endpoints are removed."""
     admin_token = _token(client, "admin-llm-suite@example.com")
     user_token = _token(client, "regular-llm-suite@example.com")
     headers = _auth(admin_token)
@@ -129,50 +129,18 @@ def test_admin_llm_config_usage_and_guards(client: TestClient) -> None:
     update_response = client.put(
         "/api/v1/admin/llm/config",
         headers=headers,
-        json={
-            "provider": "gemini",
-            "model": "gemini-test",
-            "daily_token_limit": 6543,
-            "cost_guard_enabled": False,
-            "api_keys": [
-                {
-                    "name": "Global Gemini",
-                    "key": "sk-admin-gemini",
-                    "provider": "gemini",
-                    "token_limit": 6543,
-                    "is_default": True,
-                }
-            ],
-        },
+        json={"daily_token_limit": 6543, "cost_guard_enabled": False, "api_keys": []},
     )
     usage_response = client.get("/api/v1/admin/llm/usage", headers=headers)
     forbidden_response = client.get("/api/v1/admin/llm/config", headers=_auth(user_token))
 
-    assert get_response.status_code == 200
-    assert {"provider", "model", "daily_token_limit", "cost_guard_enabled", "api_keys"}.issubset(
-        get_response.json()
-    )
-    assert update_response.status_code == 200
-    assert update_response.json() == {
-        "provider": "gemini",
-        "model": "gemini-test",
-        "daily_token_limit": 6543,
-        "cost_guard_enabled": False,
-        "api_keys": [
-            {
-                "name": "Global Gemini",
-                "key": "sk-admin-gemini",
-                "provider": "gemini",
-                "token_limit": 6543,
-                "is_default": True,
-            }
-        ],
-    }
+    assert get_response.status_code == 404
+    assert update_response.status_code == 404
     assert usage_response.status_code == 200
     assert usage_response.json()["items"][0]["function_type"] == "report"
     assert usage_response.json()["items"][0]["provider"] == "gemini"
     assert usage_response.json()["items"][0]["total_tokens"] == 175
-    assert forbidden_response.status_code == 403
+    assert forbidden_response.status_code == 404
 
 
 def test_admin_logs_endpoint(client: TestClient) -> None:

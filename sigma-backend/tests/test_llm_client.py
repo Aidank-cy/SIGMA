@@ -1,4 +1,5 @@
 import json
+from uuid import UUID
 
 import httpx
 import pytest
@@ -6,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.analyzers.llm_client import BudgetExceededError, LLMClient
+from app.core.config import settings
 from app.models.enums import LLMFunctionType
 from app.models.llm_usage_log import LLMUsageLog
 from app.models.system_config import SystemConfig
@@ -51,13 +53,29 @@ async def test_llm_client_retries_and_tracks_usage(
 @pytest.mark.asyncio
 async def test_llm_client_openai_complete_json(db_session: AsyncSession) -> None:
     """OpenAI chat responses can be parsed as JSON."""
-    db_session.add(SystemConfig(key="sigma.llm.provider", value={"value": "openai"}))
-    db_session.add(SystemConfig(key="sigma.llm.model", value={"value": "gpt-test"}))
+    user_id = UUID("22222222-2222-2222-2222-222222222222")
+    db_session.add(
+        SystemConfig(
+            key=f"sigma.user.{user_id}.llm.api_keys",
+            value={
+                "value": [
+                    {
+                        "name": "OpenAI",
+                        "key": "sk-openai-test",
+                        "provider": "openai",
+                        "token_limit": 1000,
+                        "is_default": True,
+                    }
+                ]
+            },
+        )
+    )
     await db_session.commit()
 
     def handler(request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content)
-        assert payload["model"] == "gpt-test"
+        assert request.headers["authorization"] == "Bearer sk-openai-test"
+        assert payload["model"] == "gpt-4o"
         return httpx.Response(
             200,
             json={
@@ -67,16 +85,16 @@ async def test_llm_client_openai_complete_json(db_session: AsyncSession) -> None
         )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
-        client = LLMClient(db_session, LLMFunctionType.REPORT, http_client=http_client)
+        client = LLMClient(db_session, LLMFunctionType.REPORT, http_client=http_client, user_id=user_id)
         result = await client.complete_json("system", "user", max_tokens=20)
 
     assert result == {"ok": True}
 
 
 @pytest.mark.asyncio
-async def test_llm_client_budget_exceeded(db_session: AsyncSession) -> None:
+async def test_llm_client_budget_exceeded(db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> None:
     """Daily budget guard prevents calls that would exceed the token limit."""
-    db_session.add(SystemConfig(key="sigma.llm.daily_token_limit", value={"value": 10}))
+    monkeypatch.setattr(settings, "daily_token_limit", 10)
     db_session.add(
         LLMUsageLog(
             provider="anthropic",

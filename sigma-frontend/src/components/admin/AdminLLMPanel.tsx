@@ -34,7 +34,7 @@ const reportTypes: ReportType[] = ["daily", "weekly", "monthly"];
 export function AdminLLMPanel() {
   const t = useTranslations("admin.llm");
   const reportT = useTranslations("reports.types");
-  const { config, usage } = useAdminLLM();
+  const { usage } = useAdminLLM();
   const { list } = useAdminUsers("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export function AdminLLMPanel() {
       })),
     [scopedUsageItems, t]
   );
-  const apiKeys = normalizeApiKeys(config.data?.api_keys ?? []);
+  const apiKeys: LLMApiKey[] = [];
   const keySummaries = buildKeySummaries(apiKeys, scopedUsageItems, selectedUserSeed);
   const reports = buildReports(keySummaries, selectedUserSeed);
   const breakdown = buildReportBreakdown(reports);
@@ -305,15 +305,6 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-lg font-semibold text-sigma-text">{value}</p>
     </div>
   );
-}
-
-function normalizeApiKeys(apiKeys: LLMApiKey[]): LLMApiKey[] {
-  const hasDefault = apiKeys.some((key) => key.is_default);
-  return apiKeys.map((key, index) => ({
-    ...key,
-    is_default: key.is_default || (!hasDefault && index === 0),
-    token_limit: key.token_limit || 1_000_000
-  }));
 }
 
 function scopeUsageToUser(items: LLMUsageDay[], seed: number): LLMUsageDay[] {

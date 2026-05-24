@@ -144,8 +144,6 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
         "/api/v1/me/llm/config",
         headers=headers,
         json={
-            "provider": "deepseek",
-            "model": "deepseek-test",
             "daily_token_limit": 4321,
             "cost_guard_enabled": False,
             "api_keys": [
@@ -178,13 +176,13 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
     usage_response = client.get("/api/v1/me/llm/usage", headers=headers)
 
     assert get_response.status_code == 200
-    assert {"provider", "model", "daily_token_limit", "cost_guard_enabled", "api_keys"}.issubset(
+    assert {"daily_token_limit", "cost_guard_enabled", "api_keys"}.issubset(
         get_response.json()
     )
+    assert "provider" not in get_response.json()
+    assert "model" not in get_response.json()
     assert update_response.status_code == 200
     assert update_response.json() == {
-        "provider": "deepseek",
-        "model": "deepseek-test",
         "daily_token_limit": 4321,
         "cost_guard_enabled": False,
         "api_keys": [
@@ -198,8 +196,6 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
         ],
     }
     assert minimal_update_response.status_code == 200
-    assert minimal_update_response.json()["provider"] == "anthropic"
-    assert minimal_update_response.json()["model"] == "claude-sonnet-4-20250514"
     assert minimal_update_response.json()["daily_token_limit"] == 1_000_000
     assert minimal_update_response.json()["api_keys"][0]["is_default"] is True
     assert usage_response.status_code == 200

@@ -12,18 +12,9 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
-import type { LLMApiKey, LLMConfig, LLMUsageResponse } from "@/lib/types";
+import type { LLMApiKey, LLMConfig, LLMProvider, LLMUsageResponse } from "@/lib/types";
 
-const models: Record<string, string[]> = {
-  anthropic: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-latest", "claude-opus-4-20250514"],
-  openai: ["gpt-4.1", "gpt-4.1-mini", "gpt-4o"],
-  deepseek: ["deepseek-chat", "deepseek-reasoner"],
-  minimax: ["minimax-01", "abab7-chat"],
-  kimi: ["moonshot-v1-128k", "moonshot-v1-32k"],
-  gemini: ["gemini-2.5-pro", "gemini-2.5-flash"]
-};
-
-const providers: LLMConfig["provider"][] = ["anthropic", "openai", "deepseek", "minimax", "kimi", "gemini"];
+const apiKeyProviders: LLMProvider[] = ["anthropic", "openai", "deepseek", "minimax", "kimi", "gemini"];
 
 const tokenCost = 0.000003;
 
@@ -57,8 +48,6 @@ const DailyUsageSparkline = dynamic(
 );
 
 const defaultConfig: LLMConfig = {
-  provider: "anthropic",
-  model: models.anthropic[0],
   daily_token_limit: 1_000_000,
   cost_guard_enabled: true,
   api_keys: []
@@ -95,7 +84,7 @@ export function LLMSettingsPanel({
         api_keys: (configData.api_keys ?? []).map((entry) => ({
           ...entry,
           is_default: Boolean(entry.is_default),
-          provider: entry.provider || configData.provider,
+          provider: entry.provider || "anthropic",
           token_limit: entry.token_limit || 1_000_000
         }))
       });
@@ -171,8 +160,8 @@ export function LLMSettingsPanel({
 
     const totalTokens = Array.from(usageByProvider.values()).reduce((total, tokens) => total + tokens, 0);
     return Array.from(usageByProvider.entries()).map(([provider, tokens], index) => {
-      const providerName = providers.includes(provider as LLMConfig["provider"])
-        ? t(`providers.${provider as LLMConfig["provider"]}`)
+      const providerName = apiKeyProviders.includes(provider as LLMProvider)
+        ? t(`providers.${provider as LLMProvider}`)
         : provider;
       const percentage = totalTokens > 0 ? Math.round((tokens / totalTokens) * 100) : 0;
       return {
@@ -213,7 +202,7 @@ export function LLMSettingsPanel({
 
   const groupedApiKeys = useMemo(
     () =>
-      providers
+      apiKeyProviders
         .map((provider) => ({
           entries: form.api_keys
             .map((entry, index) => ({ entry, index }))
@@ -224,7 +213,7 @@ export function LLMSettingsPanel({
     [form.api_keys]
   );
 
-  const providerOptions = providers.map((provider) => ({
+  const providerOptions = apiKeyProviders.map((provider) => ({
     label: t(`providers.${provider}`),
     value: provider
   }));
@@ -238,7 +227,7 @@ export function LLMSettingsPanel({
           is_default: form.api_keys.length === 0,
           key: "",
           name: t("newKeyName"),
-          provider: form.provider,
+          provider: "anthropic",
           token_limit: 1_000_000
         }
       ]
@@ -385,6 +374,13 @@ export function LLMSettingsPanel({
               </div>
             )}
           </section>
+          <div className="rounded-lg border border-sigma-line p-3">
+            <TokenLimitInput
+              label={t("dailyLimit")}
+              onChange={(value) => setForm({ ...form, daily_token_limit: value })}
+              value={form.daily_token_limit}
+            />
+          </div>
           <label className="flex items-center justify-between gap-4 rounded-lg border border-sigma-line p-3 text-sm font-medium text-sigma-text">
             <span className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-sigma-muted" aria-hidden />
