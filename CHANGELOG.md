@@ -7,6 +7,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add Sync market-region filter pills for data source cards.
+- Add example helper text to the Sync add-source wizard fields and include Korea/Taiwan source regions.
 - Add a data migration that removes deprecated system-level LLM config rows from `system_config`.
 - Add authenticated user-level source log API responses scoped to system and user-owned sources.
 - Add user-facing Sync collection logs with source/status/date filters, pagination, success-rate footer, and local fallback rows for development.
@@ -45,6 +47,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Compact the Settings LLM API key cards, merge cost guard with daily token limit, and label usage totals as tokens.
+- Move Settings LLM usage charts below the save-config card and constrain the API key list to a scrollable area.
+- Change Settings report categories to use the same ALL-aware pill selector as markets.
 - Change user LLM settings to store only user-scoped daily limits, cost guard state, and per-key provider credentials.
 - Change report generation to resolve provider, model, and API key from the requesting user's default LLM key.
 - Change LLM config updates to accept default provider/model/token-limit values and preserve per-key default selection.
@@ -139,6 +144,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Sync market card heights, internal source scrolling, date-picker click targets, and Analytics sentiment keyword coverage.
+- Fix Sync source-row actions, wizard spacing, date-field styling, source schedule defaults, and modal panel opacity.
 - Fix Sync page source-management labels to use the Sync i18n namespace and soften modal backdrops.
 - Fix source updates so non-admin users cannot edit protected system sources.
 - Fix the LLM token trend legend by rendering a single centered custom input/output legend.

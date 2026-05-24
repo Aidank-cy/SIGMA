@@ -1630,3 +1630,17 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Removed provider/model from LLM config schemas and frontend types, moved LLM daily limit and cost guard to user-scoped config keys, removed admin LLM config endpoints, added an Alembic cleanup for stale `sigma.llm.*` rows, resolved report LLM provider/model/API key from the user's default key, blocked non-admin edits to system sources, moved Sync source labels into the Sync i18n namespace, and softened modal backdrops. Verified message JSON parsing, targeted backend tests (`61 passed, 1 warning`), full backend Ruff, frontend `npm run build`, full backend tests (`177 passed, 1 warning`), Alembic offline upgrade SQL generation, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-24T03:37:47Z
+
+### [Maintenance] Sync and settings UI polish
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/admin/AdminLogsPanel.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/ui/Modal.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Kept Sync row sync actions visible for inactive sources, added Korea/Taiwan source columns, tightened the add-source modal, auto-advanced source type selection, removed schedule presets, changed default source cron to hourly, added field examples, switched log date filters to shared Input styling, moved LLM charts below the save-config card, constrained API key list scrolling, changed report categories to ALL-aware pills, and made modal panels use opaque card backgrounds. Verified message JSON parsing and frontend `npm run build`; React TSX review found no follow-up fixes.
+- Timestamp: 2026-05-24T04:07:00Z
+
+### [Maintenance] Sync and settings polish round N+3
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/components/admin/AdminLogsPanel.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Fixed Sync market card heights with internal source scrolling, added ALL-aware market filter pills, expanded date picker click targets, broadened Analytics sentiment keyword matching with word-boundary patterns, compacted LLM API key rows, merged cost guard and daily limit controls, shortened the API key scroll area, and changed usage cards to show token labels instead of dollar estimates. Verified message JSON parsing, frontend `npm run build`, and `git diff --check`.
+- Timestamp: 2026-05-24T04:42:22Z

@@ -333,16 +333,10 @@ function ReportConfigSection({
           options={markets.map((value) => ({ label: t(`markets.${value}`), value }))}
           values={payload.markets}
         />
-        <ToggleSet
+        <MultiSelectPills
+          allLabel={t("reports.allCategories")}
           label={t("reports.categories")}
-          onToggle={(value) =>
-            setPayload((current) => ({
-              ...current,
-              categories: current.categories.includes(value as Category)
-                ? current.categories.filter((item) => item !== value)
-                : [...current.categories, value as Category]
-            }))
-          }
+          onChange={(values) => setPayload((current) => ({ ...current, categories: values }))}
           options={categories.map((value) => ({ label: t(`categories.${value}`), value }))}
           values={payload.categories}
         />
@@ -510,40 +504,6 @@ function PasswordResetModal({ email, isOpen, onClose }: { email: string; isOpen:
 interface Option<T extends string = string> {
   label: string;
   value: T;
-}
-
-function ToggleSet({
-  label,
-  onToggle,
-  options,
-  values
-}: {
-  label: string;
-  onToggle: (value: string) => void;
-  options: Option[];
-  values: string[];
-}) {
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-foreground">{label}</p>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <button
-            className={
-              values.includes(option.value)
-                ? "min-h-11 rounded-full bg-foreground px-3 py-2 text-sm font-medium text-background"
-                : "min-h-11 rounded-full border border-border px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            }
-            key={option.value}
-            onClick={() => onToggle(option.value)}
-            type="button"
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function MultiSelectPills<T extends string>({

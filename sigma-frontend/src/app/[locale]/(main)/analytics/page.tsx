@@ -31,8 +31,11 @@ const categoryColors: Record<Category, string> = {
 
 function inferSentiment(item: ItemSummary): Sentiment {
   const text = `${item.title} ${item.summary ?? ""}`.toLowerCase()
-  if (/(fall|drop|risk|bear|decline|weak|cut|pressure|loss)/.test(text)) return "bearish"
-  if (/(rise|gain|bull|growth|beat|strong|surge|record|upgrade)/.test(text)) return "bullish"
+  const bearishPatterns = /\b(fall|falls|fell|drop|drops|dropped|risk|risks|bear|bearish|decline|declines|declined|weak|weaken|cut|cuts|pressure|loss|losses|crash|plunge|plunges|plunged|slump|slumps|tumble|tumbles|sink|sinks|sank|downturn|recession|layoff|layoffs|deficit|downgrade|downgrades|warning|sell-off|selloff|negative|slowdown|contraction|bankruptcy|default|crisis|fear|fears|inflation|tariff|tariffs|sanction|sanctions|volatility|uncertainty|debt|bubble)\b/
+  const bullishPatterns = /\b(rise|rises|rose|gain|gains|gained|bull|bullish|growth|grows|grew|beat|beats|strong|stronger|surge|surges|surged|record|upgrade|upgrades|rally|rallies|rallied|boom|booms|soar|soars|soared|jump|jumps|jumped|optimism|optimistic|profit|profits|profitable|recovery|recover|recovers|expansion|expand|expands|positive|upbeat|outperform|outperforms|breakout|breakthrough|innovation|milestone|dividend|buyback|ipo|stimulus)\b/
+
+  if (bearishPatterns.test(text)) return "bearish"
+  if (bullishPatterns.test(text)) return "bullish"
   return "neutral"
 }
 

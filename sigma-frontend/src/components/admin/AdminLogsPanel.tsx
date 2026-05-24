@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CustomSelect } from "@/components/dashboard/custom-select";
+import { Input } from "@/components/ui/Input";
 import { useAdminLogs } from "@/hooks/useAdmin";
 import type { CollectorStatus } from "@/hooks/useAdmin";
 import { useSources } from "@/hooks/useSources";
@@ -157,18 +158,15 @@ function DateField({
   value: string;
 }) {
   return (
-    <label className="group relative block">
-      <input
-        className="peer h-12 w-full rounded-xl border border-border bg-card px-4 pb-1.5 pt-[18px] text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
-        max={max}
-        min={min}
-        onChange={(event) => onChange(event.target.value)}
-        type="date"
-        value={value}
-      />
-      <span className="pointer-events-none absolute left-4 top-[7px] text-xs font-medium text-muted-foreground peer-focus:text-primary">
-        {label}
-      </span>
-    </label>
+    <Input
+      className="cursor-pointer rounded-xl bg-card"
+      label={label}
+      max={max}
+      min={min}
+      onChange={(event) => onChange(event.target.value)}
+      onClick={(event) => event.currentTarget.showPicker?.()}
+      type="date"
+      value={value}
+    />
   );
 }

@@ -346,6 +346,9 @@
       "fail": "Failed",
       "timeout": "Timeout"
     },
+    "markets": {
+      "all": "ALL"
+    },
     "sourceTypes": {
       "api": "API",
       "rss": "RSS",
@@ -400,7 +403,7 @@
         "jp": "Japan",
         "eu": "Europe",
         "hk": "Hong Kong",
-        "kr": "Korea",
+        "kr": "South Korea",
         "tw": "Taiwan",
         "global": "Global"
       },
@@ -410,6 +413,16 @@
         "itemsPath": "Items path",
         "url": "Page URL",
         "selector": "Item selector"
+      },
+      "hints": {
+        "rssName": "e.g. BBC Business News",
+        "feedUrl": "e.g. https://feeds.bbci.co.uk/news/business/rss.xml",
+        "apiName": "e.g. FRED Economic Data",
+        "endpoint": "e.g. https://api.stlouisfed.org/fred/releases",
+        "itemsPath": "e.g. releases",
+        "scraperName": "e.g. Federal Reserve Press Releases",
+        "url": "e.g. https://www.federalreserve.gov/newsevents/pressreleases.htm",
+        "selector": "e.g. .row .itemTitle"
       },
       "presets": {
         "5m": "Every 5 minutes",
@@ -575,6 +588,7 @@
       "title": "Report configuration",
       "all": "ALL",
       "allMarkets": "ALL",
+      "allCategories": "ALL",
       "daily": "Daily",
       "weekly": "Weekly",
       "monthly": "Monthly",
@@ -585,7 +599,8 @@
     "llm": {
       "title": "LLM configuration",
       "caption": "Manage API keys, daily token budget, and cost guard used by SIGMA analysis.",
-      "legendInputOutput": "Input/Output"
+      "legendInputOutput": "Input/Output",
+      "tokens": "Tokens"
     },
     "admin": {
       "eyebrow": "Administrator controls",
@@ -739,6 +754,7 @@
       "today": "Today",
       "week": "This week",
       "month": "This month",
+      "tokens": "Tokens",
       "tokenTrend": "14-day token trend",
       "legendInputOutput": "Input/Output",
       "usageByFunction": "Usage by function",

@@ -30,6 +30,7 @@ import { useToast } from "@/components/ui/Toast"
 import { useItems } from "@/hooks/useItems"
 import { useSources } from "@/hooks/useSources"
 import { apiFetch } from "@/lib/api"
+import { toggleMultiSelection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 import type { Category, DataSource, Market, SourcePayload } from "@/lib/types"
 import type { AdminLogResponse, CollectorStatus } from "@/hooks/useAdmin"
@@ -41,14 +42,10 @@ interface SourcePreviewResponse {
 
 const sourceTypes = ["rss", "api", "scraper"] as const
 const categories: Category[] = ["politics", "finance", "technology", "macro", "other"]
-const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "global"]
-const regionColumns: Market[] = ["us", "cn", "hk", "jp", "eu", "global"]
+const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "kr", "tw", "global"]
+const regionColumns: Market[] = ["us", "cn", "hk", "jp", "eu", "kr", "tw", "global"]
+const marketFilters: Array<Market | ""> = ["", ...regionColumns]
 const statuses: LogFilter[] = ["all", "success", "fail", "timeout"]
-const presets = [
-  { cron: "*/5 * * * *", key: "5m" },
-  { cron: "0 * * * *", key: "hourly" },
-  { cron: "0 8 * * *", key: "daily" }
-] as const
 
 const initialPayload: SourcePayload = {
   category: "finance",
@@ -57,7 +54,7 @@ const initialPayload: SourcePayload = {
   market: "us",
   max_execution_seconds: 60,
   name: "",
-  schedule_cron: "*/5 * * * *",
+  schedule_cron: "0 * * * *",
   source_type: "rss"
 }
 
@@ -108,6 +105,7 @@ export default function SyncPage() {
   const [logStatus, setLogStatus] = useState<LogFilter>("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [activeMarkets, setActiveMarkets] = useState<Market[]>([])
   const [logPage, setLogPage] = useState(1)
   const [logRefreshTick, setLogRefreshTick] = useState(0)
   const [logs, setLogs] = useState<AdminLogResponse | null>(null)
@@ -121,6 +119,10 @@ export default function SyncPage() {
     }
     return groups
   }, [sources])
+  const visibleRegionColumns = useMemo(
+    () => (activeMarkets.length === 0 ? regionColumns : regionColumns.filter((market) => activeMarkets.includes(market))),
+    [activeMarkets]
+  )
 
   const logQuery = useMemo(() => {
     const params = new URLSearchParams({
@@ -170,7 +172,7 @@ export default function SyncPage() {
       market: source.market,
       max_execution_seconds: source.max_execution_seconds ?? 60,
       name: source.name,
-      schedule_cron: source.schedule_cron ?? "*/5 * * * *",
+      schedule_cron: source.schedule_cron ?? "0 * * * *",
       source_type: source.source_type
     })
     setTested(false)
@@ -344,22 +346,46 @@ export default function SyncPage() {
         <StatusCard icon={Zap} label={t("pipelineHealth")} value={`${pipelineHealth}%`} detail={t("activeRatio")} />
       </div>
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-foreground">{t("dataSources")}</h2>
+      <section className="space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <h2 className="text-lg font-semibold text-foreground">{t("dataSources")}</h2>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            {marketFilters.map((market) => (
+              <motion.button
+                className={cn(
+                  "rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200",
+                  (market === "" && activeMarkets.length === 0) || (market !== "" && activeMarkets.includes(market))
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                )}
+                key={market || "all-markets"}
+                onClick={() =>
+                  setActiveMarkets((current) =>
+                    toggleMultiSelection(current, market, marketFilters.filter((item) => item !== "").length)
+                  )
+                }
+                type="button"
+                whileTap={{ scale: 0.95 }}
+              >
+                {market ? marketT(`regionNames.${market}`) : t("markets.all")}
+              </motion.button>
+            ))}
+          </div>
+        </div>
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, index) => <div className="h-72 animate-pulse rounded-xl border border-border bg-card" key={index} />)}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {regionColumns.map((market) => {
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {visibleRegionColumns.map((market) => {
               const marketSources = groupedSources[market]
               return (
                 <section
-                  className="flex min-h-[280px] flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
+                  className="flex h-[22rem] flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
                   key={market}
                 >
-                  <div className="mb-5 flex items-start justify-between gap-4">
+                  <div className="mb-4 flex shrink-0 items-start justify-between gap-4">
                     <div>
                       <h3 className="font-semibold text-foreground">{marketT(`regionNames.${market}`)}</h3>
                       <p className="mt-1 text-xs text-muted-foreground">{t("sources.sourceCount", { count: marketSources.length })}</p>
@@ -369,7 +395,7 @@ export default function SyncPage() {
                     </span>
                   </div>
 
-                  <div className="flex flex-1 flex-col gap-2">
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                     {marketSources.map((source) => (
                       <SourceRow
                         isSyncing={syncingSourceId === source.id}
@@ -389,7 +415,7 @@ export default function SyncPage() {
                     ) : null}
                   </div>
 
-                  <div className="mt-4 flex justify-end">
+                  <div className="mt-4 flex shrink-0 justify-end border-t border-border pt-3">
                     <Button onClick={() => openCreate(market)} size="sm" variant="secondary">
                       <Plus className="h-4 w-4" aria-hidden />
                       {t("sources.add")}
@@ -437,7 +463,7 @@ export default function SyncPage() {
         onClose={() => setWizardOpen(false)}
         title={editingId ? t("sources.editTitle") : t("sources.addTitle")}
       >
-        <div className="space-y-5">
+        <div className="space-y-4">
           <StepIndicator step={step} />
           {step === 1 ? (
             <div className="grid gap-3 sm:grid-cols-3">
@@ -450,7 +476,10 @@ export default function SyncPage() {
                       : "border-sigma-line text-sigma-muted hover:bg-sigma-surface"
                   )}
                   key={type}
-                  onClick={() => updatePayload({ config: defaultConfig(type), source_type: type })}
+                  onClick={() => {
+                    updatePayload({ config: defaultConfig(type), source_type: type })
+                    setStep(2)
+                  }}
                   type="button"
                 >
                   {t(`sources.types.${type}`)}
@@ -480,7 +509,7 @@ export default function SyncPage() {
             <Button disabled={step === 1} onClick={() => setStep((current) => current - 1)} variant="ghost">
               {t("sources.back")}
             </Button>
-            {step < 4 ? (
+            {step === 1 ? null : step < 4 ? (
               <Button disabled={!payload.name && step > 1} onClick={() => setStep((current) => current + 1)}>
                 {t("sources.next")}
               </Button>
@@ -538,7 +567,7 @@ function SourceRow({
   const Icon = sourceIcon(source.source_type)
 
   return (
-    <div className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-border bg-background/50 px-3 py-2">
+    <div className="flex h-14 items-center justify-between gap-3 rounded-lg border border-border bg-background/50 px-3 py-2">
       <button className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:text-primary" onClick={onEdit} type="button">
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <span className="min-w-0">
@@ -552,11 +581,9 @@ function SourceRow({
           label={t("sources.toggleSource", { name: source.name })}
           onChange={onToggle}
         />
-        {source.is_active ? (
-          <IconButton disabled={isSyncing} label={t("sources.syncSource", { name: source.name })} onClick={onSync}>
-            <RefreshCw className={cn("h-4 w-4", isSyncing ? "animate-spin" : "")} aria-hidden />
-          </IconButton>
-        ) : null}
+        <IconButton disabled={isSyncing} label={t("sources.syncSource", { name: source.name })} onClick={onSync}>
+          <RefreshCw className={cn("h-4 w-4", isSyncing ? "animate-spin" : "")} aria-hidden />
+        </IconButton>
         <IconButton label={t("sources.logs")} onClick={onLogs}>
           <FileClock className="h-4 w-4" aria-hidden />
         </IconButton>
@@ -719,42 +746,66 @@ function ConfigStep({
   const setConfig = (key: string, value: string) => {
     setPayload({ config: { ...payload.config, [key]: value } })
   }
+  const nameHintKey =
+    payload.source_type === "api"
+      ? "sources.hints.apiName"
+      : payload.source_type === "scraper"
+        ? "sources.hints.scraperName"
+        : "sources.hints.rssName"
   return (
     <div className="space-y-4">
-      <Input label={t("sources.name")} onChange={(event) => setPayload({ name: event.target.value })} value={payload.name} />
+      <div>
+        <Input label={t("sources.name")} onChange={(event) => setPayload({ name: event.target.value })} value={payload.name} />
+        <p className="mt-1 text-xs text-muted-foreground">{t(nameHintKey)}</p>
+      </div>
       {payload.source_type === "rss" ? (
-        <Input
-          label={t("sources.fields.feedUrl")}
-          onChange={(event) => setConfig("feed_url", event.target.value)}
-          value={String(payload.config.feed_url ?? "")}
-        />
+        <div>
+          <Input
+            label={t("sources.fields.feedUrl")}
+            onChange={(event) => setConfig("feed_url", event.target.value)}
+            value={String(payload.config.feed_url ?? "")}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">{t("sources.hints.feedUrl")}</p>
+        </div>
       ) : null}
       {payload.source_type === "api" ? (
         <>
-          <Input
-            label={t("sources.fields.endpoint")}
-            onChange={(event) => setConfig("endpoint", event.target.value)}
-            value={String(payload.config.endpoint ?? "")}
-          />
-          <Input
-            label={t("sources.fields.itemsPath")}
-            onChange={(event) => setConfig("items_path", event.target.value)}
-            value={String(payload.config.items_path ?? "")}
-          />
+          <div>
+            <Input
+              label={t("sources.fields.endpoint")}
+              onChange={(event) => setConfig("endpoint", event.target.value)}
+              value={String(payload.config.endpoint ?? "")}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{t("sources.hints.endpoint")}</p>
+          </div>
+          <div>
+            <Input
+              label={t("sources.fields.itemsPath")}
+              onChange={(event) => setConfig("items_path", event.target.value)}
+              value={String(payload.config.items_path ?? "")}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{t("sources.hints.itemsPath")}</p>
+          </div>
         </>
       ) : null}
       {payload.source_type === "scraper" ? (
         <>
-          <Input
-            label={t("sources.fields.url")}
-            onChange={(event) => setConfig("url", event.target.value)}
-            value={String(payload.config.url ?? "")}
-          />
-          <Input
-            label={t("sources.fields.selector")}
-            onChange={(event) => setConfig("item_selector", event.target.value)}
-            value={String(payload.config.item_selector ?? "")}
-          />
+          <div>
+            <Input
+              label={t("sources.fields.url")}
+              onChange={(event) => setConfig("url", event.target.value)}
+              value={String(payload.config.url ?? "")}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{t("sources.hints.url")}</p>
+          </div>
+          <div>
+            <Input
+              label={t("sources.fields.selector")}
+              onChange={(event) => setConfig("item_selector", event.target.value)}
+              value={String(payload.config.item_selector ?? "")}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{t("sources.hints.selector")}</p>
+          </div>
         </>
       ) : null}
     </div>
@@ -787,18 +838,6 @@ function MetadataStep({
           options={markets.map((market) => ({ label: t(`sources.markets.${market}`), value: market }))}
           value={payload.market}
         />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {presets.map((preset) => (
-          <button
-            className="min-h-11 rounded-full border border-sigma-line px-3 py-1.5 text-xs font-medium text-sigma-muted hover:bg-sigma-elevated hover:text-sigma-text"
-            key={preset.key}
-            onClick={() => setPayload({ schedule_cron: preset.cron })}
-            type="button"
-          >
-            {t(`sources.presets.${preset.key}`)}
-          </button>
-        ))}
       </div>
       <Input
         label={t("sources.cron")}
@@ -872,19 +911,16 @@ function DateField({
   value: string
 }) {
   return (
-    <label className="group relative block">
-      <input
-        className="peer h-12 w-full rounded-xl border border-border bg-card px-4 pb-1.5 pt-[18px] text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
-        max={max}
-        min={min}
-        onChange={(event) => onChange(event.target.value)}
-        type="date"
-        value={value}
-      />
-      <span className="pointer-events-none absolute left-4 top-[7px] text-xs font-medium text-muted-foreground peer-focus:text-primary">
-        {label}
-      </span>
-    </label>
+    <Input
+      className="cursor-pointer rounded-xl bg-card"
+      label={label}
+      max={max}
+      min={min}
+      onChange={(event) => onChange(event.target.value)}
+      onClick={(event) => event.currentTarget.showPicker?.()}
+      type="date"
+      value={value}
+    />
   )
 }
 

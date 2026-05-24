@@ -346,6 +346,9 @@
       "fail": "失败",
       "timeout": "超时"
     },
+    "markets": {
+      "all": "全部"
+    },
     "sourceTypes": {
       "api": "API",
       "rss": "RSS",
@@ -410,6 +413,16 @@
         "itemsPath": "条目路径",
         "url": "页面 URL",
         "selector": "条目选择器"
+      },
+      "hints": {
+        "rssName": "例如：BBC Business News",
+        "feedUrl": "例如：https://feeds.bbci.co.uk/news/business/rss.xml",
+        "apiName": "例如：FRED Economic Data",
+        "endpoint": "例如：https://api.stlouisfed.org/fred/releases",
+        "itemsPath": "例如：releases",
+        "scraperName": "例如：Federal Reserve Press Releases",
+        "url": "例如：https://www.federalreserve.gov/newsevents/pressreleases.htm",
+        "selector": "例如：.row .itemTitle"
       },
       "presets": {
         "5m": "每 5 分钟",
@@ -575,6 +588,7 @@
       "title": "报告配置",
       "all": "全部",
       "allMarkets": "全部",
+      "allCategories": "全部",
       "daily": "日报",
       "weekly": "周报",
       "monthly": "月报",
@@ -585,7 +599,8 @@
     "llm": {
       "title": "LLM 配置",
       "caption": "管理 SIGMA 分析使用的 API Key、每日 Token 预算和成本保护。",
-      "legendInputOutput": "输入/输出"
+      "legendInputOutput": "输入/输出",
+      "tokens": "Tokens"
     },
     "admin": {
       "eyebrow": "管理员控制",
@@ -739,6 +754,7 @@
       "today": "今日",
       "week": "本周",
       "month": "本月",
+      "tokens": "Tokens",
       "tokenTrend": "14 天 Token 趋势",
       "legendInputOutput": "输入/输出",
       "usageByFunction": "按功能统计",

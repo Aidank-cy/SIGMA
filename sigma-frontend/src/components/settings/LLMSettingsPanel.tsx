@@ -1,6 +1,6 @@
 "use client";
 
-import { DollarSign, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Plus, ShieldCheck, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -12,11 +12,10 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
+import { cn } from "@/lib/cn";
 import type { LLMApiKey, LLMConfig, LLMProvider, LLMUsageResponse } from "@/lib/types";
 
 const apiKeyProviders: LLMProvider[] = ["anthropic", "openai", "deepseek", "minimax", "kimi", "gemini"];
-
-const tokenCost = 0.000003;
 
 const TokenTrendChart = dynamic(
   () => import("@/components/charts/LLMUsageCharts").then((module) => module.TokenTrendChart),
@@ -286,7 +285,7 @@ export function LLMSettingsPanel({
   return (
     <div className="space-y-6">
       <section className="space-y-4">
-        <Card className="space-y-4 p-5">
+        <Card className="space-y-3 p-5">
           <section className="space-y-3 rounded-lg border border-sigma-line p-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -301,21 +300,21 @@ export function LLMSettingsPanel({
             {form.api_keys.length === 0 ? (
               <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
             ) : (
-              <div className="space-y-4">
+              <div className="max-h-[16rem] space-y-3 overflow-y-auto pr-1">
                 {groupedApiKeys.map((group) => (
                   <div className="space-y-2" key={group.provider}>
                     <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-sigma-muted">
                       {t(`providers.${group.provider}`)}
                     </h4>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {group.entries.map(({ entry, index }) => {
                         const isDefault = entry.is_default || (!hasExplicitDefault && index === 0);
                         return (
                           <div
                             className={
                               isDefault
-                                ? "grid gap-3 rounded-lg border-l-4 border-primary bg-primary/5 p-3 lg:grid-cols-[0.85fr_1fr_1fr_0.85fr_auto]"
-                                : "grid gap-3 rounded-lg bg-sigma-elevated p-3 lg:grid-cols-[0.85fr_1fr_1fr_0.85fr_auto]"
+                                ? "grid gap-2 rounded-lg border-l-4 border-primary bg-primary/5 p-2 lg:grid-cols-[0.85fr_1fr_1fr_0.85fr_auto]"
+                                : "grid gap-2 rounded-lg bg-sigma-elevated p-2 lg:grid-cols-[0.85fr_1fr_1fr_0.85fr_auto]"
                             }
                             key={index}
                           >
@@ -374,75 +373,75 @@ export function LLMSettingsPanel({
               </div>
             )}
           </section>
-          <div className="rounded-lg border border-sigma-line p-3">
-            <TokenLimitInput
-              label={t("dailyLimit")}
-              onChange={(value) => setForm({ ...form, daily_token_limit: value })}
-              value={form.daily_token_limit}
-            />
-          </div>
-          <label className="flex items-center justify-between gap-4 rounded-lg border border-sigma-line p-3 text-sm font-medium text-sigma-text">
-            <span className="flex items-center gap-2">
+          <div className="flex flex-col gap-4 rounded-lg border border-sigma-line p-3 sm:flex-row sm:items-center">
+            <label className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-medium text-sigma-text">
+              <ToggleSwitch
+                checked={form.cost_guard_enabled}
+                label={t("costGuard")}
+                onChange={(checked) => setForm({ ...form, cost_guard_enabled: checked })}
+              />
               <ShieldCheck className="h-4 w-4 text-sigma-muted" aria-hidden />
               {t("costGuard")}
-            </span>
-            <ToggleSwitch
-              checked={form.cost_guard_enabled}
-              label={t("costGuard")}
-              onChange={(checked) => setForm({ ...form, cost_guard_enabled: checked })}
-            />
-          </label>
+            </label>
+            <div className={cn("flex-1", !form.cost_guard_enabled && "pointer-events-none opacity-40")}>
+              <TokenLimitInput
+                label={t("dailyLimit")}
+                onChange={(value) => setForm({ ...form, daily_token_limit: value })}
+                value={form.cost_guard_enabled ? form.daily_token_limit : defaultConfig.daily_token_limit}
+              />
+            </div>
+          </div>
           <Button className="w-full" disabled={!showCharts && hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
             {t("save")}
           </Button>
-          <section className="grid gap-4 xl:grid-cols-[3fr_1fr]">
+        </Card>
+        <section className="grid gap-4 xl:grid-cols-[3fr_1fr]">
+          <Card className="p-5">
+            <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>
+            <TokenTrendChart data={trendData} locale={locale} />
+          </Card>
+          <Card className="p-5">
+            <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>
+            <FunctionUsageChart data={functionData} />
+          </Card>
+        </section>
+        {showCharts ? (
+          <section className="grid gap-4 xl:grid-cols-2">
             <Card className="p-5">
-              <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>
-              <TokenTrendChart data={trendData} locale={locale} />
+              <h3 className="text-lg font-semibold text-foreground">{t("providerUsageDistribution")}</h3>
+              {providerDistributionData.length > 0 ? (
+                <ProviderUsageDistributionChart data={providerDistributionData} />
+              ) : (
+                <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                  {t("noUsageData")}
+                </div>
+              )}
             </Card>
-            <Card className="p-5">
-              <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>
-              <FunctionUsageChart data={functionData} />
+            <Card className="space-y-4 p-5">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">{t("dailyTokenBudget")}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {t("dailyTokenBudgetCaption", {
+                    limit: form.daily_token_limit.toLocaleString(),
+                    tokens: totals.today.toLocaleString()
+                  })}
+                </p>
+              </div>
+              <div>
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="font-medium text-foreground">{dailyBudgetPercent}%</span>
+                  <span className="text-muted-foreground">
+                    {totals.today.toLocaleString()} / {form.daily_token_limit.toLocaleString()}
+                  </span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-chart-1" style={{ width: `${dailyBudgetPercent}%` }} />
+                </div>
+              </div>
+              <DailyUsageSparkline data={dailyUsageData} />
             </Card>
           </section>
-          {showCharts ? (
-            <section className="grid gap-4 xl:grid-cols-2">
-              <Card className="p-5">
-                <h3 className="text-lg font-semibold text-foreground">{t("providerUsageDistribution")}</h3>
-                {providerDistributionData.length > 0 ? (
-                  <ProviderUsageDistributionChart data={providerDistributionData} />
-                ) : (
-                  <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
-                    {t("noUsageData")}
-                  </div>
-                )}
-              </Card>
-              <Card className="space-y-4 p-5">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground">{t("dailyTokenBudget")}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {t("dailyTokenBudgetCaption", {
-                      limit: form.daily_token_limit.toLocaleString(),
-                      tokens: totals.today.toLocaleString()
-                    })}
-                  </p>
-                </div>
-                <div>
-                  <div className="mb-2 flex items-center justify-between text-sm">
-                    <span className="font-medium text-foreground">{dailyBudgetPercent}%</span>
-                    <span className="text-muted-foreground">
-                      {totals.today.toLocaleString()} / {form.daily_token_limit.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-chart-1" style={{ width: `${dailyBudgetPercent}%` }} />
-                  </div>
-                </div>
-                <DailyUsageSparkline data={dailyUsageData} />
-              </Card>
-            </section>
-          ) : null}
-        </Card>
+        ) : null}
       </section>
 
       <section className="grid gap-3 sm:grid-cols-3">
@@ -509,15 +508,16 @@ function parseTokenAmount(rawValue: string): number | null {
 }
 
 function UsageCard({ label, tokens }: { label: string; tokens: number }) {
+  const t = useTranslations("admin.llm");
+
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-sigma-muted">{label}</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums text-sigma-text">{tokens.toLocaleString()}</p>
-          <p className="mt-1 text-xs text-sigma-muted">${(tokens * tokenCost).toFixed(2)}</p>
         </div>
-        <DollarSign className="h-5 w-5 text-sigma-muted" aria-hidden />
+        <span className="text-xs font-medium text-sigma-muted">{t("tokens")}</span>
       </div>
     </Card>
   );

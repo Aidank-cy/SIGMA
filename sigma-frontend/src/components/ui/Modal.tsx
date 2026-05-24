@@ -44,11 +44,11 @@ export function Modal({ children, closeLabel, isOpen, onClose, title }: ModalPro
         aria-modal="true"
         className={cn(
           "relative w-full max-w-lg animate-modal-in rounded-lg border border-sigma-line",
-          "bg-sigma-elevated p-6 shadow-apple"
+          "bg-card p-6 shadow-apple"
         )}
         role="dialog"
       >
-        <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="mb-3 flex items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-sigma-text">{title}</h2>
           <button
             aria-label={closeLabel}
