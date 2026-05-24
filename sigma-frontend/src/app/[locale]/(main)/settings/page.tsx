@@ -315,41 +315,45 @@ function ReportConfigSection({
   return (
     <Card className="p-5">
       <div className="flex flex-col gap-5">
-        <h2 className="text-base font-semibold text-foreground">{t("reports.title")}</h2>
-        <MultiSelectPills
-          allLabel={t("reports.all")}
-          label={t("reports.title")}
-          onChange={(values) =>
-            setPayload((current) => ({
-              ...current,
-              report_frequency: values[0] ?? "daily",
-              report_frequencies: values
-            }))
-          }
-          options={reportTypes.map((value) => ({ label: t(`reports.${value}`), value }))}
-          values={activeReportFrequencies}
-        />
-        <MultiSelectPills
-          allLabel={t("reports.allMarkets")}
-          label={t("reports.markets")}
-          onChange={(values) => setPayload((current) => ({ ...current, markets: values }))}
-          options={markets.map((value) => ({ label: t(`markets.${value}`), value }))}
-          values={payload.markets}
-        />
-        <MultiSelectPills
-          allLabel={t("reports.allCategories")}
-          label={t("reports.categories")}
-          onChange={(values) => setPayload((current) => ({ ...current, categories: values }))}
-          options={categories.map((value) => ({ label: t(`categories.${value}`), value }))}
-          values={payload.categories}
-        />
-        <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-          <ToggleSwitch
-            checked={payload.is_active}
-            label={t("reports.active")}
-            onChange={(checked) => setPayload((current) => ({ ...current, is_active: checked }))}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-base font-semibold text-foreground">{t("reports.title")}</h2>
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <ToggleSwitch
+              checked={payload.is_active}
+              label={t("reports.active")}
+              onChange={(checked) => setPayload((current) => ({ ...current, is_active: checked }))}
+            />
+            {t("reports.active")}
+          </label>
+        </div>
+        <div className={cn("flex flex-col gap-5", !payload.is_active && "pointer-events-none select-none opacity-40")}>
+          <MultiSelectPills
+            allLabel={t("reports.all")}
+            label={t("reports.frequency")}
+            onChange={(values) =>
+              setPayload((current) => ({
+                ...current,
+                report_frequency: values[0] ?? "daily",
+                report_frequencies: values
+              }))
+            }
+            options={reportTypes.map((value) => ({ label: t(`reports.${value}`), value }))}
+            values={activeReportFrequencies}
           />
-          {t("reports.active")}
+          <MultiSelectPills
+            allLabel={t("reports.allMarkets")}
+            label={t("reports.markets")}
+            onChange={(values) => setPayload((current) => ({ ...current, markets: values }))}
+            options={markets.map((value) => ({ label: t(`markets.${value}`), value }))}
+            values={payload.markets}
+          />
+          <MultiSelectPills
+            allLabel={t("reports.allCategories")}
+            label={t("reports.categories")}
+            onChange={(values) => setPayload((current) => ({ ...current, categories: values }))}
+            options={categories.map((value) => ({ label: t(`categories.${value}`), value }))}
+            values={payload.categories}
+          />
         </div>
       </div>
     </Card>

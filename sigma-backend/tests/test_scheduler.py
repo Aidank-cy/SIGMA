@@ -215,7 +215,9 @@ def test_add_and_remove_source_job_updates_scheduler() -> None:
     add_or_update_source_job(source)
 
     job_id = f"collector:{source.id}"
-    assert scheduler.get_job(job_id) is not None
+    job = scheduler.get_job(job_id)
+    assert job is not None
+    assert 0 <= job.trigger.jitter <= 30
 
     remove_source_job(source.id)
 

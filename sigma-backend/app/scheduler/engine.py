@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import random
 from uuid import UUID
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -54,9 +55,11 @@ def add_or_update_source_job(
     session_factory: async_sessionmaker[AsyncSession] = AsyncSessionLocal,
 ) -> None:
     """Register or replace a single source collection job."""
+    trigger = CronTrigger.from_crontab(source.schedule_cron, timezone="UTC")
+    trigger.jitter = random.randint(0, 30)
     scheduler.add_job(
         collect_from_source,
-        trigger=CronTrigger.from_crontab(source.schedule_cron, timezone="UTC"),
+        trigger=trigger,
         id=_source_job_id(source.id),
         args=[source.id, session_factory],
         replace_existing=True,

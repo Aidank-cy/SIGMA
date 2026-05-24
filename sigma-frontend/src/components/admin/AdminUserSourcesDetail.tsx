@@ -87,8 +87,10 @@ export function AdminUserSourcesDetail({ userId }: { userId: string }) {
   async function deleteSource(source: DataSource) {
     try {
       await mutations.remove.mutateAsync(source.id);
+      await sources.refetch();
       showToast(t("sourceDeleted"), "success");
     } catch (error) {
+      await sources.refetch();
       showToast(error instanceof Error ? error.message : t("sourceDeleteError"), "error");
     }
   }

@@ -1,3 +1,4 @@
+import asyncio
 import os
 from typing import Any
 from urllib.parse import urljoin
@@ -53,7 +54,7 @@ class APICollector(BaseCollector):
             request_kwargs: dict[str, Any] = {"headers": headers}
             if params:
                 request_kwargs["params"] = params
-            response = await client.request(method, url, **request_kwargs)
+            response = await self._request_with_rate_limit_backoff(client, method, url, request_kwargs)
             response.raise_for_status()
             payload = response.json()
             response_path = self.config.get("response_path") or self.config.get("items_path")
@@ -191,6 +192,31 @@ class APICollector(BaseCollector):
                     return coerced
             return None
         return value
+
+    @staticmethod
+    async def _request_with_rate_limit_backoff(
+        client: httpx.AsyncClient,
+        method: str,
+        url: str,
+        request_kwargs: dict[str, Any],
+    ) -> httpx.Response:
+        response = await client.request(method, url, **request_kwargs)
+        for attempt in range(2):
+            if response.status_code != 429:
+                return response
+            retry_after = APICollector._retry_after_seconds(response.headers.get("Retry-After"))
+            await asyncio.sleep(min(retry_after * (2**attempt), 120))
+            response = await client.request(method, url, **request_kwargs)
+        return response
+
+    @staticmethod
+    def _retry_after_seconds(value: str | None) -> int:
+        if value is None:
+            return 60
+        try:
+            return max(0, int(value))
+        except ValueError:
+            return 60
 
     @staticmethod
     def _resolve_env_values(values: dict[str, Any]) -> dict[str, Any]:

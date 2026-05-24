@@ -141,6 +141,32 @@ async def test_api_collector_preserves_endpoint_query_without_params() -> None:
 
 
 @pytest.mark.asyncio
+async def test_api_collector_retries_rate_limited_requests() -> None:
+    """API collector retries 429 responses with Retry-After backoff."""
+    attempts = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            return httpx.Response(429, headers={"Retry-After": "0"})
+        return httpx.Response(200, json={"items": [{"title": "Recovered item", "description": "Recovered body"}]})
+
+    source = _source(
+        SourceType.API,
+        {
+            "endpoint": "https://api.test/rate-limited",
+            "response_path": "items",
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        items = await APICollector(source, client).collect()
+
+    assert attempts == 2
+    assert items[0]["title"] == "Recovered item"
+
+
+@pytest.mark.asyncio
 async def test_api_collector_unwraps_nested_results_and_cleans_fields() -> None:
     """API collector unwraps nested payloads and normalizes mapped values."""
 
