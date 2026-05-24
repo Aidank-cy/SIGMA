@@ -198,19 +198,6 @@ export function LLMSettingsPanel({
       entry.provider.trim().length === 0
   );
 
-  const groupedApiKeys = useMemo(
-    () =>
-      apiKeyProviders
-        .map((provider) => ({
-          entries: form.api_keys
-            .map((entry, index) => ({ entry, index }))
-            .filter(({ entry }) => entry.provider === provider),
-          provider
-        }))
-        .filter((group) => group.entries.length > 0),
-    [form.api_keys]
-  );
-
   const providerOptions = apiKeyProviders.map((provider) => ({
     label: t(`providers.${provider}`),
     value: provider
@@ -300,76 +287,66 @@ export function LLMSettingsPanel({
               <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
             ) : (
               <div className="max-h-[12rem] space-y-3 overflow-y-auto pr-1">
-                {groupedApiKeys.map((group) => (
-                  <div className="space-y-2" key={group.provider}>
-                    <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-sigma-muted">
-                      {t(`providers.${group.provider}`)}
-                    </h4>
-                    <div className="space-y-2">
-                      {group.entries.map(({ entry, index }) => {
-                        const isDefault = entry.is_default || (!hasExplicitDefault && index === 0);
-                        return (
-                          <div
-                            className={cn(
-                              "grid gap-2 rounded-lg p-2 lg:grid-cols-[0.85fr_1fr_1fr_auto]",
-                              isDefault ? "bg-primary/5" : "bg-sigma-elevated"
-                            )}
-                            key={index}
+                <div className="space-y-2">
+                  {form.api_keys.map((entry, index) => {
+                    const isDefault = entry.is_default || (!hasExplicitDefault && index === 0);
+                    return (
+                      <div
+                        className={cn(
+                          "grid gap-2 rounded-lg p-2 lg:grid-cols-[auto_0.85fr_1fr_1fr_auto]",
+                          isDefault ? "bg-primary/5" : "bg-sigma-elevated"
+                        )}
+                        key={index}
+                      >
+                        <div className="flex items-center justify-center px-1">
+                          <ToggleSwitch
+                            checked={isDefault}
+                            label={t("selectKey")}
+                            onChange={() => setDefaultApiKey(index)}
+                          />
+                        </div>
+                        <CustomSelect
+                          labelMode="stacked"
+                          label={t("provider")}
+                          onChange={(value) => updateApiKey(index, "provider", value)}
+                          options={providerOptions}
+                          value={entry.provider}
+                        />
+                        <Input
+                          label={t("keyName")}
+                          labelMode="stacked"
+                          onChange={(event) => updateApiKey(index, "name", event.target.value)}
+                          value={entry.name}
+                        />
+                        <Input
+                          label={t("keyValue")}
+                          labelMode="stacked"
+                          onChange={(event) => updateApiKey(index, "key", event.target.value)}
+                          type="password"
+                          value={entry.key}
+                        />
+                        <div className="flex items-center justify-center">
+                          <Button
+                            aria-label={t("deleteKey")}
+                            onClick={() => removeApiKey(index)}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
                           >
-                            <CustomSelect
-                              labelMode="stacked"
-                              label={t("provider")}
-                              onChange={(value) => updateApiKey(index, "provider", value)}
-                              options={providerOptions}
-                              value={entry.provider}
-                            />
-                            <Input
-                              label={t("keyName")}
-                              labelMode="stacked"
-                              onChange={(event) => updateApiKey(index, "name", event.target.value)}
-                              value={entry.name}
-                            />
-                            <Input
-                              label={t("keyValue")}
-                              labelMode="stacked"
-                              onChange={(event) => updateApiKey(index, "key", event.target.value)}
-                              type="password"
-                              value={entry.key}
-                            />
-                            <div className="flex flex-col gap-2 self-center">
-                              <Button
-                                className="justify-center"
-                                onClick={() => setDefaultApiKey(index)}
-                                size="sm"
-                                type="button"
-                                variant={isDefault ? "primary" : "secondary"}
-                              >
-                                {isDefault ? t("defaultKey") : t("setDefault")}
-                              </Button>
-                              <Button
-                                aria-label={t("deleteKey")}
-                                onClick={() => removeApiKey(index)}
-                                size="sm"
-                                type="button"
-                                variant="ghost"
-                              >
-                                <Trash2 className="h-4 w-4" aria-hidden />
-                                {t("deleteKey")}
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                            <Trash2 className="h-4 w-4" aria-hidden />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
             <Button className="w-full" disabled={!showCharts && hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
               {t("save")}
             </Button>
           </Card>
-          <Card className="flex flex-col gap-4 self-start p-4">
+          <Card className="flex flex-col gap-4 p-4">
             <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-sigma-text">
               <ToggleSwitch
                 checked={form.cost_guard_enabled}
@@ -397,6 +374,11 @@ export function LLMSettingsPanel({
             <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>
             <FunctionUsageChart data={functionData} />
           </Card>
+        </section>
+        <section className="grid grid-cols-3 gap-4">
+          <UsageCard label={t("today")} tokens={totals.today} />
+          <UsageCard label={t("week")} tokens={totals.week} />
+          <UsageCard label={t("month")} tokens={totals.month} />
         </section>
         {showCharts ? (
           <section className="grid gap-4 xl:grid-cols-2">
@@ -435,12 +417,6 @@ export function LLMSettingsPanel({
             </Card>
           </section>
         ) : null}
-      </section>
-
-      <section className="mt-auto flex flex-col gap-3">
-        <UsageCard label={t("today")} tokens={totals.today} />
-        <UsageCard label={t("week")} tokens={totals.week} />
-        <UsageCard label={t("month")} tokens={totals.month} />
       </section>
     </div>
   );

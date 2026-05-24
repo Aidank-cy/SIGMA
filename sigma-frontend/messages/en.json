@@ -746,6 +746,7 @@
       "tokenLimit": "Token limit",
       "defaultKey": "Default",
       "setDefault": "Set as default",
+      "selectKey": "Select key",
       "deleteKey": "Delete",
       "emptyKeys": "No API keys saved yet.",
       "keyCount": "{count, plural, =0 {No API keys} one {# API key} other {# API keys}}",

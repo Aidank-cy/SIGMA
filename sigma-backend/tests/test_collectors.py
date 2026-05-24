@@ -117,6 +117,30 @@ async def test_api_collector_accepts_user_created_config_aliases() -> None:
 
 
 @pytest.mark.asyncio
+async def test_api_collector_preserves_endpoint_query_without_params() -> None:
+    """API collector preserves query strings on full endpoint URLs."""
+    seen_url = ""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal seen_url
+        seen_url = str(request.url)
+        return httpx.Response(200, json={"results": [{"title": "Query item", "description": "Body"}]})
+
+    source = _source(
+        SourceType.API,
+        {
+            "endpoint": "https://newsdata.test/api/latest?apikey=pub_test&language=en",
+            "items_path": "results",
+        },
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        items = await APICollector(source, client).collect()
+
+    assert seen_url == "https://newsdata.test/api/latest?apikey=pub_test&language=en"
+    assert items[0]["title"] == "Query item"
+
+
+@pytest.mark.asyncio
 async def test_api_collector_unwraps_nested_results_and_cleans_fields() -> None:
     """API collector unwraps nested payloads and normalizes mapped values."""
 

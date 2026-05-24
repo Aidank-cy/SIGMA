@@ -1670,3 +1670,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, `./hooks/post-file-edit.sh`, `git diff --check`, and an in-app browser route smoke check of `http://localhost:3001/en/analytics` redirecting cleanly to login with no console errors.
 - Follow-up: Rebuild the backend container with `docker compose up -d --build sigma-backend` before validating Docker-backed source collection.
 - Timestamp: 2026-05-24T08:35:13Z
+
+### [Maintenance] Settings key controls and API query preservation
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/dashboard/custom-select.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/collectors/api_collector.py, sigma-backend/tests/test_collectors.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Sentiment trend now uses range-specific sliding-window point counts, LLM API keys render as a flat toggle-selected list with icon-only deletes, provider dropdowns portal outside the scroll container, usage totals are a three-column row below the token/function charts, the password card moved under the LLM panel, and API collector requests preserve endpoint query strings when no params are present.
+- Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, `./hooks/post-file-edit.sh`, and `git diff --check`.
+- Follow-up: Rebuild the backend container with `docker compose up -d --build sigma-backend` before validating Docker-backed NewsData collection.
+- Timestamp: 2026-05-24T08:57:39Z

@@ -50,7 +50,10 @@ class APICollector(BaseCollector):
             params = dict(base_params)
             if pagination:
                 params[str(page_param)] = page_start + page_index
-            response = await client.request(method, url, headers=headers, params=params)
+            request_kwargs: dict[str, Any] = {"headers": headers}
+            if params:
+                request_kwargs["params"] = params
+            response = await client.request(method, url, **request_kwargs)
             response.raise_for_status()
             payload = response.json()
             response_path = self.config.get("response_path") or self.config.get("items_path")

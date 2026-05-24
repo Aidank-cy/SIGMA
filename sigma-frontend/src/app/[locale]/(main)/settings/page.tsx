@@ -171,7 +171,6 @@ export default function SettingsPage() {
           ) : (
             <ReportConfigSection payload={reportPayload} setPayload={setReportPayload} />
           )}
-          <PasswordSection onOpen={() => setIsPasswordOpen(true)} />
         </div>
         <div className="flex min-w-0 flex-col gap-5">
           <LLMConfigSection
@@ -181,6 +180,7 @@ export default function SettingsPage() {
             onSave={llmSettings.update.mutateAsync}
             usageData={llmSettings.usage.data}
           />
+          <PasswordSection onOpen={() => setIsPasswordOpen(true)} />
         </div>
       </div>
 
