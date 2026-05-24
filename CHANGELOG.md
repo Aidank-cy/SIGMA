@@ -47,6 +47,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change Settings LLM API key rows to remove per-key token-limit controls, scroll after two keys, and stack usage totals as horizontal rows.
 - Compact the Settings LLM API key cards, merge cost guard with daily token limit, and label usage totals as tokens.
 - Move Settings LLM usage charts below the save-config card and constrain the API key list to a scrollable area.
 - Change Settings report categories to use the same ALL-aware pill selector as markets.
@@ -144,6 +145,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix RSS, API, and scraper collectors to follow HTTP redirects and clean dependent collection rows before deleting synced user sources.
+- Fix Sync source log shortcuts so they scroll the collection logs section into view after filtering.
 - Fix Sync market card heights, internal source scrolling, date-picker click targets, and Analytics sentiment keyword coverage.
 - Fix Sync source-row actions, wizard spacing, date-field styling, source schedule defaults, and modal panel opacity.
 - Fix Sync page source-management labels to use the Sync i18n namespace and soften modal backdrops.

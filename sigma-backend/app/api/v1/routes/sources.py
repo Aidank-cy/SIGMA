@@ -3,13 +3,14 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.collectors.factory import create_collector
 from app.database import get_db
 from app.middleware.auth import get_current_user
 from app.models.collector_log import CollectorLog
+from app.models.collected_item import CollectedItem
 from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, UserRole
 from app.models.user import User
@@ -176,6 +177,8 @@ async def delete_source(
     source = await _get_owned_source(db, source_id, current_user)
     if source.is_system:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="System source is protected")
+    await db.execute(delete(CollectorLog).where(CollectorLog.source_id == source_id))
+    await db.execute(delete(CollectedItem).where(CollectedItem.source_id == source_id))
     await db.delete(source)
     await db.commit()
     remove_source_job(source_id)

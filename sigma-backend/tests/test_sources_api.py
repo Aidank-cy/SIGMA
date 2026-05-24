@@ -4,7 +4,9 @@ from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
+from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, IntelligenceCategory, Market, SourceType
@@ -38,6 +40,24 @@ def test_sources_create_list_and_delete(client: TestClient) -> None:
 
     delete_response = client.delete(f"/api/v1/sources/{source_id}", headers=_auth(token))
     assert delete_response.status_code == 204
+
+
+def test_delete_source_cleans_collected_items_and_logs(client: TestClient) -> None:
+    """Deleting a synced user source removes dependent collection rows first."""
+    token = _token(client, "delete-synced@example.com")
+    response = client.post(
+        "/api/v1/sources",
+        headers=_auth(token),
+        json=_source_payload("Synced RSS"),
+    )
+    assert response.status_code == 201
+    source_id = response.json()["id"]
+    asyncio.run(_seed_collected_item_and_log(client, source_id))
+
+    delete_response = client.delete(f"/api/v1/sources/{source_id}", headers=_auth(token))
+
+    assert delete_response.status_code == 204
+    asyncio.run(_assert_source_dependencies_removed(client, source_id))
 
 
 def test_source_update_status_and_auth_edges(client: TestClient) -> None:
@@ -263,6 +283,43 @@ async def _seed_collector_log_async(client: TestClient, source_id: str) -> None:
             )
         )
         await db.commit()
+
+
+async def _seed_collected_item_and_log(client: TestClient, source_id: str) -> None:
+    session_factory = client.app.state.session_factory
+    now = datetime.now(timezone.utc)
+    async with session_factory() as db:
+        db.add_all(
+            [
+                CollectedItem(
+                    source_id=UUID(source_id),
+                    title="Synced item",
+                    content_raw="Synced content",
+                    content_url=f"https://rss.test/{source_id}",
+                    summary=None,
+                    category=IntelligenceCategory.FINANCE,
+                    market=Market.US,
+                    published_at=now,
+                    expires_at=now + timedelta(days=30),
+                ),
+                CollectorLog(
+                    source_id=UUID(source_id),
+                    status=CollectorStatus.SUCCESS,
+                    items_count=1,
+                    error_message=None,
+                    duration_ms=100,
+                    executed_at=now,
+                ),
+            ]
+        )
+        await db.commit()
+
+
+async def _assert_source_dependencies_removed(client: TestClient, source_id: str) -> None:
+    session_factory = client.app.state.session_factory
+    async with session_factory() as db:
+        assert await db.scalar(select(CollectedItem).where(CollectedItem.source_id == UUID(source_id))) is None
+        assert await db.scalar(select(CollectorLog).where(CollectorLog.source_id == UUID(source_id))) is None
 
 
 async def _seed_collector_logs(client: TestClient, owner_source: str, other_source: str) -> None:

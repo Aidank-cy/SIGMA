@@ -1644,3 +1644,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS
 - Notes: Fixed Sync market card heights with internal source scrolling, added ALL-aware market filter pills, expanded date picker click targets, broadened Analytics sentiment keyword matching with word-boundary patterns, compacted LLM API key rows, merged cost guard and daily limit controls, shortened the API key scroll area, and changed usage cards to show token labels instead of dollar estimates. Verified message JSON parsing, frontend `npm run build`, and `git diff --check`.
 - Timestamp: 2026-05-24T04:42:22Z
+
+### [Maintenance] Collector, source delete, and settings layout fixes
+- Status: COMPLETE
+- Files modified: sigma-backend/app/collectors/rss_collector.py, sigma-backend/app/collectors/api_collector.py, sigma-backend/app/collectors/scraper_collector.py, sigma-backend/app/api/v1/routes/sources.py, sigma-backend/tests/test_sources_api.py, sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Enabled HTTP redirect following in all three concrete collectors, deleted collector logs and collected items before removing synced user sources, added source-delete dependency cleanup coverage, scrolled Sync source log shortcuts to the collection logs panel, removed per-key token-limit controls from LLM key rows, fixed default-row alignment without a left border offset, constrained API-key scrolling to two rows, anchored Settings usage totals to the right-column bottom, and changed usage totals to full-width horizontal token rows. Verified targeted Ruff, focused backend tests (`24 passed, 1 warning`), full backend tests (`178 passed, 1 warning`), frontend `npm run build` through `./hooks/post-file-edit.sh`, and `git diff --check`.
+- Follow-ups: None.
+- Timestamp: 2026-05-24T07:22:59Z

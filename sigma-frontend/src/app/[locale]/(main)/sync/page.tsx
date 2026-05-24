@@ -19,7 +19,7 @@ import {
 import type { LucideIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import type { ReactNode } from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/Button"
 import { CustomSelect } from "@/components/dashboard/custom-select"
@@ -110,6 +110,7 @@ export default function SyncPage() {
   const [logRefreshTick, setLogRefreshTick] = useState(0)
   const [logs, setLogs] = useState<AdminLogResponse | null>(null)
   const [collapsedLogs, setCollapsedLogs] = useState<Set<string>>(new Set())
+  const logsSectionRef = useRef<HTMLElement>(null)
 
   const nextRun = useMemo(() => new Date(Date.now() + 60 * 60 * 1000).toLocaleString(), [])
   const groupedSources = useMemo(() => {
@@ -287,6 +288,9 @@ export default function SyncPage() {
   function showSourceLogs(source: DataSource) {
     setLogSourceId(source.id)
     setLogPage(1)
+    setTimeout(() => {
+      logsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 100)
   }
 
   function toggleLog(id: string) {
@@ -428,34 +432,36 @@ export default function SyncPage() {
         )}
       </section>
 
-      <UserLogsPanel
-        collapsedLogs={collapsedLogs}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
-        logs={logs}
-        onDateFromChange={(value) => {
-          setDateFrom(value)
-          setLogPage(1)
-        }}
-        onDateToChange={(value) => {
-          setDateTo(value)
-          setLogPage(1)
-        }}
-        onPageChange={setLogPage}
-        onSourceChange={(value) => {
-          setLogSourceId(value)
-          setLogPage(1)
-        }}
-        onStatusChange={(value) => {
-          setLogStatus(value)
-          setLogPage(1)
-        }}
-        onToggleLog={toggleLog}
-        page={logPage}
-        sourceId={logSourceId}
-        sources={sources}
-        status={logStatus}
-      />
+      <section className="scroll-mt-6" ref={logsSectionRef}>
+        <UserLogsPanel
+          collapsedLogs={collapsedLogs}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          logs={logs}
+          onDateFromChange={(value) => {
+            setDateFrom(value)
+            setLogPage(1)
+          }}
+          onDateToChange={(value) => {
+            setDateTo(value)
+            setLogPage(1)
+          }}
+          onPageChange={setLogPage}
+          onSourceChange={(value) => {
+            setLogSourceId(value)
+            setLogPage(1)
+          }}
+          onStatusChange={(value) => {
+            setLogStatus(value)
+            setLogPage(1)
+          }}
+          onToggleLog={toggleLog}
+          page={logPage}
+          sourceId={logSourceId}
+          sources={sources}
+          status={logStatus}
+        />
+      </section>
 
       <Modal
         closeLabel={t("nav.close")}
