@@ -261,4 +261,7 @@ def _visible_source_predicate(user: User):
 async def _validate_source(source: DataSource) -> None:
     collector = create_collector(source)
     if not await collector.validate_config():
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid config")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid config for {source.source_type} source: check required fields",
+        )

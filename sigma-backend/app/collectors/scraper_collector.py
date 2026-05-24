@@ -21,8 +21,10 @@ class ScraperCollector(BaseCollector):
 
     async def validate_config(self) -> bool:
         """Validate required scraper collector configuration."""
+        has_url = bool(self.config.get("target_url") or self.config.get("url"))
         selectors = self.config.get("selectors") or {}
-        return bool(self.config.get("target_url") and selectors.get("item_container"))
+        has_selector = bool(selectors.get("item_container") or self.config.get("item_selector"))
+        return has_url and has_selector
 
     async def collect(self) -> list[RawCollectedItem]:
         """Fetch HTML and extract selected items."""
@@ -40,16 +42,18 @@ class ScraperCollector(BaseCollector):
 
     async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
         headers = {"User-Agent": self._user_agent()}
-        target_url = str(self.config["target_url"])
+        target_url = str(self.config.get("target_url") or self.config.get("url"))
         response = await client.get(target_url, headers=headers)
         response.raise_for_status()
-        selectors = self.config["selectors"]
+        selectors = self.config.get("selectors") or {}
+        if not selectors and self.config.get("item_selector"):
+            selectors = {"item_container": self.config["item_selector"]}
         soup = BeautifulSoup(response.text, "html.parser")
         items: list[RawCollectedItem] = []
         max_entries = int(self.config.get("max_entries") or 0)
         min_content_length = int(self.config.get("min_content_length") or 30)
         for container in soup.select(str(selectors["item_container"])):
-            title = self._text(container, selectors.get("title"))
+            title = self._text(container, selectors.get("title")) or self._container_text(container)
             content = self._text(container, selectors.get("content")) or title
             href = self._href(container, selectors.get("link"))
             published = parse_datetime(self._text(container, selectors.get("date")))
@@ -79,6 +83,10 @@ class ScraperCollector(BaseCollector):
             return ""
         element = container.select_one(str(selector))
         return element.get_text(" ", strip=True) if element else ""
+
+    @staticmethod
+    def _container_text(container: BeautifulSoup) -> str:
+        return container.get_text(" ", strip=True)
 
     @staticmethod
     def _href(container: BeautifulSoup, selector: object) -> str | None:

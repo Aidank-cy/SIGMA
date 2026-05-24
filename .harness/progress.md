@@ -1652,3 +1652,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Enabled HTTP redirect following in all three concrete collectors, deleted collector logs and collected items before removing synced user sources, added source-delete dependency cleanup coverage, scrolled Sync source log shortcuts to the collection logs panel, removed per-key token-limit controls from LLM key rows, fixed default-row alignment without a left border offset, constrained API-key scrolling to two rows, anchored Settings usage totals to the right-column bottom, and changed usage totals to full-width horizontal token rows. Verified targeted Ruff, focused backend tests (`24 passed, 1 warning`), full backend tests (`178 passed, 1 warning`), frontend `npm run build` through `./hooks/post-file-edit.sh`, and `git diff --check`.
 - Follow-ups: None.
 - Timestamp: 2026-05-24T07:22:59Z
+
+### [Maintenance] Settings layout and sync source fixes
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/collectors/api_collector.py, sigma-backend/app/collectors/scraper_collector.py, sigma-backend/app/api/v1/routes/sources.py, sigma-backend/tests/test_collectors.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: LLM settings API keys and cost guard now render in side-by-side cards, usage cards can bottom-align in the right settings column, API/scraper collectors accept Sync wizard config aliases, source validation errors include collector type detail, and delete actions show delete-specific toasts with immediate cached removal.
+- Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, `./hooks/post-file-edit.sh`, and `git diff --check`.
+- Follow-up: Rebuild the backend container with `docker compose up -d --build sigma-backend` before validating the fixes through Docker.
+- Timestamp: 2026-05-24T08:03:57Z

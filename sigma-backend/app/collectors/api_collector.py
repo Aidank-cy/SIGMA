@@ -13,7 +13,8 @@ class APICollector(BaseCollector):
 
     async def validate_config(self) -> bool:
         """Validate required API collector configuration."""
-        return bool(self.config.get("base_url") and self.config.get("field_mapping"))
+        has_endpoint = bool(self.config.get("endpoint") or self.config.get("base_url"))
+        return has_endpoint
 
     async def collect(self) -> list[RawCollectedItem]:
         """Fetch and map API response items."""
@@ -28,7 +29,12 @@ class APICollector(BaseCollector):
 
     async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
         endpoint = str(self.config.get("endpoint", ""))
-        url = urljoin(str(self.config["base_url"]).rstrip("/") + "/", endpoint.lstrip("/"))
+        base_url = self.config.get("base_url")
+        url = (
+            urljoin(str(base_url).rstrip("/") + "/", endpoint.lstrip("/"))
+            if base_url
+            else endpoint
+        )
         method = str(self.config.get("method", "GET")).upper()
         base_params = self._resolve_env_values(dict(self.config.get("params") or {}))
         headers = self._resolve_env_values(dict(self.config.get("headers") or {}))
@@ -47,7 +53,8 @@ class APICollector(BaseCollector):
             response = await client.request(method, url, headers=headers, params=params)
             response.raise_for_status()
             payload = response.json()
-            entries = self._extract_entries(self._extract_path(payload, self.config.get("response_path")))
+            response_path = self.config.get("response_path") or self.config.get("items_path")
+            entries = self._extract_entries(self._extract_path(payload, response_path))
             if not entries:
                 break
             for entry in entries:
@@ -62,7 +69,7 @@ class APICollector(BaseCollector):
         return collected
 
     def _map_entry(self, entry: dict[str, Any]) -> RawCollectedItem | None:
-        mapping = dict(self.config.get("field_mapping") or {})
+        mapping = dict(self.config.get("field_mapping") or self._default_field_mapping())
         item: RawCollectedItem = {}
         for target, source_path in mapping.items():
             value = self._extract_path(entry, source_path)
@@ -121,6 +128,14 @@ class APICollector(BaseCollector):
             return None
         return item
 
+    @staticmethod
+    def _default_field_mapping() -> dict[str, Any]:
+        return {
+            "title": "title",
+            "content": ("content", "description"),
+            "published_at": ("published_at", "pubDate"),
+        }
+
     @classmethod
     def _extract_entries(cls, value: Any) -> list[dict[str, Any]]:
         if isinstance(value, list):
@@ -138,6 +153,12 @@ class APICollector(BaseCollector):
     def _extract_path(payload: Any, path: Any) -> Any:
         if path in (None, ""):
             return payload
+        if isinstance(path, (list, tuple)):
+            for candidate in path:
+                value = APICollector._extract_path(payload, candidate)
+                if value not in (None, ""):
+                    return value
+            return None
         value = payload
         for part in str(path).split("."):
             if isinstance(value, dict):
