@@ -1,7 +1,7 @@
 "use client";
 
 import { SlidersHorizontal } from "lucide-react";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
@@ -80,7 +80,7 @@ interface ReportConfigEditorProps {
   title?: string;
 }
 
-export function ReportConfigEditor({
+export const ReportConfigEditor = memo(function ReportConfigEditor({
   className,
   compact = false,
   isSaving = false,
@@ -198,6 +198,19 @@ export function ReportConfigEditor({
         setPayload={setPayload}
       />
     </Card>
+  );
+}, reportConfigEditorPropsEqual);
+
+function reportConfigEditorPropsEqual(prev: ReportConfigEditorProps, next: ReportConfigEditorProps) {
+  return (
+    prev.className === next.className &&
+    prev.compact === next.compact &&
+    prev.isSaving === next.isSaving &&
+    prev.onSave === next.onSave &&
+    prev.saveLabel === next.saveLabel &&
+    prev.setPayload === next.setPayload &&
+    prev.title === next.title &&
+    reportConfigsEqual(prev.payload, next.payload)
   );
 }
 

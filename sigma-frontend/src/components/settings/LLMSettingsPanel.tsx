@@ -3,7 +3,7 @@
 import { Gauge, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -54,6 +54,53 @@ const defaultConfig: LLMConfig = {
 
 const chartColors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
+function normalizedLLMConfig(config: LLMConfig, newKeyName: string): LLMConfig {
+  const apiKeys = (config.api_keys ?? []).map((entry) => ({
+    ...entry,
+    is_default: Boolean(entry.is_default),
+    provider: entry.provider || "anthropic",
+    token_limit: entry.token_limit || 1_000_000
+  }));
+  if (apiKeys.length === 0) {
+    apiKeys.push({
+      is_default: true,
+      key: "",
+      name: newKeyName,
+      provider: "anthropic",
+      token_limit: 1_000_000
+    });
+  }
+  return {
+    ...config,
+    api_keys: apiKeys
+  };
+}
+
+function llmConfigsEqual(left: LLMConfig, right: LLMConfig) {
+  return (
+    left.daily_token_limit === right.daily_token_limit &&
+    left.cost_guard_enabled === right.cost_guard_enabled &&
+    llmApiKeysEqual(left.api_keys, right.api_keys)
+  );
+}
+
+function llmApiKeysEqual(left: LLMApiKey[], right: LLMApiKey[]) {
+  return (
+    left.length === right.length &&
+    left.every((entry, index) => {
+      const other = right[index];
+      return (
+        other !== undefined &&
+        entry.name === other.name &&
+        entry.key === other.key &&
+        entry.provider === other.provider &&
+        entry.token_limit === other.token_limit &&
+        entry.is_default === other.is_default
+      );
+    })
+  );
+}
+
 interface LLMSettingsPanelProps {
   configData?: LLMConfig;
   isConfigLoading?: boolean;
@@ -75,32 +122,20 @@ export function LLMSettingsPanel({
   const locale = useLocale();
   const toast = useToast();
   const [form, setForm] = useState<LLMConfig>(defaultConfig);
+  const lastAppliedConfigRef = useRef<LLMConfig | null>(null);
 
   useEffect(() => {
     if (configData) {
-      const apiKeys = (configData.api_keys ?? []).map((entry) => ({
-        ...entry,
-        is_default: Boolean(entry.is_default),
-        provider: entry.provider || "anthropic",
-        token_limit: entry.token_limit || 1_000_000
-      }));
-      if (apiKeys.length === 0) {
-        apiKeys.push({
-          is_default: true,
-          key: "",
-          name: t("newKeyName"),
-          provider: "anthropic",
-          token_limit: 1_000_000
-        });
+      const nextForm = normalizedLLMConfig(configData, t("newKeyName"));
+      if (lastAppliedConfigRef.current && llmConfigsEqual(nextForm, lastAppliedConfigRef.current)) {
+        return;
       }
-      setForm({
-        ...configData,
-        api_keys: apiKeys
-      });
+      lastAppliedConfigRef.current = nextForm;
+      setForm(nextForm);
       return;
     }
     if (!isConfigLoading) {
-      setForm({
+      const nextForm: LLMConfig = {
         ...defaultConfig,
         api_keys: [
           {
@@ -111,7 +146,12 @@ export function LLMSettingsPanel({
             token_limit: 1_000_000
           }
         ]
-      });
+      };
+      if (lastAppliedConfigRef.current && llmConfigsEqual(nextForm, lastAppliedConfigRef.current)) {
+        return;
+      }
+      lastAppliedConfigRef.current = nextForm;
+      setForm(nextForm);
     }
   }, [configData, isConfigLoading, t]);
 

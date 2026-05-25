@@ -174,6 +174,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Settings report configuration flicker by memoizing the report editor and guarding LLM settings form hydration against identical refetches.
 - Fix Settings and admin report configuration polling so unchanged refetches do not flicker cards or overwrite local edits.
 - Fix Settings report configuration refresh loading by applying server data directly and using bounded report-config query retries.
 - Fix admin user report configuration hydration and retry handling so fast user switches and transient failures recover cleanly.

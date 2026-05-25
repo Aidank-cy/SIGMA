@@ -1770,3 +1770,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Added deep-equality guards around Settings and admin report-config hydration so unchanged polling responses do not reset local editor state, reduced report/LLM/admin detail polling to ten seconds with five-second stale windows, removed immediate LLM cache garbage collection, and removed explicit undefined placeholders from admin detail queries.
 - Verification: `npm run build`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `./hooks/post-file-edit.sh`, and `git diff --check`.
 - Timestamp: 2026-05-25T18:53:50+08:00
+
+### [Maintenance] Settings report render stability v2
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/components/settings/ReportConfigEditor.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/hooks/useAdmin.ts, sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/src/hooks/useLLMSettings.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Memoized the report configuration editor with a report-config deep comparator, guarded LLM settings form hydration against identical config refetches, changed the admin users list poll interval to ten seconds, and limited user report/LLM query notifications to data/error/loading changes.
+- Verification: `npm run build`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, and `git diff --check`.
+- Timestamp: 2026-05-25T19:22:00+08:00
