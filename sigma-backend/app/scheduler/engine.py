@@ -98,16 +98,25 @@ def add_report_jobs(
     """Register periodic report generation jobs."""
     scheduler.add_job(
         job_func,
-        trigger=CronTrigger(hour=22, minute=0, timezone="UTC"),
-        id="reports:daily",
-        args=[ReportType.DAILY, session_factory],
+        trigger=CronTrigger(day_of_week="mon-fri", hour=1, minute=21, timezone="UTC"),
+        id="reports:daily_morning",
+        args=[ReportType.DAILY_MORNING, session_factory],
         replace_existing=True,
         max_instances=1,
         coalesce=True,
     )
     scheduler.add_job(
         job_func,
-        trigger=CronTrigger(day_of_week="sun", hour=22, minute=0, timezone="UTC"),
+        trigger=CronTrigger(day_of_week="mon-fri", hour=9, minute=31, timezone="UTC"),
+        id="reports:daily_afternoon",
+        args=[ReportType.DAILY_AFTERNOON, session_factory],
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        job_func,
+        trigger=CronTrigger(day_of_week="fri", hour=9, minute=45, timezone="UTC"),
         id="reports:weekly",
         args=[ReportType.WEEKLY, session_factory],
         replace_existing=True,
@@ -116,7 +125,7 @@ def add_report_jobs(
     )
     scheduler.add_job(
         job_func,
-        trigger=CronTrigger(day="last", hour=22, minute=0, timezone="UTC"),
+        trigger=CronTrigger(day=1, hour=4, minute=0, timezone="UTC"),
         id="reports:monthly",
         args=[ReportType.MONTHLY, session_factory],
         replace_existing=True,

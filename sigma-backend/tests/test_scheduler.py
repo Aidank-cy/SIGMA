@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import select
@@ -23,7 +24,7 @@ from app.scheduler.engine import (
     start_scheduler,
     stop_scheduler,
 )
-from app.scheduler.jobs import _insert_new_items, _period_for, collect_from_source
+from app.scheduler.jobs import _config_frequencies_for, _insert_new_items, _period_for, collect_from_source
 
 
 @pytest.mark.asyncio
@@ -50,7 +51,7 @@ async def test_start_scheduler_starts_and_registers_core_jobs() -> None:
         assert scheduler.running is True
         assert f"collector:{source.id}" in job_ids
         assert "cleanup_expired_items" in job_ids
-        assert {"reports:daily", "reports:weekly", "reports:monthly"}.issubset(job_ids)
+        assert {"reports:daily_morning", "reports:daily_afternoon", "reports:weekly", "reports:monthly"}.issubset(job_ids)
         assert {"market-indices:refresh", "market-candles:refresh"}.issubset(job_ids)
     finally:
         await stop_scheduler()
@@ -226,15 +227,16 @@ def test_add_and_remove_source_job_updates_scheduler() -> None:
 
 
 def test_scheduler_registers_report_jobs() -> None:
-    """Scheduler registers daily, weekly, and monthly report jobs."""
+    """Scheduler registers Beijing-time daily, weekly, and monthly report jobs."""
     scheduler.remove_all_jobs()
 
     add_report_jobs()
 
     jobs = {job.id: job for job in scheduler.get_jobs()}
-    assert "cron[hour='22', minute='0']" == str(jobs["reports:daily"].trigger)
-    assert "cron[day_of_week='sun', hour='22', minute='0']" == str(jobs["reports:weekly"].trigger)
-    assert "cron[day='last', hour='22', minute='0']" == str(jobs["reports:monthly"].trigger)
+    assert "cron[day_of_week='mon-fri', hour='1', minute='21']" == str(jobs["reports:daily_morning"].trigger)
+    assert "cron[day_of_week='mon-fri', hour='9', minute='31']" == str(jobs["reports:daily_afternoon"].trigger)
+    assert "cron[day_of_week='fri', hour='9', minute='45']" == str(jobs["reports:weekly"].trigger)
+    assert "cron[day='1', hour='4', minute='0']" == str(jobs["reports:monthly"].trigger)
     assert all(job.max_instances == 1 for job in jobs.values())
     assert all(job.coalesce is True for job in jobs.values())
     scheduler.remove_all_jobs()
@@ -269,21 +271,38 @@ def test_scheduler_registers_market_indices_job() -> None:
     add_report_jobs()
 
     job_ids = {job.id for job in scheduler.get_jobs()}
-    assert {"reports:daily", "reports:weekly", "reports:monthly"}.issubset(job_ids)
+    assert {"reports:daily_morning", "reports:daily_afternoon", "reports:weekly", "reports:monthly"}.issubset(job_ids)
     scheduler.remove_all_jobs()
 
 
 def test_report_periods_match_report_type() -> None:
-    """Scheduled report periods cover daily, trailing-week, and month-to-date ranges."""
-    daily_start, daily_end = _period_for(ReportType.DAILY)
-    weekly_start, weekly_end = _period_for(ReportType.WEEKLY)
-    monthly_start, monthly_end = _period_for(ReportType.MONTHLY)
+    """Scheduled report periods use exact Beijing-time filter windows."""
+    beijing = ZoneInfo("Asia/Shanghai")
+    now = datetime(2026, 5, 22, 9, 45, tzinfo=timezone.utc)
+    morning_start, morning_end = _period_for(ReportType.DAILY_MORNING, now)
+    afternoon_start, afternoon_end = _period_for(ReportType.DAILY_AFTERNOON, now)
+    weekly_start, weekly_end = _period_for(ReportType.WEEKLY, now)
+    monthly_start, monthly_end = _period_for(ReportType.MONTHLY, now)
 
-    assert daily_start == daily_end
-    assert weekly_end == daily_end
-    assert (weekly_end - weekly_start).days == 6
-    assert monthly_end == daily_end
-    assert monthly_start == daily_end.replace(day=1)
+    assert morning_start == datetime(2026, 5, 21, 17, 30, 1, tzinfo=beijing)
+    assert morning_end == datetime(2026, 5, 22, 9, 20, tzinfo=beijing)
+    assert afternoon_start == datetime(2026, 5, 22, 9, 20, 1, tzinfo=beijing)
+    assert afternoon_end == datetime(2026, 5, 22, 17, 30, tzinfo=beijing)
+    assert weekly_start == datetime(2026, 5, 15, 17, 45, 1, tzinfo=beijing)
+    assert weekly_end == datetime(2026, 5, 22, 17, 44, tzinfo=beijing)
+    assert monthly_start == datetime(2026, 4, 1, 0, 0, tzinfo=beijing)
+    assert monthly_end == datetime(2026, 4, 30, 23, 59, 59, tzinfo=beijing)
+
+
+def test_daily_report_frequency_matching_is_backward_compatible() -> None:
+    """Daily configs participate in both split daily report jobs."""
+    assert _config_frequencies_for(ReportType.DAILY_MORNING) == (ReportType.DAILY, ReportType.DAILY_MORNING)
+    assert _config_frequencies_for(ReportType.DAILY_AFTERNOON) == (ReportType.DAILY, ReportType.DAILY_AFTERNOON)
+    assert _config_frequencies_for(ReportType.DAILY) == (
+        ReportType.DAILY,
+        ReportType.DAILY_MORNING,
+        ReportType.DAILY_AFTERNOON,
+    )
 
 
 async def asyncio_sleep() -> None:

@@ -27,7 +27,7 @@ import type { Category, LLMConfig, LLMUsageResponse, Locale, Market, ReportType,
 const retentionOptions = [7, 30, 60, 90] as const;
 const categories: Category[] = ["politics", "finance", "technology", "macro"];
 const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "kr", "tw"];
-const reportTypes: ReportType[] = ["daily", "weekly", "monthly"];
+const reportTypes: ReportType[] = ["daily", "daily_morning", "daily_afternoon", "weekly", "monthly"];
 
 const defaultReportConfig: UserReportConfig = {
   categories: [],

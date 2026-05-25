@@ -367,7 +367,7 @@ export function LLMSettingsPanel({
               {t("save")}
             </Button>
           </Card>
-          <Card className="flex h-[22rem] flex-col gap-4 p-4">
+          <Card className="flex h-[16rem] flex-col gap-4 p-4">
             <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-sigma-text">
               <ToggleSwitch
                 checked={form.cost_guard_enabled}

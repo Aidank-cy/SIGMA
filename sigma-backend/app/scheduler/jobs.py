@@ -1,7 +1,8 @@
 import asyncio
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from time import perf_counter
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
@@ -26,6 +27,8 @@ from app.utils.event_hooks import notify_new_items
 from app.utils.redis_lock import acquire_lock, release_lock
 
 __all__ = ["candle_refresh_job"]
+
+BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 
 
 async def collect_from_source(
@@ -103,22 +106,23 @@ async def generate_scheduled_reports(
     session_factory: async_sessionmaker[AsyncSession] = AsyncSessionLocal,
 ) -> None:
     """Generate deduplicated reports for active user report configurations."""
+    resolved_type = ReportType(report_type)
     async with session_factory() as db:
         configs = list(await db.scalars(
             select(UserReportConfig).where(
                 UserReportConfig.is_active.is_(True),
-                UserReportConfig.report_frequency == report_type,
+                UserReportConfig.report_frequency.in_(_config_frequencies_for(resolved_type)),
             )
         ))
         scopes = {
             (config.user_id, tuple(config.markets), tuple(config.categories))
             for config in configs
         }
-        period_start, period_end = _period_for(report_type)
+        period_start, period_end = _period_for(resolved_type)
         for user_id, markets, categories in scopes:
             await generate_report(
                 db,
-                report_type,
+                resolved_type,
                 list(markets),
                 list(categories),
                 period_start,
@@ -128,14 +132,45 @@ async def generate_scheduled_reports(
         await db.commit()
 
 
-def _period_for(report_type: ReportType) -> tuple[date, date]:
-    today = datetime.now(timezone.utc).date()
+def _config_frequencies_for(report_type: ReportType) -> tuple[ReportType, ...]:
     if report_type == ReportType.DAILY:
-        return today, today
+        return (ReportType.DAILY, ReportType.DAILY_MORNING, ReportType.DAILY_AFTERNOON)
+    if report_type in {ReportType.DAILY_MORNING, ReportType.DAILY_AFTERNOON}:
+        return (ReportType.DAILY, report_type)
+    return (report_type,)
+
+
+def _period_for(report_type: ReportType, now: datetime | None = None) -> tuple[datetime, datetime]:
+    local_now = (now or datetime.now(timezone.utc)).astimezone(BEIJING_TZ)
+    today = local_now.date()
+    if report_type == ReportType.DAILY_MORNING:
+        return (
+            datetime.combine(today - timedelta(days=1), time(17, 30, 1), tzinfo=BEIJING_TZ),
+            datetime.combine(today, time(9, 20, 0), tzinfo=BEIJING_TZ),
+        )
+    if report_type == ReportType.DAILY_AFTERNOON:
+        return (
+            datetime.combine(today, time(9, 20, 1), tzinfo=BEIJING_TZ),
+            datetime.combine(today, time(17, 30, 0), tzinfo=BEIJING_TZ),
+        )
+    if report_type == ReportType.DAILY:
+        return (
+            datetime.combine(today, time.min, tzinfo=BEIJING_TZ),
+            datetime.combine(today, time(23, 59, 59), tzinfo=BEIJING_TZ),
+        )
     if report_type == ReportType.WEEKLY:
-        return today - timedelta(days=6), today
-    first_day = today.replace(day=1)
-    return first_day, today
+        friday = today - timedelta(days=(today.weekday() - 4) % 7)
+        return (
+            datetime.combine(friday - timedelta(days=7), time(17, 45, 1), tzinfo=BEIJING_TZ),
+            datetime.combine(friday, time(17, 44, 0), tzinfo=BEIJING_TZ),
+        )
+    first_day_this_month = today.replace(day=1)
+    last_day_previous_month = first_day_this_month - timedelta(days=1)
+    first_day_previous_month = last_day_previous_month.replace(day=1)
+    return (
+        datetime.combine(first_day_previous_month, time.min, tzinfo=BEIJING_TZ),
+        datetime.combine(last_day_previous_month, time(23, 59, 59), tzinfo=BEIJING_TZ),
+    )
 
 
 async def _write_log(

@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+from uuid import UUID
 
 from fastapi.testclient import TestClient
 
@@ -137,7 +138,8 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
     """Authenticated users can read/update LLM config and inspect usage rollups."""
     token = _token(client, "settings-llm@example.com")
     headers = _auth(token)
-    asyncio.run(_seed_llm_usage(client))
+    user_id = client.get("/api/v1/auth/me", headers=headers).json()["id"]
+    asyncio.run(_seed_llm_usage(client, user_id))
 
     get_response = client.get("/api/v1/me/llm/config", headers=headers)
     update_response = client.put(
@@ -200,6 +202,7 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
     assert minimal_update_response.json()["api_keys"][0]["is_default"] is True
     assert usage_response.status_code == 200
     usage_items = usage_response.json()["items"]
+    assert len(usage_items) == 1
     assert usage_items[0]["function_type"] == "summary"
     assert usage_items[0]["provider"] == "deepseek"
     assert usage_items[0]["model"] == "deepseek-test"
@@ -221,17 +224,29 @@ def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _seed_llm_usage(client: TestClient) -> None:
+async def _seed_llm_usage(client: TestClient, user_id: str) -> None:
     session_factory = client.app.state.session_factory
     async with session_factory() as db:
-        db.add(
-            LLMUsageLog(
-                provider="deepseek",
-                model="deepseek-test",
-                function_type=LLMFunctionType.SUMMARY,
-                input_tokens=100,
-                output_tokens=25,
-                created_at=datetime.now(timezone.utc),
-            )
+        db.add_all(
+            [
+                LLMUsageLog(
+                    provider="deepseek",
+                    model="deepseek-test",
+                    user_id=UUID(user_id),
+                    function_type=LLMFunctionType.SUMMARY,
+                    input_tokens=100,
+                    output_tokens=25,
+                    created_at=datetime.now(timezone.utc),
+                ),
+                LLMUsageLog(
+                    provider="openai",
+                    model="system-test",
+                    user_id=None,
+                    function_type=LLMFunctionType.REPORT,
+                    input_tokens=999,
+                    output_tokens=1,
+                    created_at=datetime.now(timezone.utc),
+                ),
+            ]
         )
         await db.commit()

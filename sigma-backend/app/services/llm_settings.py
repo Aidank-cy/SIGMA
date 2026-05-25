@@ -49,9 +49,12 @@ async def get_default_api_key(db: AsyncSession, user_id: UUID) -> LLMApiKey | No
     return keys[0]
 
 
-async def get_llm_usage(db: AsyncSession) -> LLMUsageResponse:
+async def get_llm_usage(db: AsyncSession, user_id: UUID | None = None) -> LLMUsageResponse:
     """Return LLM usage totals grouped by day, function, provider, and model."""
     day_expr = func.date(LLMUsageLog.created_at)
+    predicate = []
+    if user_id is not None:
+        predicate.append(LLMUsageLog.user_id == user_id)
     rows = await db.execute(
         select(
             day_expr.label("day"),
@@ -61,6 +64,7 @@ async def get_llm_usage(db: AsyncSession) -> LLMUsageResponse:
             func.sum(LLMUsageLog.input_tokens).label("input_tokens"),
             func.sum(LLMUsageLog.output_tokens).label("output_tokens"),
         )
+        .where(*predicate)
         .group_by(day_expr, LLMUsageLog.function_type, LLMUsageLog.provider, LLMUsageLog.model)
         .order_by(day_expr.desc())
     )

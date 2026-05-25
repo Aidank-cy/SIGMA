@@ -222,6 +222,36 @@ async def test_budget_guard_raises_when_limit_would_be_exceeded(db_session: Asyn
 
 
 @pytest.mark.asyncio
+async def test_budget_guard_scopes_to_user_when_user_id_is_set(db_session: AsyncSession) -> None:
+    """User LLM budgets count only that user's usage rows."""
+    user_id = UUID("11111111-1111-1111-1111-111111111111")
+    other_user_id = UUID("22222222-2222-2222-2222-222222222222")
+    db_session.add_all(
+        [
+            LLMUsageLog(
+                provider="anthropic",
+                model="claude-test",
+                user_id=user_id,
+                function_type=LLMFunctionType.REPORT,
+                input_tokens=4,
+                output_tokens=2,
+            ),
+            LLMUsageLog(
+                provider="anthropic",
+                model="claude-test",
+                user_id=other_user_id,
+                function_type=LLMFunctionType.REPORT,
+                input_tokens=90,
+                output_tokens=10,
+            ),
+        ]
+    )
+    await db_session.commit()
+
+    await LLMClient(db_session, user_id=user_id)._check_budget(daily_token_limit=10, max_tokens=4)
+
+
+@pytest.mark.asyncio
 async def test_complete_retries_rate_limits_then_succeeds(
     db_session: AsyncSession,
     monkeypatch: pytest.MonkeyPatch,

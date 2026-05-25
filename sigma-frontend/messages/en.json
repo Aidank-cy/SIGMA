@@ -151,9 +151,11 @@
       "latestReport": "Latest report",
       "empty": "No data yet.",
       "reportTypes": {
-        "daily": "Daily",
+        "daily": "Daily (Morning + Afternoon)",
         "weekly": "Weekly",
-        "monthly": "Monthly"
+        "monthly": "Monthly",
+        "daily_morning": "Daily Morning",
+        "daily_afternoon": "Daily Afternoon"
       }
     },
     "views": {
@@ -303,7 +305,9 @@
       "macro": "Macro"
     },
     "reportTypes": {
-      "daily": "Daily",
+      "daily": "Daily (Morning + Afternoon)",
+      "daily_morning": "Daily Morning",
+      "daily_afternoon": "Daily Afternoon",
       "weekly": "Weekly",
       "monthly": "Monthly"
     }
@@ -543,14 +547,18 @@
     "loadMore": "Load more",
     "filters": {
       "all": "All",
-      "daily": "Daily",
+      "daily": "Daily (Morning + Afternoon)",
       "weekly": "Weekly",
-      "monthly": "Monthly"
+      "monthly": "Monthly",
+      "daily_morning": "Daily Morning",
+      "daily_afternoon": "Daily Afternoon"
     },
     "types": {
-      "daily": "Daily",
+      "daily": "Daily (Morning + Afternoon)",
       "weekly": "Weekly",
-      "monthly": "Monthly"
+      "monthly": "Monthly",
+      "daily_morning": "Daily Morning",
+      "daily_afternoon": "Daily Afternoon"
     }
   },
   "reportDetail": {
@@ -561,9 +569,11 @@
     "tocEmpty": "No headings in this report.",
     "print": "Print",
     "types": {
-      "daily": "Daily",
+      "daily": "Daily (Morning + Afternoon)",
       "weekly": "Weekly",
-      "monthly": "Monthly"
+      "monthly": "Monthly",
+      "daily_morning": "Daily Morning",
+      "daily_afternoon": "Daily Afternoon"
     }
   },
   "settings": {
@@ -591,13 +601,15 @@
       "all": "ALL",
       "allMarkets": "ALL",
       "allCategories": "ALL",
-      "daily": "Daily",
+      "daily": "Daily (Morning + Afternoon)",
       "weekly": "Weekly",
-    "monthly": "Monthly",
-    "frequency": "Report Frequency",
-    "markets": "Markets",
+      "monthly": "Monthly",
+      "frequency": "Report Frequency",
+      "markets": "Markets",
       "categories": "Categories",
-      "active": "Generate scheduled reports"
+      "active": "Generate scheduled reports",
+      "daily_morning": "Daily Morning",
+      "daily_afternoon": "Daily Afternoon"
     },
     "llm": {
       "title": "LLM configuration",
@@ -712,15 +724,15 @@
       "user": "User",
       "role": "Role",
       "status": "Status",
-    "created": "Created",
-    "llm": "LLM",
-    "sources": "Sources",
-    "llmCount": "{count, plural, =0 {No keys} one {# key} other {# keys}}",
-    "sourceCount": "{count, plural, =0 {No sources} one {# source} other {# sources}}",
-    "selectUser": "Select a user",
-    "selectUserCaption": "Choose a user from the table to manage their LLM configuration or custom data sources.",
-    "scheduledReports": "Scheduled reports",
-    "actions": "Actions",
+      "created": "Created",
+      "llm": "LLM",
+      "sources": "Sources",
+      "llmCount": "{count, plural, =0 {No keys} one {# key} other {# keys}}",
+      "sourceCount": "{count, plural, =0 {No sources} one {# source} other {# sources}}",
+      "selectUser": "Select a user",
+      "selectUserCaption": "Choose a user from the table to manage their LLM configuration or custom data sources.",
+      "scheduledReports": "Scheduled reports",
+      "actions": "Actions",
       "active": "Active",
       "disabled": "Disabled",
       "delete": "Delete",

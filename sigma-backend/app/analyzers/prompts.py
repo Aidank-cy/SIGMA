@@ -1,3 +1,5 @@
+from datetime import date, datetime
+
 from app.models.collected_item import CollectedItem
 
 SUMMARY_SYSTEM = (
@@ -63,21 +65,13 @@ def report_user_prompt(
     items: list[CollectedItem] | list[str],
 ) -> str:
     """Render a report prompt from collected items or intermediate summaries."""
-    start_time = "00:00"
-    end_time = "23:59"
-    if items and isinstance(items[0], CollectedItem):
-        timestamps = [item.published_at for item in items if hasattr(item, "published_at")]
-        if timestamps:
-            start_time = min(timestamps).strftime("%H:%M")
-            end_time = max(timestamps).strftime("%H:%M")
-
     rendered_items = "\n\n".join(_render_item(item) for item in items)
     return REPORT_USER.format(
         report_type=report_type,
-        period_start=period_start,
-        period_end=period_end,
-        start_time=start_time,
-        end_time=end_time,
+        period_start=_format_period_date(period_start),
+        period_end=_format_period_date(period_end),
+        start_time=_format_period_time(period_start, "00:00"),
+        end_time=_format_period_time(period_end, "23:59"),
         markets=", ".join(markets) if markets else "all",
         categories=", ".join(categories) if categories else "all",
         items=_truncate(rendered_items),
@@ -96,6 +90,18 @@ def _render_item(item: CollectedItem | str) -> str:
         f"  Source: {source}\n"
         f"  Summary: {_truncate(summary)}"
     )
+
+
+def _format_period_date(value: object) -> str:
+    if isinstance(value, datetime | date):
+        return value.strftime("%Y-%m-%d")
+    return str(value)
+
+
+def _format_period_time(value: object, fallback: str) -> str:
+    if isinstance(value, datetime):
+        return value.strftime("%H:%M")
+    return fallback
 
 
 def _truncate(content: str, limit: int = 3000) -> str:

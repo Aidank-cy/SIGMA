@@ -89,6 +89,7 @@ class LLMClient:
             LLMUsageLog(
                 provider=runtime.provider,
                 model=runtime.model,
+                user_id=self.user_id,
                 function_type=self.function_type,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
@@ -143,10 +144,11 @@ class LLMClient:
 
     async def _check_budget(self, daily_token_limit: int, max_tokens: int) -> None:
         start = datetime.combine(datetime.now(timezone.utc).date(), time.min, tzinfo=timezone.utc)
+        predicate = [LLMUsageLog.created_at >= start]
+        if self.user_id is not None:
+            predicate.append(LLMUsageLog.user_id == self.user_id)
         used = await self.db.scalar(
-            select(func.coalesce(func.sum(LLMUsageLog.input_tokens + LLMUsageLog.output_tokens), 0)).where(
-                LLMUsageLog.created_at >= start
-            )
+            select(func.coalesce(func.sum(LLMUsageLog.input_tokens + LLMUsageLog.output_tokens), 0)).where(*predicate)
         )
         if int(used or 0) + max_tokens > daily_token_limit:
             raise BudgetExceededError("Daily LLM token budget exceeded")

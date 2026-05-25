@@ -7,6 +7,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add daily morning and daily afternoon scheduled report frequencies with precise Beijing-time generation windows.
+- Add user ownership to LLM usage logs so report-generation token usage can be attributed per account.
 - Add admin user detail controls for another user's scheduled report generation.
 - Add system log filtering, expansion, and pagination directly to the Admin Dashboard.
 - Add per-user admin detail management for user LLM settings and custom data sources from the Admin Users panel.
@@ -50,6 +52,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change scheduled weekly and monthly report jobs to their precise Beijing-time UTC cron equivalents.
+- Store report periods as timestamp boundaries so scheduled reports preserve exact collection windows.
+- Match the Settings Cost Guard card height to the API Keys card.
 - Reduce the Settings LLM API keys card height while keeping overflow rows scrollable.
 - Move scheduled-report activation into the Report Configuration header and gray out inactive report controls.
 - Remove the standalone Admin Logs tab after moving logs into the dashboard.
@@ -157,6 +162,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix user LLM usage rollups and daily token-budget checks so Settings reflects only the current user's usage.
 - Fix frontend 204 responses so successful user deletion and password updates do not throw JSON parse errors.
 - Fix closed-market intraday charts so they render the last available session instead of generated partial fallback data.
 - Fix admin bootstrap after database cleanup so registration promotes the next user when no admin role remains.

@@ -16,8 +16,8 @@ class ReportSummary(BaseModel):
     title: str
     market_scope: list[str]
     category_scope: list[str]
-    period_start: date
-    period_end: date
+    period_start: datetime
+    period_end: datetime
     generated_at: datetime
     item_count: int
     content: str

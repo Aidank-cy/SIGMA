@@ -48,6 +48,8 @@ class ReportType(StrEnum):
     """Supported report cadences."""
 
     DAILY = "daily"
+    DAILY_MORNING = "daily_morning"
+    DAILY_AFTERNOON = "daily_afternoon"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
 
