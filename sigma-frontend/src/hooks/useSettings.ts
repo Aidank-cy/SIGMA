@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { normalizeReportConfig } from "@/components/settings/ReportConfigEditor";
 import { apiFetch } from "@/lib/api";
 import type { Locale, UserReportConfig } from "@/lib/types";
 import type { User } from "@/lib/auth";
@@ -11,6 +12,7 @@ export function useReportConfig() {
     queryKey: ["report-config"],
     queryFn: () => apiFetch<UserReportConfig>("/me/report-config"),
     retry: 1,
+    select: normalizeReportConfig,
     staleTime: 5_000,
     refetchInterval: 10_000,
     notifyOnChangeProps: ["data", "error", "isLoading"]

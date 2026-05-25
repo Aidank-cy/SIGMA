@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { RotateCcw } from "lucide-react";
 
@@ -24,9 +24,10 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
   const llm = useAdminUserLLMConfig(userId);
   const report = useAdminUserReportConfig(userId);
   const toast = useToast();
-  const [reportPayload, setReportPayload] = useState<UserReportConfig>(defaultReportConfig);
-  const reportBaselineRef = useRef<UserReportConfig>(defaultReportConfig);
-  const reportPayloadRef = useRef<UserReportConfig>(defaultReportConfig);
+  const initialReportConfig = report.config.data ?? defaultReportConfig;
+  const [reportPayload, setReportPayload] = useState<UserReportConfig>(() => initialReportConfig);
+  const reportBaselineRef = useRef<UserReportConfig>(initialReportConfig);
+  const reportPayloadRef = useRef<UserReportConfig>(initialReportConfig);
   const setSyncedReportPayload = useCallback(
     (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => {
       setReportPayload((current) => {
@@ -38,16 +39,16 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
     []
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (report.config.data) {
-      const normalized = normalizeReportConfig(report.config.data);
-      if (
-        reportConfigsEqual(normalized, reportPayloadRef.current) ||
-        reportConfigsEqual(normalized, reportBaselineRef.current)
-      ) {
+      const normalized = report.config.data;
+      if (reportConfigsEqual(normalized, reportBaselineRef.current)) {
         return;
       }
       reportBaselineRef.current = normalized;
+      if (reportConfigsEqual(normalized, reportPayloadRef.current)) {
+        return;
+      }
       reportPayloadRef.current = normalized;
       setReportPayload(normalized);
     }

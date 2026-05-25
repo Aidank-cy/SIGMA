@@ -2,8 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { normalizeReportConfig } from "@/components/settings/ReportConfigEditor";
 import { apiFetch } from "@/lib/api";
-import type { DataSource, LLMConfig, LLMUsageResponse, PaginatedResponse, SourcePayload, UserReportConfig } from "@/lib/types";
+import type {
+  DataSource,
+  LLMConfig,
+  LLMUsageResponse,
+  PaginatedResponse,
+  SourcePayload,
+  UserReportConfig
+} from "@/lib/types";
 
 function reportConfigUpdateBody(payload: UserReportConfig) {
   return {
@@ -60,6 +68,7 @@ export function useAdminUserReportConfig(userId: string | null) {
     queryFn: () => apiFetch<UserReportConfig>(`/admin/users/${userId}/report-config`),
     refetchInterval: 10_000,
     refetchOnMount: true,
+    select: normalizeReportConfig,
     staleTime: 5_000
   });
   const update = useMutation({

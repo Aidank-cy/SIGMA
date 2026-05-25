@@ -3,7 +3,7 @@
 import { KeyRound, Save } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { AdminSettingsSection } from "@/components/admin/AdminSettingsSection";
@@ -43,13 +43,25 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [selectedLocale, setSelectedLocale] = useState<Locale>(locale);
   const [retentionDays, setRetentionDays] = useState(30);
-  const [reportPayload, setReportPayload] = useState<UserReportConfig>(defaultReportConfig);
+  const initialReportConfig = reportConfig ?? defaultReportConfig;
+  const [reportPayload, setReportPayload] = useState<UserReportConfig>(() => initialReportConfig);
   const [profileBaseline, setProfileBaseline] = useState({ displayName: "", locale });
   const [retentionBaseline, setRetentionBaseline] = useState(30);
-  const [reportBaseline, setReportBaseline] = useState<UserReportConfig>(defaultReportConfig);
-  const reportBaselineRef = useRef<UserReportConfig>(defaultReportConfig);
+  const [reportBaseline, setReportBaseline] = useState<UserReportConfig>(() => initialReportConfig);
+  const reportBaselineRef = useRef<UserReportConfig>(initialReportConfig);
+  const reportPayloadRef = useRef<UserReportConfig>(initialReportConfig);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const setSyncedReportPayload = useCallback(
+    (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => {
+      setReportPayload((current) => {
+        const next = typeof value === "function" ? value(current) : value;
+        reportPayloadRef.current = next;
+        return next;
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     if (!user) {
@@ -67,13 +79,17 @@ export default function SettingsPage() {
     if (!reportConfig) {
       return;
     }
-    const normalized = normalizeReportConfig(reportConfig);
+    const normalized = reportConfig;
     if (reportConfigsEqual(normalized, reportBaselineRef.current)) {
       return;
     }
     reportBaselineRef.current = normalized;
-    setReportPayload(normalized);
     setReportBaseline(normalized);
+    if (reportConfigsEqual(normalized, reportPayloadRef.current)) {
+      return;
+    }
+    reportPayloadRef.current = normalized;
+    setReportPayload(normalized);
   }, [reportConfig]);
 
   const dirty = useMemo(
@@ -124,6 +140,7 @@ export default function SettingsPage() {
           const saved = await updateReportConfig.mutateAsync(reportPayload);
           const normalized = normalizeReportConfig(saved);
           reportBaselineRef.current = normalized;
+          reportPayloadRef.current = normalized;
           setReportPayload(normalized);
           setReportBaseline(normalized);
         }
@@ -171,7 +188,7 @@ export default function SettingsPage() {
           {isLoading ? (
             <Skeleton className="h-72 rounded-2xl" />
           ) : (
-            <ReportConfigEditor payload={reportPayload} setPayload={setReportPayload} />
+            <ReportConfigEditor payload={reportPayload} setPayload={setSyncedReportPayload} />
           )}
         </div>
         <div className="flex min-w-0 flex-col gap-5">

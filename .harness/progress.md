@@ -218,6 +218,7 @@ _This file is read at the start of each agent session and updated after each sub
 ### [Maintenance] Sub-feature: Sync recency filter
 - Status: COMPLETE
 - Files modified: sigma-backend/app/collectors/normalizer.py, sigma-backend/tests/test_collectors.py, CHANGELOG.md, .harness/progress.md
+
 - Tests: PASS
 - Notes: Normalization now skips raw source items with `published_at` older than 30 days before persistence. Verified with `./hooks/post-file-edit.sh` and `python3 -m pytest --tb=short -q`.
 - Timestamp: 2026-05-23T00:00:00Z
@@ -1778,3 +1779,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Memoized the report configuration editor with a report-config deep comparator, guarded LLM settings form hydration against identical config refetches, changed the admin users list poll interval to ten seconds, and limited user report/LLM query notifications to data/error/loading changes.
 - Verification: `npm run build`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, and `git diff --check`.
 - Timestamp: 2026-05-25T19:22:00+08:00
+
+### [Maintenance] Report configuration polling and hydration
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/admin/AdminUserLLMDetail.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Normalized report config query data before structural sharing, guarded Settings report editor sync with current payload refs, and hydrated admin user report configs from cached data before paint.
+- Verification: `npm run build` via `./hooks/post-file-edit.sh`.
+- Timestamp: 2026-05-25T19:50:56+08:00
