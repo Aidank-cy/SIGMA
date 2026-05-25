@@ -51,6 +51,7 @@ def test_put_user_settings_updates_and_persists(client: TestClient) -> None:
                     "end_day_offset": 0,
                     "start_time": "17:45",
                     "end_time": "17:44",
+                    "generation_day_of_week": 4,
                 }
             },
         },
@@ -71,6 +72,7 @@ def test_put_user_settings_updates_and_persists(client: TestClient) -> None:
             "end_day_offset": 0,
             "start_time": "17:45",
             "end_time": "17:44",
+            "generation_day_of_week": 4,
         }
     }
     assert get_response.json()["markets"] == ["us", "global"]
@@ -101,7 +103,14 @@ def test_report_profile_retention_and_password_endpoints(client: TestClient) -> 
             "categories": ["finance", "macro"],
             "is_active": False,
             "max_tokens": {"monthly": 4500},
-            "time_ranges": {"monthly": {"start_day_of_month": 1, "end_day_of_month": 31, "generation_time": "09:00"}},
+            "time_ranges": {
+                "monthly": {
+                    "start_day_of_month": 1,
+                    "end_day_of_month": 31,
+                    "generation_day_of_month": 1,
+                    "generation_time": "09:00",
+                }
+            },
         },
     )
     profile_response = client.put(
@@ -161,7 +170,14 @@ def test_report_profile_retention_and_password_endpoints(client: TestClient) -> 
             "weekly": 3000,
             "monthly": 4500,
         },
-        "time_ranges": {"monthly": {"start_day_of_month": 1, "end_day_of_month": 31, "generation_time": "09:00"}},
+        "time_ranges": {
+            "monthly": {
+                "start_day_of_month": 1,
+                "end_day_of_month": 31,
+                "generation_day_of_month": 1,
+                "generation_time": "09:00",
+            }
+        },
     }
     assert profile_response.status_code == 200
     assert profile_response.json()["display_name"] == "Section User"

@@ -619,6 +619,17 @@
       "maxTokensError": "最大 Token 必须在 1 到 50,000 之间。",
       "generationTime": "报告生成时间",
       "generationTimeError": "报告生成时间必须使用 HH:mm 格式。",
+      "generationDayOfWeek": "报告日",
+      "generationDayOfMonth": "报告日",
+      "weekdays": {
+        "0": "周一",
+        "1": "周二",
+        "2": "周三",
+        "3": "周四",
+        "4": "周五",
+        "5": "周六",
+        "6": "周日"
+      },
       "dailyMorningRange": "前一日 17:30 → 今日 09:20（北京时间）",
       "dailyAfternoonRange": "今日 09:20 → 今日 17:30（北京时间）",
       "periodStartTime": "周期开始时间",

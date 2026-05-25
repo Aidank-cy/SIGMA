@@ -619,6 +619,17 @@
       "maxTokensError": "Max tokens must be between 1 and 50,000.",
       "generationTime": "Report generation time",
       "generationTimeError": "Report generation time must use HH:mm format.",
+      "generationDayOfWeek": "Report day",
+      "generationDayOfMonth": "Report day",
+      "weekdays": {
+        "0": "Monday",
+        "1": "Tuesday",
+        "2": "Wednesday",
+        "3": "Thursday",
+        "4": "Friday",
+        "5": "Saturday",
+        "6": "Sunday"
+      },
       "dailyMorningRange": "Previous day 17:30 → Today 09:20 (Beijing Time)",
       "dailyAfternoonRange": "Today 09:20 → Today 17:30 (Beijing Time)",
       "periodStartTime": "Period start time",

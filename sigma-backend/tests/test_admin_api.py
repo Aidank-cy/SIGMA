@@ -155,6 +155,7 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
                     "end_day_offset": 0,
                     "start_time": "08:30",
                     "end_time": "17:44",
+                    "generation_day_of_week": 4,
                     "generation_time": "18:00",
                 }
             },
@@ -216,6 +217,7 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
             "end_day_offset": 0,
             "start_time": "08:30",
             "end_time": "17:44",
+            "generation_day_of_week": 4,
             "generation_time": "18:00",
         }
     }

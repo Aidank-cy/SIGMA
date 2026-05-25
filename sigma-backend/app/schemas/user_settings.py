@@ -10,6 +10,8 @@ class ReportTimeRange(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     generation_time: str | None = None
+    generation_day_of_week: int | None = None  # 0-6, Monday-Sunday
+    generation_day_of_month: int | None = None  # 1-31
     start_day_offset: int | None = None
     end_day_offset: int | None = None
     start_time: str | None = None
@@ -193,10 +195,13 @@ def validate_report_time_ranges(value: dict[str, ReportTimeRange]) -> None:
 
 
 def _validate_weekly_time_range(time_range: ReportTimeRange) -> None:
+    generation_day = time_range.generation_day_of_week
     start_offset = time_range.start_day_offset
     end_offset = time_range.end_day_offset
     start_minutes = _parse_hhmm(time_range.start_time)
     end_minutes = _parse_hhmm(time_range.end_time)
+    if generation_day is not None and (generation_day < 0 or generation_day > 6):
+        raise ValueError("Weekly report generation day must be between 0 and 6")
     if (
         start_offset is None
         or end_offset is None
@@ -216,8 +221,11 @@ def _validate_weekly_time_range(time_range: ReportTimeRange) -> None:
 
 
 def _validate_monthly_time_range(time_range: ReportTimeRange) -> None:
+    generation_day = time_range.generation_day_of_month
     start_day = time_range.start_day_of_month
     end_day = time_range.end_day_of_month
+    if generation_day is not None and (generation_day < 1 or generation_day > 31):
+        raise ValueError("Monthly report generation day must be between 1 and 31")
     if (
         start_day is None
         or end_day is None

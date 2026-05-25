@@ -63,7 +63,9 @@ export function useAdminUserReportConfig(userId: string | null) {
     enabled: Boolean(userId),
     queryKey: ["admin", "users", userId, "report-config"],
     queryFn: () => apiFetch<UserReportConfig>(`/admin/users/${userId}/report-config`),
+    placeholderData: undefined,
     refetchOnMount: true,
+    retry: 1,
     staleTime: 5_000
   });
   const update = useMutation({

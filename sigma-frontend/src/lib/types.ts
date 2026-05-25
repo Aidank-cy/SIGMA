@@ -180,6 +180,8 @@ export interface WatchlistTrend {
 
 export interface ReportTimeRange {
   generation_time?: string;
+  generation_day_of_week?: number; // 0 = Monday, 6 = Sunday (weekly only)
+  generation_day_of_month?: number; // 1-31 (monthly only)
   start_day_offset?: number;
   end_day_offset?: number;
   start_time?: string;
