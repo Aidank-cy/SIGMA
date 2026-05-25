@@ -1,4 +1,4 @@
-import { isPreMarketClearWindow } from "@/lib/marketSessions";
+import { isPreMarketClearWindow, isTradingHoursActive } from "@/lib/marketSessions";
 import type { MarketIndex } from "@/lib/types";
 
 export const marketChartRanges = ["1D", "5D", "1M", "3M", "1Y"] as const;
@@ -390,6 +390,7 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
 
   const chartSessions = chartTradingSessions(index);
   const chartTimeZone = "Asia/Shanghai";
+  const isTrading = index.is_trading || isTradingHoursActive(index.trading_hours, now);
   const sparkline = index.sparkline_24h;
   const timestamps = index.sparkline_times ?? [];
   if (sparkline.length > 0 && timestamps.length === sparkline.length) {
@@ -400,7 +401,7 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
         return [];
       }
       const dateKey = sessionDateKey(timestamp, chartSessions, chartTimeZone);
-      if (dateKey !== currentDateKey) {
+      if (isTrading && dateKey !== currentDateKey) {
         return [];
       }
       const position = intradayPointPosition(timestamp, chartSessions, chartTimeZone);
@@ -413,7 +414,7 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
         value: point
       }];
     });
-    if (points.length > 0) {
+    if (points.length > 0 || !isTrading) {
       return points;
     }
   }

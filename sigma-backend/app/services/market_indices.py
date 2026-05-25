@@ -341,6 +341,17 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
     if not points:
         return None
 
+    now = _now_utc()
+    local_now = now.astimezone(ZoneInfo(config.timezone))
+    current_time = local_now.time().replace(tzinfo=None)
+    if local_now.weekday() < 5 and current_time < config.open_time:
+        return None
+
+    if not _is_trading(config, now) and (
+        local_now.weekday() >= 5 or current_time >= config.close_time
+    ):
+        return points if len(points) >= 10 else None
+
     session_date = _latest_session_date(config)
     zone = ZoneInfo(config.timezone)
     current_session_points = [

@@ -293,7 +293,7 @@ export function LLMSettingsPanel({
     <div className="flex flex-1 flex-col gap-6">
       <section className="space-y-4">
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
-          <Card className="flex h-[22rem] flex-col gap-3 p-5">
+          <Card className="flex h-[16rem] flex-col gap-3 p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-sigma-text">{t("apiKeys")}</h3>

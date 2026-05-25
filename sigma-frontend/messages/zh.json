@@ -719,6 +719,7 @@
     "sourceCount": "{count} 个数据源",
     "selectUser": "选择用户",
     "selectUserCaption": "从表格中选择用户，管理该用户的 LLM 配置或自定义数据源。",
+    "scheduledReports": "定时报告",
     "actions": "操作",
       "active": "启用",
       "disabled": "停用",

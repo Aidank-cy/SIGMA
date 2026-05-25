@@ -86,6 +86,14 @@ class AdminUserUpdate(BaseModel):
     is_active: bool | None = None
 
 
+class AdminUserReportConfigUpdate(BaseModel):
+    """Admin mutation payload for another user's report generation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    is_active: bool
+
+
 class AdminLogListResponse(BaseModel):
     """Paginated collector log list."""
 

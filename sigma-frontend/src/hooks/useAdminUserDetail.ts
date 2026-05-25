@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import type { DataSource, LLMConfig, PaginatedResponse, SourcePayload } from "@/lib/types";
+import type { DataSource, LLMConfig, PaginatedResponse, SourcePayload, UserReportConfig } from "@/lib/types";
 
 export function useAdminUserLLMConfig(userId: string | null) {
   const queryClient = useQueryClient();
@@ -22,6 +22,28 @@ export function useAdminUserLLMConfig(userId: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users", userId, "llm", "config"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    }
+  });
+
+  return { config, update };
+}
+
+export function useAdminUserReportConfig(userId: string | null) {
+  const queryClient = useQueryClient();
+  const config = useQuery({
+    enabled: Boolean(userId),
+    queryKey: ["admin", "users", userId, "report-config"],
+    queryFn: () => apiFetch<UserReportConfig>(`/admin/users/${userId}/report-config`),
+    refetchInterval: 30_000
+  });
+  const update = useMutation({
+    mutationFn: (payload: Pick<UserReportConfig, "is_active">) =>
+      apiFetch<UserReportConfig>(`/admin/users/${userId}/report-config`, {
+        body: JSON.stringify(payload),
+        method: "PUT"
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users", userId, "report-config"] });
     }
   });
 

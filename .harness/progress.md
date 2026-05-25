@@ -229,6 +229,13 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Registration now grants admin based on whether any admin-role user exists, cleanup preserves the earliest admin by role regardless of name, Redis 1D candles are filtered to the latest exchange-local session before serving, and frontend intraday charts ignore previous-session sparkline points while keeping the clear window active through the first two post-open minutes.
 - Timestamp: 2026-05-25T02:04:44Z
 
+### [Maintenance] Sub-feature: Admin reports, 204 parsing, and closed-market charts
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/admin/users.py, sigma-backend/app/schemas/admin.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_admin_api.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/lib/api.ts, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/components/admin/AdminUsersPanel.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/lib/marketChart.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: 204 responses now skip JSON parsing, admins can toggle another user's scheduled-report generation, the Settings API key card fits one row with scrolling overflow, and intraday charts distinguish pre-open, trading, and closed states on both backend and frontend. Visual check passed on the Settings LLM card with one mocked API key.
+- Timestamp: 2026-05-25T02:36:46Z
+
 ### Completed
 - Phase 2 sub-features 2.1 through 2.11.
 
