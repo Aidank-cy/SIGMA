@@ -52,6 +52,7 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
           isSaving={llm.update.isPending}
           onSave={llm.update.mutateAsync}
           showCharts
+          usageData={llm.usage.data}
         />
       )}
     </div>

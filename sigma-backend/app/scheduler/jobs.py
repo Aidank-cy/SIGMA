@@ -91,7 +91,9 @@ async def cleanup_expired_items(
 ) -> None:
     """Delete collected items past their retention time."""
     async with session_factory() as db:
-        await db.execute(delete(CollectedItem).where(CollectedItem.expires_at < datetime.now(timezone.utc)))
+        await db.execute(
+            delete(CollectedItem).where(CollectedItem.expires_at < datetime.now(timezone.utc))
+        )
         await db.commit()
 
 
@@ -108,15 +110,16 @@ async def generate_scheduled_reports(
     """Generate deduplicated reports for active user report configurations."""
     resolved_type = ReportType(report_type)
     async with session_factory() as db:
-        configs = list(await db.scalars(
-            select(UserReportConfig).where(
-                UserReportConfig.is_active.is_(True),
-                UserReportConfig.report_frequency.in_(_config_frequencies_for(resolved_type)),
-            )
-        ))
+        active_configs = list(
+            await db.scalars(select(UserReportConfig).where(UserReportConfig.is_active.is_(True)))
+        )
+        configs = [
+            config
+            for config in active_configs
+            if _config_matches_report_type(config, resolved_type)
+        ]
         scopes = {
-            (config.user_id, tuple(config.markets), tuple(config.categories))
-            for config in configs
+            (config.user_id, tuple(config.markets), tuple(config.categories)) for config in configs
         }
         period_start, period_end = _period_for(resolved_type)
         for user_id, markets, categories in scopes:
@@ -138,6 +141,12 @@ def _config_frequencies_for(report_type: ReportType) -> tuple[ReportType, ...]:
     if report_type in {ReportType.DAILY_MORNING, ReportType.DAILY_AFTERNOON}:
         return (ReportType.DAILY, report_type)
     return (report_type,)
+
+
+def _config_matches_report_type(config: UserReportConfig, report_type: ReportType) -> bool:
+    frequencies = config.report_frequencies or [config.report_frequency.value]
+    configured = {ReportType(value) for value in frequencies}
+    return any(frequency in configured for frequency in _config_frequencies_for(report_type))
 
 
 def _period_for(report_type: ReportType, now: datetime | None = None) -> tuple[datetime, datetime]:

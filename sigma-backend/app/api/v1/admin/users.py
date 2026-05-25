@@ -10,16 +10,27 @@ from app.middleware.auth import require_role
 from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
-from app.models.enums import UserRole
+from app.models.enums import ReportType, UserRole
 from app.models.user import User
 from app.models.user_report_config import UserReportConfig
 from app.models.watchlist import Watchlist
 from app.scheduler.engine import add_or_update_source_job, remove_source_job
-from app.schemas.admin import AdminUserListResponse, AdminUserRead, AdminUserReportConfigUpdate, AdminUserUpdate
-from app.schemas.llm import LLMConfigRead, LLMConfigUpdate
-from app.schemas.source import DataSourceCreate, DataSourceRead, DataSourceUpdate, SourceListResponse
+from app.schemas.admin import (
+    AdminUserListResponse,
+    AdminUserRead,
+    AdminUserReportConfigUpdate,
+    AdminUserUpdate,
+)
+from app.schemas.llm import LLMConfigRead, LLMConfigUpdate, LLMUsageResponse
+from app.schemas.source import (
+    DataSourceCreate,
+    DataSourceRead,
+    DataSourceUpdate,
+    SourceListResponse,
+)
 from app.schemas.user_settings import UserReportConfigRead
-from app.services.llm_settings import get_llm_config, update_llm_config
+from app.services.llm_settings import get_llm_config, get_llm_usage, update_llm_config
+from app.services.report_settings import get_report_max_tokens
 
 router = APIRouter()
 
@@ -95,10 +106,9 @@ async def update_admin_user(
 async def get_admin_user_llm_config(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
 ) -> LLMConfigRead:
-    """Return another user's LLM settings for admin management."""
-    _ensure_not_self(user_id, current_admin.id)
+    """Return a user's LLM settings for admin management."""
     await _get_user(db, user_id)
     return await get_llm_config(db, user_id)
 
@@ -108,25 +118,34 @@ async def update_admin_user_llm_config(
     user_id: UUID,
     payload: LLMConfigUpdate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
 ) -> LLMConfigRead:
-    """Update another user's LLM settings for admin management."""
-    _ensure_not_self(user_id, current_admin.id)
+    """Update a user's LLM settings for admin management."""
     await _get_user(db, user_id)
     return await update_llm_config(db, payload, user_id)
+
+
+@router.get("/{user_id}/llm/usage", response_model=LLMUsageResponse)
+async def get_admin_user_llm_usage(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
+) -> LLMUsageResponse:
+    """Return a user's LLM usage totals for admin detail panels."""
+    await _get_user(db, user_id)
+    return await get_llm_usage(db, user_id)
 
 
 @router.get("/{user_id}/report-config", response_model=UserReportConfigRead)
 async def get_admin_user_report_config(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
 ) -> UserReportConfigRead:
-    """Return another user's scheduled report configuration for admin management."""
-    _ensure_not_self(user_id, current_admin.id)
+    """Return a user's scheduled report configuration for admin management."""
     await _get_user(db, user_id)
     config = await _get_or_create_report_config(db, user_id)
-    return UserReportConfigRead.model_validate(config)
+    return await _report_config_response(db, config)
 
 
 @router.put("/{user_id}/report-config", response_model=UserReportConfigRead)
@@ -134,16 +153,15 @@ async def update_admin_user_report_config(
     user_id: UUID,
     payload: AdminUserReportConfigUpdate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(require_role(UserRole.ADMIN)),
 ) -> UserReportConfigRead:
-    """Update another user's scheduled report generation state."""
-    _ensure_not_self(user_id, current_admin.id)
+    """Update a user's scheduled report generation state."""
     await _get_user(db, user_id)
     config = await _get_or_create_report_config(db, user_id)
     config.is_active = payload.is_active
     await db.commit()
     await db.refresh(config)
-    return UserReportConfigRead.model_validate(config)
+    return await _report_config_response(db, config)
 
 
 @router.get("/{user_id}/sources", response_model=SourceListResponse)
@@ -178,7 +196,9 @@ async def list_admin_user_sources(
     )
 
 
-@router.post("/{user_id}/sources", response_model=DataSourceRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{user_id}/sources", response_model=DataSourceRead, status_code=status.HTTP_201_CREATED
+)
 async def create_admin_user_source(
     user_id: UUID,
     payload: DataSourceCreate,
@@ -255,7 +275,9 @@ async def delete_admin_user(
         await _ensure_not_last_admin(db, user.id)
     await db.execute(delete(Watchlist).where(Watchlist.user_id == user.id))
     await db.execute(delete(UserReportConfig).where(UserReportConfig.user_id == user.id))
-    await db.execute(update(DataSource).where(DataSource.created_by == user.id).values(created_by=None))
+    await db.execute(
+        update(DataSource).where(DataSource.created_by == user.id).values(created_by=None)
+    )
     await db.delete(user)
     await db.commit()
 
@@ -291,6 +313,24 @@ async def _get_or_create_report_config(db: AsyncSession, user_id: UUID) -> UserR
     return config
 
 
+async def _report_config_response(
+    db: AsyncSession, config: UserReportConfig
+) -> UserReportConfigRead:
+    return UserReportConfigRead(
+        report_frequency=config.report_frequency,
+        report_frequencies=_report_frequencies(config),
+        markets=[str(market) for market in config.markets],
+        categories=[str(category) for category in config.categories],
+        is_active=config.is_active,
+        max_tokens=await get_report_max_tokens(db, config.user_id),
+    )
+
+
+def _report_frequencies(config: UserReportConfig) -> list[ReportType]:
+    values = config.report_frequencies or [config.report_frequency.value]
+    return [ReportType(value) for value in values]
+
+
 def _ensure_not_self(user_id: UUID, current_admin_id: UUID) -> None:
     if user_id == current_admin_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot modify self")
@@ -321,7 +361,9 @@ async def _validate_source(source: DataSource) -> None:
 
 async def _ensure_not_last_admin(db: AsyncSession, excluding_user_id: UUID) -> None:
     admin_count = await db.scalar(
-        select(func.count()).select_from(User).where(
+        select(func.count())
+        .select_from(User)
+        .where(
             User.role == UserRole.ADMIN,
             User.is_active.is_(True),
             User.id != excluding_user_id,

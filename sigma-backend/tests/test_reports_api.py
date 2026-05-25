@@ -53,7 +53,9 @@ def test_reports_http_filters_latest_detail_and_generation(client: TestClient, m
 
     latest_response = client.get("/api/v1/reports/latest")
     assert latest_response.status_code == 200
-    latest_by_type = {item["report_type"]: item["title"] for item in latest_response.json()["items"]}
+    latest_by_type = {
+        item["report_type"]: item["title"] for item in latest_response.json()["items"]
+    }
     assert latest_by_type == {
         "daily": "Newest daily report",
         "weekly": "Weekly US report",
@@ -81,8 +83,12 @@ def test_reports_http_filters_latest_detail_and_generation(client: TestClient, m
         "period_end": "2026-01-31",
         "locale": "en",
     }
-    admin_generate = client.post("/api/v1/reports/generate", headers=_auth(admin_token), json=generate_payload)
-    user_generate = client.post("/api/v1/reports/generate", headers=_auth(user_token), json=generate_payload)
+    admin_generate = client.post(
+        "/api/v1/reports/generate", headers=_auth(admin_token), json=generate_payload
+    )
+    user_generate = client.post(
+        "/api/v1/reports/generate", headers=_auth(user_token), json=generate_payload
+    )
 
     assert admin_generate.status_code == 202
     assert admin_generate.json() == {"status": "accepted"}
@@ -99,16 +105,22 @@ def test_user_report_config_crud(client: TestClient) -> None:
         headers=_auth(token),
         json={
             "report_frequency": "weekly",
+            "report_frequencies": ["weekly"],
             "markets": ["us", "global"],
             "categories": ["finance"],
             "is_active": True,
+            "max_tokens": {"weekly": 3500},
         },
     )
 
     assert get_response.status_code == 200
     assert get_response.json()["report_frequency"] == "daily"
+    assert get_response.json()["report_frequencies"] == ["daily"]
+    assert get_response.json()["max_tokens"]["daily_morning"] == 2000
     assert update_response.status_code == 200
     assert update_response.json()["report_frequency"] == "weekly"
+    assert update_response.json()["report_frequencies"] == ["weekly"]
+    assert update_response.json()["max_tokens"]["weekly"] == 3500
     assert update_response.json()["markets"] == ["us", "global"]
 
 

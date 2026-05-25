@@ -1726,3 +1726,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Moved Admin Logs into the dashboard below the operational cards, removed the standalone Logs tab, made log cards start collapsed with success details expandable, moved the scheduled-report toggle to the Report Configuration header, hardened user source delete refreshes, added admin detail polling, and added API 429 backoff plus source-job jitter.
 - Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `npm run build`, targeted backend tests for 429 retry and scheduler jitter, and message JSON parsing.
 - Timestamp: 2026-05-24T19:48:51+08:00
+
+### [Maintenance] Report prompt, token, and admin config fixes
+- Status: COMPLETE
+- Files created: sigma-backend/app/services/report_settings.py, sigma-backend/alembic/versions/20260525_0007_report_frequency_list.py
+- Files modified: sigma-backend/app/analyzers/prompts.py, sigma-backend/app/analyzers/report_generator.py, sigma-backend/app/analyzers/llm_client.py, sigma-backend/app/api/v1/routes/user_settings.py, sigma-backend/app/api/v1/admin/users.py, sigma-backend/app/models/user_report_config.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/app/schemas/llm.py, sigma-backend/app/schemas/user_settings.py, sigma-backend/app/services/llm_settings.py, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/admin/AdminUserLLMDetail.tsx, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Replaced the report system prompt with the market-intelligence prompt, added report-label context, persisted per-report max token settings under `sigma.user.{user_id}.report.max_tokens.*`, enforced a 24-hour cooldown on daily LLM token-limit changes, added usage-remaining UI, allowed admins to manage their own non-destructive user configs, added per-user admin usage reads, and stored report frequency multi-selects in JSON while keeping legacy `report_frequency`.
+- Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, focused backend tests for prompts/reports/settings/admin/scheduler, and frontend `npm run build`.
+- Timestamp: 2026-05-25T12:24:56+08:00

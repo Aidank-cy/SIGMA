@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import type { DataSource, LLMConfig, PaginatedResponse, SourcePayload, UserReportConfig } from "@/lib/types";
+import type { DataSource, LLMConfig, LLMUsageResponse, PaginatedResponse, SourcePayload, UserReportConfig } from "@/lib/types";
 
 export function useAdminUserLLMConfig(userId: string | null) {
   const queryClient = useQueryClient();
@@ -24,8 +24,14 @@ export function useAdminUserLLMConfig(userId: string | null) {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     }
   });
+  const usage = useQuery({
+    enabled: Boolean(userId),
+    queryKey: ["admin", "users", userId, "llm", "usage"],
+    queryFn: () => apiFetch<LLMUsageResponse>(`/admin/users/${userId}/llm/usage`),
+    refetchInterval: 30_000
+  });
 
-  return { config, update };
+  return { config, update, usage };
 }
 
 export function useAdminUserReportConfig(userId: string | null) {

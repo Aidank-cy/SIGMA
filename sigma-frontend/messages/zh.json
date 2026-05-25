@@ -609,7 +609,10 @@
       "categories": "类别",
       "active": "生成定时报告",
       "daily_morning": "上午日报",
-      "daily_afternoon": "下午日报"
+      "daily_afternoon": "下午日报",
+      "frequencyHint": "日报 = 上午 + 下午两份报告",
+      "tokenLimits": "Token 上限",
+      "maxTokensLabel": "{label} 最大 Token"
     },
     "llm": {
       "title": "LLM 配置",
@@ -785,6 +788,8 @@
       "noUsageData": "暂无使用数据。",
       "dailyTokenBudget": "Daily Token Budget",
       "dailyTokenBudgetCaption": "{tokens} of {limit} tokens used today.",
+      "usageRemaining": "用量剩余",
+      "limitCooldown": "{hours} 小时后可再次修改上限。",
       "userList": "用户",
       "selectUser": "选择用户查看详情",
       "selectUserCaption": "从列表中选择用户，查看该用户的 LLM Key、生成报告和用量趋势。",

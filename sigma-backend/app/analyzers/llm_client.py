@@ -80,7 +80,9 @@ class LLMClient:
         runtime = await self._runtime_config()
         await self._check_budget(runtime.daily_token_limit, max_tokens)
         prompt = build_prompt(user_prompt, context_docs)
-        payload = self._payload(runtime.provider, runtime.model, system_prompt, prompt, max_tokens, temperature)
+        payload = self._payload(
+            runtime.provider, runtime.model, system_prompt, prompt, max_tokens, temperature
+        )
         headers = self._headers(runtime.provider, runtime.api_key)
         url = self._url(runtime.provider)
         response = await self._post_with_retry(url, headers, payload)
@@ -107,7 +109,9 @@ class LLMClient:
         context_docs: list[str] | None = None,
     ) -> dict[str, Any]:
         """Complete a prompt and parse the response as a JSON object."""
-        text = await self.complete(system_prompt, user_prompt, max_tokens, temperature, context_docs)
+        text = await self.complete(
+            system_prompt, user_prompt, max_tokens, temperature, context_docs
+        )
         parsed = json.loads(_extract_json_object(text))
         if not isinstance(parsed, dict):
             raise ValueError("LLM response was not a JSON object")
@@ -148,8 +152,12 @@ class LLMClient:
         if self.user_id is not None:
             predicate.append(LLMUsageLog.user_id == self.user_id)
         used = await self.db.scalar(
-            select(func.coalesce(func.sum(LLMUsageLog.input_tokens + LLMUsageLog.output_tokens), 0)).where(*predicate)
+            select(
+                func.coalesce(func.sum(LLMUsageLog.input_tokens + LLMUsageLog.output_tokens), 0)
+            ).where(*predicate)
         )
+        # Usage totals come from provider response usage fields persisted after calls. Before a call, use the
+        # requested output limit as a conservative upper bound so a single request cannot knowingly exceed budget.
         if int(used or 0) + max_tokens > daily_token_limit:
             raise BudgetExceededError("Daily LLM token budget exceeded")
 

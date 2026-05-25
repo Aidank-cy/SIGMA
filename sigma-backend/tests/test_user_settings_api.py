@@ -20,6 +20,8 @@ def test_get_user_settings_returns_preferences(client: TestClient) -> None:
     assert payload["locale"] == "zh"
     assert payload["data_retention_days"] == 30
     assert payload["report_frequency"] == "daily"
+    assert payload["report_frequencies"] == ["daily"]
+    assert payload["max_tokens"]["daily_morning"] == 2000
     assert payload["markets"] == []
     assert payload["categories"] == []
     assert payload["is_active"] is True
@@ -38,9 +40,11 @@ def test_put_user_settings_updates_and_persists(client: TestClient) -> None:
             "locale": "en",
             "data_retention_days": 90,
             "report_frequency": "weekly",
+            "report_frequencies": ["weekly"],
             "markets": ["us", "global"],
             "categories": ["finance"],
             "is_active": False,
+            "max_tokens": {"weekly": 3200},
         },
     )
     get_response = client.get("/api/v1/me/settings", headers=headers)
@@ -51,6 +55,8 @@ def test_put_user_settings_updates_and_persists(client: TestClient) -> None:
     assert get_response.json()["locale"] == "en"
     assert get_response.json()["data_retention_days"] == 90
     assert get_response.json()["report_frequency"] == "weekly"
+    assert get_response.json()["report_frequencies"] == ["weekly"]
+    assert get_response.json()["max_tokens"]["weekly"] == 3200
     assert get_response.json()["markets"] == ["us", "global"]
     assert get_response.json()["categories"] == ["finance"]
     assert get_response.json()["is_active"] is False
@@ -74,9 +80,11 @@ def test_report_profile_retention_and_password_endpoints(client: TestClient) -> 
         headers=headers,
         json={
             "report_frequency": "monthly",
+            "report_frequencies": ["monthly"],
             "markets": ["us", "cn"],
             "categories": ["finance", "macro"],
             "is_active": False,
+            "max_tokens": {"monthly": 4500},
         },
     )
     profile_response = client.put(
@@ -111,16 +119,30 @@ def test_report_profile_retention_and_password_endpoints(client: TestClient) -> 
     assert report_get.status_code == 200
     assert report_get.json() == {
         "report_frequency": "daily",
+        "report_frequencies": ["daily"],
         "markets": [],
         "categories": [],
         "is_active": True,
+        "max_tokens": {
+            "daily_morning": 2000,
+            "daily_afternoon": 2000,
+            "weekly": 3000,
+            "monthly": 4000,
+        },
     }
     assert report_update.status_code == 200
     assert report_update.json() == {
         "report_frequency": "monthly",
+        "report_frequencies": ["monthly"],
         "markets": ["us", "cn"],
         "categories": ["finance", "macro"],
         "is_active": False,
+        "max_tokens": {
+            "daily_morning": 2000,
+            "daily_afternoon": 2000,
+            "weekly": 3000,
+            "monthly": 4500,
+        },
     }
     assert profile_response.status_code == 200
     assert profile_response.json()["display_name"] == "Section User"
@@ -178,27 +200,23 @@ def test_user_llm_config_and_usage(client: TestClient) -> None:
     usage_response = client.get("/api/v1/me/llm/usage", headers=headers)
 
     assert get_response.status_code == 200
-    assert {"daily_token_limit", "cost_guard_enabled", "api_keys"}.issubset(
-        get_response.json()
-    )
+    assert {"daily_token_limit", "cost_guard_enabled", "api_keys"}.issubset(get_response.json())
     assert "provider" not in get_response.json()
     assert "model" not in get_response.json()
     assert update_response.status_code == 200
-    assert update_response.json() == {
-        "daily_token_limit": 4321,
-        "cost_guard_enabled": False,
-        "api_keys": [
-            {
-                "name": "Personal",
-                "key": "sk-user-test",
-                "provider": "deepseek",
-                "token_limit": 4321,
-                "is_default": True,
-            }
-        ],
-    }
+    assert update_response.json()["daily_token_limit"] == 4321
+    assert update_response.json()["cost_guard_enabled"] is False
+    assert update_response.json()["api_keys"] == [
+        {
+            "name": "Personal",
+            "key": "sk-user-test",
+            "provider": "deepseek",
+            "token_limit": 4321,
+            "is_default": True,
+        }
+    ]
     assert minimal_update_response.status_code == 200
-    assert minimal_update_response.json()["daily_token_limit"] == 1_000_000
+    assert minimal_update_response.json()["daily_token_limit"] == 4321
     assert minimal_update_response.json()["api_keys"][0]["is_default"] is True
     assert usage_response.status_code == 200
     usage_items = usage_response.json()["items"]

@@ -1,7 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from app.analyzers.prompts import report_system_prompt, report_user_prompt, summary_system_prompt, summary_user_prompt
+from app.analyzers.prompts import (
+    report_system_prompt,
+    report_user_prompt,
+    summary_system_prompt,
+    summary_user_prompt,
+)
 from app.models.collected_item import CollectedItem
 from app.models.enums import IntelligenceCategory, Market
 
@@ -30,9 +35,10 @@ def test_summary_system_prompt_requires_json_and_locale() -> None:
 def test_report_prompt_includes_required_sections_instruction() -> None:
     """Report system prompt names the expected markdown sections."""
     item = _item("A", "content")
-    system_prompt = report_system_prompt("zh")
+    system_prompt = report_system_prompt("zh", 2000, "Daily Morning")
     user_prompt = report_user_prompt(
         "daily",
+        "Daily",
         "2026-05-16",
         "2026-05-16",
         ["us"],
@@ -40,13 +46,15 @@ def test_report_prompt_includes_required_sections_instruction() -> None:
         [item],
     )
 
-    assert "Overview" in system_prompt
-    assert "Sentiment Analysis" in system_prompt
-    assert "Politics" in system_prompt
-    assert "Tech" in system_prompt
+    assert "Executive Summary" in system_prompt
+    assert "Cross-Market Dynamics" in system_prompt
+    assert "Political Risk" in system_prompt
+    assert "Technology & Innovation" in system_prompt
     assert "Sources" in system_prompt
-    assert "source titles and URLs" in system_prompt
+    assert "titles and URLs" in system_prompt
+    assert "2000 tokens" in system_prompt
     assert "Report type: daily" in user_prompt
+    assert "Report label: Daily" in user_prompt
     assert item.content_url in user_prompt
 
 

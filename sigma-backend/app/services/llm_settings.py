@@ -1,6 +1,7 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
+from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,17 +14,37 @@ from app.schemas.llm import LLMApiKey, LLMConfigRead, LLMConfigUpdate, LLMUsageD
 async def get_llm_config(db: AsyncSession, user_id: UUID | None = None) -> LLMConfigRead:
     """Return user-scoped LLM budget and API key settings."""
     prefix = _llm_config_prefix(user_id)
+    changed_at = await _daily_token_limit_changed_at(db, user_id)
     return LLMConfigRead(
-        daily_token_limit=int(await _config_value(db, f"{prefix}.daily_token_limit", settings.daily_token_limit)),
+        daily_token_limit=int(
+            await _config_value(db, f"{prefix}.daily_token_limit", settings.daily_token_limit)
+        ),
         cost_guard_enabled=bool(await _config_value(db, f"{prefix}.cost_guard_enabled", True)),
+        daily_token_limit_changed_at=changed_at,
+        daily_token_limit_cooldown_remaining_seconds=_cooldown_remaining_seconds(changed_at),
         api_keys=await _api_keys_value(db, user_id),
     )
 
 
-async def update_llm_config(db: AsyncSession, payload: LLMConfigUpdate, user_id: UUID | None = None) -> LLMConfigRead:
+async def update_llm_config(
+    db: AsyncSession, payload: LLMConfigUpdate, user_id: UUID | None = None
+) -> LLMConfigRead:
     """Update user-scoped LLM budget and API key settings."""
     prefix = _llm_config_prefix(user_id)
-    await _upsert_config(db, f"{prefix}.daily_token_limit", payload.daily_token_limit)
+    current_limit = int(
+        await _config_value(db, f"{prefix}.daily_token_limit", settings.daily_token_limit)
+    )
+    next_limit = (
+        payload.daily_token_limit
+        if "daily_token_limit" in payload.model_fields_set
+        else current_limit
+    )
+    changed_at = await _daily_token_limit_changed_at(db, user_id)
+    if next_limit != current_limit:
+        _enforce_daily_token_limit_cooldown(changed_at)
+        changed_at = datetime.now(timezone.utc)
+        await _upsert_config(db, f"{prefix}.daily_token_limit_changed_at", changed_at.isoformat())
+    await _upsert_config(db, f"{prefix}.daily_token_limit", next_limit)
     await _upsert_config(db, f"{prefix}.cost_guard_enabled", payload.cost_guard_enabled)
     await _upsert_config(
         db,
@@ -32,8 +53,10 @@ async def update_llm_config(db: AsyncSession, payload: LLMConfigUpdate, user_id:
     )
     await db.commit()
     return LLMConfigRead(
-        daily_token_limit=payload.daily_token_limit,
+        daily_token_limit=next_limit,
         cost_guard_enabled=payload.cost_guard_enabled,
+        daily_token_limit_changed_at=changed_at,
+        daily_token_limit_cooldown_remaining_seconds=_cooldown_remaining_seconds(changed_at),
         api_keys=payload.api_keys,
     )
 
@@ -96,6 +119,40 @@ async def _upsert_config(db: AsyncSession, key: str, value: object) -> None:
         db.add(SystemConfig(key=key, value={"value": value}))
         return
     config.value = {"value": value}
+
+
+async def _daily_token_limit_changed_at(db: AsyncSession, user_id: UUID | None) -> datetime | None:
+    raw_value = await _config_value(
+        db, f"{_llm_config_prefix(user_id)}.daily_token_limit_changed_at", None
+    )
+    if not isinstance(raw_value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw_value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _enforce_daily_token_limit_cooldown(changed_at: datetime | None) -> None:
+    remaining_seconds = _cooldown_remaining_seconds(changed_at)
+    if remaining_seconds <= 0:
+        return
+    hours, remainder = divmod(remaining_seconds, 3600)
+    minutes = (remainder + 59) // 60
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=f"Daily token limit can be changed again in {hours}h {minutes}m.",
+    )
+
+
+def _cooldown_remaining_seconds(changed_at: datetime | None) -> int:
+    if changed_at is None:
+        return 0
+    expires_at = changed_at + timedelta(hours=24)
+    return max(0, int((expires_at - datetime.now(timezone.utc)).total_seconds()))
 
 
 async def _api_keys_value(db: AsyncSession, user_id: UUID | None) -> list[LLMApiKey]:

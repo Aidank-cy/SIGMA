@@ -8,7 +8,13 @@ from app.api.v1.admin import dashboard as admin_dashboard
 from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
-from app.models.enums import CollectorStatus, IntelligenceCategory, LLMFunctionType, Market, SourceType
+from app.models.enums import (
+    CollectorStatus,
+    IntelligenceCategory,
+    LLMFunctionType,
+    Market,
+    SourceType,
+)
 from app.models.llm_usage_log import LLMUsageLog
 
 
@@ -109,7 +115,9 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
     _token(client, "managed-detail@example.com")
     regular_token = _token(client, "regular-user-detail@example.com")
     headers = _auth(admin_token)
-    managed_id = client.get("/api/v1/admin/users?q=managed-detail", headers=headers).json()["items"][0]["id"]
+    managed_id = client.get("/api/v1/admin/users?q=managed-detail", headers=headers).json()[
+        "items"
+    ][0]["id"]
     self_id = client.get("/api/v1/auth/me", headers=headers).json()["id"]
 
     llm_update = client.put(
@@ -136,7 +144,9 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
         headers=headers,
         json={"is_active": False},
     )
-    report_read_after_update = client.get(f"/api/v1/admin/users/{managed_id}/report-config", headers=headers)
+    report_read_after_update = client.get(
+        f"/api/v1/admin/users/{managed_id}/report-config", headers=headers
+    )
     source_create = client.post(
         f"/api/v1/admin/users/{managed_id}/sources",
         headers=headers,
@@ -160,10 +170,17 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
         json={"is_active": False, "schedule_cron": "*/15 * * * *"},
     )
     users_after_counts = client.get("/api/v1/admin/users?q=managed-detail", headers=headers)
-    source_delete = client.delete(f"/api/v1/admin/users/{managed_id}/sources/{source_id}", headers=headers)
+    source_delete = client.delete(
+        f"/api/v1/admin/users/{managed_id}/sources/{source_id}", headers=headers
+    )
     self_llm_response = client.get(f"/api/v1/admin/users/{self_id}/llm/config", headers=headers)
-    self_report_response = client.get(f"/api/v1/admin/users/{self_id}/report-config", headers=headers)
-    forbidden_response = client.get(f"/api/v1/admin/users/{managed_id}/sources", headers=_auth(regular_token))
+    self_report_response = client.get(
+        f"/api/v1/admin/users/{self_id}/report-config", headers=headers
+    )
+    self_usage_response = client.get(f"/api/v1/admin/users/{self_id}/llm/usage", headers=headers)
+    forbidden_response = client.get(
+        f"/api/v1/admin/users/{managed_id}/sources", headers=_auth(regular_token)
+    )
 
     assert llm_update.status_code == 200
     assert llm_update.json()["api_keys"][0]["provider"] == "gemini"
@@ -186,9 +203,13 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
     assert users_after_counts.json()["items"][0]["llm_key_count"] == 1
     assert users_after_counts.json()["items"][0]["source_count"] == 1
     assert source_delete.status_code == 204
-    assert client.get(f"/api/v1/admin/users/{managed_id}/sources", headers=headers).json()["total"] == 0
-    assert self_llm_response.status_code == 403
-    assert self_report_response.status_code == 403
+    assert (
+        client.get(f"/api/v1/admin/users/{managed_id}/sources", headers=headers).json()["total"]
+        == 0
+    )
+    assert self_llm_response.status_code == 200
+    assert self_report_response.status_code == 200
+    assert self_usage_response.status_code == 200
     assert forbidden_response.status_code == 403
 
 
@@ -201,7 +222,10 @@ def test_admin_sources_endpoints_removed(client: TestClient) -> None:
 
     assert client.get("/api/v1/admin/sources", headers=headers).status_code == 404
     assert client.post("/api/v1/admin/sources/test", headers=headers, json={}).status_code == 404
-    assert client.put(f"/api/v1/admin/sources/{source_id}", headers=headers, json={}).status_code == 404
+    assert (
+        client.put(f"/api/v1/admin/sources/{source_id}", headers=headers, json={}).status_code
+        == 404
+    )
     assert client.get(f"/api/v1/admin/sources/{source_id}/logs", headers=headers).status_code == 404
     assert client.get("/api/v1/admin/sources/stats", headers=headers).status_code == 404
     assert client.get("/api/v1/admin/sources", headers=_auth(user_token)).status_code == 404
@@ -431,7 +455,10 @@ async def _seed_admin_logs_data(client: TestClient) -> str:
         _collector_log(source_b.id, CollectorStatus.SUCCESS, timestamps[0] - timedelta(hours=1)),
         _collector_log(source_b.id, CollectorStatus.FAIL, timestamps[1] - timedelta(hours=1)),
     ]
-    logs.extend(_collector_log(source_b.id, CollectorStatus.TIMEOUT, timestamp) for timestamp in timestamps[6:])
+    logs.extend(
+        _collector_log(source_b.id, CollectorStatus.TIMEOUT, timestamp)
+        for timestamp in timestamps[6:]
+    )
     async with session_factory() as db:
         db.add_all([source_a, source_b, *logs])
         await db.commit()

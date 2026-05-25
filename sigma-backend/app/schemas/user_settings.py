@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.enums import ReportType, UserLocale
+from app.services.report_settings import DEFAULT_REPORT_MAX_TOKENS, REPORT_MAX_TOKEN_TYPES
 
 
 class UserReportConfigRead(BaseModel):
@@ -9,9 +10,11 @@ class UserReportConfigRead(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
     report_frequency: ReportType
+    report_frequencies: list[ReportType]
     markets: list[str]
     categories: list[str]
     is_active: bool
+    max_tokens: dict[str, int]
 
 
 class UserReportConfigUpdate(BaseModel):
@@ -20,9 +23,31 @@ class UserReportConfigUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     report_frequency: ReportType = ReportType.DAILY
+    report_frequencies: list[ReportType] = Field(default_factory=lambda: [ReportType.DAILY])
     markets: list[str] = Field(default_factory=list)
     categories: list[str] = Field(default_factory=list)
     is_active: bool = True
+    max_tokens: dict[str, int] = Field(default_factory=dict)
+
+    @field_validator("max_tokens")
+    @classmethod
+    def validate_max_tokens(cls, value: dict[str, int]) -> dict[str, int]:
+        """Validate report-token config keys and positive integer values."""
+        allowed = {report_type.value for report_type in REPORT_MAX_TOKEN_TYPES}
+        for key, max_tokens in value.items():
+            if key not in allowed:
+                raise ValueError(f"Unsupported report token limit key: {key}")
+            if max_tokens <= 0:
+                raise ValueError("Report token limits must be positive")
+        return value
+
+    @model_validator(mode="after")
+    def normalize_frequency(self) -> "UserReportConfigUpdate":
+        if not self.report_frequencies:
+            self.report_frequencies = [self.report_frequency]
+        else:
+            self.report_frequency = self.report_frequencies[0]
+        return self
 
 
 class UserSettingsRead(BaseModel):
@@ -34,9 +59,11 @@ class UserSettingsRead(BaseModel):
     locale: UserLocale
     data_retention_days: int
     report_frequency: ReportType
+    report_frequencies: list[ReportType]
     markets: list[str]
     categories: list[str]
     is_active: bool
+    max_tokens: dict[str, int]
 
 
 class UserSettingsUpdate(BaseModel):
@@ -48,9 +75,16 @@ class UserSettingsUpdate(BaseModel):
     locale: UserLocale
     data_retention_days: int
     report_frequency: ReportType = ReportType.DAILY
+    report_frequencies: list[ReportType] = Field(default_factory=lambda: [ReportType.DAILY])
     markets: list[str] = Field(default_factory=list)
     categories: list[str] = Field(default_factory=list)
     is_active: bool = True
+    max_tokens: dict[str, int] = Field(
+        default_factory=lambda: {
+            report_type.value: DEFAULT_REPORT_MAX_TOKENS[report_type]
+            for report_type in REPORT_MAX_TOKEN_TYPES
+        }
+    )
 
     @field_validator("data_retention_days")
     @classmethod
@@ -59,6 +93,14 @@ class UserSettingsUpdate(BaseModel):
         if value not in {7, 30, 60, 90, 180, 365}:
             raise ValueError("Unsupported retention period")
         return value
+
+    @model_validator(mode="after")
+    def normalize_frequency(self) -> "UserSettingsUpdate":
+        if not self.report_frequencies:
+            self.report_frequencies = [self.report_frequency]
+        else:
+            self.report_frequency = self.report_frequencies[0]
+        return self
 
 
 class UserProfileUpdate(BaseModel):

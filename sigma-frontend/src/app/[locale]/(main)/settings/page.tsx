@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, Save } from "lucide-react";
+import { ChevronDown, KeyRound, Save } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -28,13 +28,21 @@ const retentionOptions = [7, 30, 60, 90] as const;
 const categories: Category[] = ["politics", "finance", "technology", "macro"];
 const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "kr", "tw"];
 const reportTypes: ReportType[] = ["daily", "daily_morning", "daily_afternoon", "weekly", "monthly"];
+const tokenLimitReportTypes: ReportType[] = ["daily_morning", "daily_afternoon", "weekly", "monthly"];
+const defaultReportMaxTokens: Partial<Record<ReportType, number>> = {
+  daily_morning: 2000,
+  daily_afternoon: 2000,
+  weekly: 3000,
+  monthly: 4000
+};
 
 const defaultReportConfig: UserReportConfig = {
   categories: [],
   is_active: true,
   markets: [],
   report_frequency: "daily",
-  report_frequencies: []
+  report_frequencies: ["daily"],
+  max_tokens: defaultReportMaxTokens
 };
 
 export default function SettingsPage() {
@@ -310,7 +318,9 @@ function ReportConfigSection({
   setPayload: (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => void;
 }) {
   const t = useTranslations("settings");
-  const activeReportFrequencies = payload.report_frequencies ?? (payload.report_frequency ? [payload.report_frequency] : []);
+  const [isTokenLimitsOpen, setIsTokenLimitsOpen] = useState(false);
+  const activeReportFrequencies = reportFrequencies(payload);
+  const enabledTokenLimitTypes = enabledReportTokenTypes(activeReportFrequencies);
 
   return (
     <Card className="p-5">
@@ -327,19 +337,22 @@ function ReportConfigSection({
           </label>
         </div>
         <div className={cn("flex flex-col gap-5", !payload.is_active && "pointer-events-none select-none opacity-40")}>
-          <MultiSelectPills
-            allLabel={t("reports.all")}
+          <FrequencyPills
             label={t("reports.frequency")}
-            onChange={(values) =>
-              setPayload((current) => ({
-                ...current,
-                report_frequency: values[0] ?? "daily",
-                report_frequencies: values
-              }))
+            onChange={(value) =>
+              setPayload((current) => {
+                const nextFrequencies = toggleReportFrequency(reportFrequencies(current), value);
+                return {
+                  ...current,
+                  report_frequency: nextFrequencies[0],
+                  report_frequencies: nextFrequencies
+                };
+              })
             }
             options={reportTypes.map((value) => ({ label: t(`reports.${value}`), value }))}
             values={activeReportFrequencies}
           />
+          <p className="-mt-3 text-xs font-medium text-muted-foreground">{t("reports.frequencyHint")}</p>
           <MultiSelectPills
             allLabel={t("reports.allMarkets")}
             label={t("reports.markets")}
@@ -354,6 +367,48 @@ function ReportConfigSection({
             options={categories.map((value) => ({ label: t(`categories.${value}`), value }))}
             values={payload.categories}
           />
+          <div className="rounded-lg border border-border/70">
+            <button
+              className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold text-foreground"
+              onClick={() => setIsTokenLimitsOpen((current) => !current)}
+              type="button"
+            >
+              {t("reports.tokenLimits")}
+              <ChevronDown
+                className={cn("h-4 w-4 text-muted-foreground transition-transform", isTokenLimitsOpen && "rotate-180")}
+                aria-hidden
+              />
+            </button>
+            {isTokenLimitsOpen ? (
+              <div className="grid gap-3 border-t border-border/70 p-3 sm:grid-cols-2">
+                {enabledTokenLimitTypes.map((reportType) => (
+                  <Input
+                    key={reportType}
+                    inputMode="numeric"
+                    label={t("reports.maxTokensLabel", { label: t(`reports.${reportType}`) })}
+                    labelMode="stacked"
+                    min={1}
+                    onChange={(event) => {
+                      const value = Number.parseInt(event.target.value, 10);
+                      if (!Number.isFinite(value) || value <= 0) {
+                        return;
+                      }
+                      setPayload((current) => ({
+                        ...current,
+                        max_tokens: {
+                          ...defaultReportMaxTokens,
+                          ...(current.max_tokens ?? {}),
+                          [reportType]: value
+                        }
+                      }));
+                    }}
+                    type="number"
+                    value={String(payload.max_tokens?.[reportType] ?? defaultReportMaxTokens[reportType] ?? 2000)}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </Card>
@@ -519,6 +574,36 @@ interface Option<T extends string = string> {
   value: T;
 }
 
+function FrequencyPills<T extends string>({
+  label,
+  onChange,
+  options,
+  values
+}: {
+  label: string;
+  onChange: (value: T) => void;
+  options: Array<Option<T>>;
+  values: T[];
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            className={values.includes(option.value) ? activePillClass : inactivePillClass}
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            type="button"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MultiSelectPills<T extends string>({
   allLabel,
   label,
@@ -566,19 +651,58 @@ function reportConfigsEqual(left: UserReportConfig, right: UserReportConfig) {
     left.is_active === right.is_active &&
     stringArraysEqual(reportFrequencies(left), reportFrequencies(right)) &&
     stringArraysEqual(left.categories, right.categories) &&
-    stringArraysEqual(left.markets, right.markets)
+    stringArraysEqual(left.markets, right.markets) &&
+    tokenLimitsEqual(left.max_tokens ?? {}, right.max_tokens ?? {})
   );
 }
 
 function normalizeReportConfig(config: UserReportConfig): UserReportConfig {
   return {
     ...config,
-    report_frequencies: config.report_frequencies ?? (config.report_frequency ? [config.report_frequency] : [])
+    max_tokens: { ...defaultReportMaxTokens, ...(config.max_tokens ?? {}) },
+    report_frequencies: reportFrequencies(config)
   };
 }
 
 function reportFrequencies(config: UserReportConfig): ReportType[] {
-  return config.report_frequencies ?? (config.report_frequency ? [config.report_frequency] : []);
+  const frequencies = config.report_frequencies ?? (config.report_frequency ? [config.report_frequency] : []);
+  return frequencies.length > 0 ? normalizeReportFrequencySelection(frequencies) : ["daily"];
+}
+
+function toggleReportFrequency(current: ReportType[], value: ReportType): ReportType[] {
+  if (value === "daily") {
+    return normalizeReportFrequencySelection([
+      ...current.filter((entry) => entry !== "daily_morning" && entry !== "daily_afternoon"),
+      "daily"
+    ]);
+  }
+  const withoutDaily = current.filter((entry) => entry !== "daily");
+  const next = withoutDaily.includes(value)
+    ? withoutDaily.filter((entry) => entry !== value)
+    : [...withoutDaily, value];
+  return normalizeReportFrequencySelection(next.length > 0 ? next : [value]);
+}
+
+function normalizeReportFrequencySelection(values: ReportType[]): ReportType[] {
+  const unique = Array.from(new Set(values));
+  if (unique.includes("daily")) {
+    return unique.filter((value) => value !== "daily_morning" && value !== "daily_afternoon");
+  }
+  return reportTypes.filter((value) => unique.includes(value));
+}
+
+function enabledReportTokenTypes(values: ReportType[]): ReportType[] {
+  const tokenTypes = new Set<ReportType>();
+  if (values.includes("daily")) {
+    tokenTypes.add("daily_morning");
+    tokenTypes.add("daily_afternoon");
+  }
+  for (const value of values) {
+    if (tokenLimitReportTypes.includes(value)) {
+      tokenTypes.add(value);
+    }
+  }
+  return tokenLimitReportTypes.filter((value) => tokenTypes.has(value));
 }
 
 function stringArraysEqual(left: string[], right: string[]) {
@@ -588,4 +712,15 @@ function stringArraysEqual(left: string[], right: string[]) {
   const leftSorted = [...left].sort();
   const rightSorted = [...right].sort();
   return leftSorted.every((value, index) => value === rightSorted[index]);
+}
+
+function tokenLimitsEqual(
+  left: Partial<Record<ReportType, number>>,
+  right: Partial<Record<ReportType, number>>
+) {
+  return tokenLimitReportTypes.every(
+    (reportType) =>
+      (left[reportType] ?? defaultReportMaxTokens[reportType]) ===
+      (right[reportType] ?? defaultReportMaxTokens[reportType])
+  );
 }

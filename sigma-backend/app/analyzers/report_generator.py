@@ -10,6 +10,7 @@ from app.analyzers.prompts import report_system_prompt, report_user_prompt
 from app.models.collected_item import CollectedItem
 from app.models.enums import IntelligenceCategory, LLMFunctionType, Market, ReportType
 from app.models.report import Report
+from app.services.report_settings import get_report_max_tokens_for_type, report_type_label
 from app.utils.event_hooks import notify_new_report
 
 
@@ -63,14 +64,21 @@ async def _load_items(
     period_start: datetime,
     period_end: datetime,
 ) -> list[CollectedItem]:
-    predicates = [CollectedItem.published_at >= period_start, CollectedItem.published_at <= period_end]
+    predicates = [
+        CollectedItem.published_at >= period_start,
+        CollectedItem.published_at <= period_end,
+    ]
     if market_scope:
         predicates.append(CollectedItem.market.in_([Market(market) for market in market_scope]))
     if category_scope:
         predicates.append(
-            CollectedItem.category.in_([IntelligenceCategory(category) for category in category_scope])
+            CollectedItem.category.in_(
+                [IntelligenceCategory(category) for category in category_scope]
+            )
         )
-    rows = await db.scalars(select(CollectedItem).where(*predicates).order_by(CollectedItem.published_at.desc()))
+    rows = await db.scalars(
+        select(CollectedItem).where(*predicates).order_by(CollectedItem.published_at.desc())
+    )
     return list(rows)
 
 
@@ -86,17 +94,20 @@ async def _generate_content(
     user_id: UUID | None,
 ) -> str:
     client = LLMClient(db, function_type=LLMFunctionType.REPORT, user_id=user_id)
-    system_prompt = report_system_prompt(locale)
+    max_tokens = await get_report_max_tokens_for_type(db, user_id, report_type)
+    report_label = report_type_label(report_type)
+    system_prompt = report_system_prompt(locale, max_tokens, report_label)
     if len(items) <= 30:
         user_prompt = report_user_prompt(
             report_type.value,
+            report_label,
             period_start,
             period_end,
             market_scope,
             category_scope,
             items,
         )
-        return await client.complete(system_prompt, user_prompt, max_tokens=2000)
+        return await client.complete(system_prompt, user_prompt, max_tokens=max_tokens)
 
     grouped: dict[str, list[CollectedItem]] = defaultdict(list)
     for item in items:
@@ -106,23 +117,25 @@ async def _generate_content(
     for category, category_items in grouped.items():
         prompt = report_user_prompt(
             f"{report_type.value} {category} map pass",
+            f"{report_label} {category} Map Pass",
             period_start,
             period_end,
             market_scope,
             [category],
             category_items,
         )
-        intermediate.append(await client.complete(system_prompt, prompt, max_tokens=1200))
+        intermediate.append(await client.complete(system_prompt, prompt, max_tokens=max_tokens))
 
     reduce_prompt = report_user_prompt(
         f"{report_type.value} reduce pass",
+        f"{report_label} Reduce Pass",
         period_start,
         period_end,
         market_scope,
         category_scope,
         intermediate,
     )
-    return await client.complete(system_prompt, reduce_prompt, max_tokens=2500)
+    return await client.complete(system_prompt, reduce_prompt, max_tokens=max_tokens)
 
 
 def _period_start_datetime(value: date | datetime) -> datetime:
@@ -151,7 +164,17 @@ def _sentiment_for_item(item: CollectedItem) -> str:
         return str(metadata_sentiment)
 
     text = f"{item.title} {item.summary or ''}".lower()
-    positive_terms = ("bullish", "beat", "gain", "growth", "rally", "strong", "上涨", "利好", "增长")
+    positive_terms = (
+        "bullish",
+        "beat",
+        "gain",
+        "growth",
+        "rally",
+        "strong",
+        "上涨",
+        "利好",
+        "增长",
+    )
     negative_terms = ("bearish", "decline", "fall", "loss", "risk", "weak", "下跌", "利空", "风险")
     positive = sum(1 for term in positive_terms if term in text)
     negative = sum(1 for term in negative_terms if term in text)

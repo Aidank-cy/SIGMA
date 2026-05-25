@@ -305,3 +305,14 @@
 **Completion:** TASK COMPLETE
 **Next session should:** Start from `main` with the exhaustive validation branch merged, or handle any follow-up requested by the user.
 **Uncommitted work:** NO — committing Phase 5 confirmation and Phase 6 sign-off, then merging `test/backend-api-coverage` into `main`.
+
+---
+## Session 27 — 2026-05-25T04:24:56Z
+**Phase:** Maintenance
+**Resuming from:** User-requested SIGMA six fixes and features on clean `main`.
+**Prior status from progress.md:** Latest maintenance slices were complete; report scheduling, user LLM settings, and admin detail management were already present.
+
+**Ending at:** Report prompt, token configuration, cooldown, admin self-config, and frequency-list fixes
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Continue with user-requested maintenance or run Docker/browser validation against a persistent local database if UI confirmation is needed.
+**Uncommitted work:** YES — changes are complete and verified on `codex/feat/sigma-report-config-fixes`; not committed because the user did not request a commit.

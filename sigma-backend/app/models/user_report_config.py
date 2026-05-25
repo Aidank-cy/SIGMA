@@ -25,6 +25,11 @@ class UserReportConfig(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         default=ReportType.DAILY,
         nullable=False,
     )
+    report_frequencies: Mapped[list[Any]] = mapped_column(
+        jsonb_type(),
+        default=lambda: [ReportType.DAILY.value],
+        nullable=False,
+    )
     markets: Mapped[list[Any]] = mapped_column(jsonb_type(), default=list, nullable=False)
     categories: Mapped[list[Any]] = mapped_column(jsonb_type(), default=list, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

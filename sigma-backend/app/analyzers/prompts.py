@@ -18,16 +18,34 @@ SUMMARY_USER = (
 )
 
 REPORT_SYSTEM = (
-    "You are a market intelligence analyst. Write a structured markdown report in {locale}. "
-    "The report subtitle line must include the exact period with times in this format: "
-    "'Daily Market Report | YYYY-MM-DD (HH:MM) to YYYY-MM-DD (HH:MM)'. "
-    "Use level-2 markdown headings for these sections: Overview, Sentiment Analysis, "
-    "Politics, Finance, Tech, Timeline, Outlook, Sources. Include concise source "
-    "attribution with source titles and URLs in Sources."
+    "You are a senior market intelligence analyst at a global macro research firm. "
+    "Write a structured markdown report in {locale}. "
+    "Your response MUST NOT exceed {max_tokens} tokens.\n\n"
+    "CRITICAL INSTRUCTIONS:\n"
+    "1. FILTER: The input items may contain noise — duplicates, irrelevant press releases, "
+    "promotional content, or items with weak market relevance. Silently discard low-quality "
+    "items. Only include items that carry actionable intelligence for institutional investors.\n"
+    "2. CROSS-CATEGORY ANALYSIS: Identify causal links across categories. For example, a "
+    "political policy change that impacts a specific sector, a macro indicator that triggers "
+    "a chain reaction in equity and FX markets, or a tech regulation that shifts capital flows. "
+    "Explicitly call out these cross-domain connections in the Overview and Outlook sections.\n"
+    "3. CHAIN REACTIONS: When multiple items point to the same underlying theme, synthesize "
+    "them into a single narrative thread rather than listing them separately. Highlight "
+    "second-order and third-order effects (e.g., tariff → supply chain disruption → "
+    "semiconductor shortage → revised earnings guidance).\n"
+    "4. INTERNAL LOGIC: Within each category section, order items by market impact magnitude, "
+    "not by publish time. Lead with the most consequential development.\n"
+    "5. STRUCTURE: Use level-2 markdown headings for exactly these sections: "
+    "Executive Summary, Cross-Market Dynamics, Political Risk, Financial Markets, "
+    "Technology & Innovation, Macro Indicators, Timeline, Forward Outlook, Sources.\n"
+    "6. The report subtitle line must include the exact period: "
+    "'{report_type} Market Report | YYYY-MM-DD (HH:MM) to YYYY-MM-DD (HH:MM) Beijing Time'.\n"
+    "7. In the Sources section, include concise attribution with titles and URLs."
 )
 
 REPORT_USER = (
     "Report type: {report_type}\n"
+    "Report label: {report_label}\n"
     "Period: {period_start} ({start_time}) to {period_end} ({end_time})\n"
     "Markets: {markets}\n"
     "Categories: {categories}\n\n"
@@ -51,13 +69,14 @@ def summary_user_prompt(item: CollectedItem) -> str:
     )
 
 
-def report_system_prompt(locale: str) -> str:
+def report_system_prompt(locale: str, max_tokens: int, report_type: str) -> str:
     """Render the report system prompt."""
-    return REPORT_SYSTEM.format(locale=locale)
+    return REPORT_SYSTEM.format(locale=locale, max_tokens=max_tokens, report_type=report_type)
 
 
 def report_user_prompt(
     report_type: str,
+    report_label: str,
     period_start: object,
     period_end: object,
     markets: list[str],
@@ -68,6 +87,7 @@ def report_user_prompt(
     rendered_items = "\n\n".join(_render_item(item) for item in items)
     return REPORT_USER.format(
         report_type=report_type,
+        report_label=report_label,
         period_start=_format_period_date(period_start),
         period_end=_format_period_date(period_end),
         start_time=_format_period_time(period_start, "00:00"),

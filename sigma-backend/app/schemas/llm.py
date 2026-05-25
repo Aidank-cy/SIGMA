@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -39,6 +39,8 @@ class LLMConfigRead(BaseModel):
 
     daily_token_limit: int
     cost_guard_enabled: bool = True
+    daily_token_limit_changed_at: datetime | None = None
+    daily_token_limit_cooldown_remaining_seconds: int = 0
     api_keys: list[LLMApiKey] = Field(default_factory=list)
 
 

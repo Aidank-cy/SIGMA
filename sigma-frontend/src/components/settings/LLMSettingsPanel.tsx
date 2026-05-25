@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Gauge, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -210,6 +210,12 @@ export function LLMSettingsPanel({
 
   const dailyBudgetPercent =
     form.daily_token_limit > 0 ? Math.min(100, Math.round((totals.today / form.daily_token_limit) * 100)) : 0;
+  const usageRemaining = Math.max(0, Math.round(form.daily_token_limit - totals.today));
+  const usageRemainingPercent =
+    form.daily_token_limit > 0 ? Math.max(0, Math.round((usageRemaining / form.daily_token_limit) * 100)) : 0;
+  const cooldownSeconds = configData?.daily_token_limit_cooldown_remaining_seconds ?? 0;
+  const isDailyLimitCooldownActive = cooldownSeconds > 0;
+  const cooldownHours = Math.ceil(cooldownSeconds / 3600);
   const hasExplicitDefault = form.api_keys.some((entry) => entry.is_default);
 
   const hasInvalidApiKeys = form.api_keys.some(
@@ -379,10 +385,22 @@ export function LLMSettingsPanel({
             </label>
             <div className={cn(!form.cost_guard_enabled && "pointer-events-none select-none opacity-40")}>
               <TokenLimitInput
+                disabled={isDailyLimitCooldownActive}
                 label={t("dailyLimit")}
                 onChange={(value) => setForm({ ...form, daily_token_limit: value })}
                 value={form.cost_guard_enabled ? form.daily_token_limit : defaultConfig.daily_token_limit}
               />
+              {isDailyLimitCooldownActive ? (
+                <p className="mt-2 text-xs font-medium text-sigma-muted">
+                  {t("limitCooldown", { hours: cooldownHours })}
+                </p>
+              ) : null}
+            </div>
+            <div className="mt-auto flex items-center gap-3 rounded-lg bg-sigma-elevated px-3 py-3">
+              <Gauge className="h-4 w-4 shrink-0 text-sigma-muted" aria-hidden />
+              <p className="min-w-0 flex-1 text-sm text-sigma-muted">{t("usageRemaining")}</p>
+              <p className="text-xl font-bold tabular-nums text-sigma-text">{usageRemaining.toLocaleString()}</p>
+              <p className="text-xl font-bold text-sigma-text">{usageRemainingPercent}%</p>
             </div>
           </Card>
         </section>
@@ -444,10 +462,12 @@ export function LLMSettingsPanel({
 }
 
 function TokenLimitInput({
+  disabled = false,
   label,
   onChange,
   value
 }: {
+  disabled?: boolean;
   label: string;
   onChange: (value: number) => void;
   value: number;
@@ -476,6 +496,7 @@ function TokenLimitInput({
         setIsEditing(true);
         setRawValue(String(value));
       }}
+      disabled={disabled}
       type="text"
       value={isEditing ? rawValue : value.toLocaleString()}
     />

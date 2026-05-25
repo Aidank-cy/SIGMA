@@ -7,6 +7,11 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add per-report scheduled report token limits for daily morning, daily afternoon, weekly, and monthly reports.
+- Add JSON-backed multi-select report frequency persistence and scheduled-report matching.
+- Add a 24-hour cooldown timestamp for daily LLM token-limit changes and expose remaining cooldown metadata.
+- Add a Settings usage-remaining gauge for the daily LLM token budget.
+- Add admin per-user LLM usage reads for user detail panels.
 - Add daily morning and daily afternoon scheduled report frequencies with precise Beijing-time generation windows.
 - Add user ownership to LLM usage logs so report-generation token usage can be attributed per account.
 - Add admin user detail controls for another user's scheduled report generation.
@@ -52,6 +57,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change report generation prompts to use the senior market-intelligence system prompt with configured token budgets.
 - Change scheduled weekly and monthly report jobs to their precise Beijing-time UTC cron equivalents.
 - Store report periods as timestamp boundaries so scheduled reports preserve exact collection windows.
 - Match the Settings Cost Guard card height to the API Keys card.
@@ -162,6 +168,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix admin user detail LLM and report configuration endpoints so admins can manage their own non-destructive settings.
+- Fix scheduled report frequency handling so daily aggregate and split daily selections do not duplicate generation.
 - Fix user LLM usage rollups and daily token-budget checks so Settings reflects only the current user's usage.
 - Fix frontend 204 responses so successful user deletion and password updates do not throw JSON parse errors.
 - Fix closed-market intraday charts so they render the last available session instead of generated partial fallback data.

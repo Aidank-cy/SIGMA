@@ -57,6 +57,8 @@ export interface LastCollectionResponse {
 export interface LLMConfig {
   daily_token_limit: number;
   cost_guard_enabled: boolean;
+  daily_token_limit_changed_at?: string | null;
+  daily_token_limit_cooldown_remaining_seconds?: number;
   api_keys: LLMApiKey[];
 }
 
@@ -179,6 +181,7 @@ export interface WatchlistTrend {
 export interface UserReportConfig {
   report_frequency: ReportType;
   report_frequencies?: ReportType[];
+  max_tokens?: Partial<Record<ReportType, number>>;
   markets: Market[];
   categories: Category[];
   is_active: boolean;
