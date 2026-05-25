@@ -332,6 +332,7 @@ def test_intraday_fallback_only_generates_elapsed_minutes_during_trading(
 async def test_read_intraday_from_redis_requires_enough_points(monkeypatch: pytest.MonkeyPatch) -> None:
     """Market-index refresh reads intraday points from Redis instead of providers."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 2, 0, tzinfo=UTC))
     redis_points = [
         market_indices.IntradayPoint(
             datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
@@ -346,6 +347,34 @@ async def test_read_intraday_from_redis_requires_enough_points(monkeypatch: pyte
     monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
 
     assert await market_indices._read_intraday_from_redis(sse) == redis_points
+
+
+@pytest.mark.asyncio
+async def test_read_intraday_from_redis_filters_previous_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Redis candles from a previous trading day are not served as today's intraday chart."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 2, 0, tzinfo=UTC))
+    redis_points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3200.0 + offset,
+        )
+        for offset in range(20)
+    ]
+    redis_points.extend(
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3300.0 + offset,
+        )
+        for offset in range(9)
+    )
+
+    async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return redis_points
+
+    monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
+
+    assert await market_indices._read_intraday_from_redis(sse) is None
 
 
 @pytest.mark.asyncio
@@ -374,6 +403,7 @@ async def test_quote_falls_back_to_redis_candle(monkeypatch: pytest.MonkeyPatch)
 async def test_build_index_is_yahoo_free(monkeypatch: pytest.MonkeyPatch) -> None:
     """The 15-second market-index refresh builds from Redis/PG without Yahoo calls."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 2, 0, tzinfo=UTC))
     redis_points = [
         market_indices.IntradayPoint(
             datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),

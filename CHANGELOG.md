@@ -155,6 +155,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix admin bootstrap after database cleanup so registration promotes the next user when no admin role remains.
+- Filter stale one-day market candles by session date in backend and frontend intraday chart rendering.
 - Fix admin user source deletion refresh, admin detail auto-refresh, API 429 retry backoff, and scheduler source-job jitter.
 - Fix Admin Dashboard chart card heights, source-health scrolling, and scraper linked-article body selector coverage.
 - Fix scraper collectors to remove trailing numeric title noise, avoid title-only content, and optionally follow article links for richer body text.

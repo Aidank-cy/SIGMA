@@ -338,9 +338,15 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
     from app.services.market_candles import _redis_get_1d
 
     points = await _redis_get_1d(config.symbol)
-    if points and len(points) >= 10:
-        return points
-    return None
+    if not points:
+        return None
+
+    session_date = _latest_session_date(config)
+    zone = ZoneInfo(config.timezone)
+    current_session_points = [
+        point for point in points if point.timestamp.astimezone(zone).date() == session_date
+    ]
+    return current_session_points if len(current_session_points) >= 10 else None
 
 
 async def _yahoo_rate_limit_wait() -> bool:
