@@ -10,16 +10,14 @@ export function useLLMSettings() {
   const config = useQuery({
     queryKey: ["llm", "config"],
     queryFn: () => apiFetch<LLMConfig>("/me/llm/config"),
-    refetchInterval: 3_000,
-    staleTime: 0,
-    gcTime: 0
+    refetchInterval: 10_000,
+    staleTime: 5_000
   });
   const usage = useQuery({
     queryKey: ["llm", "usage"],
     queryFn: () => apiFetch<LLMUsageResponse>("/me/llm/usage"),
-    refetchInterval: 3_000,
-    staleTime: 0,
-    gcTime: 0
+    refetchInterval: 10_000,
+    staleTime: 5_000
   });
   const update = useMutation({
     mutationFn: (payload: LLMConfig) =>

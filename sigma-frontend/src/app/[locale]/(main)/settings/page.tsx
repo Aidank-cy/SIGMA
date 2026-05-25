@@ -3,7 +3,7 @@
 import { KeyRound, Save } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { AdminSettingsSection } from "@/components/admin/AdminSettingsSection";
@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const [profileBaseline, setProfileBaseline] = useState({ displayName: "", locale });
   const [retentionBaseline, setRetentionBaseline] = useState(30);
   const [reportBaseline, setReportBaseline] = useState<UserReportConfig>(defaultReportConfig);
+  const reportBaselineRef = useRef<UserReportConfig>(defaultReportConfig);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -67,6 +68,10 @@ export default function SettingsPage() {
       return;
     }
     const normalized = normalizeReportConfig(reportConfig);
+    if (reportConfigsEqual(normalized, reportBaselineRef.current)) {
+      return;
+    }
+    reportBaselineRef.current = normalized;
     setReportPayload(normalized);
     setReportBaseline(normalized);
   }, [reportConfig]);
@@ -118,6 +123,7 @@ export default function SettingsPage() {
         run: async () => {
           const saved = await updateReportConfig.mutateAsync(reportPayload);
           const normalized = normalizeReportConfig(saved);
+          reportBaselineRef.current = normalized;
           setReportPayload(normalized);
           setReportBaseline(normalized);
         }

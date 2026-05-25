@@ -12,7 +12,7 @@ export function useReportConfig() {
     queryFn: () => apiFetch<UserReportConfig>("/me/report-config"),
     retry: 1,
     staleTime: 5_000,
-    refetchInterval: 3_000
+    refetchInterval: 10_000
   });
 
   return {

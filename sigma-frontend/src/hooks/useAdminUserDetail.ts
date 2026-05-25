@@ -21,12 +21,11 @@ export function useAdminUserLLMConfig(userId: string | null) {
   const queryClient = useQueryClient();
   const config = useQuery({
     enabled: Boolean(userId),
-    placeholderData: undefined,
     queryKey: ["admin", "users", userId, "llm", "config"],
     queryFn: () => apiFetch<LLMConfig>(`/admin/users/${userId}/llm/config`),
-    refetchInterval: 3_000,
+    refetchInterval: 10_000,
     refetchOnMount: true,
-    staleTime: 0
+    staleTime: 5_000
   });
   const update = useMutation({
     mutationFn: (payload: LLMConfig) =>
@@ -43,12 +42,11 @@ export function useAdminUserLLMConfig(userId: string | null) {
   });
   const usage = useQuery({
     enabled: Boolean(userId),
-    placeholderData: undefined,
     queryKey: ["admin", "users", userId, "llm", "usage"],
     queryFn: () => apiFetch<LLMUsageResponse>(`/admin/users/${userId}/llm/usage`),
-    refetchInterval: 3_000,
+    refetchInterval: 10_000,
     refetchOnMount: true,
-    staleTime: 0
+    staleTime: 5_000
   });
 
   return { config, update, usage };
@@ -58,12 +56,11 @@ export function useAdminUserReportConfig(userId: string | null) {
   const queryClient = useQueryClient();
   const config = useQuery({
     enabled: Boolean(userId),
-    placeholderData: undefined,
     queryKey: ["admin", "users", userId, "report-config"],
     queryFn: () => apiFetch<UserReportConfig>(`/admin/users/${userId}/report-config`),
-    refetchInterval: 3_000,
+    refetchInterval: 10_000,
     refetchOnMount: true,
-    staleTime: 0
+    staleTime: 5_000
   });
   const update = useMutation({
     mutationFn: (payload: UserReportConfig) =>
@@ -83,12 +80,11 @@ export function useAdminUserReportConfig(userId: string | null) {
 export function useAdminUserSources(userId: string | null) {
   return useQuery({
     enabled: Boolean(userId),
-    placeholderData: undefined,
     queryKey: ["admin", "users", userId, "sources"],
     queryFn: () => apiFetch<PaginatedResponse<DataSource>>(`/admin/users/${userId}/sources?page=1&page_size=100`),
-    refetchInterval: 3_000,
+    refetchInterval: 10_000,
     refetchOnMount: true,
-    staleTime: 0
+    staleTime: 5_000
   });
 }
 

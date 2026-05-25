@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { RotateCcw } from "lucide-react";
 
@@ -8,7 +8,8 @@ import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
 import {
   ReportConfigEditor,
   defaultReportConfig,
-  normalizeReportConfig
+  normalizeReportConfig,
+  reportConfigsEqual
 } from "@/components/settings/ReportConfigEditor";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -24,10 +25,30 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
   const report = useAdminUserReportConfig(userId);
   const toast = useToast();
   const [reportPayload, setReportPayload] = useState<UserReportConfig>(defaultReportConfig);
+  const reportBaselineRef = useRef<UserReportConfig>(defaultReportConfig);
+  const reportPayloadRef = useRef<UserReportConfig>(defaultReportConfig);
+  const setSyncedReportPayload = useCallback(
+    (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => {
+      setReportPayload((current) => {
+        const next = typeof value === "function" ? value(current) : value;
+        reportPayloadRef.current = next;
+        return next;
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     if (report.config.data) {
       const normalized = normalizeReportConfig(report.config.data);
+      if (
+        reportConfigsEqual(normalized, reportPayloadRef.current) ||
+        reportConfigsEqual(normalized, reportBaselineRef.current)
+      ) {
+        return;
+      }
+      reportBaselineRef.current = normalized;
+      reportPayloadRef.current = normalized;
       setReportPayload(normalized);
     }
   }, [report.config.data]);
@@ -36,6 +57,8 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
     try {
       const saved = await report.update.mutateAsync(reportPayload);
       const normalized = normalizeReportConfig(saved);
+      reportBaselineRef.current = normalized;
+      reportPayloadRef.current = normalized;
       setReportPayload(normalized);
       toast.showToast(userT("saved"), "success");
     } catch (error) {
@@ -62,7 +85,7 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
           onSave={saveReportConfig}
           payload={reportPayload}
           saveLabel={userT("saveReportConfig")}
-          setPayload={setReportPayload}
+          setPayload={setSyncedReportPayload}
           title={userT("reportConfig")}
         />
       )}

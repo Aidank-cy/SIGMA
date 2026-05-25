@@ -1762,3 +1762,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Verification: `npm run build`, `python3 -m pip install -e ".[dev]"`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `./hooks/post-file-edit.sh`, and `git diff --check`.
 - Follow-up: Local dev-browser smoke still hit the existing Next dev `_next/static` 404 behavior before the protected Settings UI could be visually inspected.
 - Timestamp: 2026-05-25T17:40:07+08:00
+
+### [Maintenance] Settings and admin report polling stability
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/admin/AdminUserLLMDetail.tsx, sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/hooks/useLLMSettings.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added deep-equality guards around Settings and admin report-config hydration so unchanged polling responses do not reset local editor state, reduced report/LLM/admin detail polling to ten seconds with five-second stale windows, removed immediate LLM cache garbage collection, and removed explicit undefined placeholders from admin detail queries.
+- Verification: `npm run build`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `./hooks/post-file-edit.sh`, and `git diff --check`.
+- Timestamp: 2026-05-25T18:53:50+08:00
