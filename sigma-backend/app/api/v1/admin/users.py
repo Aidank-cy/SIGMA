@@ -15,9 +15,10 @@ from app.models.user import User
 from app.models.user_report_config import UserReportConfig
 from app.models.watchlist import Watchlist
 from app.scheduler.engine import add_or_update_source_job, remove_source_job
-from app.schemas.admin import AdminUserListResponse, AdminUserRead, AdminUserUpdate
+from app.schemas.admin import AdminUserListResponse, AdminUserRead, AdminUserReportConfigUpdate, AdminUserUpdate
 from app.schemas.llm import LLMConfigRead, LLMConfigUpdate
 from app.schemas.source import DataSourceCreate, DataSourceRead, DataSourceUpdate, SourceListResponse
+from app.schemas.user_settings import UserReportConfigRead
 from app.services.llm_settings import get_llm_config, update_llm_config
 
 router = APIRouter()
@@ -113,6 +114,36 @@ async def update_admin_user_llm_config(
     _ensure_not_self(user_id, current_admin.id)
     await _get_user(db, user_id)
     return await update_llm_config(db, payload, user_id)
+
+
+@router.get("/{user_id}/report-config", response_model=UserReportConfigRead)
+async def get_admin_user_report_config(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+) -> UserReportConfigRead:
+    """Return another user's scheduled report configuration for admin management."""
+    _ensure_not_self(user_id, current_admin.id)
+    await _get_user(db, user_id)
+    config = await _get_or_create_report_config(db, user_id)
+    return UserReportConfigRead.model_validate(config)
+
+
+@router.put("/{user_id}/report-config", response_model=UserReportConfigRead)
+async def update_admin_user_report_config(
+    user_id: UUID,
+    payload: AdminUserReportConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+) -> UserReportConfigRead:
+    """Update another user's scheduled report generation state."""
+    _ensure_not_self(user_id, current_admin.id)
+    await _get_user(db, user_id)
+    config = await _get_or_create_report_config(db, user_id)
+    config.is_active = payload.is_active
+    await db.commit()
+    await db.refresh(config)
+    return UserReportConfigRead.model_validate(config)
 
 
 @router.get("/{user_id}/sources", response_model=SourceListResponse)
@@ -247,6 +278,17 @@ async def _get_user_source(db: AsyncSession, user_id: UUID, source_id: UUID) -> 
     if source is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
     return source
+
+
+async def _get_or_create_report_config(db: AsyncSession, user_id: UUID) -> UserReportConfig:
+    config = await db.scalar(select(UserReportConfig).where(UserReportConfig.user_id == user_id))
+    if config is not None:
+        return config
+    config = UserReportConfig(user_id=user_id)
+    db.add(config)
+    await db.commit()
+    await db.refresh(config)
+    return config
 
 
 def _ensure_not_self(user_id: UUID, current_admin_id: UUID) -> None:

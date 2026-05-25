@@ -130,6 +130,13 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
         },
     )
     llm_read = client.get(f"/api/v1/admin/users/{managed_id}/llm/config", headers=headers)
+    report_read = client.get(f"/api/v1/admin/users/{managed_id}/report-config", headers=headers)
+    report_update = client.put(
+        f"/api/v1/admin/users/{managed_id}/report-config",
+        headers=headers,
+        json={"is_active": False},
+    )
+    report_read_after_update = client.get(f"/api/v1/admin/users/{managed_id}/report-config", headers=headers)
     source_create = client.post(
         f"/api/v1/admin/users/{managed_id}/sources",
         headers=headers,
@@ -155,12 +162,18 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
     users_after_counts = client.get("/api/v1/admin/users?q=managed-detail", headers=headers)
     source_delete = client.delete(f"/api/v1/admin/users/{managed_id}/sources/{source_id}", headers=headers)
     self_llm_response = client.get(f"/api/v1/admin/users/{self_id}/llm/config", headers=headers)
+    self_report_response = client.get(f"/api/v1/admin/users/{self_id}/report-config", headers=headers)
     forbidden_response = client.get(f"/api/v1/admin/users/{managed_id}/sources", headers=_auth(regular_token))
 
     assert llm_update.status_code == 200
     assert llm_update.json()["api_keys"][0]["provider"] == "gemini"
     assert llm_read.status_code == 200
     assert llm_read.json()["daily_token_limit"] == 42_000
+    assert report_read.status_code == 200
+    assert report_read.json()["is_active"] is True
+    assert report_update.status_code == 200
+    assert report_update.json()["is_active"] is False
+    assert report_read_after_update.json()["is_active"] is False
     assert source_create.status_code == 201
     assert source_create.json()["created_by"] == managed_id
     assert source_create.json()["is_system"] is False
@@ -175,6 +188,7 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
     assert source_delete.status_code == 204
     assert client.get(f"/api/v1/admin/users/{managed_id}/sources", headers=headers).json()["total"] == 0
     assert self_llm_response.status_code == 403
+    assert self_report_response.status_code == 403
     assert forbidden_response.status_code == 403
 
 

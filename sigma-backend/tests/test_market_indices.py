@@ -378,6 +378,48 @@ async def test_read_intraday_from_redis_filters_previous_session(monkeypatch: py
 
 
 @pytest.mark.asyncio
+async def test_read_intraday_from_redis_keeps_last_session_when_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Closed markets can still serve the latest full Redis session."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 17, 4, 0, tzinfo=UTC))
+    redis_points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3200.0 + offset,
+        )
+        for offset in range(20)
+    ]
+
+    async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return redis_points
+
+    monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
+
+    assert await market_indices._read_intraday_from_redis(sse) == redis_points
+
+
+@pytest.mark.asyncio
+async def test_read_intraday_from_redis_clears_weekday_pre_open(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Weekday pre-open Redis data waits for fresh candles instead of serving the old session."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 0, 30, tzinfo=UTC))
+    redis_points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3200.0 + offset,
+        )
+        for offset in range(20)
+    ]
+
+    async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return redis_points
+
+    monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
+
+    assert await market_indices._read_intraday_from_redis(sse) is None
+
+
+@pytest.mark.asyncio
 async def test_quote_falls_back_to_redis_candle(monkeypatch: pytest.MonkeyPatch) -> None:
     """Market-index refresh can derive a last-resort quote from Redis candles."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")

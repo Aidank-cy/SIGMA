@@ -11,7 +11,9 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { SegmentControl } from "@/components/ui/SegmentControl";
 import { Modal } from "@/components/ui/Modal";
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
+import { useAdminUserReportConfig } from "@/hooks/useAdminUserDetail";
 import { useAdminUsers } from "@/hooks/useAdmin";
 import type { AdminUser } from "@/hooks/useAdmin";
 import { cn } from "@/lib/cn";
@@ -32,6 +34,7 @@ export function AdminUsersPanel() {
   const { list, remove, update } = useAdminUsers(query);
   const users = list.data?.items ?? [];
   const selectedUser = users.find((user) => user.id === selectedUserId) ?? null;
+  const reportConfig = useAdminUserReportConfig(selectedUserId);
 
   useEffect(() => {
     if (selectedUserId !== null && users.some((user) => user.id === selectedUserId)) {
@@ -58,6 +61,15 @@ export function AdminUsersPanel() {
       toast.showToast(t("deleted"), "success");
       setPendingDelete(null);
       setConfirmation("");
+    } catch (error) {
+      toast.showToast(error instanceof Error ? error.message : t("error"), "error");
+    }
+  };
+
+  const handleReportToggle = async (is_active: boolean) => {
+    try {
+      await reportConfig.update.mutateAsync({ is_active });
+      toast.showToast(t("saved"), "success");
     } catch (error) {
       toast.showToast(error instanceof Error ? error.message : t("error"), "error");
     }
@@ -191,14 +203,24 @@ export function AdminUsersPanel() {
                   <h2 className="truncate text-lg font-semibold text-sigma-text">{selectedUser.display_name}</h2>
                   <p className="truncate text-sm text-sigma-muted">{selectedUser.email}</p>
                 </div>
-                <SegmentControl
-                  activeId={activeDetailTab}
-                  items={[
-                    { id: "llm", label: llmT("apiKeys") },
-                    { id: "sources", label: syncT("dataSources") }
-                  ]}
-                  onChange={(value) => setActiveDetailTab(value as DetailTab)}
-                />
+                <div className="flex flex-col gap-3 sm:items-end lg:flex-row lg:items-center">
+                  <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-sigma-text">
+                    <ToggleSwitch
+                      checked={reportConfig.config.data?.is_active ?? false}
+                      label={t("scheduledReports")}
+                      onChange={handleReportToggle}
+                    />
+                    {t("scheduledReports")}
+                  </label>
+                  <SegmentControl
+                    activeId={activeDetailTab}
+                    items={[
+                      { id: "llm", label: llmT("apiKeys") },
+                      { id: "sources", label: syncT("dataSources") }
+                    ]}
+                    onChange={(value) => setActiveDetailTab(value as DetailTab)}
+                  />
+                </div>
               </div>
               <div className="min-h-0 flex-1 overflow-auto pr-1">
                 {activeDetailTab === "llm" ? <AdminUserLLMDetail userId={selectedUser.id} /> : null}

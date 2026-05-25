@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add admin user detail controls for another user's scheduled report generation.
 - Add system log filtering, expansion, and pagination directly to the Admin Dashboard.
 - Add per-user admin detail management for user LLM settings and custom data sources from the Admin Users panel.
 - Add Sync market-region filter pills for data source cards.
@@ -49,6 +50,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Reduce the Settings LLM API keys card height while keeping overflow rows scrollable.
 - Move scheduled-report activation into the Report Configuration header and gray out inactive report controls.
 - Remove the standalone Admin Logs tab after moving logs into the dashboard.
 - Move the Settings save action beside the Change Password card and keep LLM API key and cost guard cards fixed-height.
@@ -155,6 +157,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix frontend 204 responses so successful user deletion and password updates do not throw JSON parse errors.
+- Fix closed-market intraday charts so they render the last available session instead of generated partial fallback data.
 - Fix admin bootstrap after database cleanup so registration promotes the next user when no admin role remains.
 - Filter stale one-day market candles by session date in backend and frontend intraday chart rendering.
 - Fix admin user source deletion refresh, admin detail auto-refresh, API 429 retry backoff, and scheduler source-job jitter.
