@@ -178,10 +178,20 @@ export interface WatchlistTrend {
   days: WatchlistTrendDay[];
 }
 
+export interface ReportTimeRange {
+  start_day_offset?: number;
+  end_day_offset?: number;
+  start_time?: string;
+  end_time?: string;
+  start_day_of_month?: number;
+  end_day_of_month?: number;
+}
+
 export interface UserReportConfig {
   report_frequency: ReportType;
   report_frequencies?: ReportType[];
   max_tokens?: Partial<Record<ReportType, number>>;
+  time_ranges?: Partial<Record<ReportType, ReportTimeRange>>;
   markets: Market[];
   categories: Category[];
   is_active: boolean;

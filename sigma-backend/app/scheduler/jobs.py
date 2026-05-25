@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime, time, timedelta, timezone
 from time import perf_counter
+from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -118,19 +119,19 @@ async def generate_scheduled_reports(
             for config in active_configs
             if _config_matches_report_type(config, resolved_type)
         ]
-        scopes = {
-            (config.user_id, tuple(config.markets), tuple(config.categories)) for config in configs
-        }
-        period_start, period_end = _period_for(resolved_type)
-        for user_id, markets, categories in scopes:
+        for config in configs:
+            period_start, period_end = _period_for(
+                resolved_type,
+                time_ranges=config.time_ranges or {},
+            )
             await generate_report(
                 db,
                 resolved_type,
-                list(markets),
-                list(categories),
+                list(config.markets),
+                list(config.categories),
                 period_start,
                 period_end,
-                user_id=user_id,
+                user_id=config.user_id,
             )
         await db.commit()
 
@@ -149,7 +150,11 @@ def _config_matches_report_type(config: UserReportConfig, report_type: ReportTyp
     return any(frequency in configured for frequency in _config_frequencies_for(report_type))
 
 
-def _period_for(report_type: ReportType, now: datetime | None = None) -> tuple[datetime, datetime]:
+def _period_for(
+    report_type: ReportType,
+    now: datetime | None = None,
+    time_ranges: dict[str, Any] | None = None,
+) -> tuple[datetime, datetime]:
     local_now = (now or datetime.now(timezone.utc)).astimezone(BEIJING_TZ)
     today = local_now.date()
     if report_type == ReportType.DAILY_MORNING:
@@ -168,7 +173,23 @@ def _period_for(report_type: ReportType, now: datetime | None = None) -> tuple[d
             datetime.combine(today, time(23, 59, 59), tzinfo=BEIJING_TZ),
         )
     if report_type == ReportType.WEEKLY:
+        configured = (time_ranges or {}).get(ReportType.WEEKLY.value)
         friday = today - timedelta(days=(today.weekday() - 4) % 7)
+        if isinstance(configured, dict):
+            start_offset = _int_or_none(configured.get("start_day_offset"))
+            end_offset = _int_or_none(configured.get("end_day_offset"))
+            start_time = _parse_hhmm(configured.get("start_time"))
+            end_time = _parse_hhmm(configured.get("end_time"))
+            if (
+                start_offset is not None
+                and end_offset is not None
+                and start_time is not None
+                and end_time is not None
+            ):
+                return (
+                    datetime.combine(friday - timedelta(days=start_offset), start_time, tzinfo=BEIJING_TZ),
+                    datetime.combine(friday - timedelta(days=end_offset), end_time, tzinfo=BEIJING_TZ),
+                )
         return (
             datetime.combine(friday - timedelta(days=7), time(17, 45, 1), tzinfo=BEIJING_TZ),
             datetime.combine(friday, time(17, 44, 0), tzinfo=BEIJING_TZ),
@@ -176,10 +197,43 @@ def _period_for(report_type: ReportType, now: datetime | None = None) -> tuple[d
     first_day_this_month = today.replace(day=1)
     last_day_previous_month = first_day_this_month - timedelta(days=1)
     first_day_previous_month = last_day_previous_month.replace(day=1)
+    configured = (time_ranges or {}).get(ReportType.MONTHLY.value)
+    if isinstance(configured, dict):
+        start_day = _int_or_none(configured.get("start_day_of_month"))
+        end_day = _int_or_none(configured.get("end_day_of_month"))
+        if start_day is not None and end_day is not None:
+            return (
+                datetime.combine(first_day_previous_month.replace(day=start_day), time.min, tzinfo=BEIJING_TZ),
+                datetime.combine(first_day_previous_month.replace(day=end_day), time(23, 59, 59), tzinfo=BEIJING_TZ),
+            )
     return (
         datetime.combine(first_day_previous_month, time.min, tzinfo=BEIJING_TZ),
         datetime.combine(last_day_previous_month, time(23, 59, 59), tzinfo=BEIJING_TZ),
     )
+
+
+def _int_or_none(value: object) -> int | None:
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def _parse_hhmm(value: object) -> time | None:
+    if not isinstance(value, str):
+        return None
+    parts = value.split(":")
+    if len(parts) != 2:
+        return None
+    try:
+        hours = int(parts[0])
+        minutes = int(parts[1])
+    except ValueError:
+        return None
+    if hours < 0 or hours > 23 or minutes < 0 or minutes > 59:
+        return None
+    return time(hours, minutes)
 
 
 async def _write_log(

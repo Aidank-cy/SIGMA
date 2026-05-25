@@ -24,12 +24,15 @@ from app.services.llm_settings import (
     get_llm_usage as read_llm_usage,
     update_llm_config as write_llm_config,
 )
-from app.services.report_settings import get_report_max_tokens, update_report_max_tokens
+from app.services.report_settings import (
+    get_report_max_tokens,
+    update_report_max_tokens,
+)
 
 router = APIRouter()
 
 
-@router.get("/settings", response_model=UserSettingsRead)
+@router.get("/settings", response_model=UserSettingsRead, response_model_exclude_none=True)
 async def get_settings(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -39,7 +42,7 @@ async def get_settings(
     return await _settings_response(db, current_user, config)
 
 
-@router.put("/settings", response_model=UserSettingsRead)
+@router.put("/settings", response_model=UserSettingsRead, response_model_exclude_none=True)
 async def update_settings(
     payload: UserSettingsUpdate,
     current_user: User = Depends(get_current_user),
@@ -55,6 +58,7 @@ async def update_settings(
     config.markets = payload.markets
     config.categories = payload.categories
     config.is_active = payload.is_active
+    config.time_ranges = _dump_time_ranges(payload.time_ranges)
     await update_report_max_tokens(db, current_user.id, payload.max_tokens)
     await db.commit()
     await db.refresh(current_user)
@@ -62,7 +66,7 @@ async def update_settings(
     return await _settings_response(db, current_user, config)
 
 
-@router.get("/report-config", response_model=UserReportConfigRead)
+@router.get("/report-config", response_model=UserReportConfigRead, response_model_exclude_none=True)
 async def get_report_config(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -72,7 +76,7 @@ async def get_report_config(
     return await _report_config_response(db, config)
 
 
-@router.put("/report-config", response_model=UserReportConfigRead)
+@router.put("/report-config", response_model=UserReportConfigRead, response_model_exclude_none=True)
 async def update_report_config(
     payload: UserReportConfigUpdate,
     current_user: User = Depends(get_current_user),
@@ -85,6 +89,7 @@ async def update_report_config(
     config.markets = payload.markets
     config.categories = payload.categories
     config.is_active = payload.is_active
+    config.time_ranges = _dump_time_ranges(payload.time_ranges)
     await update_report_max_tokens(db, current_user.id, payload.max_tokens)
     await db.commit()
     await db.refresh(config)
@@ -187,6 +192,7 @@ async def _settings_response(
         categories=[str(category) for category in config.categories],
         is_active=config.is_active,
         max_tokens=await get_report_max_tokens(db, user.id),
+        time_ranges=config.time_ranges or {},
     )
 
 
@@ -200,9 +206,17 @@ async def _report_config_response(
         categories=[str(category) for category in config.categories],
         is_active=config.is_active,
         max_tokens=await get_report_max_tokens(db, config.user_id),
+        time_ranges=config.time_ranges or {},
     )
 
 
 def _report_frequencies(config: UserReportConfig) -> list[ReportType]:
     values = config.report_frequencies or [config.report_frequency.value]
     return [ReportType(value) for value in values]
+
+
+def _dump_time_ranges(payload: dict[str, object]) -> dict[str, object]:
+    return {
+        key: value.model_dump(exclude_none=True) if hasattr(value, "model_dump") else value
+        for key, value in payload.items()
+    }

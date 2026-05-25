@@ -142,7 +142,22 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
     report_update = client.put(
         f"/api/v1/admin/users/{managed_id}/report-config",
         headers=headers,
-        json={"is_active": False},
+        json={
+            "report_frequency": "weekly",
+            "report_frequencies": ["weekly"],
+            "markets": ["us"],
+            "categories": ["finance"],
+            "is_active": False,
+            "max_tokens": {"weekly": 3600},
+            "time_ranges": {
+                "weekly": {
+                    "start_day_offset": 10,
+                    "end_day_offset": 0,
+                    "start_time": "08:30",
+                    "end_time": "17:44",
+                }
+            },
+        },
     )
     report_read_after_update = client.get(
         f"/api/v1/admin/users/{managed_id}/report-config", headers=headers
@@ -190,6 +205,18 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
     assert report_read.json()["is_active"] is True
     assert report_update.status_code == 200
     assert report_update.json()["is_active"] is False
+    assert report_update.json()["report_frequencies"] == ["weekly"]
+    assert report_update.json()["markets"] == ["us"]
+    assert report_update.json()["categories"] == ["finance"]
+    assert report_update.json()["max_tokens"]["weekly"] == 3600
+    assert report_update.json()["time_ranges"] == {
+        "weekly": {
+            "start_day_offset": 10,
+            "end_day_offset": 0,
+            "start_time": "08:30",
+            "end_time": "17:44",
+        }
+    }
     assert report_read_after_update.json()["is_active"] is False
     assert source_create.status_code == 201
     assert source_create.json()["created_by"] == managed_id

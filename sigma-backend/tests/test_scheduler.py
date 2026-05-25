@@ -319,6 +319,35 @@ def test_report_periods_match_report_type() -> None:
     assert monthly_end == datetime(2026, 4, 30, 23, 59, 59, tzinfo=beijing)
 
 
+def test_report_periods_use_configured_time_ranges() -> None:
+    """Weekly and monthly report periods use per-user configured ranges."""
+    beijing = ZoneInfo("Asia/Shanghai")
+    now = datetime(2026, 5, 22, 9, 45, tzinfo=timezone.utc)
+
+    weekly_start, weekly_end = _period_for(
+        ReportType.WEEKLY,
+        now,
+        {
+            "weekly": {
+                "start_day_offset": 10,
+                "end_day_offset": 1,
+                "start_time": "08:30",
+                "end_time": "16:15",
+            }
+        },
+    )
+    monthly_start, monthly_end = _period_for(
+        ReportType.MONTHLY,
+        now,
+        {"monthly": {"start_day_of_month": 3, "end_day_of_month": 18}},
+    )
+
+    assert weekly_start == datetime(2026, 5, 12, 8, 30, tzinfo=beijing)
+    assert weekly_end == datetime(2026, 5, 21, 16, 15, tzinfo=beijing)
+    assert monthly_start == datetime(2026, 4, 3, 0, 0, tzinfo=beijing)
+    assert monthly_end == datetime(2026, 4, 18, 23, 59, 59, tzinfo=beijing)
+
+
 def test_daily_report_frequency_matching_is_backward_compatible() -> None:
     """Daily configs participate in both split daily report jobs."""
     assert _config_frequencies_for(ReportType.DAILY_MORNING) == (

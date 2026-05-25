@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add report advanced settings for per-frequency token limits and custom time ranges in user and admin report configuration.
 - Add per-report scheduled report token limits for daily morning, daily afternoon, weekly, and monthly reports.
 - Add JSON-backed multi-select report frequency persistence and scheduled-report matching.
 - Add a 24-hour cooldown timestamp for daily LLM token-limit changes and expose remaining cooldown metadata.
@@ -57,6 +58,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change admin user detail panels to edit full per-user report configuration inline and remove the duplicate scheduled-report header toggle.
+- Change the LLM usage-remaining card to show only the remaining percentage.
 - Change report generation prompts to use the senior market-intelligence system prompt with configured token budgets.
 - Change scheduled weekly and monthly report jobs to their precise Beijing-time UTC cron equivalents.
 - Store report periods as timestamp boundaries so scheduled reports preserve exact collection windows.
@@ -168,6 +171,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix admin user detail LLM, report, and source panels so switching users remounts detail panes and fetches fresh data instead of showing stale states.
+- Keep the Settings report configuration card mounted after initial load so refetches do not hide the editor.
 - Fix admin user detail LLM and report configuration endpoints so admins can manage their own non-destructive settings.
 - Fix scheduled report frequency handling so daily aggregate and split daily selections do not duplicate generation.
 - Fix user LLM usage rollups and daily token-budget checks so Settings reflects only the current user's usage.

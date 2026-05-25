@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, KeyRound, Save } from "lucide-react";
+import { KeyRound, Save } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -14,36 +14,21 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentControl } from "@/components/ui/SegmentControl";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
+import {
+  ReportConfigEditor,
+  defaultReportConfig,
+  normalizeReportConfig,
+  reportConfigsEqual
+} from "@/components/settings/ReportConfigEditor";
 import { useLLMSettings } from "@/hooks/useLLMSettings";
 import { useReportConfig, useSettingsMutations } from "@/hooks/useSettings";
 import type { User } from "@/lib/auth";
 import { cn } from "@/lib/cn";
-import { toggleMultiSelection } from "@/lib/selection";
-import type { Category, LLMConfig, LLMUsageResponse, Locale, Market, ReportType, UserReportConfig } from "@/lib/types";
+import type { LLMConfig, LLMUsageResponse, Locale, UserReportConfig } from "@/lib/types";
 
 const retentionOptions = [7, 30, 60, 90] as const;
-const categories: Category[] = ["politics", "finance", "technology", "macro"];
-const markets: Market[] = ["us", "cn", "hk", "jp", "eu", "kr", "tw"];
-const reportTypes: ReportType[] = ["daily", "daily_morning", "daily_afternoon", "weekly", "monthly"];
-const tokenLimitReportTypes: ReportType[] = ["daily_morning", "daily_afternoon", "weekly", "monthly"];
-const defaultReportMaxTokens: Partial<Record<ReportType, number>> = {
-  daily_morning: 2000,
-  daily_afternoon: 2000,
-  weekly: 3000,
-  monthly: 4000
-};
-
-const defaultReportConfig: UserReportConfig = {
-  categories: [],
-  is_active: true,
-  markets: [],
-  report_frequency: "daily",
-  report_frequencies: ["daily"],
-  max_tokens: defaultReportMaxTokens
-};
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
@@ -64,6 +49,7 @@ export default function SettingsPage() {
   const [reportBaseline, setReportBaseline] = useState<UserReportConfig>(defaultReportConfig);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasLoadedReportConfig, setHasLoadedReportConfig] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -82,9 +68,12 @@ export default function SettingsPage() {
       return;
     }
     const normalized = normalizeReportConfig(reportConfig);
-    setReportPayload(normalized);
-    setReportBaseline(normalized);
-  }, [reportConfig]);
+    if (!reportConfigsEqual(reportBaseline, normalized)) {
+      setReportPayload(normalized);
+      setReportBaseline(normalized);
+    }
+    setHasLoadedReportConfig(true);
+  }, [reportBaseline, reportConfig]);
 
   const dirty = useMemo(
     () => ({
@@ -132,8 +121,9 @@ export default function SettingsPage() {
         label: t("reports.title"),
         run: async () => {
           const saved = await updateReportConfig.mutateAsync(reportPayload);
-          setReportPayload(saved);
-          setReportBaseline(saved);
+          const normalized = normalizeReportConfig(saved);
+          setReportPayload(normalized);
+          setReportBaseline(normalized);
         }
       });
     }
@@ -176,10 +166,10 @@ export default function SettingsPage() {
           ) : (
             <Skeleton className="h-44 rounded-2xl" />
           )}
-          {isLoading ? (
+          {!hasLoadedReportConfig && !reportConfig && isLoading ? (
             <Skeleton className="h-72 rounded-2xl" />
           ) : (
-            <ReportConfigSection payload={reportPayload} setPayload={setReportPayload} />
+            <ReportConfigEditor payload={reportPayload} setPayload={setReportPayload} />
           )}
         </div>
         <div className="flex min-w-0 flex-col gap-5">
@@ -304,111 +294,6 @@ function RetentionSection({ days, onChange }: { days: number; onChange: (days: n
             items={retentionOptions.map((option) => ({ id: String(option), label: t("retention.days", { count: option }) }))}
             onChange={(value) => onChange(Number(value))}
           />
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function ReportConfigSection({
-  payload,
-  setPayload
-}: {
-  payload: UserReportConfig;
-  setPayload: (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => void;
-}) {
-  const t = useTranslations("settings");
-  const [isTokenLimitsOpen, setIsTokenLimitsOpen] = useState(false);
-  const activeReportFrequencies = reportFrequencies(payload);
-  const enabledTokenLimitTypes = enabledReportTokenTypes(activeReportFrequencies);
-
-  return (
-    <Card className="p-5">
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-base font-semibold text-foreground">{t("reports.title")}</h2>
-          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <ToggleSwitch
-              checked={payload.is_active}
-              label={t("reports.active")}
-              onChange={(checked) => setPayload((current) => ({ ...current, is_active: checked }))}
-            />
-            {t("reports.active")}
-          </label>
-        </div>
-        <div className={cn("flex flex-col gap-5", !payload.is_active && "pointer-events-none select-none opacity-40")}>
-          <FrequencyPills
-            label={t("reports.frequency")}
-            onChange={(value) =>
-              setPayload((current) => {
-                const nextFrequencies = toggleReportFrequency(reportFrequencies(current), value);
-                return {
-                  ...current,
-                  report_frequency: nextFrequencies[0],
-                  report_frequencies: nextFrequencies
-                };
-              })
-            }
-            options={reportTypes.map((value) => ({ label: t(`reports.${value}`), value }))}
-            values={activeReportFrequencies}
-          />
-          <p className="-mt-3 text-xs font-medium text-muted-foreground">{t("reports.frequencyHint")}</p>
-          <MultiSelectPills
-            allLabel={t("reports.allMarkets")}
-            label={t("reports.markets")}
-            onChange={(values) => setPayload((current) => ({ ...current, markets: values }))}
-            options={markets.map((value) => ({ label: t(`markets.${value}`), value }))}
-            values={payload.markets}
-          />
-          <MultiSelectPills
-            allLabel={t("reports.allCategories")}
-            label={t("reports.categories")}
-            onChange={(values) => setPayload((current) => ({ ...current, categories: values }))}
-            options={categories.map((value) => ({ label: t(`categories.${value}`), value }))}
-            values={payload.categories}
-          />
-          <div className="rounded-lg border border-border/70">
-            <button
-              className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold text-foreground"
-              onClick={() => setIsTokenLimitsOpen((current) => !current)}
-              type="button"
-            >
-              {t("reports.tokenLimits")}
-              <ChevronDown
-                className={cn("h-4 w-4 text-muted-foreground transition-transform", isTokenLimitsOpen && "rotate-180")}
-                aria-hidden
-              />
-            </button>
-            {isTokenLimitsOpen ? (
-              <div className="grid gap-3 border-t border-border/70 p-3 sm:grid-cols-2">
-                {enabledTokenLimitTypes.map((reportType) => (
-                  <Input
-                    key={reportType}
-                    inputMode="numeric"
-                    label={t("reports.maxTokensLabel", { label: t(`reports.${reportType}`) })}
-                    labelMode="stacked"
-                    min={1}
-                    onChange={(event) => {
-                      const value = Number.parseInt(event.target.value, 10);
-                      if (!Number.isFinite(value) || value <= 0) {
-                        return;
-                      }
-                      setPayload((current) => ({
-                        ...current,
-                        max_tokens: {
-                          ...defaultReportMaxTokens,
-                          ...(current.max_tokens ?? {}),
-                          [reportType]: value
-                        }
-                      }));
-                    }}
-                    type="number"
-                    value={String(payload.max_tokens?.[reportType] ?? defaultReportMaxTokens[reportType] ?? 2000)}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
         </div>
       </div>
     </Card>
@@ -566,161 +451,5 @@ function PasswordResetModal({ email, isOpen, onClose }: { email: string; isOpen:
         ) : null}
       </div>
     </Modal>
-  );
-}
-
-interface Option<T extends string = string> {
-  label: string;
-  value: T;
-}
-
-function FrequencyPills<T extends string>({
-  label,
-  onChange,
-  options,
-  values
-}: {
-  label: string;
-  onChange: (value: T) => void;
-  options: Array<Option<T>>;
-  values: T[];
-}) {
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-foreground">{label}</p>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <button
-            className={values.includes(option.value) ? activePillClass : inactivePillClass}
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            type="button"
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MultiSelectPills<T extends string>({
-  allLabel,
-  label,
-  onChange,
-  options,
-  values
-}: {
-  allLabel: string;
-  label: string;
-  onChange: (values: T[]) => void;
-  options: Array<Option<T>>;
-  values: T[];
-}) {
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-foreground">{label}</p>
-      <div className="flex flex-wrap gap-2">
-        <button
-          className={values.length === 0 ? activePillClass : inactivePillClass}
-          onClick={() => onChange([])}
-          type="button"
-        >
-          {allLabel}
-        </button>
-        {options.map((option) => (
-          <button
-            className={values.includes(option.value) ? activePillClass : inactivePillClass}
-            key={option.value}
-            onClick={() => onChange(toggleMultiSelection(values, option.value, options.length))}
-            type="button"
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const activePillClass = "rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-200";
-const inactivePillClass = "rounded-xl bg-muted px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted/80 hover:text-foreground";
-
-function reportConfigsEqual(left: UserReportConfig, right: UserReportConfig) {
-  return (
-    left.is_active === right.is_active &&
-    stringArraysEqual(reportFrequencies(left), reportFrequencies(right)) &&
-    stringArraysEqual(left.categories, right.categories) &&
-    stringArraysEqual(left.markets, right.markets) &&
-    tokenLimitsEqual(left.max_tokens ?? {}, right.max_tokens ?? {})
-  );
-}
-
-function normalizeReportConfig(config: UserReportConfig): UserReportConfig {
-  return {
-    ...config,
-    max_tokens: { ...defaultReportMaxTokens, ...(config.max_tokens ?? {}) },
-    report_frequencies: reportFrequencies(config)
-  };
-}
-
-function reportFrequencies(config: UserReportConfig): ReportType[] {
-  const frequencies = config.report_frequencies ?? (config.report_frequency ? [config.report_frequency] : []);
-  return frequencies.length > 0 ? normalizeReportFrequencySelection(frequencies) : ["daily"];
-}
-
-function toggleReportFrequency(current: ReportType[], value: ReportType): ReportType[] {
-  if (value === "daily") {
-    return normalizeReportFrequencySelection([
-      ...current.filter((entry) => entry !== "daily_morning" && entry !== "daily_afternoon"),
-      "daily"
-    ]);
-  }
-  const withoutDaily = current.filter((entry) => entry !== "daily");
-  const next = withoutDaily.includes(value)
-    ? withoutDaily.filter((entry) => entry !== value)
-    : [...withoutDaily, value];
-  return normalizeReportFrequencySelection(next.length > 0 ? next : [value]);
-}
-
-function normalizeReportFrequencySelection(values: ReportType[]): ReportType[] {
-  const unique = Array.from(new Set(values));
-  if (unique.includes("daily")) {
-    return unique.filter((value) => value !== "daily_morning" && value !== "daily_afternoon");
-  }
-  return reportTypes.filter((value) => unique.includes(value));
-}
-
-function enabledReportTokenTypes(values: ReportType[]): ReportType[] {
-  const tokenTypes = new Set<ReportType>();
-  if (values.includes("daily")) {
-    tokenTypes.add("daily_morning");
-    tokenTypes.add("daily_afternoon");
-  }
-  for (const value of values) {
-    if (tokenLimitReportTypes.includes(value)) {
-      tokenTypes.add(value);
-    }
-  }
-  return tokenLimitReportTypes.filter((value) => tokenTypes.has(value));
-}
-
-function stringArraysEqual(left: string[], right: string[]) {
-  if (left.length !== right.length) {
-    return false;
-  }
-  const leftSorted = [...left].sort();
-  const rightSorted = [...right].sort();
-  return leftSorted.every((value, index) => value === rightSorted[index]);
-}
-
-function tokenLimitsEqual(
-  left: Partial<Record<ReportType, number>>,
-  right: Partial<Record<ReportType, number>>
-) {
-  return tokenLimitReportTypes.every(
-    (reportType) =>
-      (left[reportType] ?? defaultReportMaxTokens[reportType]) ===
-      (right[reportType] ?? defaultReportMaxTokens[reportType])
   );
 }

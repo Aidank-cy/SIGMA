@@ -4,6 +4,19 @@ from app.models.enums import ReportType, UserLocale
 from app.services.report_settings import DEFAULT_REPORT_MAX_TOKENS, REPORT_MAX_TOKEN_TYPES
 
 
+class ReportTimeRange(BaseModel):
+    """Structured report period configuration."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    start_day_offset: int | None = None
+    end_day_offset: int | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    start_day_of_month: int | None = None
+    end_day_of_month: int | None = None
+
+
 class UserReportConfigRead(BaseModel):
     """User report configuration payload."""
 
@@ -15,6 +28,7 @@ class UserReportConfigRead(BaseModel):
     categories: list[str]
     is_active: bool
     max_tokens: dict[str, int]
+    time_ranges: dict[str, ReportTimeRange] = Field(default_factory=dict)
 
 
 class UserReportConfigUpdate(BaseModel):
@@ -28,6 +42,7 @@ class UserReportConfigUpdate(BaseModel):
     categories: list[str] = Field(default_factory=list)
     is_active: bool = True
     max_tokens: dict[str, int] = Field(default_factory=dict)
+    time_ranges: dict[str, ReportTimeRange] = Field(default_factory=dict)
 
     @field_validator("max_tokens")
     @classmethod
@@ -37,8 +52,8 @@ class UserReportConfigUpdate(BaseModel):
         for key, max_tokens in value.items():
             if key not in allowed:
                 raise ValueError(f"Unsupported report token limit key: {key}")
-            if max_tokens <= 0:
-                raise ValueError("Report token limits must be positive")
+            if max_tokens <= 0 or max_tokens > 50000:
+                raise ValueError("Report token limits must be between 1 and 50000")
         return value
 
     @model_validator(mode="after")
@@ -48,6 +63,13 @@ class UserReportConfigUpdate(BaseModel):
         else:
             self.report_frequency = self.report_frequencies[0]
         return self
+
+    @field_validator("time_ranges")
+    @classmethod
+    def validate_time_ranges(cls, value: dict[str, ReportTimeRange]) -> dict[str, ReportTimeRange]:
+        """Validate report time-range config keys."""
+        validate_report_time_ranges(value)
+        return value
 
 
 class UserSettingsRead(BaseModel):
@@ -64,6 +86,7 @@ class UserSettingsRead(BaseModel):
     categories: list[str]
     is_active: bool
     max_tokens: dict[str, int]
+    time_ranges: dict[str, ReportTimeRange] = Field(default_factory=dict)
 
 
 class UserSettingsUpdate(BaseModel):
@@ -85,6 +108,7 @@ class UserSettingsUpdate(BaseModel):
             for report_type in REPORT_MAX_TOKEN_TYPES
         }
     )
+    time_ranges: dict[str, ReportTimeRange] = Field(default_factory=dict)
 
     @field_validator("data_retention_days")
     @classmethod
@@ -101,6 +125,13 @@ class UserSettingsUpdate(BaseModel):
         else:
             self.report_frequency = self.report_frequencies[0]
         return self
+
+    @field_validator("time_ranges")
+    @classmethod
+    def validate_time_ranges(cls, value: dict[str, ReportTimeRange]) -> dict[str, ReportTimeRange]:
+        """Validate report time-range config keys."""
+        validate_report_time_ranges(value)
+        return value
 
 
 class UserProfileUpdate(BaseModel):
@@ -145,3 +176,69 @@ class UserPasswordUpdate(BaseModel):
         if not has_letter or not has_digit:
             raise ValueError("Password must include at least one letter and one digit")
         return value
+
+
+def validate_report_time_ranges(value: dict[str, ReportTimeRange]) -> None:
+    allowed = {report_type.value for report_type in REPORT_MAX_TOKEN_TYPES}
+    for key, time_range in value.items():
+        if key not in allowed:
+            raise ValueError(f"Unsupported report time range key: {key}")
+        if key == ReportType.WEEKLY.value:
+            _validate_weekly_time_range(time_range)
+        if key == ReportType.MONTHLY.value:
+            _validate_monthly_time_range(time_range)
+
+
+def _validate_weekly_time_range(time_range: ReportTimeRange) -> None:
+    start_offset = time_range.start_day_offset
+    end_offset = time_range.end_day_offset
+    start_minutes = _parse_hhmm(time_range.start_time)
+    end_minutes = _parse_hhmm(time_range.end_time)
+    if (
+        start_offset is None
+        or end_offset is None
+        or start_minutes is None
+        or end_minutes is None
+        or start_offset < 0
+        or end_offset < 0
+        or start_offset > 14
+        or end_offset > 14
+    ):
+        raise ValueError("Weekly report time range must include 0-14 day offsets and HH:mm times")
+    span_minutes = (start_offset - end_offset) * 24 * 60 + end_minutes - start_minutes
+    if span_minutes <= 0:
+        raise ValueError("Weekly report time range start must be before end")
+    if span_minutes < 24 * 60 or span_minutes > 14 * 24 * 60:
+        raise ValueError("Weekly report time range must span between 1 and 14 days")
+
+
+def _validate_monthly_time_range(time_range: ReportTimeRange) -> None:
+    start_day = time_range.start_day_of_month
+    end_day = time_range.end_day_of_month
+    if (
+        start_day is None
+        or end_day is None
+        or start_day < 1
+        or start_day > 28
+        or end_day < 1
+        or end_day > 28
+    ):
+        raise ValueError("Monthly report time range days must be between 1 and 28")
+    if start_day > end_day:
+        raise ValueError("Monthly report time range start day must be before or equal to end day")
+
+
+def _parse_hhmm(value: str | None) -> int | None:
+    if value is None:
+        return None
+    parts = value.split(":")
+    if len(parts) != 2:
+        return None
+    try:
+        hours = int(parts[0])
+        minutes = int(parts[1])
+    except ValueError:
+        return None
+    if hours < 0 or hours > 23 or minutes < 0 or minutes > 59:
+        return None
+    return hours * 60 + minutes

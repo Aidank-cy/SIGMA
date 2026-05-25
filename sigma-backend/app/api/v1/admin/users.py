@@ -30,7 +30,10 @@ from app.schemas.source import (
 )
 from app.schemas.user_settings import UserReportConfigRead
 from app.services.llm_settings import get_llm_config, get_llm_usage, update_llm_config
-from app.services.report_settings import get_report_max_tokens
+from app.services.report_settings import (
+    get_report_max_tokens,
+    update_report_max_tokens,
+)
 
 router = APIRouter()
 
@@ -136,7 +139,7 @@ async def get_admin_user_llm_usage(
     return await get_llm_usage(db, user_id)
 
 
-@router.get("/{user_id}/report-config", response_model=UserReportConfigRead)
+@router.get("/{user_id}/report-config", response_model=UserReportConfigRead, response_model_exclude_none=True)
 async def get_admin_user_report_config(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -148,17 +151,33 @@ async def get_admin_user_report_config(
     return await _report_config_response(db, config)
 
 
-@router.put("/{user_id}/report-config", response_model=UserReportConfigRead)
+@router.put("/{user_id}/report-config", response_model=UserReportConfigRead, response_model_exclude_none=True)
 async def update_admin_user_report_config(
     user_id: UUID,
     payload: AdminUserReportConfigUpdate,
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_role(UserRole.ADMIN)),
 ) -> UserReportConfigRead:
-    """Update a user's scheduled report generation state."""
+    """Update a user's scheduled report configuration."""
     await _get_user(db, user_id)
     config = await _get_or_create_report_config(db, user_id)
-    config.is_active = payload.is_active
+    if payload.report_frequencies is not None:
+        frequencies = payload.report_frequencies or [payload.report_frequency or config.report_frequency]
+        config.report_frequency = frequencies[0]
+        config.report_frequencies = [frequency.value for frequency in frequencies]
+    elif payload.report_frequency is not None:
+        config.report_frequency = payload.report_frequency
+        config.report_frequencies = [payload.report_frequency.value]
+    if payload.markets is not None:
+        config.markets = payload.markets
+    if payload.categories is not None:
+        config.categories = payload.categories
+    if payload.is_active is not None:
+        config.is_active = payload.is_active
+    if payload.max_tokens:
+        await update_report_max_tokens(db, user_id, payload.max_tokens)
+    if "time_ranges" in payload.model_fields_set:
+        config.time_ranges = _dump_time_ranges(payload.time_ranges)
     await db.commit()
     await db.refresh(config)
     return await _report_config_response(db, config)
@@ -323,12 +342,20 @@ async def _report_config_response(
         categories=[str(category) for category in config.categories],
         is_active=config.is_active,
         max_tokens=await get_report_max_tokens(db, config.user_id),
+        time_ranges=config.time_ranges or {},
     )
 
 
 def _report_frequencies(config: UserReportConfig) -> list[ReportType]:
     values = config.report_frequencies or [config.report_frequency.value]
     return [ReportType(value) for value in values]
+
+
+def _dump_time_ranges(payload: dict[str, object]) -> dict[str, object]:
+    return {
+        key: value.model_dump(exclude_none=True) if hasattr(value, "model_dump") else value
+        for key, value in payload.items()
+    }
 
 
 def _ensure_not_self(user_id: UUID, current_admin_id: UUID) -> None:

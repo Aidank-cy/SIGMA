@@ -399,7 +399,6 @@ export function LLMSettingsPanel({
             <div className="mt-auto flex items-center gap-3 rounded-lg bg-sigma-elevated px-3 py-3">
               <Gauge className="h-4 w-4 shrink-0 text-sigma-muted" aria-hidden />
               <p className="min-w-0 flex-1 text-sm text-sigma-muted">{t("usageRemaining")}</p>
-              <p className="text-xl font-bold tabular-nums text-sigma-text">{usageRemaining.toLocaleString()}</p>
               <p className="text-xl font-bold text-sigma-text">{usageRemainingPercent}%</p>
             </div>
           </Card>

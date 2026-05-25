@@ -30,6 +30,11 @@ class UserReportConfig(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         default=lambda: [ReportType.DAILY.value],
         nullable=False,
     )
+    time_ranges: Mapped[dict[str, Any]] = mapped_column(
+        jsonb_type(),
+        default=dict,
+        nullable=False,
+    )
     markets: Mapped[list[Any]] = mapped_column(jsonb_type(), default=list, nullable=False)
     categories: Mapped[list[Any]] = mapped_column(jsonb_type(), default=list, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
