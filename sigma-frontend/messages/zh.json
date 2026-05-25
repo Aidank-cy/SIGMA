@@ -151,9 +151,11 @@
       "latestReport": "最新报告",
       "empty": "暂无数据。",
       "reportTypes": {
-        "daily": "日报",
+        "daily": "日报（上午 + 下午）",
         "weekly": "周报",
-        "monthly": "月报"
+        "monthly": "月报",
+        "daily_morning": "上午日报",
+        "daily_afternoon": "下午日报"
       }
     },
     "views": {
@@ -303,7 +305,9 @@
       "macro": "宏观"
     },
     "reportTypes": {
-      "daily": "日报",
+      "daily": "日报（上午 + 下午）",
+      "daily_morning": "上午日报",
+      "daily_afternoon": "下午日报",
       "weekly": "周报",
       "monthly": "月报"
     }
@@ -543,14 +547,18 @@
     "loadMore": "加载更多",
     "filters": {
       "all": "全部",
-      "daily": "日报",
+      "daily": "日报（上午 + 下午）",
       "weekly": "周报",
-      "monthly": "月报"
+      "monthly": "月报",
+      "daily_morning": "上午日报",
+      "daily_afternoon": "下午日报"
     },
     "types": {
-      "daily": "日报",
+      "daily": "日报（上午 + 下午）",
       "weekly": "周报",
-      "monthly": "月报"
+      "monthly": "月报",
+      "daily_morning": "上午日报",
+      "daily_afternoon": "下午日报"
     }
   },
   "reportDetail": {
@@ -561,9 +569,11 @@
     "tocEmpty": "该报告暂无标题。",
     "print": "打印",
     "types": {
-      "daily": "日报",
+      "daily": "日报（上午 + 下午）",
       "weekly": "周报",
-      "monthly": "月报"
+      "monthly": "月报",
+      "daily_morning": "上午日报",
+      "daily_afternoon": "下午日报"
     }
   },
   "settings": {
@@ -591,13 +601,15 @@
       "all": "全部",
       "allMarkets": "全部",
       "allCategories": "全部",
-      "daily": "日报",
+      "daily": "日报（上午 + 下午）",
       "weekly": "周报",
-    "monthly": "月报",
-    "frequency": "报告频率",
-    "markets": "市场",
+      "monthly": "月报",
+      "frequency": "报告频率",
+      "markets": "市场",
       "categories": "类别",
-      "active": "生成定时报告"
+      "active": "生成定时报告",
+      "daily_morning": "上午日报",
+      "daily_afternoon": "下午日报"
     },
     "llm": {
       "title": "LLM 配置",
@@ -712,15 +724,15 @@
       "user": "用户",
       "role": "角色",
       "status": "状态",
-    "created": "创建时间",
-    "llm": "LLM",
-    "sources": "数据源",
-    "llmCount": "{count} 个 Key",
-    "sourceCount": "{count} 个数据源",
-    "selectUser": "选择用户",
-    "selectUserCaption": "从表格中选择用户，管理该用户的 LLM 配置或自定义数据源。",
-    "scheduledReports": "定时报告",
-    "actions": "操作",
+      "created": "创建时间",
+      "llm": "LLM",
+      "sources": "数据源",
+      "llmCount": "{count} 个 Key",
+      "sourceCount": "{count} 个数据源",
+      "selectUser": "选择用户",
+      "selectUserCaption": "从表格中选择用户，管理该用户的 LLM 配置或自定义数据源。",
+      "scheduledReports": "定时报告",
+      "actions": "操作",
       "active": "启用",
       "disabled": "停用",
       "delete": "删除",

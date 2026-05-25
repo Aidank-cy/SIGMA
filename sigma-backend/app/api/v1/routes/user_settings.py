@@ -144,11 +144,11 @@ async def update_user_llm_config(
 
 @router.get("/llm/usage", response_model=LLMUsageResponse)
 async def get_user_llm_usage(
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> LLMUsageResponse:
     """Return LLM usage rollups for any authenticated user."""
-    return await read_llm_usage(db)
+    return await read_llm_usage(db, current_user.id)
 
 
 async def _get_or_create_config(db: AsyncSession, current_user: User) -> UserReportConfig:

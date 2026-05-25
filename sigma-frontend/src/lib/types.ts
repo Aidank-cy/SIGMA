@@ -2,7 +2,7 @@ export type Category = "politics" | "finance" | "technology" | "macro" | "other"
 
 export type Market = "us" | "cn" | "jp" | "eu" | "hk" | "kr" | "tw" | "global";
 
-export type ReportType = "daily" | "weekly" | "monthly";
+export type ReportType = "daily" | "daily_morning" | "daily_afternoon" | "weekly" | "monthly";
 
 export type Locale = "zh" | "en";
 

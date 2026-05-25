@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date
+from datetime import date, datetime, time, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -115,7 +115,7 @@ def _report_predicate(
     if market:
         predicate.append(Report.market_scope.contains([market]))
     if date_from:
-        predicate.append(Report.period_end >= date_from)
+        predicate.append(Report.period_end >= datetime.combine(date_from, time.min, tzinfo=timezone.utc))
     if date_to:
-        predicate.append(Report.period_start <= date_to)
+        predicate.append(Report.period_start <= datetime.combine(date_to, time.max, tzinfo=timezone.utc))
     return predicate

@@ -1,6 +1,7 @@
 from datetime import datetime
+from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, Integer, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, UUIDPrimaryKeyMixin, enum_values
@@ -14,6 +15,7 @@ class LLMUsageLog(UUIDPrimaryKeyMixin, Base):
 
     provider: Mapped[str] = mapped_column(String(80), nullable=False)
     model: Mapped[str] = mapped_column(String(160), nullable=False)
+    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     function_type: Mapped[LLMFunctionType] = mapped_column(
         Enum(LLMFunctionType, name="llm_function_type", values_callable=enum_values),
         nullable=False,

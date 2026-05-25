@@ -236,6 +236,13 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: 204 responses now skip JSON parsing, admins can toggle another user's scheduled-report generation, the Settings API key card fits one row with scrolling overflow, and intraday charts distinguish pre-open, trading, and closed states on both backend and frontend. Visual check passed on the Settings LLM card with one mocked API key.
 - Timestamp: 2026-05-25T02:36:46Z
 
+### [Maintenance] Sub-feature: Scheduled report windows and user LLM usage
+- Status: COMPLETE
+- Files modified: sigma-backend/app/analyzers/llm_client.py, sigma-backend/app/analyzers/prompts.py, sigma-backend/app/analyzers/report_generator.py, sigma-backend/app/api/v1/routes/reports.py, sigma-backend/app/api/v1/routes/user_settings.py, sigma-backend/app/models/enums.py, sigma-backend/app/models/llm_usage_log.py, sigma-backend/app/models/report.py, sigma-backend/app/scheduler/engine.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/app/schemas/report.py, sigma-backend/app/services/llm_settings.py, sigma-backend/alembic/versions/20260525_0006_report_windows_user_usage.py, sigma-backend/tests/test_llm.py, sigma-backend/tests/test_llm_client.py, sigma-backend/tests/test_reports_api.py, sigma-backend/tests/test_scheduler.py, sigma-backend/tests/test_user_settings_api.py, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/lib/types.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Settings Cost Guard now matches the API Keys card height, scheduled reports now support daily morning/afternoon Beijing-time windows with updated weekly/monthly triggers, report periods persist exact datetimes, and LLM token logging, budget checks, and user Settings usage are scoped per user while admin usage remains global.
+- Timestamp: 2026-05-25T03:57:52Z
+
 ### Completed
 - Phase 2 sub-features 2.1 through 2.11.
 

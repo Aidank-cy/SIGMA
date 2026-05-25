@@ -18,21 +18,23 @@ async def generate_report(
     report_type: ReportType | str,
     market_scope: list[str],
     category_scope: list[str],
-    period_start: date,
-    period_end: date,
+    period_start: date | datetime,
+    period_end: date | datetime,
     locale: str = "zh",
     user_id: UUID | None = None,
 ) -> Report:
     """Generate and persist a market intelligence report."""
     resolved_type = ReportType(report_type)
-    items = await _load_items(db, market_scope, category_scope, period_start, period_end)
+    start = _period_start_datetime(period_start)
+    end = _period_end_datetime(period_end)
+    items = await _load_items(db, market_scope, category_scope, start, end)
     content = await _generate_content(
         db,
         resolved_type,
         market_scope,
         category_scope,
-        period_start,
-        period_end,
+        start,
+        end,
         locale,
         items,
         user_id,
@@ -43,8 +45,8 @@ async def generate_report(
         content=content,
         market_scope=market_scope,
         category_scope=category_scope,
-        period_start=period_start,
-        period_end=period_end,
+        period_start=start,
+        period_end=end,
         item_count=len(items),
         sentiment_score=_sentiment_score(items),
     )
@@ -58,12 +60,10 @@ async def _load_items(
     db: AsyncSession,
     market_scope: list[str],
     category_scope: list[str],
-    period_start: date,
-    period_end: date,
+    period_start: datetime,
+    period_end: datetime,
 ) -> list[CollectedItem]:
-    start = datetime.combine(period_start, time.min, tzinfo=timezone.utc)
-    end = datetime.combine(period_end, time.max, tzinfo=timezone.utc)
-    predicates = [CollectedItem.published_at >= start, CollectedItem.published_at <= end]
+    predicates = [CollectedItem.published_at >= period_start, CollectedItem.published_at <= period_end]
     if market_scope:
         predicates.append(CollectedItem.market.in_([Market(market) for market in market_scope]))
     if category_scope:
@@ -79,8 +79,8 @@ async def _generate_content(
     report_type: ReportType,
     market_scope: list[str],
     category_scope: list[str],
-    period_start: date,
-    period_end: date,
+    period_start: datetime,
+    period_end: datetime,
     locale: str,
     items: list[CollectedItem],
     user_id: UUID | None,
@@ -123,6 +123,18 @@ async def _generate_content(
         intermediate,
     )
     return await client.complete(system_prompt, reduce_prompt, max_tokens=2500)
+
+
+def _period_start_datetime(value: date | datetime) -> datetime:
+    if isinstance(value, datetime):
+        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+    return datetime.combine(value, time.min, tzinfo=timezone.utc)
+
+
+def _period_end_datetime(value: date | datetime) -> datetime:
+    if isinstance(value, datetime):
+        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+    return datetime.combine(value, time.max, tzinfo=timezone.utc)
 
 
 def _sentiment_score(items: list[CollectedItem]) -> float:

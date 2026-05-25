@@ -88,7 +88,10 @@ async def test_llm_client_openai_complete_json(db_session: AsyncSession) -> None
         client = LLMClient(db_session, LLMFunctionType.REPORT, http_client=http_client, user_id=user_id)
         result = await client.complete_json("system", "user", max_tokens=20)
 
+    usage = await db_session.scalar(select(LLMUsageLog))
     assert result == {"ok": True}
+    assert usage is not None
+    assert usage.user_id == user_id
 
 
 @pytest.mark.asyncio
