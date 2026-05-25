@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { RotateCcw } from "lucide-react";
 
@@ -24,10 +24,14 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
   const llm = useAdminUserLLMConfig(userId);
   const report = useAdminUserReportConfig(userId);
   const toast = useToast();
-  const initialReportConfig = report.config.data ?? defaultReportConfig;
-  const [reportPayload, setReportPayload] = useState<UserReportConfig>(() => initialReportConfig);
-  const reportBaselineRef = useRef<UserReportConfig>(initialReportConfig);
-  const reportPayloadRef = useRef<UserReportConfig>(initialReportConfig);
+  const [reportPayload, setReportPayload] = useState<UserReportConfig>(() => {
+    if (report.config.data) {
+      return normalizeReportConfig(report.config.data);
+    }
+    return defaultReportConfig;
+  });
+  const reportBaselineRef = useRef<UserReportConfig>(reportPayload);
+  const reportPayloadRef = useRef<UserReportConfig>(reportPayload);
   const setSyncedReportPayload = useCallback(
     (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => {
       setReportPayload((current) => {
@@ -39,16 +43,16 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
     []
   );
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (report.config.data) {
-      const normalized = report.config.data;
-      if (reportConfigsEqual(normalized, reportBaselineRef.current)) {
+      const normalized = normalizeReportConfig(report.config.data);
+      if (
+        reportConfigsEqual(normalized, reportBaselineRef.current) ||
+        reportConfigsEqual(normalized, reportPayloadRef.current)
+      ) {
         return;
       }
       reportBaselineRef.current = normalized;
-      if (reportConfigsEqual(normalized, reportPayloadRef.current)) {
-        return;
-      }
       reportPayloadRef.current = normalized;
       setReportPayload(normalized);
     }

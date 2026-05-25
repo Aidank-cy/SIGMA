@@ -14,7 +14,6 @@ export function useReportConfig() {
     retry: 1,
     select: normalizeReportConfig,
     staleTime: 5_000,
-    refetchInterval: 10_000,
     notifyOnChangeProps: ["data", "error", "isLoading"]
   });
 

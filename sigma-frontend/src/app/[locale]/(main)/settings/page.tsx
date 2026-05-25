@@ -79,15 +79,15 @@ export default function SettingsPage() {
     if (!reportConfig) {
       return;
     }
-    const normalized = reportConfig;
-    if (reportConfigsEqual(normalized, reportBaselineRef.current)) {
+    const normalized = normalizeReportConfig(reportConfig);
+    if (
+      reportConfigsEqual(normalized, reportBaselineRef.current) ||
+      reportConfigsEqual(normalized, reportPayloadRef.current)
+    ) {
       return;
     }
     reportBaselineRef.current = normalized;
     setReportBaseline(normalized);
-    if (reportConfigsEqual(normalized, reportPayloadRef.current)) {
-      return;
-    }
     reportPayloadRef.current = normalized;
     setReportPayload(normalized);
   }, [reportConfig]);

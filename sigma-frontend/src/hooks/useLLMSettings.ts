@@ -10,14 +10,12 @@ export function useLLMSettings() {
   const config = useQuery({
     queryKey: ["llm", "config"],
     queryFn: () => apiFetch<LLMConfig>("/me/llm/config"),
-    refetchInterval: 10_000,
     staleTime: 5_000,
     notifyOnChangeProps: ["data", "error", "isLoading"]
   });
   const usage = useQuery({
     queryKey: ["llm", "usage"],
     queryFn: () => apiFetch<LLMUsageResponse>("/me/llm/usage"),
-    refetchInterval: 10_000,
     staleTime: 5_000,
     notifyOnChangeProps: ["data", "error", "isLoading"]
   });

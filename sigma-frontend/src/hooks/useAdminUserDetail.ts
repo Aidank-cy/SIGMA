@@ -31,7 +31,6 @@ export function useAdminUserLLMConfig(userId: string | null) {
     enabled: Boolean(userId),
     queryKey: ["admin", "users", userId, "llm", "config"],
     queryFn: () => apiFetch<LLMConfig>(`/admin/users/${userId}/llm/config`),
-    refetchInterval: 10_000,
     refetchOnMount: true,
     staleTime: 5_000
   });
@@ -52,7 +51,6 @@ export function useAdminUserLLMConfig(userId: string | null) {
     enabled: Boolean(userId),
     queryKey: ["admin", "users", userId, "llm", "usage"],
     queryFn: () => apiFetch<LLMUsageResponse>(`/admin/users/${userId}/llm/usage`),
-    refetchInterval: 10_000,
     refetchOnMount: true,
     staleTime: 5_000
   });
@@ -66,7 +64,6 @@ export function useAdminUserReportConfig(userId: string | null) {
     enabled: Boolean(userId),
     queryKey: ["admin", "users", userId, "report-config"],
     queryFn: () => apiFetch<UserReportConfig>(`/admin/users/${userId}/report-config`),
-    refetchInterval: 10_000,
     refetchOnMount: true,
     select: normalizeReportConfig,
     staleTime: 5_000
@@ -91,7 +88,6 @@ export function useAdminUserSources(userId: string | null) {
     enabled: Boolean(userId),
     queryKey: ["admin", "users", userId, "sources"],
     queryFn: () => apiFetch<PaginatedResponse<DataSource>>(`/admin/users/${userId}/sources?page=1&page_size=100`),
-    refetchInterval: 10_000,
     refetchOnMount: true,
     staleTime: 5_000
   });
