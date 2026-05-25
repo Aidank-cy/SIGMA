@@ -9,6 +9,7 @@ class ReportTimeRange(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    generation_time: str | None = None
     start_day_offset: int | None = None
     end_day_offset: int | None = None
     start_time: str | None = None
@@ -183,6 +184,8 @@ def validate_report_time_ranges(value: dict[str, ReportTimeRange]) -> None:
     for key, time_range in value.items():
         if key not in allowed:
             raise ValueError(f"Unsupported report time range key: {key}")
+        if time_range.generation_time is not None and _parse_hhmm(time_range.generation_time) is None:
+            raise ValueError("Report generation time must use HH:mm format")
         if key == ReportType.WEEKLY.value:
             _validate_weekly_time_range(time_range)
         if key == ReportType.MONTHLY.value:
@@ -219,11 +222,11 @@ def _validate_monthly_time_range(time_range: ReportTimeRange) -> None:
         start_day is None
         or end_day is None
         or start_day < 1
-        or start_day > 28
+        or start_day > 31
         or end_day < 1
-        or end_day > 28
+        or end_day > 31
     ):
-        raise ValueError("Monthly report time range days must be between 1 and 28")
+        raise ValueError("Monthly report time range days must be between 1 and 31")
     if start_day > end_day:
         raise ValueError("Monthly report time range start day must be before or equal to end day")
 

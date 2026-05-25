@@ -341,11 +341,18 @@ def test_report_periods_use_configured_time_ranges() -> None:
         now,
         {"monthly": {"start_day_of_month": 3, "end_day_of_month": 18}},
     )
+    short_month_start, short_month_end = _period_for(
+        ReportType.MONTHLY,
+        datetime(2026, 3, 5, 9, 45, tzinfo=timezone.utc),
+        {"monthly": {"start_day_of_month": 1, "end_day_of_month": 31}},
+    )
 
     assert weekly_start == datetime(2026, 5, 12, 8, 30, tzinfo=beijing)
     assert weekly_end == datetime(2026, 5, 21, 16, 15, tzinfo=beijing)
     assert monthly_start == datetime(2026, 4, 3, 0, 0, tzinfo=beijing)
     assert monthly_end == datetime(2026, 4, 18, 23, 59, 59, tzinfo=beijing)
+    assert short_month_start == datetime(2026, 2, 1, 0, 0, tzinfo=beijing)
+    assert short_month_end == datetime(2026, 2, 28, 23, 59, 59, tzinfo=beijing)
 
 
 def test_daily_report_frequency_matching_is_backward_compatible() -> None:

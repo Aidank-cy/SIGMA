@@ -31,23 +31,27 @@ const defaultReportTimeRanges: Partial<Record<ReportType, ReportTimeRange>> = {
   daily_morning: {
     end_day_offset: 0,
     end_time: "09:20",
+    generation_time: "09:30",
     start_day_offset: 1,
     start_time: "17:30"
   },
   daily_afternoon: {
     end_day_offset: 0,
     end_time: "17:30",
+    generation_time: "17:45",
     start_day_offset: 0,
     start_time: "09:20"
   },
   weekly: {
     end_day_offset: 0,
     end_time: "17:44",
+    generation_time: "18:00",
     start_day_offset: 7,
     start_time: "17:45"
   },
   monthly: {
     end_day_of_month: 28,
+    generation_time: "09:00",
     start_day_of_month: 1
   }
 };
@@ -258,13 +262,17 @@ function ReportAdvancedSettingsModal({
 
   const validationErrors = tokenLimitReportTypes.flatMap((reportType) => {
     const maxTokensError = maxTokensValidationError(draftMaxTokens[reportType], t);
+    const generationTimeError = generationTimeValidationError(
+      normalizedTimeRange(reportType, draftTimeRanges[reportType]).generation_time,
+      t
+    );
     const rangeError =
       reportType === "weekly"
         ? weeklyRangeValidationError(draftTimeRanges.weekly, t)
         : reportType === "monthly"
           ? monthlyRangeValidationError(draftTimeRanges.monthly, t)
           : null;
-    return [maxTokensError, rangeError].filter((message): message is string => message !== null);
+    return [maxTokensError, generationTimeError, rangeError].filter((message): message is string => message !== null);
   });
 
   function saveAdvancedSettings() {
@@ -290,7 +298,7 @@ function ReportAdvancedSettingsModal({
 
   return (
     <Modal
-      className="max-w-xl"
+      className="max-w-2xl"
       closeLabel={t("password.close")}
       isOpen={isOpen}
       onClose={onClose}
@@ -301,6 +309,25 @@ function ReportAdvancedSettingsModal({
           const label = t(`reports.${reportType}`);
           const isActive = reportTypeIsActive(reportType, activeReportFrequencies);
           const maxTokensError = maxTokensValidationError(draftMaxTokens[reportType], t);
+          const generationTimeError = generationTimeValidationError(
+            normalizedTimeRange(reportType, draftTimeRanges[reportType]).generation_time,
+            t
+          );
+          const maxTokensInput = (
+            <Input
+              error={maxTokensError ?? undefined}
+              inputMode="numeric"
+              label={t("reports.maxTokensLabel", { label })}
+              labelMode="stacked"
+              min={1}
+              max={50000}
+              onChange={(event) =>
+                setDraftMaxTokens((current) => ({ ...current, [reportType]: event.target.value }))
+              }
+              type="number"
+              value={draftMaxTokens[reportType] ?? ""}
+            />
+          );
           return (
             <div className={cn("space-y-3 rounded-lg bg-sigma-elevated p-3", !isActive && "opacity-60")} key={reportType}>
               <div className="flex items-center justify-between gap-3">
@@ -311,20 +338,9 @@ function ReportAdvancedSettingsModal({
                   </span>
                 ) : null}
               </div>
-              <Input
-                error={maxTokensError ?? undefined}
-                inputMode="numeric"
-                label={t("reports.maxTokensLabel", { label })}
-                labelMode="stacked"
-                min={1}
-                max={50000}
-                onChange={(event) =>
-                  setDraftMaxTokens((current) => ({ ...current, [reportType]: event.target.value }))
-                }
-                type="number"
-                value={draftMaxTokens[reportType] ?? ""}
-              />
               <TimeRangeFields
+                generationTimeError={generationTimeError ?? undefined}
+                maxTokensInput={maxTokensInput}
                 reportType={reportType}
                 range={draftTimeRanges[reportType]}
                 setRange={(next) =>
@@ -361,10 +377,14 @@ function ReportAdvancedSettingsModal({
 }
 
 function TimeRangeFields({
+  generationTimeError,
+  maxTokensInput,
   range,
   reportType,
   setRange
 }: {
+  generationTimeError?: string;
+  maxTokensInput: ReactNode;
   range?: ReportTimeRange;
   reportType: ReportType;
   setRange: (range: Partial<ReportTimeRange>) => void;
@@ -372,15 +392,41 @@ function TimeRangeFields({
   const t = useTranslations("settings");
 
   if (reportType === "daily_morning") {
-    return <ReadOnlyTimeRange label={t("reports.timeRange")} value={t("reports.dailyMorningRange")} />;
+    const resolved = { ...defaultReportTimeRanges.daily_morning, ...(range ?? {}) };
+    return (
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <ReadOnlyTimeRange label={t("reports.timeRange")} value={t("reports.dailyMorningRange")} />
+        </div>
+        <GenerationTimeInput
+          error={generationTimeError}
+          onChange={(value) => setRange({ generation_time: value })}
+          value={resolved.generation_time ?? "09:30"}
+        />
+        {maxTokensInput}
+      </div>
+    );
   }
   if (reportType === "daily_afternoon") {
-    return <ReadOnlyTimeRange label={t("reports.timeRange")} value={t("reports.dailyAfternoonRange")} />;
+    const resolved = { ...defaultReportTimeRanges.daily_afternoon, ...(range ?? {}) };
+    return (
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <ReadOnlyTimeRange label={t("reports.timeRange")} value={t("reports.dailyAfternoonRange")} />
+        </div>
+        <GenerationTimeInput
+          error={generationTimeError}
+          onChange={(value) => setRange({ generation_time: value })}
+          value={resolved.generation_time ?? "17:45"}
+        />
+        {maxTokensInput}
+      </div>
+    );
   }
   if (reportType === "weekly") {
     const resolved = { ...defaultReportTimeRanges.weekly, ...(range ?? {}) };
     return (
-      <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <WeeklyRangeRow
           label={t("reports.collectionStarts")}
           offset={resolved.start_day_offset ?? 7}
@@ -397,10 +443,20 @@ function TimeRangeFields({
           time={resolved.end_time ?? "17:44"}
           timeLabel={t("reports.periodEndTime")}
         />
-        <p className="text-xs leading-5 text-sigma-muted">{t("reports.weeklyHelper")}</p>
-        <PreviewBox value={weeklyPreview(resolved, t)} />
+        <GenerationTimeInput
+          error={generationTimeError}
+          onChange={(value) => setRange({ generation_time: value })}
+          value={resolved.generation_time ?? "18:00"}
+        />
+        {maxTokensInput}
+        <p className="text-xs leading-5 text-sigma-muted sm:col-span-2">{t("reports.weeklyHelper")}</p>
+        <div className="sm:col-span-2">
+          <PreviewBox value={weeklyPreview(resolved, t)} />
+        </div>
         {weeklyRangeValidationError(resolved, t) ? (
-          <p className="text-xs font-medium text-sigma-danger">{weeklyRangeValidationError(resolved, t)}</p>
+          <p className="text-xs font-medium text-sigma-danger sm:col-span-2">
+            {weeklyRangeValidationError(resolved, t)}
+          </p>
         ) : null}
       </div>
     );
@@ -410,30 +466,34 @@ function TimeRangeFields({
     const error = monthlyRangeValidationError(resolved, t) ?? undefined;
     return (
       <div className="grid gap-3 sm:grid-cols-2">
+        <Input
+          error={error}
+          inputMode="numeric"
+          label={t("reports.fromDayOfMonth")}
+          labelMode="stacked"
+          min={1}
+          max={31}
+          onChange={(event) => setRange({ start_day_of_month: parseIntegerInput(event.target.value) })}
+          type="number"
+          value={resolved.start_day_of_month ?? ""}
+        />
+        <Input
+          inputMode="numeric"
+          label={t("reports.toDayOfMonth")}
+          labelMode="stacked"
+          min={1}
+          max={31}
+          onChange={(event) => setRange({ end_day_of_month: parseIntegerInput(event.target.value) })}
+          type="number"
+          value={resolved.end_day_of_month ?? ""}
+        />
+        <GenerationTimeInput
+          error={generationTimeError}
+          onChange={(value) => setRange({ generation_time: value })}
+          value={resolved.generation_time ?? "09:00"}
+        />
+        {maxTokensInput}
         <div className="space-y-3 sm:col-span-2">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              error={error}
-              inputMode="numeric"
-              label={t("reports.fromDayOfMonth")}
-              labelMode="stacked"
-              min={1}
-              max={28}
-              onChange={(event) => setRange({ start_day_of_month: parseIntegerInput(event.target.value) })}
-              type="number"
-              value={resolved.start_day_of_month ?? ""}
-            />
-            <Input
-              inputMode="numeric"
-              label={t("reports.toDayOfMonth")}
-              labelMode="stacked"
-              min={1}
-              max={28}
-              onChange={(event) => setRange({ end_day_of_month: parseIntegerInput(event.target.value) })}
-              type="number"
-              value={resolved.end_day_of_month ?? ""}
-            />
-          </div>
           <p className="text-xs leading-5 text-sigma-muted">{t("reports.monthlyHelper")}</p>
           <PreviewBox value={monthlyPreview(resolved, t)} />
         </div>
@@ -441,6 +501,28 @@ function TimeRangeFields({
     );
   }
   return null;
+}
+
+function GenerationTimeInput({
+  error,
+  onChange,
+  value
+}: {
+  error?: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const t = useTranslations("settings");
+  return (
+    <Input
+      error={error}
+      label={t("reports.generationTime")}
+      labelMode="stacked"
+      onChange={(event) => onChange(event.target.value)}
+      type="time"
+      value={value}
+    />
+  );
 }
 
 function WeeklyRangeRow({
@@ -644,10 +726,14 @@ function toggleReportFrequency(current: ReportType[], value: ReportType): Report
       "daily"
     ]);
   }
-  const withoutDaily = current.filter((entry) => entry !== "daily");
-  const next = withoutDaily.includes(value)
-    ? withoutDaily.filter((entry) => entry !== value)
-    : [...withoutDaily, value];
+  if (value === "daily_morning" || value === "daily_afternoon") {
+    const withoutDaily = current.filter((entry) => entry !== "daily");
+    const next = withoutDaily.includes(value)
+      ? withoutDaily.filter((entry) => entry !== value)
+      : [...withoutDaily, value];
+    return normalizeReportFrequencySelection(next.length > 0 ? next : [value]);
+  }
+  const next = current.includes(value) ? current.filter((entry) => entry !== value) : [...current, value];
   return normalizeReportFrequencySelection(next.length > 0 ? next : [value]);
 }
 
@@ -699,6 +785,7 @@ function reportTimeRangeEqual(left?: ReportTimeRange, right?: ReportTimeRange) {
     (left?.end_day_offset ?? null) === (right?.end_day_offset ?? null) &&
     (left?.start_time ?? "") === (right?.start_time ?? "") &&
     (left?.end_time ?? "") === (right?.end_time ?? "") &&
+    (left?.generation_time ?? "") === (right?.generation_time ?? "") &&
     (left?.start_day_of_month ?? null) === (right?.start_day_of_month ?? null) &&
     (left?.end_day_of_month ?? null) === (right?.end_day_of_month ?? null)
   );
@@ -715,6 +802,13 @@ function maxTokensValidationError(value: string | undefined, t: SettingsTranslat
   const parsed = Number.parseInt(value ?? "", 10);
   if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 50000) {
     return t("reports.maxTokensError");
+  }
+  return null;
+}
+
+function generationTimeValidationError(value: string | undefined, t: SettingsTranslator) {
+  if (parseTimeToMinutes(value) === null) {
+    return t("reports.generationTimeError");
   }
   return null;
 }
@@ -758,9 +852,9 @@ function monthlyRangeValidationError(range: ReportTimeRange | undefined, t: Sett
     startDay === undefined ||
     endDay === undefined ||
     startDay < 1 ||
-    startDay > 28 ||
+    startDay > 31 ||
     endDay < 1 ||
-    endDay > 28
+    endDay > 31
   ) {
     return t("reports.monthlyRangeInvalid");
   }

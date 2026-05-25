@@ -202,9 +202,11 @@ def _period_for(
         start_day = _int_or_none(configured.get("start_day_of_month"))
         end_day = _int_or_none(configured.get("end_day_of_month"))
         if start_day is not None and end_day is not None:
+            resolved_start_day = min(start_day, last_day_previous_month.day)
+            resolved_end_day = min(end_day, last_day_previous_month.day)
             return (
-                datetime.combine(first_day_previous_month.replace(day=start_day), time.min, tzinfo=BEIJING_TZ),
-                datetime.combine(first_day_previous_month.replace(day=end_day), time(23, 59, 59), tzinfo=BEIJING_TZ),
+                datetime.combine(first_day_previous_month.replace(day=resolved_start_day), time.min, tzinfo=BEIJING_TZ),
+                datetime.combine(first_day_previous_month.replace(day=resolved_end_day), time(23, 59, 59), tzinfo=BEIJING_TZ),
             )
     return (
         datetime.combine(first_day_previous_month, time.min, tzinfo=BEIJING_TZ),

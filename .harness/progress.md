@@ -1780,10 +1780,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Verification: `npm run build`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, and `git diff --check`.
 - Timestamp: 2026-05-25T19:22:00+08:00
 
-### [Maintenance] Settings configuration save-only refresh
+### [Maintenance] Settings report configuration stability and advanced ranges
 - Status: COMPLETE
-- Files modified: sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/src/hooks/useLLMSettings.ts, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/admin/AdminUserLLMDetail.tsx, CHANGELOG.md, .harness/progress.md
+- Files modified: sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/src/hooks/useLLMSettings.ts, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/admin/AdminUserLLMDetail.tsx, sigma-frontend/src/components/settings/ReportConfigEditor.tsx, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/schemas/user_settings.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_user_settings_api.py, sigma-backend/tests/test_admin_api.py, sigma-backend/tests/test_scheduler.py, CHANGELOG.md, .harness/progress.md
 - Tests: PASS
-- Notes: Removed settings-detail polling so report, LLM, admin user detail, and admin user source configs refresh through mount and save invalidation only. Guarded Settings report editor sync with current payload refs and hydrated admin user report configs from cached data on first render.
-- Verification: `npm run build` via `./hooks/post-file-edit.sh`.
-- Timestamp: 2026-05-25T19:50:56+08:00
+- Notes: Removed settings-detail polling and report query select transforms, kept report config normalization in consumers, allowed admin report editors to render through report query errors, fixed weekly/monthly frequency toggles, added advanced-settings generation times, and allowed monthly ranges through day 31 with backend short-month clamping.
+- Verification: `npm run build`, `./hooks/post-file-edit.sh`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, targeted backend report/admin/scheduler tests, and `git diff --check`.
+- Timestamp: 2026-05-25T20:47:56+08:00

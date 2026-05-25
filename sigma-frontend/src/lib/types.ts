@@ -179,6 +179,7 @@ export interface WatchlistTrend {
 }
 
 export interface ReportTimeRange {
+  generation_time?: string;
   start_day_offset?: number;
   end_day_offset?: number;
   start_time?: string;

@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add report generation time controls to advanced report settings and persist them in report time ranges.
 - Add report advanced settings for per-frequency token limits and custom time ranges in user and admin report configuration.
 - Add per-report scheduled report token limits for daily morning, daily afternoon, weekly, and monthly reports.
 - Add JSON-backed multi-select report frequency persistence and scheduled-report matching.
@@ -58,6 +59,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change report advanced settings to use a two-column range/generation/token layout and allow monthly collection days up to 31 with short-month capping.
 - Change Settings and admin report/LLM configuration queries to converge with ten-second polling, five-second stale windows, and cross-panel invalidation.
 - Move the report Advanced Settings action into the frequency pill row and widen only that modal.
 - Change report advanced settings to always show all report frequencies with inactive markers and human-readable weekly/monthly range previews.
@@ -174,6 +176,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix admin user report configuration so query errors do not block the editor and report config normalization stays out of TanStack Query `select`.
+- Fix report frequency toggles so removing weekly or monthly preserves an existing daily selection.
 - Fix Settings report and LLM configuration flicker by removing settings-detail polling and hydrating admin user report configs from cached data on first render.
 - Fix Settings report configuration flicker by memoizing the report editor and guarding LLM settings form hydration against identical refetches.
 - Fix Settings and admin report configuration polling so unchanged refetches do not flicker cards or overwrite local edits.

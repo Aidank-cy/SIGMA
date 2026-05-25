@@ -101,7 +101,7 @@ def test_report_profile_retention_and_password_endpoints(client: TestClient) -> 
             "categories": ["finance", "macro"],
             "is_active": False,
             "max_tokens": {"monthly": 4500},
-            "time_ranges": {"monthly": {"start_day_of_month": 1, "end_day_of_month": 28}},
+            "time_ranges": {"monthly": {"start_day_of_month": 1, "end_day_of_month": 31, "generation_time": "09:00"}},
         },
     )
     profile_response = client.put(
@@ -161,7 +161,7 @@ def test_report_profile_retention_and_password_endpoints(client: TestClient) -> 
             "weekly": 3000,
             "monthly": 4500,
         },
-        "time_ranges": {"monthly": {"start_day_of_month": 1, "end_day_of_month": 28}},
+        "time_ranges": {"monthly": {"start_day_of_month": 1, "end_day_of_month": 31, "generation_time": "09:00"}},
     }
     assert profile_response.status_code == 200
     assert profile_response.json()["display_name"] == "Section User"

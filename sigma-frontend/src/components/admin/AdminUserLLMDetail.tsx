@@ -73,14 +73,7 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
 
   return (
     <div className="min-h-0 space-y-4">
-      {report.config.isError ? (
-        <ErrorCard
-          isRetrying={report.config.isFetching}
-          message={userT("error")}
-          onRetry={() => report.config.refetch()}
-          retryLabel={userT("retry")}
-        />
-      ) : report.config.isLoading ? (
+      {report.config.isLoading ? (
         <Skeleton className="h-72 rounded-lg" />
       ) : (
         <ReportConfigEditor
