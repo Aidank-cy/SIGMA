@@ -73,20 +73,16 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
 
   return (
     <div className="min-h-0 space-y-4">
-      {report.config.isLoading ? (
-        <Skeleton className="h-72 rounded-lg" />
-      ) : (
-        <ReportConfigEditor
-          compact
-          className="max-h-[34rem] overflow-auto"
-          isSaving={report.update.isPending}
-          onSave={saveReportConfig}
-          payload={reportPayload}
-          saveLabel={userT("saveReportConfig")}
-          setPayload={setSyncedReportPayload}
-          title={userT("reportConfig")}
-        />
-      )}
+      <ReportConfigEditor
+        compact
+        className="max-h-[34rem] overflow-auto"
+        isSaving={report.update.isPending}
+        onSave={saveReportConfig}
+        payload={reportPayload}
+        saveLabel={userT("saveReportConfig")}
+        setPayload={setSyncedReportPayload}
+        title={userT("reportConfig")}
+      />
       {llm.config.isError ? (
         <ErrorCard
           isRetrying={llm.config.isFetching}

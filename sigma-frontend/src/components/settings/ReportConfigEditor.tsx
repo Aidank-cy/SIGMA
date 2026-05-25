@@ -45,12 +45,14 @@ const defaultReportTimeRanges: Partial<Record<ReportType, ReportTimeRange>> = {
   weekly: {
     end_day_offset: 0,
     end_time: "17:44",
+    generation_day_of_week: 4,
     generation_time: "18:00",
     start_day_offset: 7,
     start_time: "17:45"
   },
   monthly: {
     end_day_of_month: 28,
+    generation_day_of_month: 1,
     generation_time: "09:00",
     start_day_of_month: 1
   }
@@ -298,7 +300,7 @@ function ReportAdvancedSettingsModal({
 
   return (
     <Modal
-      className="max-w-2xl"
+      className="max-w-3xl"
       closeLabel={t("password.close")}
       isOpen={isOpen}
       onClose={onClose}
@@ -329,7 +331,13 @@ function ReportAdvancedSettingsModal({
             />
           );
           return (
-            <div className={cn("space-y-3 rounded-lg bg-sigma-elevated p-3", !isActive && "opacity-60")} key={reportType}>
+            <div
+              className={cn(
+                "space-y-3 rounded-lg bg-sigma-elevated p-3",
+                !isActive && "pointer-events-none select-none opacity-60"
+              )}
+              key={reportType}
+            >
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold text-sigma-text">{label}</h3>
                 {!isActive ? (
@@ -443,8 +451,15 @@ function TimeRangeFields({
           time={resolved.end_time ?? "17:44"}
           timeLabel={t("reports.periodEndTime")}
         />
-        <GenerationTimeInput
+        <GenerationDayTimeRow
+          dayLabel={t("reports.generationDayOfWeek")}
+          dayOptions={Array.from({ length: 7 }, (_, day) => ({
+            label: t(`reports.weekdays.${day}`),
+            value: String(day)
+          }))}
+          dayValue={String(resolved.generation_day_of_week ?? 4)}
           error={generationTimeError}
+          onDayChange={(value) => setRange({ generation_day_of_week: Number(value) })}
           onChange={(value) => setRange({ generation_time: value })}
           value={resolved.generation_time ?? "18:00"}
         />
@@ -487,8 +502,18 @@ function TimeRangeFields({
           type="number"
           value={resolved.end_day_of_month ?? ""}
         />
-        <GenerationTimeInput
+        <GenerationDayTimeRow
+          dayLabel={t("reports.generationDayOfMonth")}
+          dayOptions={Array.from({ length: 31 }, (_, index) => {
+            const day = index + 1;
+            return {
+              label: String(day),
+              value: String(day)
+            };
+          })}
+          dayValue={String(resolved.generation_day_of_month ?? 1)}
           error={generationTimeError}
+          onDayChange={(value) => setRange({ generation_day_of_month: Number(value) })}
           onChange={(value) => setRange({ generation_time: value })}
           value={resolved.generation_time ?? "09:00"}
         />
@@ -522,6 +547,45 @@ function GenerationTimeInput({
       type="time"
       value={value}
     />
+  );
+}
+
+function GenerationDayTimeRow({
+  dayLabel,
+  dayOptions,
+  dayValue,
+  error,
+  onChange,
+  onDayChange,
+  value
+}: {
+  dayLabel: string;
+  dayOptions: Array<{ label: string; value: string }>;
+  dayValue: string;
+  error?: string;
+  onChange: (value: string) => void;
+  onDayChange: (value: string) => void;
+  value: string;
+}) {
+  const t = useTranslations("settings");
+  return (
+    <div className="grid gap-3 sm:grid-cols-[minmax(0,1.25fr)_minmax(8rem,0.75fr)]">
+      <CustomSelect
+        label={dayLabel}
+        labelMode="stacked"
+        onChange={onDayChange}
+        options={dayOptions}
+        value={dayValue}
+      />
+      <Input
+        error={error}
+        label={t("reports.generationTime")}
+        labelMode="stacked"
+        onChange={(event) => onChange(event.target.value)}
+        type="time"
+        value={value}
+      />
+    </div>
   );
 }
 
@@ -786,6 +850,8 @@ function reportTimeRangeEqual(left?: ReportTimeRange, right?: ReportTimeRange) {
     (left?.start_time ?? "") === (right?.start_time ?? "") &&
     (left?.end_time ?? "") === (right?.end_time ?? "") &&
     (left?.generation_time ?? "") === (right?.generation_time ?? "") &&
+    (left?.generation_day_of_week ?? null) === (right?.generation_day_of_week ?? null) &&
+    (left?.generation_day_of_month ?? null) === (right?.generation_day_of_month ?? null) &&
     (left?.start_day_of_month ?? null) === (right?.start_day_of_month ?? null) &&
     (left?.end_day_of_month ?? null) === (right?.end_day_of_month ?? null)
   );

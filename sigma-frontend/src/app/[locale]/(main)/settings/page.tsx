@@ -37,7 +37,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { data: reportConfig, isLoading } = useReportConfig();
+  const { data: reportConfig } = useReportConfig();
   const llmSettings = useLLMSettings();
   const { updateProfile, updateReportConfig, updateRetention } = useSettingsMutations();
   const [displayName, setDisplayName] = useState("");
@@ -185,11 +185,7 @@ export default function SettingsPage() {
           ) : (
             <Skeleton className="h-44 rounded-2xl" />
           )}
-          {isLoading ? (
-            <Skeleton className="h-72 rounded-2xl" />
-          ) : (
-            <ReportConfigEditor payload={reportPayload} setPayload={setSyncedReportPayload} />
-          )}
+          <ReportConfigEditor payload={reportPayload} setPayload={setSyncedReportPayload} />
         </div>
         <div className="flex min-w-0 flex-col gap-5">
           <div className={cn(!reportPayload.is_active && "pointer-events-none select-none opacity-40")}>
