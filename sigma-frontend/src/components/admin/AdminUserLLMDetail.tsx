@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { RotateCcw } from "lucide-react";
 
 import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
 import {
   ReportConfigEditor,
   defaultReportConfig,
-  normalizeReportConfig,
-  reportConfigsEqual
+  normalizeReportConfig
 } from "@/components/settings/ReportConfigEditor";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -23,24 +24,19 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
   const report = useAdminUserReportConfig(userId);
   const toast = useToast();
   const [reportPayload, setReportPayload] = useState<UserReportConfig>(defaultReportConfig);
-  const [reportBaseline, setReportBaseline] = useState<UserReportConfig>(defaultReportConfig);
 
   useEffect(() => {
     if (report.config.data) {
       const normalized = normalizeReportConfig(report.config.data);
-      if (!reportConfigsEqual(reportBaseline, normalized)) {
-        setReportPayload(normalized);
-        setReportBaseline(normalized);
-      }
+      setReportPayload(normalized);
     }
-  }, [report.config.data, reportBaseline]);
+  }, [report.config.data]);
 
   async function saveReportConfig() {
     try {
       const saved = await report.update.mutateAsync(reportPayload);
       const normalized = normalizeReportConfig(saved);
       setReportPayload(normalized);
-      setReportBaseline(normalized);
       toast.showToast(userT("saved"), "success");
     } catch (error) {
       toast.showToast(error instanceof Error ? error.message : userT("error"), "error");
@@ -50,7 +46,12 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
   return (
     <div className="min-h-0 space-y-4">
       {report.config.isError ? (
-        <Card className="p-5 text-sm text-sigma-muted">{userT("error")}</Card>
+        <ErrorCard
+          isRetrying={report.config.isFetching}
+          message={userT("error")}
+          onRetry={() => report.config.refetch()}
+          retryLabel={userT("retry")}
+        />
       ) : report.config.isLoading ? (
         <Skeleton className="h-72 rounded-lg" />
       ) : (
@@ -66,7 +67,12 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
         />
       )}
       {llm.config.isError ? (
-        <Card className="p-5 text-sm text-sigma-muted">{t("error")}</Card>
+        <ErrorCard
+          isRetrying={llm.config.isFetching}
+          message={t("error")}
+          onRetry={() => llm.config.refetch()}
+          retryLabel={userT("retry")}
+        />
       ) : llm.config.isLoading ? (
         <Skeleton className="h-[32rem] rounded-lg" />
       ) : (
@@ -80,5 +86,27 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
         />
       )}
     </div>
+  );
+}
+
+function ErrorCard({
+  isRetrying,
+  message,
+  onRetry,
+  retryLabel
+}: {
+  isRetrying: boolean;
+  message: string;
+  onRetry: () => void;
+  retryLabel: string;
+}) {
+  return (
+    <Card className="flex items-center justify-between gap-3 p-5 text-sm text-sigma-muted">
+      <span>{message}</span>
+      <Button isLoading={isRetrying} onClick={onRetry} size="sm" type="button" variant="secondary">
+        <RotateCcw className="h-4 w-4" aria-hidden />
+        {retryLabel}
+      </Button>
+    </Card>
   );
 }

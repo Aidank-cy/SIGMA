@@ -5,6 +5,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import type { DataSource, LLMConfig, LLMUsageResponse, PaginatedResponse, SourcePayload, UserReportConfig } from "@/lib/types";
 
+function reportConfigUpdateBody(payload: UserReportConfig) {
+  return {
+    categories: payload.categories,
+    is_active: payload.is_active,
+    markets: payload.markets,
+    max_tokens: payload.max_tokens ?? {},
+    report_frequencies: payload.report_frequencies ?? [payload.report_frequency],
+    report_frequency: payload.report_frequencies?.[0] ?? payload.report_frequency,
+    time_ranges: payload.time_ranges ?? {}
+  };
+}
+
 export function useAdminUserLLMConfig(userId: string | null) {
   const queryClient = useQueryClient();
   const config = useQuery({
@@ -12,7 +24,7 @@ export function useAdminUserLLMConfig(userId: string | null) {
     placeholderData: undefined,
     queryKey: ["admin", "users", userId, "llm", "config"],
     queryFn: () => apiFetch<LLMConfig>(`/admin/users/${userId}/llm/config`),
-    refetchInterval: 30_000,
+    refetchInterval: 3_000,
     refetchOnMount: true,
     staleTime: 0
   });
@@ -25,6 +37,8 @@ export function useAdminUserLLMConfig(userId: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users", userId, "llm", "config"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["llm", "config"] });
+      queryClient.invalidateQueries({ queryKey: ["llm", "usage"] });
     }
   });
   const usage = useQuery({
@@ -32,7 +46,7 @@ export function useAdminUserLLMConfig(userId: string | null) {
     placeholderData: undefined,
     queryKey: ["admin", "users", userId, "llm", "usage"],
     queryFn: () => apiFetch<LLMUsageResponse>(`/admin/users/${userId}/llm/usage`),
-    refetchInterval: 30_000,
+    refetchInterval: 3_000,
     refetchOnMount: true,
     staleTime: 0
   });
@@ -47,21 +61,19 @@ export function useAdminUserReportConfig(userId: string | null) {
     placeholderData: undefined,
     queryKey: ["admin", "users", userId, "report-config"],
     queryFn: () => apiFetch<UserReportConfig>(`/admin/users/${userId}/report-config`),
-    refetchInterval: 30_000,
+    refetchInterval: 3_000,
     refetchOnMount: true,
     staleTime: 0
   });
   const update = useMutation({
     mutationFn: (payload: UserReportConfig) =>
       apiFetch<UserReportConfig>(`/admin/users/${userId}/report-config`, {
-        body: JSON.stringify({
-          ...payload,
-          report_frequency: payload.report_frequencies?.[0] ?? payload.report_frequency
-        }),
+        body: JSON.stringify(reportConfigUpdateBody(payload)),
         method: "PUT"
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users", userId, "report-config"] });
+      queryClient.invalidateQueries({ queryKey: ["report-config"] });
     }
   });
 
@@ -74,7 +86,7 @@ export function useAdminUserSources(userId: string | null) {
     placeholderData: undefined,
     queryKey: ["admin", "users", userId, "sources"],
     queryFn: () => apiFetch<PaginatedResponse<DataSource>>(`/admin/users/${userId}/sources?page=1&page_size=100`),
-    refetchInterval: 30_000,
+    refetchInterval: 3_000,
     refetchOnMount: true,
     staleTime: 0
   });

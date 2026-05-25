@@ -1744,3 +1744,21 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Removed the report frequency hint subtitle, replaced the inline token accordion with a structured advanced-settings modal, persisted weekly/monthly report time ranges on `user_report_configs`, passed per-user ranges into scheduled report generation, guarded Settings report state against refetch flicker, and forced admin user detail panes to remount/refetch cleanly on user switches.
 - Verification: `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, focused backend settings/admin/scheduler tests, frontend `npm run build`, Alembic offline SQL generation, `./hooks/post-file-edit.sh`, message JSON parsing, and `git diff --check`. `python -m ruff check .` and `python -m pytest --tb=short -q` could not run because that interpreter lacks Ruff and pytest.
 - Timestamp: 2026-05-25T16:02:42+08:00
+
+### [Maintenance] Settings and admin report configuration round 2
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/admin/AdminUserLLMDetail.tsx, sigma-frontend/src/components/settings/ReportConfigEditor.tsx, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Removed the Settings report loaded-state gate, configured bounded report-config query retries, made Settings and admin detail hydration apply server data directly, added admin retry buttons for transient LLM/report load failures, serialized admin report-config updates as partial schema-compatible payloads including `time_ranges`, and redesigned the advanced settings modal to show all four report frequencies with inactive labels, readable weekly/monthly controls, and previews.
+- Verification: `npm run build`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, message JSON parsing, in-app browser smoke attempt for `/en/settings`, and `git diff --check`. The bare `python -m ruff check .` and `python -m pytest --tb=short -q` commands could not run because that interpreter lacks Ruff and pytest.
+- Follow-up: Browser visual verification was blocked by local Next dev serving `_next/static` chunks as 404 in this environment before the protected Settings UI could render.
+- Timestamp: 2026-05-25T16:41:33+08:00
+
+### [Maintenance] Settings and admin report configuration round 3
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/components/ui/Modal.tsx, sigma-frontend/src/components/settings/ReportConfigEditor.tsx, sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/src/hooks/useLLMSettings.ts, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/hooks/useAdmin.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Added a modal dialog class override for the report advanced settings width, moved the Advanced Settings action into the frequency pill wrap row, set report/LLM/admin detail queries to three-second polling, and added cross-invalidation between user Settings and admin user detail mutations.
+- Verification: `npm run build`, `python3 -m pip install -e ".[dev]"`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, `./hooks/post-file-edit.sh`, and `git diff --check`.
+- Follow-up: Local dev-browser smoke still hit the existing Next dev `_next/static` 404 behavior before the protected Settings UI could be visually inspected.
+- Timestamp: 2026-05-25T17:40:07+08:00

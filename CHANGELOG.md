@@ -58,6 +58,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change Settings and admin report/LLM configuration queries to converge with three-second polling and cross-panel invalidation.
+- Move the report Advanced Settings action into the frequency pill row and widen only that modal.
+- Change report advanced settings to always show all report frequencies with inactive markers and human-readable weekly/monthly range previews.
 - Change admin user detail panels to edit full per-user report configuration inline and remove the duplicate scheduled-report header toggle.
 - Change the LLM usage-remaining card to show only the remaining percentage.
 - Change report generation prompts to use the senior market-intelligence system prompt with configured token budgets.
@@ -171,6 +174,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Settings report configuration refresh loading by applying server data directly and using bounded report-config query retries.
+- Fix admin user report configuration hydration and retry handling so fast user switches and transient failures recover cleanly.
 - Fix admin user detail LLM, report, and source panels so switching users remounts detail panes and fetches fresh data instead of showing stale states.
 - Keep the Settings report configuration card mounted after initial load so refetches do not hide the editor.
 - Fix admin user detail LLM and report configuration endpoints so admins can manage their own non-destructive settings.

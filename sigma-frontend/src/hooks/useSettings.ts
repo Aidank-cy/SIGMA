@@ -9,7 +9,10 @@ import type { User } from "@/lib/auth";
 export function useReportConfig() {
   const query = useQuery({
     queryKey: ["report-config"],
-    queryFn: () => apiFetch<UserReportConfig>("/me/report-config")
+    queryFn: () => apiFetch<UserReportConfig>("/me/report-config"),
+    retry: 1,
+    staleTime: 5_000,
+    refetchInterval: 3_000
   });
 
   return {
@@ -52,7 +55,10 @@ export function useSettingsMutations() {
           }),
           method: "PUT"
         }),
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["report-config"] })
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["report-config"] });
+        queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      }
     }),
     updateRetention: useMutation({
       mutationFn: (payload: { data_retention_days: number }) =>

@@ -49,7 +49,6 @@ export default function SettingsPage() {
   const [reportBaseline, setReportBaseline] = useState<UserReportConfig>(defaultReportConfig);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [hasLoadedReportConfig, setHasLoadedReportConfig] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -68,12 +67,9 @@ export default function SettingsPage() {
       return;
     }
     const normalized = normalizeReportConfig(reportConfig);
-    if (!reportConfigsEqual(reportBaseline, normalized)) {
-      setReportPayload(normalized);
-      setReportBaseline(normalized);
-    }
-    setHasLoadedReportConfig(true);
-  }, [reportBaseline, reportConfig]);
+    setReportPayload(normalized);
+    setReportBaseline(normalized);
+  }, [reportConfig]);
 
   const dirty = useMemo(
     () => ({
@@ -166,7 +162,7 @@ export default function SettingsPage() {
           ) : (
             <Skeleton className="h-44 rounded-2xl" />
           )}
-          {!hasLoadedReportConfig && !reportConfig && isLoading ? (
+          {isLoading ? (
             <Skeleton className="h-72 rounded-2xl" />
           ) : (
             <ReportConfigEditor payload={reportPayload} setPayload={setReportPayload} />

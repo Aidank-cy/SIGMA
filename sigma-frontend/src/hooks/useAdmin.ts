@@ -96,7 +96,8 @@ export function useAdminUsers(q: string) {
   const queryClient = useQueryClient();
   const list = useQuery({
     queryKey: ["admin", "users", q],
-    queryFn: () => apiFetch<PaginatedResponse<AdminUser>>(`/admin/users?page=1&page_size=50&q=${encodeURIComponent(q)}`)
+    queryFn: () => apiFetch<PaginatedResponse<AdminUser>>(`/admin/users?page=1&page_size=50&q=${encodeURIComponent(q)}`),
+    refetchInterval: 3_000
   });
   const update = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: AdminUserUpdate }) =>

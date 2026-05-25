@@ -2,10 +2,12 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CustomSelect } from "@/components/dashboard/custom-select";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
@@ -26,6 +28,18 @@ export const defaultReportMaxTokens: Partial<Record<ReportType, number>> = {
 };
 
 const defaultReportTimeRanges: Partial<Record<ReportType, ReportTimeRange>> = {
+  daily_morning: {
+    end_day_offset: 0,
+    end_time: "09:20",
+    start_day_offset: 1,
+    start_time: "17:30"
+  },
+  daily_afternoon: {
+    end_day_offset: 0,
+    end_time: "17:30",
+    start_day_offset: 0,
+    start_time: "09:20"
+  },
   weekly: {
     end_day_offset: 0,
     end_time: "17:44",
@@ -80,6 +94,18 @@ export function ReportConfigEditor({
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const activeReportFrequencies = reportFrequencies(payload);
   const disabledControlClass = !payload.is_active && "pointer-events-none select-none opacity-40";
+  const advancedSettingsButton = (
+    <Button
+      className="ml-auto"
+      onClick={() => setIsAdvancedOpen(true)}
+      size="sm"
+      type="button"
+      variant="ghost"
+    >
+      <SlidersHorizontal className="h-4 w-4" aria-hidden />
+      {t("reports.advancedSettings")}
+    </Button>
+  );
 
   return (
     <Card className={cn("p-5", className)}>
@@ -112,6 +138,7 @@ export function ReportConfigEditor({
                   }
                   options={reportTypes.map((value) => ({ label: t(`reports.${value}`), value }))}
                   values={activeReportFrequencies}
+                  extraContent={advancedSettingsButton}
                 />
               </div>
             </div>
@@ -132,21 +159,10 @@ export function ReportConfigEditor({
                 }
                 options={reportTypes.map((value) => ({ label: t(`reports.${value}`), value }))}
                 values={activeReportFrequencies}
+                extraContent={advancedSettingsButton}
               />
             </div>
           )}
-          <div className={cn("-mt-2 flex justify-end", disabledControlClass)}>
-            <Button
-              className="self-start sm:self-end"
-              onClick={() => setIsAdvancedOpen(true)}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <SlidersHorizontal className="h-4 w-4" aria-hidden />
-              {t("reports.advancedSettings")}
-            </Button>
-          </div>
           <div className={cn(disabledControlClass)}>
             <MultiSelectPills
               allLabel={t("reports.allMarkets")}
@@ -175,7 +191,7 @@ export function ReportConfigEditor({
         </div>
       </div>
       <ReportAdvancedSettingsModal
-        enabledReportTypes={enabledReportTokenTypes(activeReportFrequencies)}
+        activeReportFrequencies={activeReportFrequencies}
         isOpen={isAdvancedOpen}
         onClose={() => setIsAdvancedOpen(false)}
         payload={payload}
@@ -186,13 +202,13 @@ export function ReportConfigEditor({
 }
 
 function ReportAdvancedSettingsModal({
-  enabledReportTypes,
+  activeReportFrequencies,
   isOpen,
   onClose,
   payload,
   setPayload
 }: {
-  enabledReportTypes: ReportType[];
+  activeReportFrequencies: ReportType[];
   isOpen: boolean;
   onClose: () => void;
   payload: UserReportConfig;
@@ -208,7 +224,7 @@ function ReportAdvancedSettingsModal({
     }
     setDraftMaxTokens(
       Object.fromEntries(
-        enabledReportTypes.map((reportType) => [
+        tokenLimitReportTypes.map((reportType) => [
           reportType,
           String(payload.max_tokens?.[reportType] ?? defaultReportMaxTokens[reportType] ?? 2000)
         ])
@@ -216,7 +232,7 @@ function ReportAdvancedSettingsModal({
     );
     setDraftTimeRanges(
       Object.fromEntries(
-        enabledReportTypes.map((reportType) => [
+        tokenLimitReportTypes.map((reportType) => [
           reportType,
           {
             ...(defaultReportTimeRanges[reportType] ?? {}),
@@ -225,9 +241,9 @@ function ReportAdvancedSettingsModal({
         ])
       ) as Partial<Record<ReportType, ReportTimeRange>>
     );
-  }, [enabledReportTypes.join("|"), isOpen, payload.max_tokens, payload.time_ranges]);
+  }, [isOpen, payload.max_tokens, payload.time_ranges]);
 
-  const validationErrors = enabledReportTypes.flatMap((reportType) => {
+  const validationErrors = tokenLimitReportTypes.flatMap((reportType) => {
     const maxTokensError = maxTokensValidationError(draftMaxTokens[reportType], t);
     const rangeError =
       reportType === "weekly"
@@ -245,14 +261,10 @@ function ReportAdvancedSettingsModal({
     setPayload((current) => {
       const nextMaxTokens = { ...defaultReportMaxTokens, ...(current.max_tokens ?? {}) };
       const nextTimeRanges = { ...(current.time_ranges ?? {}) };
-      for (const reportType of enabledReportTypes) {
+      for (const reportType of tokenLimitReportTypes) {
         const parsed = Number.parseInt(draftMaxTokens[reportType] ?? "", 10);
         nextMaxTokens[reportType] = parsed;
-        if (reportType === "weekly" || reportType === "monthly") {
-          nextTimeRanges[reportType] = normalizedTimeRange(reportType, draftTimeRanges[reportType]);
-        } else {
-          delete nextTimeRanges[reportType];
-        }
+        nextTimeRanges[reportType] = normalizedTimeRange(reportType, draftTimeRanges[reportType]);
       }
       return {
         ...current,
@@ -264,19 +276,28 @@ function ReportAdvancedSettingsModal({
   }
 
   return (
-    <Modal closeLabel={t("password.close")} isOpen={isOpen} onClose={onClose} title={t("reports.advancedSettingsTitle")}>
+    <Modal
+      className="max-w-xl"
+      closeLabel={t("password.close")}
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("reports.advancedSettingsTitle")}
+    >
       <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-        {enabledReportTypes.length === 0 ? (
-          <p className="rounded-lg bg-sigma-elevated p-3 text-sm text-sigma-muted">
-            {t("reports.noAdvancedReports")}
-          </p>
-        ) : null}
-        {enabledReportTypes.map((reportType) => {
+        {tokenLimitReportTypes.map((reportType) => {
           const label = t(`reports.${reportType}`);
+          const isActive = reportTypeIsActive(reportType, activeReportFrequencies);
           const maxTokensError = maxTokensValidationError(draftMaxTokens[reportType], t);
           return (
-            <div className="space-y-3 rounded-lg bg-sigma-elevated p-3" key={reportType}>
-              <h3 className="text-sm font-semibold text-sigma-text">{label}</h3>
+            <div className={cn("space-y-3 rounded-lg bg-sigma-elevated p-3", !isActive && "opacity-60")} key={reportType}>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-sigma-text">{label}</h3>
+                {!isActive ? (
+                  <span className="rounded-full bg-sigma-surface px-2.5 py-1 text-xs font-medium text-sigma-muted">
+                    {t("reports.notActive")}
+                  </span>
+                ) : null}
+              </div>
               <Input
                 error={maxTokensError ?? undefined}
                 inputMode="numeric"
@@ -347,45 +368,27 @@ function TimeRangeFields({
     const resolved = { ...defaultReportTimeRanges.weekly, ...(range ?? {}) };
     return (
       <div className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Input
-            error={weeklyRangeValidationError(resolved, t) ?? undefined}
-            inputMode="numeric"
-            label={t("reports.periodStartDays")}
-            labelMode="stacked"
-            min={0}
-            max={14}
-            onChange={(event) => setRange({ start_day_offset: parseIntegerInput(event.target.value) })}
-            type="number"
-            value={resolved.start_day_offset ?? ""}
-          />
-          <Input
-            label={t("reports.periodStartTime")}
-            labelMode="stacked"
-            onChange={(event) => setRange({ start_time: event.target.value })}
-            type="time"
-            value={resolved.start_time ?? ""}
-          />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Input
-            inputMode="numeric"
-            label={t("reports.periodEndDays")}
-            labelMode="stacked"
-            min={0}
-            max={14}
-            onChange={(event) => setRange({ end_day_offset: parseIntegerInput(event.target.value) })}
-            type="number"
-            value={resolved.end_day_offset ?? ""}
-          />
-          <Input
-            label={t("reports.periodEndTime")}
-            labelMode="stacked"
-            onChange={(event) => setRange({ end_time: event.target.value })}
-            type="time"
-            value={resolved.end_time ?? ""}
-          />
-        </div>
+        <WeeklyRangeRow
+          label={t("reports.collectionStarts")}
+          offset={resolved.start_day_offset ?? 7}
+          onOffsetChange={(value) => setRange({ start_day_offset: value })}
+          onTimeChange={(value) => setRange({ start_time: value })}
+          time={resolved.start_time ?? "17:45"}
+          timeLabel={t("reports.periodStartTime")}
+        />
+        <WeeklyRangeRow
+          label={t("reports.collectionEnds")}
+          offset={resolved.end_day_offset ?? 0}
+          onOffsetChange={(value) => setRange({ end_day_offset: value })}
+          onTimeChange={(value) => setRange({ end_time: value })}
+          time={resolved.end_time ?? "17:44"}
+          timeLabel={t("reports.periodEndTime")}
+        />
+        <p className="text-xs leading-5 text-sigma-muted">{t("reports.weeklyHelper")}</p>
+        <PreviewBox value={weeklyPreview(resolved, t)} />
+        {weeklyRangeValidationError(resolved, t) ? (
+          <p className="text-xs font-medium text-sigma-danger">{weeklyRangeValidationError(resolved, t)}</p>
+        ) : null}
       </div>
     );
   }
@@ -394,31 +397,86 @@ function TimeRangeFields({
     const error = monthlyRangeValidationError(resolved, t) ?? undefined;
     return (
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input
-          error={error}
-          inputMode="numeric"
-          label={t("reports.periodStartDay")}
-          labelMode="stacked"
-          min={1}
-          max={28}
-          onChange={(event) => setRange({ start_day_of_month: parseIntegerInput(event.target.value) })}
-          type="number"
-          value={resolved.start_day_of_month ?? ""}
-        />
-        <Input
-          inputMode="numeric"
-          label={t("reports.periodEndDay")}
-          labelMode="stacked"
-          min={1}
-          max={28}
-          onChange={(event) => setRange({ end_day_of_month: parseIntegerInput(event.target.value) })}
-          type="number"
-          value={resolved.end_day_of_month ?? ""}
-        />
+        <div className="space-y-3 sm:col-span-2">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              error={error}
+              inputMode="numeric"
+              label={t("reports.fromDayOfMonth")}
+              labelMode="stacked"
+              min={1}
+              max={28}
+              onChange={(event) => setRange({ start_day_of_month: parseIntegerInput(event.target.value) })}
+              type="number"
+              value={resolved.start_day_of_month ?? ""}
+            />
+            <Input
+              inputMode="numeric"
+              label={t("reports.toDayOfMonth")}
+              labelMode="stacked"
+              min={1}
+              max={28}
+              onChange={(event) => setRange({ end_day_of_month: parseIntegerInput(event.target.value) })}
+              type="number"
+              value={resolved.end_day_of_month ?? ""}
+            />
+          </div>
+          <p className="text-xs leading-5 text-sigma-muted">{t("reports.monthlyHelper")}</p>
+          <PreviewBox value={monthlyPreview(resolved, t)} />
+        </div>
       </div>
     );
   }
   return null;
+}
+
+function WeeklyRangeRow({
+  label,
+  offset,
+  onOffsetChange,
+  onTimeChange,
+  time,
+  timeLabel
+}: {
+  label: string;
+  offset: number;
+  onOffsetChange: (value: number) => void;
+  onTimeChange: (value: string) => void;
+  time: string;
+  timeLabel: string;
+}) {
+  const t = useTranslations("settings");
+  return (
+    <div className="grid gap-3 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
+      <CustomSelect
+        label={label}
+        labelMode="stacked"
+        onChange={(value) => onOffsetChange(Number(value))}
+        options={Array.from({ length: 15 }, (_, dayOffset) => ({
+          label: t("reports.daysBeforeReport", { count: dayOffset }),
+          value: String(dayOffset)
+        }))}
+        value={String(offset)}
+      />
+      <Input
+        label={timeLabel}
+        labelMode="stacked"
+        onChange={(event) => onTimeChange(event.target.value)}
+        type="time"
+        value={time}
+      />
+    </div>
+  );
+}
+
+function PreviewBox({ value }: { value: string }) {
+  const t = useTranslations("settings");
+  return (
+    <div className="rounded-lg border border-sigma-line bg-sigma-surface px-4 py-3">
+      <p className="text-xs font-medium text-sigma-muted">{t("reports.preview")}</p>
+      <p className="mt-1 text-sm font-medium text-sigma-text">{value}</p>
+    </div>
+  );
 }
 
 function ReadOnlyTimeRange({ label, value }: { label: string; value: string }) {
@@ -453,12 +511,14 @@ function ActiveReportToggle({
 
 function FrequencyPills<T extends string>({
   compact = false,
+  extraContent,
   label,
   onChange,
   options,
   values
 }: {
   compact?: boolean;
+  extraContent?: ReactNode;
   label: string;
   onChange: (value: T) => void;
   options: Array<Option<T>>;
@@ -467,7 +527,7 @@ function FrequencyPills<T extends string>({
   return (
     <div className="space-y-3">
       <p className="text-sm font-medium text-foreground">{label}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {options.map((option) => (
           <button
             className={values.includes(option.value) ? activePillClass(compact) : inactivePillClass(compact)}
@@ -478,6 +538,7 @@ function FrequencyPills<T extends string>({
             {option.label}
           </button>
         ))}
+        {extraContent}
       </div>
     </div>
   );
@@ -585,18 +646,11 @@ function normalizeReportFrequencySelection(values: ReportType[]): ReportType[] {
   return reportTypes.filter((value) => unique.includes(value));
 }
 
-function enabledReportTokenTypes(values: ReportType[]): ReportType[] {
-  const tokenTypes = new Set<ReportType>();
+function reportTypeIsActive(reportType: ReportType, values: ReportType[]) {
   if (values.includes("daily")) {
-    tokenTypes.add("daily_morning");
-    tokenTypes.add("daily_afternoon");
+    return reportType === "daily_morning" || reportType === "daily_afternoon";
   }
-  for (const value of values) {
-    if (tokenLimitReportTypes.includes(value)) {
-      tokenTypes.add(value);
-    }
-  }
-  return tokenLimitReportTypes.filter((value) => tokenTypes.has(value));
+  return values.includes(reportType);
 }
 
 function stringArraysEqual(left: string[], right: string[]) {
@@ -719,4 +773,48 @@ function parseTimeToMinutes(value: string | undefined) {
     return null;
   }
   return hours * 60 + minutes;
+}
+
+function weeklyPreview(range: ReportTimeRange, t: SettingsTranslator) {
+  const startOffset = range.start_day_offset ?? 7;
+  const endOffset = range.end_day_offset ?? 0;
+  const startLabel = weeklyOffsetPreviewLabel(startOffset, endOffset, t);
+  const endLabel = weeklyOffsetPreviewLabel(endOffset, startOffset, t);
+  const spanDays = Math.round(
+    ((startOffset - endOffset) * 24 * 60 +
+      (parseTimeToMinutes(range.end_time) ?? 0) -
+      (parseTimeToMinutes(range.start_time) ?? 0)) /
+      (24 * 60)
+  );
+  return t("reports.weeklyPreview", {
+    end: `${endLabel} ${range.end_time ?? "17:44"}`,
+    span: Math.max(1, spanDays),
+    start: `${startLabel} ${range.start_time ?? "17:45"}`
+  });
+}
+
+function weeklyOffsetPreviewLabel(offset: number, pairedOffset: number, t: SettingsTranslator) {
+  if (offset === 0) {
+    return pairedOffset >= 7 ? t("reports.nextFriday") : t("reports.reportFriday");
+  }
+  if (offset === 7) {
+    return t("reports.friday");
+  }
+  return t("reports.daysBeforeReportShort", { count: offset });
+}
+
+function monthlyPreview(range: ReportTimeRange, t: SettingsTranslator) {
+  return t("reports.monthlyPreview", {
+    end: ordinalDay(range.end_day_of_month ?? 28, t),
+    start: ordinalDay(range.start_day_of_month ?? 1, t)
+  });
+}
+
+function ordinalDay(day: number, t: SettingsTranslator) {
+  if (t("reports.ordinalLocale") === "zh") {
+    return t("reports.dayOfMonth", { day });
+  }
+  const remainder = day % 100;
+  const suffix = remainder >= 11 && remainder <= 13 ? "th" : ["th", "st", "nd", "rd"][day % 10] ?? "th";
+  return `${day}${suffix}`;
 }

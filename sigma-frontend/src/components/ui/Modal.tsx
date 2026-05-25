@@ -8,13 +8,14 @@ import { cn } from "@/lib/cn";
 
 interface ModalProps {
   children: ReactNode;
+  className?: string;
   closeLabel: string;
   isOpen: boolean;
   onClose: () => void;
   title: string;
 }
 
-export function Modal({ children, closeLabel, isOpen, onClose, title }: ModalProps) {
+export function Modal({ children, className, closeLabel, isOpen, onClose, title }: ModalProps) {
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -44,7 +45,8 @@ export function Modal({ children, closeLabel, isOpen, onClose, title }: ModalPro
         aria-modal="true"
         className={cn(
           "relative w-full max-w-lg animate-modal-in rounded-lg border border-sigma-line",
-          "bg-card p-6 shadow-apple"
+          "bg-card p-6 shadow-apple",
+          className
         )}
         role="dialog"
       >
