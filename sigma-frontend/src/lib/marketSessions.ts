@@ -87,8 +87,10 @@ export function isPreMarketClearWindow(tradingHours: TradingHours, now = new Dat
     return false;
   }
 
-  const minutesUntilOpen = timeToMinutes(firstSession.open) - (parts.hour * 60 + parts.minute);
-  return minutesUntilOpen > 0 && minutesUntilOpen <= 60;
+  const currentMinutes = parts.hour * 60 + parts.minute;
+  const openMinutes = timeToMinutes(firstSession.open);
+  const minutesSinceOpen = currentMinutes - openMinutes;
+  return minutesSinceOpen >= -60 && minutesSinceOpen < 2;
 }
 
 export function anyMarketTrading(indices: MarketIndex[] = [], now = new Date()): boolean {

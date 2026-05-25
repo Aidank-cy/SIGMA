@@ -61,13 +61,7 @@ async def main() -> None:
 async def _users_to_keep(db: AsyncSession) -> list[UUID]:
     admin = await db.scalar(
         select(User)
-        .where(
-            User.role == UserRole.ADMIN,
-            or_(
-                User.email.ilike("%admin%"),
-                User.display_name.ilike("%admin%"),
-            ),
-        )
+        .where(User.role == UserRole.ADMIN)
         .order_by(User.created_at.asc())
         .limit(1)
     )

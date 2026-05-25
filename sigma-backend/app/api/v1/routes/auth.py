@@ -53,8 +53,8 @@ async def register(
     if existing_user is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    user_count = await db.scalar(select(func.count()).select_from(User))
-    role = UserRole.ADMIN if user_count == 0 else UserRole.USER
+    admin_count = await db.scalar(select(func.count()).select_from(User).where(User.role == UserRole.ADMIN))
+    role = UserRole.ADMIN if admin_count == 0 else UserRole.USER
     user = User(
         email=email,
         hashed_password=hash_password(payload.password),

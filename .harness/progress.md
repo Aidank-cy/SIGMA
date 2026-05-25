@@ -222,6 +222,13 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Normalization now skips raw source items with `published_at` older than 30 days before persistence. Verified with `./hooks/post-file-edit.sh` and `python3 -m pytest --tb=short -q`.
 - Timestamp: 2026-05-23T00:00:00Z
 
+### [Maintenance] Sub-feature: Admin bootstrap and intraday chart freshness
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/routes/auth.py, sigma-backend/scripts/clean_database.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_auth.py, sigma-backend/tests/test_clean_database.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/lib/marketSessions.ts, sigma-frontend/src/lib/marketChart.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Registration now grants admin based on whether any admin-role user exists, cleanup preserves the earliest admin by role regardless of name, Redis 1D candles are filtered to the latest exchange-local session before serving, and frontend intraday charts ignore previous-session sparkline points while keeping the clear window active through the first two post-open minutes.
+- Timestamp: 2026-05-25T02:04:44Z
+
 ### Completed
 - Phase 2 sub-features 2.1 through 2.11.
 

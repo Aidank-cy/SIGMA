@@ -393,9 +393,14 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
   const sparkline = index.sparkline_24h;
   const timestamps = index.sparkline_times ?? [];
   if (sparkline.length > 0 && timestamps.length === sparkline.length) {
-    return sparkline.flatMap((point, pointIndex) => {
+    const currentDateKey = latestAxisDateKey(now, chartTimeZone);
+    const points = sparkline.flatMap((point, pointIndex) => {
       const timestamp = timestamps[pointIndex];
       if (!timestamp) {
+        return [];
+      }
+      const dateKey = sessionDateKey(timestamp, chartSessions, chartTimeZone);
+      if (dateKey !== currentDateKey) {
         return [];
       }
       const position = intradayPointPosition(timestamp, chartSessions, chartTimeZone);
@@ -408,6 +413,9 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
         value: point
       }];
     });
+    if (points.length > 0) {
+      return points;
+    }
   }
 
   const [, axisEnd] = intradayAxisBounds(chartSessions);

@@ -1,12 +1,18 @@
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+import pytest
+from fastapi import Response
 from fastapi.testclient import TestClient
 from jose import jwt
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.routes import auth as auth_routes
 from app.core.config import settings
-from app.services.auth_service import ALGORITHM
+from app.models.enums import UserRole
+from app.models.user import User
+from app.schemas.auth import UserCreate
+from app.services.auth_service import ALGORITHM, hash_password
 
 
 class FakeRedis:
@@ -101,6 +107,28 @@ def test_register_second_is_user(client: TestClient) -> None:
     payload = register_user(client, "user@example.com")
 
     assert payload["role"] == "user"
+
+
+@pytest.mark.asyncio
+async def test_register_promotes_next_user_when_no_admin_exists(db_session: AsyncSession) -> None:
+    """Registration grants admin to the next account when only non-admin users remain."""
+    db_session.add(
+        User(
+            email="regular@example.com",
+            hashed_password=hash_password("StrongPass1"),
+            display_name="Regular User",
+            role=UserRole.USER,
+        )
+    )
+    await db_session.commit()
+
+    payload = await auth_routes.register(
+        UserCreate(email="john@example.com", password="StrongPass1", display_name="John"),
+        Response(),
+        db_session,
+    )
+
+    assert payload.role == UserRole.ADMIN
 
 
 def test_register_duplicate_email_returns_409(client: TestClient) -> None:
