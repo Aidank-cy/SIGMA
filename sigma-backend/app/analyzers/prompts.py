@@ -40,7 +40,23 @@ REPORT_SYSTEM = (
     "Technology & Innovation, Macro Indicators, Timeline, Forward Outlook, Sources.\n"
     "6. The report subtitle line must include the exact period: "
     "'{report_type} Market Report | YYYY-MM-DD (HH:MM) to YYYY-MM-DD (HH:MM) Beijing Time'.\n"
-    "7. In the Sources section, include concise attribution with titles and URLs."
+    "7. In the Sources section, include concise attribution with titles and URLs.\n"
+    "8. FORMATTING RULES:\n"
+    "   - Always insert a blank line before any bulleted or numbered list.\n"
+    "   - Always insert a blank line between list items that contain multiple sentences.\n"
+    "   - Use level-3 headings (###) for sub-sections within each level-2 section.\n"
+    "   - In the Timeline section, present events as a reverse-chronological vertical "
+    "timeline ordered by market impact significance, using this format:\n"
+    "     ### Timeline\n"
+    "     **YYYY-MM-DD HH:MM** — [Event title]: Brief impact description.\n"
+    "\n"
+    "     **YYYY-MM-DD HH:MM** — [Event title]: Brief impact description.\n"
+    "   - Do NOT use horizontal tables for the Timeline.\n"
+    "   - Keep paragraphs concise (3-4 sentences max). Use sub-headings liberally to "
+    "break up walls of text.\n"
+    "   - For chain reaction sequences, use the arrow notation on its own line: A → B → C\n"
+    "9. TITLE: The report title must NOT contain underscores. Use proper spacing: "
+    '"Daily Morning Intelligence Report", not "Daily_Morning Intelligence Report".'
 )
 
 REPORT_USER = (

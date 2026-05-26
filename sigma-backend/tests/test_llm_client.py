@@ -38,6 +38,8 @@ async def test_llm_client_retries_and_tracks_usage(
         )
 
     monkeypatch.setattr("app.analyzers.llm_client.asyncio.sleep", no_sleep)
+    monkeypatch.setattr(settings, "default_llm_provider", "anthropic")
+    monkeypatch.setattr(settings, "default_llm_model", "claude-test")
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
         client = LLMClient(db_session, http_client=http_client)
         result = await client.complete("system", "user", max_tokens=20)

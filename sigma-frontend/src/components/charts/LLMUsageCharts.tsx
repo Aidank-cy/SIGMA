@@ -53,16 +53,16 @@ export function TokenTrendChart({
   return (
     <ChartFrame>
       <LineChart data={data} margin={{ bottom: 5, left: -18, right: 5, top: 5 }}>
-        <CartesianGrid stroke="rgb(var(--sigma-line))" vertical={false} />
-        <XAxis dataKey="day" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} />
-        <YAxis tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} width={42} />
+        <CartesianGrid stroke="var(--border)" vertical={false} />
+        <XAxis dataKey="day" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
+        <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} width={42} />
         <Tooltip />
-        <Line dataKey="input" dot={false} stroke="rgb(var(--sigma-accent))" />
-        <Line dataKey="output" dot={false} stroke="rgb(var(--sigma-success))" />
+        <Line dataKey="input" dot={false} stroke="var(--chart-1)" />
+        <Line dataKey="output" dot={false} stroke="var(--chart-2)" />
       </LineChart>
       <div className="mt-2 flex items-center justify-center gap-2 text-xs text-sigma-muted">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[rgb(var(--sigma-accent))]" />
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[rgb(var(--sigma-success))]" />
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-chart-1" />
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-chart-2" />
         <span className="font-medium">{label}</span>
       </div>
     </ChartFrame>
@@ -98,9 +98,9 @@ export function FunctionUsageChart({ data }: { data: FunctionUsagePoint[] }) {
   return (
     <ChartFrame>
       <BarChart data={data} margin={{ bottom: 5, left: -18, right: 5, top: 5 }}>
-        <CartesianGrid stroke="rgb(var(--sigma-line))" vertical={false} />
-        <XAxis axisLine={false} dataKey="name" tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} tickLine={false} />
-        <YAxis axisLine={false} tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }} tickLine={false} width={42} />
+        <CartesianGrid stroke="var(--border)" vertical={false} />
+        <XAxis axisLine={false} dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} tickLine={false} />
+        <YAxis axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} tickLine={false} width={42} />
         <Tooltip />
         <Bar dataKey="tokens" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
       </BarChart>

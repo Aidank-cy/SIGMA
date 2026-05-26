@@ -48,16 +48,18 @@ function formatReportSubtitle(report: {
   period_end: string;
   period_start: string;
   report_type: string;
-}, locale: string): string {
+}, locale: string, typeLabel: string): string {
   const timeFormatter = new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     hour12: false,
     minute: "2-digit"
   });
-  const typeLabel = `${report.report_type.charAt(0).toUpperCase()}${report.report_type.slice(1)} Market Report`;
-  const startTime = timeFormatter.format(new Date(report.period_start));
-  const endTime = timeFormatter.format(new Date(report.generated_at));
-  return `${typeLabel} | ${report.period_start} (${startTime}) to ${report.period_end} (${endTime})`;
+  const dateFormatter = new Intl.DateTimeFormat(locale, { dateStyle: "short" });
+  const startDate = new Date(report.period_start);
+  const endDate = new Date(report.period_end);
+  const startTime = timeFormatter.format(startDate);
+  const endTime = timeFormatter.format(endDate);
+  return `${typeLabel} | ${dateFormatter.format(startDate)} (${startTime}) to ${dateFormatter.format(endDate)} (${endTime})`;
 }
 
 export default function ReportDetailPage() {
@@ -77,6 +79,7 @@ export default function ReportDetailPage() {
   if (!report) {
     return <div className="rounded-2xl border border-dashed border-border p-10 text-muted-foreground">{t("empty")}</div>;
   }
+  const typeLabel = t(`displayTypes.${report.report_type}`);
 
   return (
     <article className="grid gap-8 print:block lg:grid-cols-[220px_1fr]">
@@ -115,11 +118,11 @@ export default function ReportDetailPage() {
             </span>
           </div>
           <p className="text-base text-muted-foreground">
-            {formatReportSubtitle(report, locale)}
+            {formatReportSubtitle(report, locale, typeLabel)}
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-5xl">
-              {report.title}
+              {typeLabel}
             </h1>
             <Button className="print:hidden" onClick={() => window.print()} variant="secondary">
               <Printer className="h-4 w-4" aria-hidden />

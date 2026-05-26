@@ -300,9 +300,18 @@
     "articleCount": "{count, plural, one {# article} other {# articles}}",
     "reportMeta": "{count, plural, one {# article} other {# articles}} · {minutes, plural, one {# min read} other {# min read}}",
     "readReport": "Read report",
+    "viewGrid": "Grid view",
+    "viewList": "List view",
     "adminOnly": "Admin access is required to generate reports.",
     "generationQueued": "Report generation queued.",
     "generationError": "Unable to queue report generation.",
+    "reportNames": {
+      "daily": "{date} Daily Report",
+      "daily_morning": "{date} Daily Morning Report",
+      "daily_afternoon": "{date} Daily Afternoon Report",
+      "weekly": "{start} ~ {end} Weekly Report",
+      "monthly": "{month} Monthly Report"
+    },
     "categories": {
       "politics": "Politics",
       "finance": "Finance",
@@ -574,6 +583,13 @@
     "toc": "Contents",
     "tocEmpty": "No headings in this report.",
     "print": "Print",
+    "displayTypes": {
+      "daily": "Daily Market Report",
+      "weekly": "Weekly Market Report",
+      "monthly": "Monthly Market Report",
+      "daily_morning": "Daily Morning Market Report",
+      "daily_afternoon": "Daily Afternoon Market Report"
+    },
     "types": {
       "daily": "Daily (Morning + Afternoon)",
       "weekly": "Weekly",

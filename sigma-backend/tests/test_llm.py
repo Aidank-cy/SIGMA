@@ -274,6 +274,8 @@ async def test_complete_retries_rate_limits_then_succeeds(
         )
 
     monkeypatch.setattr("app.analyzers.llm_client.asyncio.sleep", no_sleep)
+    monkeypatch.setattr(settings, "default_llm_provider", "anthropic")
+    monkeypatch.setattr(settings, "default_llm_model", "claude-test")
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
         result = await LLMClient(db_session, http_client=http_client).complete("system", "user", max_tokens=20)
 
