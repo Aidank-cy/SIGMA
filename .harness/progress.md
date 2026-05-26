@@ -1811,3 +1811,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Frontend API errors now format FastAPI 422 detail arrays as readable messages, admin report-config saves sanitize max-token and time-range payloads, cleared monthly advanced settings fields fall back to defaults, the admin unified Save toast is generic across tabs, and the Advanced Settings modal is wider.
 - Verification: `npm run build`, `./hooks/post-file-edit.sh`, and `git diff --check`.
 - Timestamp: 2026-05-26T02:03:29Z
+
+### [Maintenance] Admin workspace bug fixes round 2
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/hooks/useLLMSettings.ts, sigma-frontend/src/components/settings/ReportConfigEditor.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Admin and user LLM config update requests now send only backend-writable fields, preventing read-only cooldown metadata from triggering Pydantic extra-field validation errors. The report Advanced Settings modal now uses a 75rem max width.
+- Verification: `npm run build`.
+- Timestamp: 2026-05-26T02:33:17Z

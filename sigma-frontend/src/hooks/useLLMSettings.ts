@@ -5,6 +5,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import type { LLMConfig, LLMUsageResponse } from "@/lib/types";
 
+function llmConfigUpdateBody(payload: LLMConfig) {
+  return {
+    api_keys: payload.api_keys,
+    cost_guard_enabled: payload.cost_guard_enabled,
+    daily_token_limit: payload.daily_token_limit
+  };
+}
+
 export function useLLMSettings() {
   const queryClient = useQueryClient();
   const config = useQuery({
@@ -22,7 +30,7 @@ export function useLLMSettings() {
   const update = useMutation({
     mutationFn: (payload: LLMConfig) =>
       apiFetch<LLMConfig>("/me/llm/config", {
-        body: JSON.stringify(payload),
+        body: JSON.stringify(llmConfigUpdateBody(payload)),
         method: "PUT"
       }),
     onSuccess: () => {

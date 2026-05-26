@@ -28,6 +28,14 @@ function reportConfigUpdateBody(payload: UserReportConfig) {
   };
 }
 
+function llmConfigUpdateBody(payload: LLMConfig) {
+  return {
+    api_keys: payload.api_keys,
+    cost_guard_enabled: payload.cost_guard_enabled,
+    daily_token_limit: payload.daily_token_limit
+  };
+}
+
 function sanitizeReportMaxTokens(maxTokens?: Partial<Record<ReportType, number>>) {
   if (!maxTokens) {
     return {};
@@ -73,7 +81,7 @@ export function useAdminUserLLMConfig(userId: string | null) {
   const update = useMutation({
     mutationFn: (payload: LLMConfig) =>
       apiFetch<LLMConfig>(`/admin/users/${userId}/llm/config`, {
-        body: JSON.stringify(payload),
+        body: JSON.stringify(llmConfigUpdateBody(payload)),
         method: "PUT"
       }),
     onSuccess: () => {
