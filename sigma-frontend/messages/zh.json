@@ -305,6 +305,11 @@
     "adminOnly": "生成报告需要管理员权限。",
     "generationQueued": "报告生成已加入队列。",
     "generationError": "无法加入报告生成队列。",
+    "selectReportPreview": "选择报告以预览",
+    "selectReportPreviewDescription": "从列表中选择一份情报报告，查看日期、标题和摘要。",
+    "reportSummary": "摘要",
+    "reportSummaryFallback": "此报告暂无摘要。",
+    "viewDetails": "查看详情",
     "reportNames": {
       "daily": "{date} 日报",
       "daily_morning": "{date} 上午日报",

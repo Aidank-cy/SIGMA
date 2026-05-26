@@ -57,8 +57,9 @@ function formatReportSubtitle(report: {
   const dateFormatter = new Intl.DateTimeFormat(locale, { dateStyle: "short" });
   const startDate = new Date(report.period_start);
   const endDate = new Date(report.period_end);
+  const generatedDate = new Date(report.generated_at);
   const startTime = timeFormatter.format(startDate);
-  const endTime = timeFormatter.format(endDate);
+  const endTime = timeFormatter.format(generatedDate);
   return `${typeLabel} | ${dateFormatter.format(startDate)} (${startTime}) to ${dateFormatter.format(endDate)} (${endTime})`;
 }
 
@@ -82,9 +83,9 @@ export default function ReportDetailPage() {
   const typeLabel = t(`displayTypes.${report.report_type}`);
 
   return (
-    <article className="grid gap-8 print:block lg:grid-cols-[220px_1fr]">
+    <article className="grid gap-8 print:block lg:grid-cols-[280px_1fr]">
       <aside className="print:hidden">
-        <div className="sticky top-24 hidden max-h-[calc(100vh-8rem)] overflow-y-auto border-r border-border pr-5 lg:block">
+        <div className="sticky top-24 hidden max-h-[calc(100vh-8rem)] overflow-y-auto border-r border-border pr-6 lg:block">
           <Toc activeId={activeId} items={toc} title={t("toc")} />
         </div>
         <div className="rounded-2xl border border-border bg-card p-4 lg:hidden">
@@ -179,7 +180,7 @@ function Toc({
 
 function ReportDetailSkeleton() {
   return (
-    <div className="grid gap-8 lg:grid-cols-[220px_1fr]">
+    <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
       <Skeleton className="hidden h-96 rounded-2xl lg:block" />
       <div className="space-y-5">
         <Skeleton className="h-5 w-56" />
