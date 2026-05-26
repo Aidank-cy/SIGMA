@@ -1892,3 +1892,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Shared LLM usage charts used by Settings and the admin user LLM detail panel now hide the function chart Y-axis, add 20% Y-domain padding, widen and k-format token trend Y ticks, and tighten 14-day X-axis labels. Market candle refresh now detects sparse active-session 1D data after Redis loss, backfills today's points from Yahoo 5D 1-minute data, and both local and production Redis services use AOF persistence with every-second fsync.
 - Verification: `python3 -m ruff check app/services/market_candles.py tests/test_market_indices.py`, `python3 -m pytest tests/test_market_indices.py --tb=short -q`, `npm run build`, `docker compose config`, `docker compose -f docker-compose.prod.yml config`, `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff errors in `sigma-backend/scripts/test_report_pipeline.py`.
 - Timestamp: 2026-05-26T18:22:15+08:00
+
+### [Maintenance] Sub-feature: Market index value/chart synchronization
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Market index numeric values now follow the latest real Redis intraday candle whenever available, even if a quote provider returns a stale quote. Change percentage is recomputed from the quote previous close, or the first intraday point when no quote exists, so Dashboard and Markets values match the rendered chart line.
+- Verification: `python3 -m ruff check app/services/market_indices.py tests/test_market_indices.py`, `python3 -m pytest tests/test_market_indices.py --tb=short -q`, `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff errors in `sigma-backend/scripts/test_report_pipeline.py`.
+- Timestamp: 2026-05-26T18:32:34+08:00

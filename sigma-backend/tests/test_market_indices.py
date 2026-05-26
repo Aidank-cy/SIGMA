@@ -489,6 +489,53 @@ async def test_build_index_is_yahoo_free(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 @pytest.mark.asyncio
+async def test_build_index_syncs_value_to_real_intraday_when_quote_is_stale(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Displayed values follow real Redis intraday candles even when a quote exists."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    redis_points = [
+        market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3000.0),
+        market_indices.IntradayPoint(datetime(2026, 5, 18, 10, 30, tzinfo=market_indices.BEIJING_TZ), 3030.0),
+    ]
+    range_inputs: list[tuple[float, float]] = []
+
+    async def fake_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
+        return market_indices.IndexQuote(current=3010.0, change_pct=0.33, previous_close=3000.0)
+
+    async def fake_intraday(_config: market_indices.IndexConfig) -> list[market_indices.IntradayPoint]:
+        return redis_points
+
+    async def fake_historical(
+        _config: market_indices.IndexConfig,
+        value: float,
+        change_pct: float,
+    ) -> dict[str, market_indices.MarketSparkline]:
+        range_inputs.append((value, change_pct))
+        return {
+            "5D": market_indices.MarketSparkline(
+                values=[value],
+                times=[redis_points[-1].timestamp.isoformat()],
+            )
+        }
+
+    monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
+    monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
+    monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
+
+    index = await market_indices._build_index(sse)
+
+    assert index.value == pytest.approx(3030.0)
+    assert index.previous_close == pytest.approx(3000.0)
+    assert index.change_pct == pytest.approx(1.0)
+    assert index.sparkline_24h[-1] == pytest.approx(index.value)
+    assert index.is_fallback_data is False
+    assert len(range_inputs) == 1
+    assert range_inputs[0][0] == pytest.approx(3030.0)
+    assert range_inputs[0][1] == pytest.approx(1.0)
+
+
+@pytest.mark.asyncio
 async def test_yahoo_chart_result_uses_user_agent_and_query2_retry(monkeypatch: pytest.MonkeyPatch) -> None:
     """Yahoo chart requests use the configured User-Agent and retry query2 after query1 failures."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
