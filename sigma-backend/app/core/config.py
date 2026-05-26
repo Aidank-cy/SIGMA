@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     qwen_api_key: str = ""
     resend_api_key: str = ""
     email_from: str = "SIGMA <noreply@sigma.app>"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
     default_llm_provider: str = "anthropic"
     default_llm_model: str = "claude-sonnet-4-20250514"
     daily_token_limit: int = 1_000_000

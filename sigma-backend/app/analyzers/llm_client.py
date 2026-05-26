@@ -48,6 +48,8 @@ DEFAULT_PROVIDER_MODELS = {
     "qwen": "qwen-plus",
 }
 
+LLM_API_MAX_TOKENS = 16_384
+
 
 class LLMClient:
     """Unified async client for Anthropic and OpenAI-compatible chat completions."""
@@ -77,7 +79,7 @@ class LLMClient:
         await self._check_budget(runtime.daily_token_limit, max_tokens)
         prompt = build_prompt(user_prompt, context_docs)
         payload = self._payload(
-            runtime.provider, runtime.model, system_prompt, prompt, max_tokens, temperature
+            runtime.provider, runtime.model, system_prompt, prompt, LLM_API_MAX_TOKENS, temperature
         )
         headers = self._headers(runtime.provider, runtime.api_key)
         url = self._url(runtime.provider)
@@ -152,9 +154,11 @@ class LLMClient:
                 func.coalesce(func.sum(LLMUsageLog.input_tokens + LLMUsageLog.output_tokens), 0)
             ).where(*predicate)
         )
-        # Usage totals come from provider response usage fields persisted after calls. Before a call, use the
-        # requested output limit as a conservative upper bound so a single request cannot knowingly exceed budget.
-        if int(used or 0) + max_tokens > daily_token_limit:
+        # Provider response usage fields remain the source of truth after calls. Before a call,
+        # use a generous estimate because report requests no longer hard-cap provider output to
+        # the user's prompt-level target.
+        estimated_output_tokens = min(max_tokens * 2, LLM_API_MAX_TOKENS)
+        if int(used or 0) + estimated_output_tokens > daily_token_limit:
             raise BudgetExceededError("Daily LLM token budget exceeded")
 
     def _headers(self, provider: str, api_key: str | None = None) -> dict[str, str]:
