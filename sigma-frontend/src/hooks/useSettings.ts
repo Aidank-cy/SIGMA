@@ -29,7 +29,7 @@ export function useSettingsMutations() {
   return {
     requestPasswordReset: useMutation({
       mutationFn: (payload: { email: string }) =>
-        apiFetch<{ message: string }>("/auth/request-password-reset", {
+        apiFetch<{ dev_code?: string; message: string }>("/auth/request-password-reset", {
           body: JSON.stringify(payload),
           method: "POST"
         })

@@ -338,6 +338,28 @@ def test_request_password_reset_returns_200(client: TestClient, monkeypatch) -> 
     assert sent == [("reset@example.com", redis.values["pwd_reset:reset@example.com"], "password_reset")]
 
 
+def test_request_password_reset_returns_dev_code_when_email_is_not_delivered(
+    client: TestClient, monkeypatch
+) -> None:
+    """Password reset exposes the generated code only when delivery falls back to dev mode."""
+    redis = FakeRedis()
+
+    async def fake_send(_to: str, code: str, _purpose: str) -> str:
+        return code
+
+    monkeypatch.setattr(auth_routes, "create_redis_client", lambda: redis)
+    monkeypatch.setattr(auth_routes, "send_verification_email", fake_send)
+    register_user(client, "reset-dev@example.com")
+
+    response = client.post("/api/v1/auth/request-password-reset", json={"email": "reset-dev@example.com"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "verification code sent",
+        "dev_code": redis.values["pwd_reset:reset-dev@example.com"],
+    }
+
+
 def test_request_registration_code_stores_payload_and_sends_email(
     client: TestClient, monkeypatch
 ) -> None:
@@ -368,6 +390,35 @@ def test_request_registration_code_stores_payload_and_sends_email(
     assert sent == [
         ("pending@example.com", redis.values["reg_verify:pending@example.com"], "registration")
     ]
+
+
+def test_request_registration_code_returns_dev_code_when_email_is_not_delivered(
+    client: TestClient, monkeypatch
+) -> None:
+    """Registration code requests expose the code when delivery falls back to dev mode."""
+    redis = FakeRedis()
+
+    async def fake_send(_to: str, code: str, _purpose: str) -> str:
+        return code
+
+    monkeypatch.setattr(auth_routes, "create_redis_client", lambda: redis)
+    monkeypatch.setattr(auth_routes, "send_verification_email", fake_send)
+
+    response = client.post(
+        "/api/v1/auth/request-registration-code",
+        json={
+            "email": "pending-dev@example.com",
+            "password": "StrongPass1",
+            "display_name": "Pending Dev",
+            "locale": "en",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "verification code sent",
+        "dev_code": redis.values["reg_verify:pending-dev@example.com"],
+    }
 
 
 def test_verify_registration_creates_user_and_clears_redis(client: TestClient, monkeypatch) -> None:

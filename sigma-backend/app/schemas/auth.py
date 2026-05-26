@@ -95,6 +95,7 @@ class MessageResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     message: str
+    dev_code: str | None = None
 
 
 class PasswordResetTokenResponse(BaseModel):

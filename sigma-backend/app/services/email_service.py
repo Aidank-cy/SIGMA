@@ -11,24 +11,25 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-async def send_verification_email(to: str, code: str, purpose: str) -> None:
-    """Send a verification code email through the configured delivery provider."""
+async def send_verification_email(to: str, code: str, purpose: str) -> str | None:
+    """Send a verification code email, returning the code when no provider is configured."""
     subject, intro = _email_copy(purpose)
     html = _verification_email_html(intro, code)
 
     if settings.resend_api_key:
         await _send_resend_email(to, subject, html)
-        return
+        return None
 
     if settings.smtp_host:
         await asyncio.to_thread(_send_smtp_email, to, subject, intro, html)
-        return
+        return None
 
     logger.warning(
         "No email service configured (set SMTP_HOST or RESEND_API_KEY). Code for %s: %s",
         to,
         code,
     )
+    return code
 
 
 async def _send_resend_email(to: str, subject: str, html: str) -> None:

@@ -53,8 +53,10 @@ export async function registerRequest(payload: RegisterPayload): Promise<User> {
   return user;
 }
 
-export async function requestRegistrationCodeRequest(payload: RegisterPayload): Promise<{ message: string }> {
-  return apiFetch<{ message: string }>("/auth/request-registration-code", {
+export async function requestRegistrationCodeRequest(
+  payload: RegisterPayload
+): Promise<{ dev_code?: string; message: string }> {
+  return apiFetch<{ dev_code?: string; message: string }>("/auth/request-registration-code", {
     body: JSON.stringify(payload),
     method: "POST"
   });

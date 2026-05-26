@@ -368,8 +368,13 @@ function PasswordResetModal({ email, isOpen, onClose }: { email: string; isOpen:
 
   async function sendCode() {
     try {
-      await requestPasswordReset.mutateAsync({ email });
-      setFeedback({ message: t("password.codeSent"), type: "success" });
+      const result = await requestPasswordReset.mutateAsync({ email });
+      if (result.dev_code) {
+        setCode(result.dev_code);
+        setFeedback({ message: t("password.devCode", { code: result.dev_code }), type: "success" });
+      } else {
+        setFeedback({ message: t("password.codeSent"), type: "success" });
+      }
       setStep(2);
     } catch (error) {
       setFeedback({ message: error instanceof Error ? error.message : t("password.error"), type: "error" });

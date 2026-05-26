@@ -1836,3 +1836,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Report LLM calls now keep the user token target as prompt guidance while sending a 16,384-token provider cap and using a doubled bounded pre-flight budget estimate. Verification emails now use Resend when configured, SMTP when Resend is absent, and warning-level code logging when neither delivery path is configured. The English Qwen provider label now displays as `Qwen`.
 - Verification: `./hooks/post-file-edit.sh`, `python3 -m ruff check .`, `python3 -m pytest tests/test_llm.py tests/test_llm_client.py tests/test_email_service.py --tb=short -q`, `python3 -m pytest --tb=short -q`.
 - Timestamp: 2026-05-26T06:30:17Z
+
+### [Maintenance] Sub-feature: Dev-mode verification code delivery
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/routes/auth.py, sigma-backend/app/schemas/auth.py, sigma-backend/app/services/email_service.py, sigma-backend/tests/test_auth.py, sigma-backend/tests/test_email_service.py, sigma-frontend/src/lib/auth.ts, sigma-frontend/src/hooks/useSettings.ts, sigma-frontend/src/app/[locale]/register/page.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Verification email delivery now returns a `dev_code` only when no email provider is configured or delivery fails, while successful Resend/SMTP sends still omit it. Registration and password-reset UI flows now auto-fill and surface the dev-mode code with localized success messaging.
+- Verification: `./hooks/post-file-edit.sh`, `python3 -m ruff check .`, `python3 -m pytest tests/test_auth.py tests/test_email_service.py --tb=short -q`, `python3 -m pytest --tb=short -q`.
+- Timestamp: 2026-05-26T06:54:12Z

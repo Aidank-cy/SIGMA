@@ -58,7 +58,11 @@ async def register(
     return UserRegistrationResponse(**UserResponse.model_validate(user).model_dump(), **token.model_dump())
 
 
-@router.post("/request-registration-code", response_model=MessageResponse)
+@router.post(
+    "/request-registration-code",
+    response_model=MessageResponse,
+    response_model_exclude_none=True,
+)
 async def request_registration_code(
     payload: RegistrationCodeRequest,
     db: AsyncSession = Depends(get_db),
@@ -81,13 +85,14 @@ async def request_registration_code(
     finally:
         await client.aclose()
 
+    dev_code: str | None = None
     try:
-        await send_verification_email(email, code, "registration")
+        dev_code = await send_verification_email(email, code, "registration")
     except Exception as exc:
         logger.warning("Failed to send registration code to %s: %s", email, exc)
-        logger.info("Registration verification code for %s: %s", email, code)
+        dev_code = code
 
-    return MessageResponse(message="verification code sent")
+    return MessageResponse(message="verification code sent", dev_code=dev_code)
 
 
 @router.post("/verify-registration", response_model=UserRegistrationResponse, status_code=status.HTTP_201_CREATED)
@@ -165,7 +170,11 @@ async def refresh_token(
     )
 
 
-@router.post("/request-password-reset", response_model=MessageResponse)
+@router.post(
+    "/request-password-reset",
+    response_model=MessageResponse,
+    response_model_exclude_none=True,
+)
 async def request_password_reset(
     payload: PasswordResetRequest,
     db: AsyncSession = Depends(get_db),
@@ -173,6 +182,7 @@ async def request_password_reset(
     """Generate a password reset verification code without exposing account existence."""
     email = str(payload.email).lower()
     user = await db.scalar(select(User).where(User.email == email))
+    dev_code: str | None = None
     if user is not None and user.is_active:
         code = f"{secrets.randbelow(1_000_000):06d}"
         client = create_redis_client()
@@ -181,11 +191,11 @@ async def request_password_reset(
         finally:
             await client.aclose()
         try:
-            await send_verification_email(email, code, "password_reset")
+            dev_code = await send_verification_email(email, code, "password_reset")
         except Exception as exc:
             logger.warning("Failed to send password reset code to %s: %s", email, exc)
-            logger.info("Password reset code for %s: %s", email, code)
-    return MessageResponse(message="verification code sent")
+            dev_code = code
+    return MessageResponse(message="verification code sent", dev_code=dev_code)
 
 
 @router.post("/verify-reset-code", response_model=PasswordResetTokenResponse)
@@ -213,7 +223,7 @@ async def verify_reset_code(
     )
 
 
-@router.post("/reset-password", response_model=MessageResponse)
+@router.post("/reset-password", response_model=MessageResponse, response_model_exclude_none=True)
 async def reset_password(
     payload: PasswordResetConfirm,
     db: AsyncSession = Depends(get_db),
