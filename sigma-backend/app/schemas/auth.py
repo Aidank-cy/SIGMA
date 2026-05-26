@@ -57,6 +57,19 @@ class PasswordResetVerify(BaseModel):
     code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 
+class RegistrationCodeRequest(UserCreate):
+    """Registration payload used before email verification."""
+
+
+class RegistrationCodeVerify(BaseModel):
+    """Registration code verification payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
 class PasswordResetConfirm(BaseModel):
     """Password reset confirmation payload."""
 

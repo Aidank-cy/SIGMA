@@ -38,18 +38,14 @@ class LLMRuntimeConfig:
 OPENAI_COMPATIBLE_BASE_URLS = {
     "openai": "https://api.openai.com/v1",
     "deepseek": "https://api.deepseek.com",
-    "minimax": "https://api.minimax.io/v1",
-    "kimi": "https://api.moonshot.cn/v1",
-    "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1",
 }
 
 DEFAULT_PROVIDER_MODELS = {
     "anthropic": "claude-sonnet-4-20250514",
     "openai": "gpt-4o",
     "deepseek": "deepseek-chat",
-    "minimax": "minimax-01",
-    "kimi": "moonshot-v1-128k",
-    "gemini": "gemini-2.5-flash",
+    "qwen": "qwen-plus",
 }
 
 
@@ -187,12 +183,8 @@ class LLMClient:
             return settings.openai_api_key
         if provider == "deepseek":
             return settings.deepseek_api_key
-        if provider == "minimax":
-            return settings.minimax_api_key
-        if provider == "kimi":
-            return settings.kimi_api_key
-        if provider == "gemini":
-            return settings.gemini_api_key
+        if provider == "qwen":
+            return settings.qwen_api_key
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
     def _payload(

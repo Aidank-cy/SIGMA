@@ -128,9 +128,9 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
             "cost_guard_enabled": True,
             "api_keys": [
                 {
-                    "name": "Managed Gemini",
-                    "key": "gemini-managed-key",
-                    "provider": "gemini",
+                    "name": "Managed Qwen",
+                    "key": "qwen-managed-key",
+                    "provider": "qwen",
                     "token_limit": 42_000,
                     "is_default": True,
                 }
@@ -145,9 +145,9 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
             "cost_guard_enabled": True,
             "api_keys": [
                 {
-                    "name": "Managed Gemini",
-                    "key": "gemini-managed-key",
-                    "provider": "gemini",
+                    "name": "Managed Qwen",
+                    "key": "qwen-managed-key",
+                    "provider": "qwen",
                     "token_limit": 43_000,
                     "is_default": True,
                 }
@@ -162,9 +162,9 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
             "cost_guard_enabled": True,
             "api_keys": [
                 {
-                    "name": "Managed Gemini",
-                    "key": "gemini-managed-key",
-                    "provider": "gemini",
+                    "name": "Managed Qwen",
+                    "key": "qwen-managed-key",
+                    "provider": "qwen",
                     "token_limit": 43_000,
                     "is_default": True,
                 }
@@ -234,7 +234,7 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
     )
 
     assert llm_update.status_code == 200
-    assert llm_update.json()["api_keys"][0]["provider"] == "gemini"
+    assert llm_update.json()["api_keys"][0]["provider"] == "qwen"
     assert admin_cooldown_bypass_update.status_code == 200
     assert admin_cooldown_bypass_update.json()["daily_token_limit"] == 43_000
     assert admin_cooldown_bypass_update.json()["daily_token_limit_changed_at"] is not None

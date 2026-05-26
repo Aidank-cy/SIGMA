@@ -15,7 +15,7 @@ import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
 import type { LLMApiKey, LLMConfig, LLMProvider, LLMUsageResponse } from "@/lib/types";
 
-const apiKeyProviders: LLMProvider[] = ["anthropic", "openai", "deepseek", "minimax", "kimi", "gemini"];
+const apiKeyProviders: LLMProvider[] = ["anthropic", "openai", "deepseek", "qwen"];
 
 const TokenTrendChart = dynamic(
   () => import("@/components/charts/LLMUsageCharts").then((module) => module.TokenTrendChart),

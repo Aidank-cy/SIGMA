@@ -9,15 +9,17 @@ import {
   clearAuthToken,
   currentUserRequest,
   loginRequest,
-  registerRequest
+  registerRequest,
+  verifyRegistrationRequest
 } from "@/lib/auth";
-import type { LoginPayload, RegisterPayload, User } from "@/lib/auth";
+import type { LoginPayload, RegisterPayload, RegistrationVerifyPayload, User } from "@/lib/auth";
 
 interface AuthContextValue {
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<User>;
   logout: () => void;
   register: (payload: RegisterPayload) => Promise<User>;
+  verifyRegistration: (payload: RegistrationVerifyPayload) => Promise<User>;
   user: User | null;
 }
 
@@ -58,6 +60,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return registeredUser;
   }, []);
 
+  const verifyRegistration = useCallback(async (payload: RegistrationVerifyPayload) => {
+    const registeredUser = await verifyRegistrationRequest(payload);
+    setUser(registeredUser);
+    return registeredUser;
+  }, []);
+
   const logout = useCallback(() => {
     clearAuthToken();
     setUser(null);
@@ -66,8 +74,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ isLoading, login, logout, register, user }),
-    [isLoading, login, logout, register, user]
+    () => ({ isLoading, login, logout, register, user, verifyRegistration }),
+    [isLoading, login, logout, register, user, verifyRegistration]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -24,6 +24,11 @@ export interface RegisterPayload {
   password: string;
 }
 
+export interface RegistrationVerifyPayload {
+  code: string;
+  email: string;
+}
+
 type RegisterResponse = User & TokenResponse;
 
 export async function loginRequest(payload: LoginPayload): Promise<User> {
@@ -41,6 +46,22 @@ export async function loginRequest(payload: LoginPayload): Promise<User> {
 
 export async function registerRequest(payload: RegisterPayload): Promise<User> {
   const user = await apiFetch<RegisterResponse>("/auth/register", {
+    body: JSON.stringify(payload),
+    method: "POST"
+  });
+  setAccessToken(user.access_token);
+  return user;
+}
+
+export async function requestRegistrationCodeRequest(payload: RegisterPayload): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>("/auth/request-registration-code", {
+    body: JSON.stringify(payload),
+    method: "POST"
+  });
+}
+
+export async function verifyRegistrationRequest(payload: RegistrationVerifyPayload): Promise<User> {
+  const user = await apiFetch<RegisterResponse>("/auth/verify-registration", {
     body: JSON.stringify(payload),
     method: "POST"
   });

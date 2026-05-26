@@ -21,9 +21,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     deepseek_api_key: str = ""
-    minimax_api_key: str = ""
-    kimi_api_key: str = ""
-    gemini_api_key: str = ""
+    qwen_api_key: str = ""
+    resend_api_key: str = ""
+    email_from: str = "SIGMA <noreply@sigma.app>"
     default_llm_provider: str = "anthropic"
     default_llm_model: str = "claude-sonnet-4-20250514"
     daily_token_limit: int = 1_000_000

@@ -62,7 +62,7 @@ export interface LLMConfig {
   api_keys: LLMApiKey[];
 }
 
-export type LLMProvider = "anthropic" | "openai" | "deepseek" | "minimax" | "kimi" | "gemini";
+export type LLMProvider = "anthropic" | "openai" | "deepseek" | "qwen";
 
 export interface LLMApiKey {
   name: string;
