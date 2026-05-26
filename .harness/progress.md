@@ -1803,3 +1803,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Admin user LLM/report/source edits now stage locally behind the right-panel Save button, compact report settings were realigned, advanced report settings use a 2x2 grid, admin token-limit overrides bypass cooldown while resetting the timestamp, and admin/user LLM and source query caches invalidate bidirectionally.
 - Verification: `npm run build`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, focused admin detail cooldown test, `./hooks/post-file-edit.sh`, `git diff --check`, and browser smoke of `/en/login` plus unauthenticated `/en/settings?admin=users` redirect. The bare `python -m ruff check .` and `python -m pytest ...` commands could not run because that interpreter lacks Ruff and pytest.
 - Timestamp: 2026-05-26T01:35:25Z
+
+### [Maintenance] Admin workspace bug fixes
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/lib/api.ts, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/components/settings/ReportConfigEditor.tsx, sigma-frontend/src/components/admin/AdminUsersPanel.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Frontend API errors now format FastAPI 422 detail arrays as readable messages, admin report-config saves sanitize max-token and time-range payloads, cleared monthly advanced settings fields fall back to defaults, the admin unified Save toast is generic across tabs, and the Advanced Settings modal is wider.
+- Verification: `npm run build`, `./hooks/post-file-edit.sh`, and `git diff --check`.
+- Timestamp: 2026-05-26T02:03:29Z

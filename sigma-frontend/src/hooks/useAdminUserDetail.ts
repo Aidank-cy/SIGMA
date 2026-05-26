@@ -8,20 +8,57 @@ import type {
   LLMConfig,
   LLMUsageResponse,
   PaginatedResponse,
+  ReportTimeRange,
+  ReportType,
   SourcePayload,
   UserReportConfig
 } from "@/lib/types";
 
 function reportConfigUpdateBody(payload: UserReportConfig) {
+  const maxTokens = sanitizeReportMaxTokens(payload.max_tokens);
+  const timeRanges = sanitizeReportTimeRanges(payload.time_ranges);
   return {
     categories: payload.categories,
     is_active: payload.is_active,
     markets: payload.markets,
-    max_tokens: payload.max_tokens ?? {},
+    max_tokens: maxTokens,
     report_frequencies: payload.report_frequencies ?? [payload.report_frequency],
     report_frequency: payload.report_frequencies?.[0] ?? payload.report_frequency,
-    time_ranges: payload.time_ranges ?? {}
+    time_ranges: timeRanges
   };
+}
+
+function sanitizeReportMaxTokens(maxTokens?: Partial<Record<ReportType, number>>) {
+  if (!maxTokens) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(maxTokens).filter((entry): entry is [ReportType, number] => {
+      const value = entry[1];
+      return Number.isInteger(value) && value > 0;
+    })
+  );
+}
+
+function sanitizeReportTimeRanges(timeRanges?: Partial<Record<ReportType, ReportTimeRange>>) {
+  if (!timeRanges) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(timeRanges)
+      .map(([reportType, range]) => [reportType, stripEmptyTimeRange(range)] as const)
+      .filter((entry): entry is [ReportType, ReportTimeRange] => entry[1] !== null)
+  );
+}
+
+function stripEmptyTimeRange(range?: ReportTimeRange): ReportTimeRange | null {
+  if (!range) {
+    return null;
+  }
+  const cleaned = Object.fromEntries(
+    Object.entries(range).filter(([, value]) => value !== null && value !== undefined)
+  ) as ReportTimeRange;
+  return Object.keys(cleaned).length > 0 ? cleaned : null;
 }
 
 export function useAdminUserLLMConfig(userId: string | null) {

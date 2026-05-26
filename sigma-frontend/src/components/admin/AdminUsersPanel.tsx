@@ -77,10 +77,10 @@ export function AdminUsersPanel() {
     }
     try {
       await detailRef.current.save();
-      toast.showToast(llmT("saved"), "success");
+      toast.showToast(t("saved"), "success");
       setDetailSaveState(initialSaveState);
     } catch (error) {
-      toast.showToast(error instanceof Error ? error.message : llmT("error"), "error");
+      toast.showToast(error instanceof Error ? error.message : t("error"), "error");
     }
   };
 

@@ -289,8 +289,13 @@ function ReportAdvancedSettingsModal({
       const nextTimeRanges = { ...(current.time_ranges ?? {}) };
       for (const reportType of tokenLimitReportTypes) {
         const parsed = Number.parseInt(draftMaxTokens[reportType] ?? "", 10);
-        nextMaxTokens[reportType] = parsed;
-        nextTimeRanges[reportType] = normalizedTimeRange(reportType, draftTimeRanges[reportType]);
+        nextMaxTokens[reportType] =
+          Number.isInteger(parsed) && parsed > 0
+            ? parsed
+            : (defaultReportMaxTokens[reportType] ?? 2000);
+        nextTimeRanges[reportType] = stripUndefinedTimeRange(
+          normalizedTimeRange(reportType, draftTimeRanges[reportType])
+        );
       }
       return {
         ...current,
@@ -303,7 +308,7 @@ function ReportAdvancedSettingsModal({
 
   return (
     <Modal
-      className="max-w-3xl"
+      className="max-w-4xl"
       closeLabel={t("password.close")}
       isOpen={isOpen}
       onClose={onClose}
@@ -493,7 +498,14 @@ function TimeRangeFields({
           labelMode="stacked"
           min={1}
           max={31}
-          onChange={(event) => setRange({ start_day_of_month: parseIntegerInput(event.target.value) })}
+          onChange={(event) =>
+            setRange({
+              start_day_of_month:
+                parseIntegerInput(event.target.value) ??
+                defaultReportTimeRanges.monthly?.start_day_of_month ??
+                1
+            })
+          }
           type="number"
           value={resolved.start_day_of_month ?? ""}
         />
@@ -503,7 +515,14 @@ function TimeRangeFields({
           labelMode="stacked"
           min={1}
           max={31}
-          onChange={(event) => setRange({ end_day_of_month: parseIntegerInput(event.target.value) })}
+          onChange={(event) =>
+            setRange({
+              end_day_of_month:
+                parseIntegerInput(event.target.value) ??
+                defaultReportTimeRanges.monthly?.end_day_of_month ??
+                28
+            })
+          }
           type="number"
           value={resolved.end_day_of_month ?? ""}
         />
@@ -867,6 +886,12 @@ function normalizedTimeRange(reportType: ReportType, range?: ReportTimeRange): R
     ...(defaultReportTimeRanges[reportType] ?? {}),
     ...(range ?? {})
   };
+}
+
+function stripUndefinedTimeRange(range: ReportTimeRange): ReportTimeRange {
+  return Object.fromEntries(
+    Object.entries(range).filter(([, value]) => value !== undefined && value !== null)
+  ) as ReportTimeRange;
 }
 
 function maxTokensValidationError(value: string | undefined, t: SettingsTranslator) {

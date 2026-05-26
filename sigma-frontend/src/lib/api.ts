@@ -1,5 +1,5 @@
 export interface ApiErrorPayload {
-  detail?: string;
+  detail?: unknown;
 }
 
 export class ApiError extends Error {
@@ -51,6 +51,28 @@ async function parseResponse<T>(response: Response): Promise<T> {
     return (await response.json()) as T;
   }
   return undefined as T;
+}
+
+function formatApiErrorMessage(payload: ApiErrorPayload | undefined, fallback: string): string {
+  const detail = payload?.detail;
+  if (typeof detail === "string" && detail.trim().length > 0) {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((entry) => {
+        if (entry && typeof entry === "object" && "msg" in entry) {
+          const message = (entry as { msg?: unknown }).msg;
+          return typeof message === "string" ? message : null;
+        }
+        return null;
+      })
+      .filter((message): message is string => message !== null && message.trim().length > 0);
+    if (messages.length > 0) {
+      return messages.join("; ");
+    }
+  }
+  return fallback;
 }
 
 async function refreshAccessToken(): Promise<string | null> {
@@ -117,7 +139,7 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     const payload = await parseResponse<ApiErrorPayload>(response);
-    throw new ApiError(payload?.detail ?? response.statusText, response.status);
+    throw new ApiError(formatApiErrorMessage(payload, response.statusText), response.status);
   }
 
   return parseResponse<T>(response);
