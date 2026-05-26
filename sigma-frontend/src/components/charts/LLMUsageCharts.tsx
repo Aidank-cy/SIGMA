@@ -40,6 +40,17 @@ interface DailyUsagePoint {
   tokens: number;
 }
 
+const paddedDomain: [number, (dataMax: number) => number] = [
+  0,
+  (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.2))
+];
+
+function formatTokenTick(value: number): string {
+  if (value === 0) return "0";
+  const thousands = value / 1000;
+  return `${Number.isInteger(thousands) ? thousands.toFixed(0) : thousands.toFixed(1)}k`;
+}
+
 export function TokenTrendChart({
   data,
   legendLabel,
@@ -52,10 +63,15 @@ export function TokenTrendChart({
   const label = legendLabel ?? (locale?.startsWith("zh") ? "输入/输出" : "Input/Output");
   return (
     <ChartFrame>
-      <LineChart data={data} margin={{ bottom: 5, left: -18, right: 5, top: 5 }}>
+      <LineChart data={data} margin={{ bottom: 5, left: 8, right: 8, top: 8 }}>
         <CartesianGrid stroke="var(--border)" vertical={false} />
-        <XAxis dataKey="day" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
-        <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} width={42} />
+        <XAxis dataKey="day" interval={0} minTickGap={4} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
+        <YAxis
+          domain={paddedDomain}
+          tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+          tickFormatter={formatTokenTick}
+          width={58}
+        />
         <Tooltip />
         <Line dataKey="input" dot={false} stroke="var(--chart-1)" />
         <Line dataKey="output" dot={false} stroke="var(--chart-2)" />
@@ -97,10 +113,10 @@ export function ProviderUsageDistributionChart({ data }: { data: ProviderUsagePo
 export function FunctionUsageChart({ data }: { data: FunctionUsagePoint[] }) {
   return (
     <ChartFrame>
-      <BarChart data={data} margin={{ bottom: 5, left: -18, right: 5, top: 5 }}>
+      <BarChart data={data} margin={{ bottom: 5, left: 0, right: 5, top: 8 }}>
         <CartesianGrid stroke="var(--border)" vertical={false} />
         <XAxis axisLine={false} dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} tickLine={false} />
-        <YAxis axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} tickLine={false} width={42} />
+        <YAxis domain={paddedDomain} hide />
         <Tooltip />
         <Bar dataKey="tokens" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
       </BarChart>
