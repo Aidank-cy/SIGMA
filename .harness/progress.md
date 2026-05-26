@@ -1852,3 +1852,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Report detail subtitles now parse the backend `period_start` datetime directly instead of appending a date-only time suffix, avoiding `RangeError: Invalid time value` for ISO datetimes with offsets.
 - Verification: `npm run build`, `git diff --check`. `./hooks/post-file-edit.sh` was blocked by pre-existing Ruff errors in untracked `sigma-backend/scripts/test_report_pipeline.py`.
 - Timestamp: 2026-05-26T07:28:15Z
+
+### [Maintenance] Sub-feature: Report display, prompt formatting, analytics layout, and chart colors
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/reports/[id]/page.tsx, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/components/charts/LLMUsageCharts.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/analyzers/prompts.py, sigma-backend/tests/test_prompts.py, sigma-backend/tests/test_llm.py, sigma-backend/tests/test_llm_client.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Confirmed system data source rate limiting needs no code change. Report detail labels now display readable localized titles, short dates, and period times. Report prompts now require cleaner markdown, vertical timeline formatting, and underscore-free titles. Analytics reports default to a list layout with a list/grid icon toggle and standardized date-based names. LLM usage charts now use defined chart/border/muted CSS variables.
+- Verification: `npm run build`, `python3 -m pytest tests/test_prompts.py --tb=short -q`, `python3 -m ruff check app/analyzers/prompts.py tests/test_prompts.py tests/test_llm.py tests/test_llm_client.py`, `python3 -m pytest --tb=short -q`, `git diff --check`. Browser smoke reached `/en/analytics` on local dev server port 3001 but redirected to login after backend CORS rejected auth preflight from that fallback port. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff errors in untracked `sigma-backend/scripts/test_report_pipeline.py`.
+- Timestamp: 2026-05-26T08:09:09Z

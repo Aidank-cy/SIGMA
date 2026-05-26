@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ArrowRight, FileText, Plus, Sparkles, TrendingDown, TrendingUp } from "lucide-react"
+import { ArrowRight, FileText, LayoutGrid, List, Plus, Sparkles, TrendingDown, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import type { ReactNode } from "react"
@@ -50,6 +50,30 @@ function formatRelative(date: string, locale: string) {
 
 function readingTime(content: string) {
   return Math.max(1, Math.ceil(content.split(/\s+/).filter(Boolean).length / 220))
+}
+
+function formatReportDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "short" }).format(new Date(value))
+}
+
+function formatReportMonth(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { month: "2-digit", year: "numeric" }).format(new Date(value))
+}
+
+function formatReportDisplayName(
+  report: ReportSummary,
+  locale: string,
+  t: (key: string, values?: Record<string, string>) => string
+) {
+  const startDate = formatReportDate(report.period_start, locale)
+  const endDate = formatReportDate(report.period_end, locale)
+  if (report.report_type === "weekly") {
+    return t("reportNames.weekly", { end: endDate, start: startDate })
+  }
+  if (report.report_type === "monthly") {
+    return t("reportNames.monthly", { month: formatReportMonth(report.period_start, locale) })
+  }
+  return t(`reportNames.${report.report_type}`, { date: startDate })
 }
 
 function buildDailyVolume(items: ItemSummary[], locale: string, days = 7) {
@@ -131,6 +155,7 @@ function buildCategoryRows(items: ItemSummary[], t: (key: string) => string) {
 function ReportCard({ report }: { report: ReportSummary }) {
   const locale = useLocale()
   const t = useTranslations("analytics")
+  const displayName = formatReportDisplayName(report, locale, t)
 
   return (
     <motion.div
@@ -145,7 +170,7 @@ function ReportCard({ report }: { report: ReportSummary }) {
         </span>
         <FileText className="h-5 w-5 text-muted-foreground" />
       </div>
-      <h3 className="mb-1 font-semibold text-foreground">{report.title}</h3>
+      <h3 className="mb-1 font-semibold text-foreground">{displayName}</h3>
       <p className="mb-1 text-sm text-muted-foreground">
         {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(report.generated_at))}
       </p>
@@ -163,6 +188,47 @@ function ReportCard({ report }: { report: ReportSummary }) {
   )
 }
 
+function ReportListRow({ report }: { report: ReportSummary }) {
+  const locale = useLocale()
+  const t = useTranslations("analytics")
+  const displayName = formatReportDisplayName(report, locale, t)
+  const generatedDate = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(report.generated_at))
+
+  return (
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
+      initial={{ opacity: 0, y: 12 }}
+      whileHover={{ y: -2 }}
+    >
+      <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+        <span className="w-fit rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+          {t(`reportTypes.${report.report_type}`)}
+        </span>
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">{displayName}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("reportMeta", { count: report.item_count, minutes: readingTime(report.content) })}
+          </p>
+        </div>
+        <div className="flex items-center justify-between gap-4 sm:justify-end">
+          <div className="text-right">
+            <p className="text-sm font-medium text-foreground">{generatedDate}</p>
+            <p className="text-xs text-muted-foreground">{formatRelative(report.generated_at, locale)}</p>
+          </div>
+          <Link
+            aria-label={`${t("readReport")}: ${displayName}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-primary transition-colors hover:bg-primary/10"
+            href={`/${locale}/reports/${report.id}`}
+          >
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 export default function AnalyticsPage() {
   const locale = useLocale()
   const t = useTranslations("analytics")
@@ -170,6 +236,7 @@ export default function AnalyticsPage() {
   const { user } = useAuth()
   const { showToast } = useToast()
   const [timeRange, setTimeRange] = useState("7D")
+  const [reportView, setReportView] = useState<"grid" | "list">("list")
   const [isGenerating, setIsGenerating] = useState(false)
   const [liveTick, setLiveTick] = useState(0)
   const rangeDays = useMemo(() => timeRangeDays[timeRange] ?? 7, [timeRange])
@@ -433,23 +500,51 @@ export default function AnalyticsPage() {
       </section>
 
       <section className="space-y-4" id="intelligence-reports">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-foreground">{t("reports")}</h2>
-          <motion.button
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-            disabled={isGenerating}
-            onClick={handleGenerateReport}
-            type="button"
-            whileTap={{ scale: 0.98 }}
-            whileHover={{ scale: 1.02 }}
-          >
-            <Plus className="h-4 w-4" />
-            {t("generateReport")}
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-xl bg-muted/50 p-1">
+              <button
+                aria-label={t("viewList")}
+                className={cn("flex h-9 w-9 items-center justify-center rounded-lg transition-colors", reportView === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                onClick={() => setReportView("list")}
+                title={t("viewList")}
+                type="button"
+              >
+                <List className="h-4 w-4" aria-hidden />
+              </button>
+              <button
+                aria-label={t("viewGrid")}
+                className={cn("flex h-9 w-9 items-center justify-center rounded-lg transition-colors", reportView === "grid" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                onClick={() => setReportView("grid")}
+                title={t("viewGrid")}
+                type="button"
+              >
+                <LayoutGrid className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+            <motion.button
+              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              disabled={isGenerating}
+              onClick={handleGenerateReport}
+              type="button"
+              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              <Plus className="h-4 w-4" />
+              {t("generateReport")}
+            </motion.button>
+          </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {reports.map((report) => <ReportCard key={report.id} report={report} />)}
-        </div>
+        {reportView === "list" ? (
+          <div className="grid gap-3">
+            {reports.map((report) => <ReportListRow key={report.id} report={report} />)}
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {reports.map((report) => <ReportCard key={report.id} report={report} />)}
+          </div>
+        )}
       </section>
 
       <section className="space-y-4">
