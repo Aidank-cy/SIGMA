@@ -38,10 +38,8 @@ REPORT_SYSTEM = (
     "5. STRUCTURE: Use level-2 markdown headings for exactly these sections: "
     "Executive Summary, Cross-Market Dynamics, Political Risk, Financial Markets, "
     "Technology & Innovation, Macro Indicators, Timeline, Forward Outlook, Sources.\n"
-    "6. The report subtitle line must include the exact period: "
-    "'{report_type} Market Report | YYYY-MM-DD (HH:MM) to YYYY-MM-DD (HH:MM) Beijing Time'.\n"
-    "7. In the Sources section, include concise attribution with titles and URLs.\n"
-    "8. FORMATTING RULES:\n"
+    "6. In the Sources section, include concise attribution with titles and URLs.\n"
+    "7. FORMATTING RULES:\n"
     "   - Always insert a blank line before any bulleted or numbered list.\n"
     "   - Always insert a blank line between list items that contain multiple sentences.\n"
     "   - Use level-3 headings (###) for sub-sections within each level-2 section.\n"
@@ -55,7 +53,7 @@ REPORT_SYSTEM = (
     "   - Keep paragraphs concise (3-4 sentences max). Use sub-headings liberally to "
     "break up walls of text.\n"
     "   - For chain reaction sequences, use the arrow notation on its own line: A → B → C\n"
-    "9. TITLE: The report title must NOT contain underscores. Use proper spacing: "
+    "8. TITLE: The report title must NOT contain underscores. Use proper spacing: "
     '"Daily Morning Intelligence Report", not "Daily_Morning Intelligence Report".'
 )
 

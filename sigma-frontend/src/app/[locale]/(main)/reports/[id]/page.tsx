@@ -47,20 +47,20 @@ function formatReportSubtitle(report: {
   generated_at: string;
   period_end: string;
   period_start: string;
-  report_type: string;
-}, locale: string, typeLabel: string): string {
-  const timeFormatter = new Intl.DateTimeFormat(locale, {
-    hour: "2-digit",
-    hour12: false,
-    minute: "2-digit"
-  });
-  const dateFormatter = new Intl.DateTimeFormat(locale, { dateStyle: "short" });
+}, locale: string, t: (key: string, values?: Record<string, string>) => string): string {
+  const dateFormatter = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" });
+  const fullDateFormatter = new Intl.DateTimeFormat(locale, { year: "numeric", month: "short", day: "numeric" });
+  const timeFormatter = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
   const startDate = new Date(report.period_start);
   const endDate = new Date(report.period_end);
   const generatedDate = new Date(report.generated_at);
-  const startTime = timeFormatter.format(startDate);
-  const endTime = timeFormatter.format(generatedDate);
-  return `${typeLabel} | ${dateFormatter.format(startDate)} (${startTime}) to ${dateFormatter.format(endDate)} (${endTime})`;
+
+  return t("subtitle", {
+    endDate: fullDateFormatter.format(endDate),
+    generatedDate: fullDateFormatter.format(generatedDate),
+    generatedTime: timeFormatter.format(generatedDate),
+    startDate: dateFormatter.format(startDate)
+  });
 }
 
 export default function ReportDetailPage() {
@@ -119,7 +119,7 @@ export default function ReportDetailPage() {
             </span>
           </div>
           <p className="text-base text-muted-foreground">
-            {formatReportSubtitle(report, locale, typeLabel)}
+            {formatReportSubtitle(report, locale, t)}
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-5xl">
