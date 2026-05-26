@@ -22,8 +22,9 @@ async def test_send_verification_email_uses_resend_when_configured(
     monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")
     monkeypatch.setattr(email_service.resend.Emails, "send_async", fake_send_async)
 
-    await email_service.send_verification_email("user@example.com", "123456", "registration")
+    result = await email_service.send_verification_email("user@example.com", "123456", "registration")
 
+    assert result is None
     assert sent["to"] == ["user@example.com"]
     assert sent["subject"] == "SIGMA — Verify Your Email"
     assert "Welcome to SIGMA!" in sent["html"]
@@ -67,8 +68,9 @@ async def test_send_verification_email_uses_smtp_when_resend_is_not_configured(
     monkeypatch.setattr(settings, "smtp_use_tls", True)
     monkeypatch.setattr(email_service.smtplib, "SMTP", FakeSMTP)
 
-    await email_service.send_verification_email("user@example.com", "654321", "password_reset")
+    result = await email_service.send_verification_email("user@example.com", "654321", "password_reset")
 
+    assert result is None
     message = smtp_calls["message"]
     assert smtp_calls["host"] == "smtp.example.com"
     assert smtp_calls["port"] == 2525
@@ -82,17 +84,18 @@ async def test_send_verification_email_uses_smtp_when_resend_is_not_configured(
 
 
 @pytest.mark.asyncio
-async def test_send_verification_email_logs_code_when_no_delivery_is_configured(
+async def test_send_verification_email_returns_code_when_no_delivery_is_configured(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Missing email configuration falls back to an explicit warning log."""
+    """Missing email configuration returns the code and logs an explicit warning."""
     monkeypatch.setattr(settings, "resend_api_key", "")
     monkeypatch.setattr(settings, "smtp_host", "")
 
     with caplog.at_level(logging.WARNING):
-        await email_service.send_verification_email("user@example.com", "111222", "registration")
+        result = await email_service.send_verification_email("user@example.com", "111222", "registration")
 
+    assert result == "111222"
     assert "No email service configured" in caplog.text
     assert "SMTP_HOST" in caplog.text
     assert "RESEND_API_KEY" in caplog.text

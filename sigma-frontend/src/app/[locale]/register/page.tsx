@@ -65,10 +65,15 @@ export default function RegisterPage() {
       return;
     }
     try {
-      await requestRegistrationCode.mutateAsync(registrationPayload());
+      const result = await requestRegistrationCode.mutateAsync(registrationPayload());
       setStep(2);
-      setCode("");
-      showToast(t("register.codeSent"), "success");
+      if (result.dev_code) {
+        setCode(result.dev_code);
+        showToast(t("register.devCode", { code: result.dev_code }), "success");
+      } else {
+        setCode("");
+        showToast(t("register.codeSent"), "success");
+      }
     } catch {
       showToast(t("register.error"), "error");
     }
