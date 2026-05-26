@@ -20,7 +20,11 @@
       "subtitle": "Start collecting structured intelligence for your watchlist.",
       "submit": "Create account",
       "loginLink": "Already have an account",
-      "success": "Account created. Sign in to continue.",
+      "success": "Account created.",
+      "codeSent": "Verification code sent to your email",
+      "enterCode": "Enter verification code",
+      "verify": "Verify",
+      "resendCode": "Resend Code",
       "invalidName": "Enter a display name.",
       "invalidEmail": "Enter a valid email address.",
       "invalidPassword": "Use at least 8 characters with letters and numbers.",
@@ -859,9 +863,7 @@
         "anthropic": "Anthropic",
         "openai": "OpenAI",
         "deepseek": "DeepSeek",
-        "minimax": "MiniMax",
-        "kimi": "Kimi (Moonshot)",
-        "gemini": "Gemini"
+        "qwen": "Qwen (Alibaba)"
       },
       "functions": {
         "summary": "Summaries",

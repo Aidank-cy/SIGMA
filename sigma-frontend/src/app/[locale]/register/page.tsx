@@ -6,14 +6,15 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-import { useAuth } from "@/components/AuthProvider";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthMutations } from "@/hooks/useAuth";
 
 interface RegisterErrors {
+  code?: string;
   confirmPassword?: string;
   displayName?: string;
   email?: string;
@@ -25,9 +26,10 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [code, setCode] = useState("");
   const [errors, setErrors] = useState<RegisterErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register } = useAuth();
+  const [step, setStep] = useState<1 | 2>(1);
+  const { requestRegistrationCode, verifyRegistration } = useAuthMutations();
   const { showToast } = useToast();
   const locale = useLocale() as "zh" | "en";
   const router = useRouter();
@@ -51,20 +53,43 @@ export default function RegisterPage() {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const registrationPayload = () => ({
+    display_name: displayName.trim(),
+    email,
+    locale,
+    password
+  });
+
+  const requestCode = async () => {
     if (!validate()) {
       return;
     }
-    setIsSubmitting(true);
     try {
-      const registeredUser = await register({ display_name: displayName.trim(), email, locale, password });
+      await requestRegistrationCode.mutateAsync(registrationPayload());
+      setStep(2);
+      setCode("");
+      showToast(t("register.codeSent"), "success");
+    } catch {
+      showToast(t("register.error"), "error");
+    }
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (step === 1) {
+      await requestCode();
+      return;
+    }
+    if (code.length !== 6) {
+      setErrors({ code: t("register.enterCode") });
+      return;
+    }
+    try {
+      const registeredUser = await verifyRegistration.mutateAsync({ code, email });
       showToast(t("register.success"), "success");
       router.push(`/${registeredUser.locale}`);
     } catch {
       showToast(t("register.error"), "error");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -86,40 +111,77 @@ export default function RegisterPage() {
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <Input
-            autoComplete="name"
-            error={errors.displayName}
-            label={t("displayName")}
-            onChange={(event) => setDisplayName(event.target.value)}
-            value={displayName}
-          />
-          <Input
-            autoComplete="email"
-            error={errors.email}
-            label={t("email")}
-            onChange={(event) => setEmail(event.target.value)}
-            type="email"
-            value={email}
-          />
-          <Input
-            autoComplete="new-password"
-            error={errors.password}
-            label={t("password")}
-            onChange={(event) => setPassword(event.target.value)}
-            type="password"
-            value={password}
-          />
-          <Input
-            autoComplete="new-password"
-            error={errors.confirmPassword}
-            label={t("confirmPassword")}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            type="password"
-            value={confirmPassword}
-          />
-          <Button className="w-full" isLoading={isSubmitting} size="lg" type="submit">
-            {t("register.submit")}
-          </Button>
+          {step === 1 ? (
+            <>
+              <Input
+                autoComplete="name"
+                error={errors.displayName}
+                label={t("displayName")}
+                onChange={(event) => setDisplayName(event.target.value)}
+                value={displayName}
+              />
+              <Input
+                autoComplete="email"
+                error={errors.email}
+                label={t("email")}
+                onChange={(event) => setEmail(event.target.value)}
+                type="email"
+                value={email}
+              />
+              <Input
+                autoComplete="new-password"
+                error={errors.password}
+                label={t("password")}
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                value={password}
+              />
+              <Input
+                autoComplete="new-password"
+                error={errors.confirmPassword}
+                label={t("confirmPassword")}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                type="password"
+                value={confirmPassword}
+              />
+              <Button className="w-full" isLoading={requestRegistrationCode.isPending} size="lg" type="submit">
+                {t("register.submit")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Input
+                autoComplete="one-time-code"
+                error={errors.code}
+                inputMode="numeric"
+                label={t("register.enterCode")}
+                maxLength={6}
+                onChange={(event) => {
+                  setErrors((current) => ({ ...current, code: undefined }));
+                  setCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+                }}
+                value={code}
+              />
+              <Button
+                className="w-full"
+                disabled={code.length !== 6}
+                isLoading={verifyRegistration.isPending}
+                size="lg"
+                type="submit"
+              >
+                {t("register.verify")}
+              </Button>
+              <Button
+                className="w-full"
+                isLoading={requestRegistrationCode.isPending}
+                onClick={requestCode}
+                type="button"
+                variant="secondary"
+              >
+                {t("register.resendCode")}
+              </Button>
+            </>
+          )}
         </form>
 
         <div className="mt-6 text-center">

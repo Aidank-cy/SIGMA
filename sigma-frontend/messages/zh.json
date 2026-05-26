@@ -20,7 +20,11 @@
       "subtitle": "开始为你的关注列表收集结构化情报。",
       "submit": "创建账号",
       "loginLink": "已有账号",
-      "success": "账号已创建，请登录继续。",
+      "success": "账号已创建。",
+      "codeSent": "验证码已发送到您的邮箱",
+      "enterCode": "输入验证码",
+      "verify": "验证",
+      "resendCode": "重新发送",
       "invalidName": "请输入显示名称。",
       "invalidEmail": "请输入有效邮箱。",
       "invalidPassword": "密码至少 8 位，且包含字母和数字。",
@@ -859,9 +863,7 @@
         "anthropic": "Anthropic",
         "openai": "OpenAI",
         "deepseek": "DeepSeek",
-        "minimax": "MiniMax",
-        "kimi": "Kimi (Moonshot)",
-        "gemini": "Gemini"
+        "qwen": "通义千问"
       },
       "functions": {
         "summary": "摘要",

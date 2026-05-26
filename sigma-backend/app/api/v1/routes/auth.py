@@ -1,4 +1,5 @@
 import hmac
+import json
 import logging
 import secrets
 from uuid import UUID
@@ -18,6 +19,8 @@ from app.schemas.auth import (
     PasswordResetRequest,
     PasswordResetTokenResponse,
     PasswordResetVerify,
+    RegistrationCodeRequest,
+    RegistrationCodeVerify,
     TokenResponse,
     UserCreate,
     UserLogin,
@@ -32,6 +35,7 @@ from app.services.auth_service import (
     hash_password,
     verify_password,
 )
+from app.services.email_service import send_verification_email
 from app.utils.redis_lock import create_redis_client
 
 router = APIRouter(prefix="/auth")
@@ -39,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 PASSWORD_RESET_TTL_SECONDS = 10 * 60
 PASSWORD_RESET_TOKEN_SECONDS = 5 * 60
+REGISTRATION_TTL_SECONDS = 10 * 60
 
 
 @router.post("/register", response_model=UserRegistrationResponse, status_code=status.HTTP_201_CREATED)
@@ -48,23 +53,72 @@ async def register(
     db: AsyncSession = Depends(get_db),
 ) -> UserRegistrationResponse:
     """Register a user, promoting the first account to admin, and issue JWT credentials."""
+    user = await _create_user(payload, db)
+    token = _issue_tokens(user, response)
+    return UserRegistrationResponse(**UserResponse.model_validate(user).model_dump(), **token.model_dump())
+
+
+@router.post("/request-registration-code", response_model=MessageResponse)
+async def request_registration_code(
+    payload: RegistrationCodeRequest,
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    """Send an email verification code before creating a new account."""
     email = str(payload.email).lower()
     existing_user = await db.scalar(select(User).where(User.email == email))
     if existing_user is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    admin_count = await db.scalar(select(func.count()).select_from(User).where(User.role == UserRole.ADMIN))
-    role = UserRole.ADMIN if admin_count == 0 else UserRole.USER
-    user = User(
-        email=email,
-        hashed_password=hash_password(payload.password),
-        display_name=payload.display_name,
-        locale=payload.locale,
-        role=role,
-    )
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    client = create_redis_client()
+    try:
+        await client.set(_registration_verify_key(email), code, ex=REGISTRATION_TTL_SECONDS)
+        await client.set(
+            _registration_payload_key(email),
+            json.dumps(payload.model_dump(mode="json")),
+            ex=REGISTRATION_TTL_SECONDS,
+        )
+    finally:
+        await client.aclose()
+
+    try:
+        await send_verification_email(email, code, "registration")
+    except Exception as exc:
+        logger.warning("Failed to send registration code to %s: %s", email, exc)
+        logger.info("Registration verification code for %s: %s", email, code)
+
+    return MessageResponse(message="verification code sent")
+
+
+@router.post("/verify-registration", response_model=UserRegistrationResponse, status_code=status.HTTP_201_CREATED)
+async def verify_registration(
+    payload: RegistrationCodeVerify,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> UserRegistrationResponse:
+    """Verify a registration code, create the account, and issue JWT credentials."""
+    email = str(payload.email).lower()
+    client = create_redis_client()
+    try:
+        stored_code = await client.get(_registration_verify_key(email))
+        stored_payload = await client.get(_registration_payload_key(email))
+    finally:
+        await client.aclose()
+
+    if (
+        stored_code is None
+        or stored_payload is None
+        or not hmac.compare_digest(str(stored_code), payload.code)
+    ):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code")
+
+    registration_payload = RegistrationCodeRequest.model_validate(json.loads(str(stored_payload)))
+    user = await _create_user(registration_payload, db)
+    client = create_redis_client()
+    try:
+        await client.delete(_registration_verify_key(email), _registration_payload_key(email))
+    finally:
+        await client.aclose()
     token = _issue_tokens(user, response)
     return UserRegistrationResponse(**UserResponse.model_validate(user).model_dump(), **token.model_dump())
 
@@ -126,8 +180,11 @@ async def request_password_reset(
             await client.set(_password_reset_key(email), code, ex=PASSWORD_RESET_TTL_SECONDS)
         finally:
             await client.aclose()
-        # TODO: integrate email service like SendGrid or Resend
-        logger.info("Password reset code for %s: %s", email, code)
+        try:
+            await send_verification_email(email, code, "password_reset")
+        except Exception as exc:
+            logger.warning("Failed to send password reset code to %s: %s", email, exc)
+            logger.info("Password reset code for %s: %s", email, code)
     return MessageResponse(message="verification code sent")
 
 
@@ -193,6 +250,35 @@ async def me(current_user: User = Depends(get_current_user)) -> User:
 
 def _password_reset_key(email: str) -> str:
     return f"pwd_reset:{email}"
+
+
+def _registration_verify_key(email: str) -> str:
+    return f"reg_verify:{email}"
+
+
+def _registration_payload_key(email: str) -> str:
+    return f"reg_payload:{email}"
+
+
+async def _create_user(payload: UserCreate, db: AsyncSession) -> User:
+    email = str(payload.email).lower()
+    existing_user = await db.scalar(select(User).where(User.email == email))
+    if existing_user is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+
+    admin_count = await db.scalar(select(func.count()).select_from(User).where(User.role == UserRole.ADMIN))
+    role = UserRole.ADMIN if admin_count == 0 else UserRole.USER
+    user = User(
+        email=email,
+        hashed_password=hash_password(payload.password),
+        display_name=payload.display_name,
+        locale=payload.locale,
+        role=role,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 
 def _issue_tokens(user: User, response: Response) -> TokenResponse:

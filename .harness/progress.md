@@ -1819,3 +1819,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: User Settings daily-token-limit edits now use an inline Save button that persists immediately and then locks behind a dimmed cooldown row with a live HH:MM:SS countdown. Admin LLM detail token-limit edits use the same row layout but only commit local drafts into the unified Save Config flow. The report Advanced Settings modal max width is now 70rem.
 - Verification: `npm run build`, `./hooks/post-file-edit.sh`, `git diff --check`, and an in-app browser smoke of `/en/settings` redirecting to the protected login view with no console errors.
 - Timestamp: 2026-05-26T03:01:00Z
+
+### [Maintenance] Email verification and Qwen provider update
+- Status: COMPLETE
+- Files created: sigma-backend/app/services/email_service.py, sigma-frontend/src/hooks/useAuth.ts
+- Files modified: sigma-backend/app/api/v1/routes/auth.py, sigma-backend/app/core/config.py, sigma-backend/app/schemas/auth.py, sigma-backend/app/schemas/llm.py, sigma-backend/app/analyzers/llm_client.py, sigma-backend/pyproject.toml, sigma-backend/tests/test_auth.py, sigma-backend/tests/test_llm.py, sigma-backend/tests/test_admin_api.py, sigma-frontend/src/app/[locale]/register/page.tsx, sigma-frontend/src/components/AuthProvider.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/lib/auth.ts, sigma-frontend/src/lib/types.ts, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, .env.example, README.md, CHANGELOG.md
+- Tests: PASS
+- Notes: Added Resend-backed email delivery for verification codes, introduced registration request/verify endpoints with Redis-backed payload storage, moved the frontend register page to a two-step email-code flow, and changed the supported LLM provider set to Anthropic/OpenAI/DeepSeek/Qwen. Retained historical LLM usage rows with deprecated provider strings for display compatibility.
+- Verification: `python3 -m pip install -e "sigma-backend[dev]"`, `python3 -m ruff check .`, focused backend auth/LLM/admin tests, full backend `python3 -m pytest --tb=short -q`, frontend `npm run build`, `./hooks/post-file-edit.sh`, `git diff --check`, and an in-app browser smoke of `/en/register` showing the registration form with no console errors.
+- Timestamp: 2026-05-26T06:02:10Z

@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-LLMProvider = Literal["anthropic", "openai", "deepseek", "minimax", "kimi", "gemini"]
+LLMProvider = Literal["anthropic", "openai", "deepseek", "qwen"]
 
 
 class LLMApiKey(BaseModel):

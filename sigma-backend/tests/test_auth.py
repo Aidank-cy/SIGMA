@@ -28,10 +28,13 @@ class FakeRedis:
     async def get(self, key: str) -> str | None:
         return self.values.get(key)
 
-    async def delete(self, key: str) -> int:
-        existed = key in self.values
-        self.values.pop(key, None)
-        return int(existed)
+    async def delete(self, *keys: str) -> int:
+        deleted = 0
+        for key in keys:
+            existed = key in self.values
+            self.values.pop(key, None)
+            deleted += int(existed)
+        return deleted
 
     async def aclose(self) -> None:
         return None
@@ -315,7 +318,13 @@ def test_me_with_expired_token_401(client: TestClient) -> None:
 def test_request_password_reset_returns_200(client: TestClient, monkeypatch) -> None:
     """Password reset request does not expose whether the email exists."""
     redis = FakeRedis()
+    sent: list[tuple[str, str, str]] = []
+
+    async def fake_send(to: str, code: str, purpose: str) -> None:
+        sent.append((to, code, purpose))
+
     monkeypatch.setattr(auth_routes, "create_redis_client", lambda: redis)
+    monkeypatch.setattr(auth_routes, "send_verification_email", fake_send)
     register_user(client, "reset@example.com")
 
     response = client.post("/api/v1/auth/request-password-reset", json={"email": "reset@example.com"})
@@ -326,6 +335,101 @@ def test_request_password_reset_returns_200(client: TestClient, monkeypatch) -> 
     assert missing_response.status_code == 200
     assert "pwd_reset:reset@example.com" in redis.values
     assert "pwd_reset:missing@example.com" not in redis.values
+    assert sent == [("reset@example.com", redis.values["pwd_reset:reset@example.com"], "password_reset")]
+
+
+def test_request_registration_code_stores_payload_and_sends_email(
+    client: TestClient, monkeypatch
+) -> None:
+    """Registration code requests persist the pending payload and send the code."""
+    redis = FakeRedis()
+    sent: list[tuple[str, str, str]] = []
+
+    async def fake_send(to: str, code: str, purpose: str) -> None:
+        sent.append((to, code, purpose))
+
+    monkeypatch.setattr(auth_routes, "create_redis_client", lambda: redis)
+    monkeypatch.setattr(auth_routes, "send_verification_email", fake_send)
+
+    response = client.post(
+        "/api/v1/auth/request-registration-code",
+        json={
+            "email": "pending@example.com",
+            "password": "StrongPass1",
+            "display_name": "Pending User",
+            "locale": "en",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "verification code sent"}
+    assert "reg_verify:pending@example.com" in redis.values
+    assert "reg_payload:pending@example.com" in redis.values
+    assert sent == [
+        ("pending@example.com", redis.values["reg_verify:pending@example.com"], "registration")
+    ]
+
+
+def test_verify_registration_creates_user_and_clears_redis(client: TestClient, monkeypatch) -> None:
+    """A matching registration code creates the user, issues tokens, and removes pending keys."""
+    redis = FakeRedis()
+
+    async def fake_send(to: str, code: str, purpose: str) -> None:
+        return None
+
+    monkeypatch.setattr(auth_routes, "create_redis_client", lambda: redis)
+    monkeypatch.setattr(auth_routes, "send_verification_email", fake_send)
+    client.post(
+        "/api/v1/auth/request-registration-code",
+        json={
+            "email": "verify-registration@example.com",
+            "password": "StrongPass1",
+            "display_name": "Verified User",
+            "locale": "en",
+        },
+    )
+    code = redis.values["reg_verify:verify-registration@example.com"]
+
+    response = client.post(
+        "/api/v1/auth/verify-registration",
+        json={"email": "verify-registration@example.com", "code": code},
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["email"] == "verify-registration@example.com"
+    assert payload["display_name"] == "Verified User"
+    assert payload["role"] == "admin"
+    assert payload["access_token"]
+    assert "refresh_token" in response.cookies
+    assert "reg_verify:verify-registration@example.com" not in redis.values
+    assert "reg_payload:verify-registration@example.com" not in redis.values
+
+
+def test_verify_registration_wrong_code_returns_401(client: TestClient, monkeypatch) -> None:
+    """An incorrect registration verification code is rejected."""
+    redis = FakeRedis()
+
+    async def fake_send(to: str, code: str, purpose: str) -> None:
+        return None
+
+    monkeypatch.setattr(auth_routes, "create_redis_client", lambda: redis)
+    monkeypatch.setattr(auth_routes, "send_verification_email", fake_send)
+    client.post(
+        "/api/v1/auth/request-registration-code",
+        json={
+            "email": "bad-registration-code@example.com",
+            "password": "StrongPass1",
+            "display_name": "Bad Code",
+        },
+    )
+
+    response = client.post(
+        "/api/v1/auth/verify-registration",
+        json={"email": "bad-registration-code@example.com", "code": "000000"},
+    )
+
+    assert response.status_code == 401
 
 
 def test_verify_correct_code_returns_token(client: TestClient, monkeypatch) -> None:

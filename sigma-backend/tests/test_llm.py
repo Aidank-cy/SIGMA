@@ -48,7 +48,7 @@ def test_anthropic_payload_shape(db_session: AsyncSession) -> None:
     }
 
 
-@pytest.mark.parametrize("provider", ["openai", "deepseek", "minimax", "kimi", "gemini"])
+@pytest.mark.parametrize("provider", ["openai", "deepseek", "qwen"])
 def test_openai_compatible_payload_shape(db_session: AsyncSession, provider: str) -> None:
     """OpenAI-compatible providers share the chat-completions payload shape."""
     client = LLMClient(db_session)
@@ -69,9 +69,7 @@ def test_openai_compatible_payload_shape(db_session: AsyncSession, provider: str
     [
         ("openai", "openai_api_key", "Bearer sk-openai"),
         ("deepseek", "deepseek_api_key", "Bearer sk-deepseek"),
-        ("minimax", "minimax_api_key", "Bearer sk-minimax"),
-        ("kimi", "kimi_api_key", "Bearer sk-kimi"),
-        ("gemini", "gemini_api_key", "Bearer sk-gemini"),
+        ("qwen", "qwen_api_key", "Bearer sk-qwen"),
     ],
 )
 def test_headers_for_openai_compatible_providers(
@@ -153,9 +151,7 @@ async def test_runtime_config_uses_user_default_api_key(db_session: AsyncSession
         ("anthropic", "https://api.anthropic.com/v1/messages"),
         ("openai", "https://api.openai.com/v1/chat/completions"),
         ("deepseek", "https://api.deepseek.com/chat/completions"),
-        ("minimax", "https://api.minimax.io/v1/chat/completions"),
-        ("kimi", "https://api.moonshot.cn/v1/chat/completions"),
-        ("gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"),
+        ("qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"),
     ],
 )
 def test_provider_urls(db_session: AsyncSession, provider: str, expected: str) -> None:

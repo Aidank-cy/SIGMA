@@ -64,8 +64,12 @@ docker compose -f docker-compose.prod.yml config
 | `JWT_REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token lifetime |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
-| `DEFAULT_LLM_PROVIDER` | `anthropic` or `openai` |
+| `DEEPSEEK_API_KEY` | DeepSeek API key |
+| `QWEN_API_KEY` | Qwen API key |
+| `DEFAULT_LLM_PROVIDER` | `anthropic`, `openai`, `deepseek`, or `qwen` |
 | `DEFAULT_LLM_MODEL` | Runtime default LLM model |
+| `RESEND_API_KEY` | Resend API key for verification emails |
+| `EMAIL_FROM` | Sender identity for verification emails |
 | `NEWSAPI_KEY` | NewsAPI source key |
 | `ALPHAVANTAGE_KEY` | Alpha Vantage source key |
 | `FINNHUB_KEY` | Finnhub source key |
