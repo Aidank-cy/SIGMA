@@ -13,7 +13,9 @@ from app.services.market_indices import (
     IndexConfig,
     IntradayPoint,
     _as_float,
+    _elapsed_trading_minutes,
     _fetch_yahoo_chart_result,
+    _is_trading,
     _is_within_session,
     _latest_session_date,
     _market_status_beijing,
@@ -30,6 +32,8 @@ CANDLE_5D_TTL = 60 * 60 * 24 * 7
 
 TRADING_FETCH_INTERVAL = 30
 COLD_START_NOT_OPEN_DELAY = 30
+INTRADAY_GAP_MIN_EXPECTED_POINTS = 30
+INTRADAY_GAP_MIN_COVERAGE_RATIO = 0.8
 
 _last_fetch_time: dict[str, datetime] = {}
 _cold_start_done: dict[str, bool] = {}
@@ -67,21 +71,20 @@ async def _cold_start_fetch(config: IndexConfig, status: str) -> None:
         now_utc = _now_utc()
         if last is not None and (now_utc - last).total_seconds() < COLD_START_NOT_OPEN_DELAY:
             return
-        await _cold_start_next_piece(config)
+        await _cold_start_next_piece(config, backfill_intraday_gap=True)
         _last_fetch_time[symbol] = _now_utc()
         return
 
     await _cold_start_next_piece(config)
 
 
-async def _cold_start_next_piece(config: IndexConfig) -> None:
+async def _cold_start_next_piece(config: IndexConfig, backfill_intraday_gap: bool = False) -> None:
     symbol = config.symbol
 
     if not await _redis_has_1d(symbol):
-        one_day = await _yahoo_fetch(config, interval="1m", range_="1d")
-        if one_day:
-            await _redis_set_1d(symbol, one_day)
-            LOGGER.info("Cold start piece: %s 1D 1min to Redis", symbol)
+        stored_count = await _fetch_and_store_1d_1min(config, backfill_intraday_gap=backfill_intraday_gap)
+        if stored_count:
+            LOGGER.info("Cold start piece: %s 1D 1min to Redis (%d points)", symbol, stored_count)
         return
 
     if not await _redis_has_5d(symbol):
@@ -112,10 +115,41 @@ async def _cold_start_next_piece(config: IndexConfig) -> None:
     LOGGER.info("Cold start complete for %s", symbol)
 
 
-async def _fetch_and_store_1d_1min(config: IndexConfig) -> None:
+async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: bool = True) -> int:
     points = await _yahoo_fetch(config, interval="1m", range_="1d")
-    if points:
-        await _redis_set_1d(config.symbol, points)
+    if not points:
+        return 0
+
+    stored_points = points
+    if backfill_intraday_gap and _has_intraday_gap(config, points):
+        five_day = await _yahoo_fetch(config, interval="1m", range_="5d")
+        if five_day:
+            today_points = _filter_today(config, five_day)
+            if len(today_points) > len(points):
+                stored_points = today_points
+                LOGGER.info(
+                    "Backfilled %s 1D candles from Yahoo 5D data after sparse 1D fetch: %d -> %d points",
+                    config.symbol,
+                    len(points),
+                    len(today_points),
+                )
+
+    await _redis_set_1d(config.symbol, stored_points)
+    return len(stored_points)
+
+
+def _has_intraday_gap(config: IndexConfig, points: list[IntradayPoint]) -> bool:
+    now = _now_utc()
+    if not _is_trading(config, now):
+        return False
+
+    session_date = _latest_session_date(config, now)
+    todays_points = [point for point in points if point.timestamp.astimezone(ZoneInfo(config.timezone)).date() == session_date]
+    expected_count = len(_elapsed_trading_minutes(config, session_date, now))
+    if expected_count < INTRADAY_GAP_MIN_EXPECTED_POINTS:
+        return False
+
+    return len(todays_points) < expected_count * INTRADAY_GAP_MIN_COVERAGE_RATIO
 
 
 async def _end_of_day_downsample_if_needed(config: IndexConfig) -> None:

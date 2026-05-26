@@ -65,6 +65,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change shared LLM usage charts to use padded Y domains, compact 14-day X ticks, k-formatted token ticks, and hidden function-chart Y labels.
 - Change Analytics intelligence reports to use a list-only paginated master-detail preview with left-edge report type color bars and full Executive Summary previews.
 - Change report-generation prompts to stop asking LLMs to duplicate the report period subtitle inside markdown bodies.
 - Change report-generation prompts to require cleaner markdown spacing, timeline formatting, and underscore-free titles.
@@ -195,6 +196,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix market candle cold-start recovery so sparse active-session 1D Yahoo data backfills today's Redis candles from 5D data, with Redis AOF persistence enabled for local and production compose services.
 - Fix report detail subtitles so they show compact period and generated-at metadata instead of the midnight period boundary time.
 - Fix report detail titles/subtitles and LLM usage charts so report labels, dates, and token trend lines render clearly.
 - Fix report detail subtitles to parse datetime report periods without appending an extra time fragment.

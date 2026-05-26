@@ -682,8 +682,8 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
     market_candles._cold_start_done.clear()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 13, 31, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 13, 31, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_redis_has_1d", fake_redis_has_1d)
     monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
     monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
@@ -691,6 +691,55 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
     await market_candles.candle_refresh_job()
 
     assert calls == ["1m:1d", "set1d:1"]
+
+
+@pytest.mark.asyncio
+async def test_trading_fetch_backfills_sparse_1d_from_5d(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A mid-session Redis loss backfills today's 1D candles from Yahoo 5D data."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    stored_lengths: list[int] = []
+    calls: list[str] = []
+    sparse_points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 26, 10, 25, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3100.0 + offset,
+        )
+        for offset in range(6)
+    ]
+    full_today = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 26, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3100.0 + offset,
+        )
+        for offset in range(61)
+    ]
+    previous_day = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 23, 9, 30, tzinfo=market_indices.BEIJING_TZ),
+            3050.0,
+        )
+    ]
+
+    async def fake_yahoo(
+        _config: market_indices.IndexConfig,
+        interval: str,
+        range_: str,
+    ) -> list[market_indices.IntradayPoint]:
+        calls.append(f"{interval}:{range_}")
+        return sparse_points if range_ == "1d" else [*previous_day, *full_today]
+
+    async def fake_set_1d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+        stored_lengths.append(len(points))
+
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 2, 30, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
+    monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
+
+    stored_count = await market_candles._fetch_and_store_1d_1min(sse)
+
+    assert calls == ["1m:1d", "1m:5d"]
+    assert stored_lengths == [61]
+    assert stored_count == 61
 
 
 @pytest.mark.asyncio
