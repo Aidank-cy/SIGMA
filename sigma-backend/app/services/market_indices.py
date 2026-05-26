@@ -151,10 +151,15 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
             config.symbol,
         )
         intraday = _fallback_intraday_series(config, value, change_pct)
-    elif quote is None and intraday:
+    elif intraday:
         value = intraday[-1].value
-        first_value = intraday[0].value
-        change_pct = ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
+        if quote is None:
+            previous_close = intraday[0].value
+        if previous_close > 0:
+            change_pct = ((value - previous_close) / previous_close) * 100
+        else:
+            first_value = intraday[0].value
+            change_pct = ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
     if len(intraday) < 30:
         LOGGER.warning(
             "%s has only %s intraday chart points; charts may appear undersampled.",
