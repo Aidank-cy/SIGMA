@@ -1876,3 +1876,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Report color bars now sit on the left edge in list and grid cards, the LLM report prompt no longer asks for duplicate period subtitle lines in markdown, detail and preview subtitles now use compact period/generated-at metadata, and analytics previews extract the full Executive Summary section.
 - Verification: `python3 -m ruff check app/analyzers/prompts.py tests/test_prompts.py`, `python3 -m pytest tests/test_prompts.py --tb=short -q`, `npm run build`, `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff errors in untracked `sigma-backend/scripts/test_report_pipeline.py`.
 - Timestamp: 2026-05-26T17:23:59+08:00
+
+### [Maintenance] Sub-feature: Analytics report list pagination
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Removed the analytics reports grid view and list/grid toggle, fetch up to 50 reports, sort reports newest-first independent of the analytics time range, and paginate the master-detail list four reports per page without a scroll container.
+- Verification: `npm run build`, `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff errors in untracked `sigma-backend/scripts/test_report_pipeline.py`.
+- Timestamp: 2026-05-26T17:34:27+08:00

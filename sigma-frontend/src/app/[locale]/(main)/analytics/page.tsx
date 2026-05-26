@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ArrowRight, FileText, LayoutGrid, List, Plus, Sparkles, TrendingDown, TrendingUp } from "lucide-react"
+import { FileText, Plus, Sparkles, TrendingDown, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import type { ReactNode } from "react"
@@ -20,6 +20,7 @@ import type { Category, ItemSummary, ReportSummary, Sentiment } from "@/lib/type
 const timeRanges = ["24h", "7D", "14D", "30D"]
 const timeRangeDays: Record<string, number> = { "24h": 1, "7D": 7, "14D": 14, "30D": 30 }
 const categories: Category[] = ["politics", "finance", "technology", "macro"]
+const REPORTS_PER_PAGE = 4
 
 const categoryColors: Record<Category, string> = {
   finance: "oklch(0.65 0.22 145)",
@@ -200,42 +201,6 @@ function buildCategoryRows(items: ItemSummary[], t: (key: string) => string) {
   })
 }
 
-function ReportCard({ report }: { report: ReportSummary }) {
-  const locale = useLocale()
-  const t = useTranslations("analytics")
-  const displayName = formatReportDisplayName(report, locale, t)
-
-  return (
-    <motion.div
-      animate={{ opacity: 1, y: 0 }}
-      className="group flex items-stretch overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
-      initial={{ opacity: 0, y: 20 }}
-      whileHover={{ y: -4 }}
-    >
-      <div className={cn("w-1.5 shrink-0 rounded-l-xl", reportTypeColors[report.report_type] ?? "bg-muted-foreground")} />
-      <div className="flex min-w-0 flex-1 flex-col p-5">
-        <div className="mb-3 flex items-start justify-end">
-          <FileText className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <h3 className="mb-1 font-semibold text-foreground">{displayName}</h3>
-        <p className="mb-1 text-sm text-muted-foreground">
-          {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(report.generated_at))}
-        </p>
-        <p className="mb-4 text-xs text-muted-foreground">
-          {t("reportMeta", { count: report.item_count, minutes: readingTime(report.content) })}
-        </p>
-        <div className="mt-auto flex items-center justify-between border-t border-border pt-3">
-          <span className="text-xs text-muted-foreground">{formatRelative(report.generated_at, locale)}</span>
-          <Link className="flex items-center gap-1 text-sm font-medium text-primary transition-colors group-hover:gap-2" href={`/${locale}/reports/${report.id}`}>
-            {t("readReport")}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
 function ReportListRow({
   isSelected,
   onSelect,
@@ -329,8 +294,8 @@ export default function AnalyticsPage() {
   const { user } = useAuth()
   const { showToast } = useToast()
   const [timeRange, setTimeRange] = useState("7D")
-  const [reportView, setReportView] = useState<"grid" | "list">("list")
   const [selectedReport, setSelectedReport] = useState<ReportSummary | null>(null)
+  const [reportPage, setReportPage] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
   const [liveTick, setLiveTick] = useState(0)
   const rangeDays = useMemo(() => timeRangeDays[timeRange] ?? 7, [timeRange])
@@ -355,7 +320,7 @@ export default function AnalyticsPage() {
   const sentiment = useSentimentStats(rangeDays)
   const keywords = useTrendingKeywords(rangeDays)
   const itemQuery = useItems({ date_from: dataFetchFrom, page_size: 500 })
-  const reportsQuery = useReports(undefined, 6)
+  const reportsQuery = useReports(undefined, 50)
   const items = useMemo(() => itemQuery.data?.pages.flatMap((page) => page.items) ?? [], [itemQuery.data])
   const rangeItems = useMemo(() => {
     const startTime = new Date(dateFrom).getTime()
@@ -367,14 +332,20 @@ export default function AnalyticsPage() {
   }, [dateFrom, items, liveTick])
   const reports = useMemo(() => {
     const all = reportsQuery.data?.pages.flatMap((page) => page.items) ?? []
-    return all.filter((report) => report.generated_at >= dateFrom)
-  }, [reportsQuery.data, dateFrom])
+    return all.sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
+  }, [reportsQuery.data])
+  const totalReportPages = Math.ceil(reports.length / REPORTS_PER_PAGE)
+  const paginatedReports = reports.slice((reportPage - 1) * REPORTS_PER_PAGE, reportPage * REPORTS_PER_PAGE)
 
   useEffect(() => {
     if (selectedReport && !reports.some((report) => report.id === selectedReport.id)) {
       setSelectedReport(null)
     }
   }, [reports, selectedReport])
+
+  useEffect(() => {
+    setReportPage(1)
+  }, [reports.length])
 
   useEffect(() => {
     if (itemQuery.hasNextPage && !itemQuery.isFetchingNextPage) {
@@ -600,61 +571,59 @@ export default function AnalyticsPage() {
       </section>
 
       <section className="space-y-4" id="intelligence-reports">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">{t("reports")}</h2>
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-xl bg-muted/50 p-1">
-              <button
-                aria-label={t("viewList")}
-                className={cn("flex h-9 w-9 items-center justify-center rounded-lg transition-colors", reportView === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                onClick={() => setReportView("list")}
-                title={t("viewList")}
-                type="button"
-              >
-                <List className="h-4 w-4" aria-hidden />
-              </button>
-              <button
-                aria-label={t("viewGrid")}
-                className={cn("flex h-9 w-9 items-center justify-center rounded-lg transition-colors", reportView === "grid" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                onClick={() => setReportView("grid")}
-                title={t("viewGrid")}
-                type="button"
-              >
-                <LayoutGrid className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
-            <motion.button
-              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-              disabled={isGenerating}
-              onClick={handleGenerateReport}
-              type="button"
-              whileTap={{ scale: 0.98 }}
-              whileHover={{ scale: 1.02 }}
-            >
-              <Plus className="h-4 w-4" />
-              {t("generateReport")}
-            </motion.button>
-          </div>
+          <motion.button
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            disabled={isGenerating}
+            onClick={handleGenerateReport}
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.02 }}
+          >
+            <Plus className="h-4 w-4" />
+            {t("generateReport")}
+          </motion.button>
         </div>
-        {reportView === "list" ? (
-          <div className="grid grid-cols-[1fr_1fr] gap-4">
-            <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
-              {reports.map((report) => (
-                <ReportListRow
-                  isSelected={selectedReport?.id === report.id}
-                  key={report.id}
-                  onSelect={() => setSelectedReport(report)}
-                  report={report}
-                />
-              ))}
-            </div>
-            <ReportPreview report={selectedReport} />
+        <div className="grid grid-cols-[1fr_1fr] gap-4">
+          <div className="space-y-3">
+            {paginatedReports.map((report) => (
+              <ReportListRow
+                isSelected={selectedReport?.id === report.id}
+                key={report.id}
+                onSelect={() => setSelectedReport(report)}
+                report={report}
+              />
+            ))}
+
+            {totalReportPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <button
+                  aria-label={t("previousReportsPage")}
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
+                  disabled={reportPage <= 1}
+                  onClick={() => setReportPage((page) => page - 1)}
+                  type="button"
+                >
+                  ←
+                </button>
+                <span className="text-sm text-muted-foreground">
+                  {reportPage} / {totalReportPages}
+                </span>
+                <button
+                  aria-label={t("nextReportsPage")}
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
+                  disabled={reportPage >= totalReportPages}
+                  onClick={() => setReportPage((page) => page + 1)}
+                  type="button"
+                >
+                  →
+                </button>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {reports.map((report) => <ReportCard key={report.id} report={report} />)}
-          </div>
-        )}
+          <ReportPreview report={selectedReport} />
+        </div>
       </section>
 
       <section className="space-y-4">

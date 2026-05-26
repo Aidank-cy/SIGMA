@@ -302,6 +302,8 @@
     "readReport": "阅读报告",
     "viewGrid": "网格视图",
     "viewList": "列表视图",
+    "previousReportsPage": "上一页报告",
+    "nextReportsPage": "下一页报告",
     "adminOnly": "生成报告需要管理员权限。",
     "generationQueued": "报告生成已加入队列。",
     "generationError": "无法加入报告生成队列。",

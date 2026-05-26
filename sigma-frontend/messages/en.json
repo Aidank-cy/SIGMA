@@ -302,6 +302,8 @@
     "readReport": "Read report",
     "viewGrid": "Grid view",
     "viewList": "List view",
+    "previousReportsPage": "Previous reports page",
+    "nextReportsPage": "Next reports page",
     "adminOnly": "Admin access is required to generate reports.",
     "generationQueued": "Report generation queued.",
     "generationError": "Unable to queue report generation.",

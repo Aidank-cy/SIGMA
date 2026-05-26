@@ -65,8 +65,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
-- Change Analytics intelligence reports to use a master-detail list preview with left-edge report type color bars and full Executive Summary previews.
-- Change analytics intelligence reports to default to a list layout with standardized report names and a list/grid toggle.
+- Change Analytics intelligence reports to use a list-only paginated master-detail preview with left-edge report type color bars and full Executive Summary previews.
 - Change report-generation prompts to stop asking LLMs to duplicate the report period subtitle inside markdown bodies.
 - Change report-generation prompts to require cleaner markdown spacing, timeline formatting, and underscore-free titles.
 - Change report-generation LLM calls to use a generous provider cap while keeping user token limits as prompt guidance and budget estimates.
