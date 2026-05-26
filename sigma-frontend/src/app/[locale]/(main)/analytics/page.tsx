@@ -60,18 +60,44 @@ function readingTime(content: string) {
   return Math.max(1, Math.ceil(content.split(/\s+/).filter(Boolean).length / 220))
 }
 
-function extractReportPreview(content: string, maxLength = 200) {
-  const text = content
+function extractExecutiveSummary(content: string): string {
+  const pattern = /^##\s+Executive\s+Summary\s*\n([\s\S]*?)(?=\n##\s+|$)/im
+  const match = content.match(pattern)
+  if (!match) {
+    return content
+      .replace(/^#{1,6}\s+.*$/gm, "")
+      .replace(/[`*_~|]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 300)
+  }
+
+  return match[1]
     .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/^[>\s-]*[-*+]\s+/gm, "")
     .replace(/[`*_~|]/g, "")
     .replace(/\s+/g, " ")
     .trim()
+}
 
-  if (text.length <= maxLength) return text
-  return `${text.slice(0, maxLength).trimEnd()}...`
+function formatReportSubtitle(
+  report: ReportSummary,
+  locale: string,
+  t: (key: string, values?: Record<string, string>) => string
+) {
+  const dateFormatter = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" })
+  const fullDateFormatter = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" })
+  const timeFormatter = new Intl.DateTimeFormat(locale, { hour: "2-digit", hour12: false, minute: "2-digit" })
+  const startDate = new Date(report.period_start)
+  const endDate = new Date(report.period_end)
+  const generatedDate = new Date(report.generated_at)
+
+  return t("reportSubtitle", {
+    endDate: fullDateFormatter.format(endDate),
+    generatedDate: fullDateFormatter.format(generatedDate),
+    generatedTime: timeFormatter.format(generatedDate),
+    startDate: dateFormatter.format(startDate)
+  })
 }
 
 function formatReportDate(value: string, locale: string) {
@@ -186,6 +212,7 @@ function ReportCard({ report }: { report: ReportSummary }) {
       initial={{ opacity: 0, y: 20 }}
       whileHover={{ y: -4 }}
     >
+      <div className={cn("w-1.5 shrink-0 rounded-l-xl", reportTypeColors[report.report_type] ?? "bg-muted-foreground")} />
       <div className="flex min-w-0 flex-1 flex-col p-5">
         <div className="mb-3 flex items-start justify-end">
           <FileText className="h-5 w-5 text-muted-foreground" />
@@ -205,7 +232,6 @@ function ReportCard({ report }: { report: ReportSummary }) {
           </Link>
         </div>
       </div>
-      <div className={cn("w-1.5 shrink-0 rounded-r-xl", reportTypeColors[report.report_type] ?? "bg-muted-foreground")} />
     </motion.div>
   )
 }
@@ -237,6 +263,7 @@ function ReportListRow({
       type="button"
       whileHover={{ y: -2 }}
     >
+      <div className={cn("w-1.5 shrink-0 rounded-l-xl", reportTypeColors[report.report_type] ?? "bg-muted-foreground")} />
       <div className="grid min-w-0 flex-1 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">{displayName}</h3>
@@ -251,7 +278,6 @@ function ReportListRow({
           </div>
         </div>
       </div>
-      <div className={cn("w-1.5 shrink-0 rounded-r-xl", reportTypeColors[report.report_type] ?? "bg-muted-foreground")} />
     </motion.button>
   )
 }
@@ -271,14 +297,14 @@ function ReportPreview({ report }: { report: ReportSummary | null }) {
   }
 
   const displayName = formatReportDisplayName(report, locale, t)
-  const generatedDate = new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(new Date(report.generated_at))
-  const summary = extractReportPreview(report.content)
+  const subtitle = formatReportSubtitle(report, locale, t)
+  const summary = extractExecutiveSummary(report.content)
 
   return (
     <div className="flex min-h-[320px] flex-col rounded-xl border border-border bg-card p-5">
       <div>
-        <p className="text-sm font-medium text-muted-foreground">{generatedDate}</p>
-        <h3 className="mt-2 text-xl font-semibold leading-tight text-foreground">{displayName}</h3>
+        <h3 className="text-xl font-semibold leading-tight text-foreground">{displayName}</h3>
+        <p className="mt-2 text-sm font-medium text-muted-foreground">{subtitle}</p>
         <div className="mt-5">
           <p className="text-xs font-semibold uppercase text-muted-foreground">{t("reportSummary")}</p>
           <p className="mt-2 text-sm leading-6 text-foreground/75">{summary || t("reportSummaryFallback")}</p>

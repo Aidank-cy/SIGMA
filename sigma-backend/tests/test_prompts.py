@@ -55,6 +55,7 @@ def test_report_prompt_includes_required_sections_instruction() -> None:
     assert "FORMATTING RULES" in system_prompt
     assert "reverse-chronological vertical timeline" in system_prompt
     assert "must NOT contain underscores" in system_prompt
+    assert "Beijing Time" not in system_prompt
     assert "2000 tokens" in system_prompt
     assert "Report type: daily" in user_prompt
     assert "Report label: Daily" in user_prompt

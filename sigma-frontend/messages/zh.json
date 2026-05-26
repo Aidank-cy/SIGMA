@@ -309,6 +309,7 @@
     "selectReportPreviewDescription": "从列表中选择一份情报报告，查看日期、标题和摘要。",
     "reportSummary": "摘要",
     "reportSummaryFallback": "此报告暂无摘要。",
+    "reportSubtitle": "周期：{startDate} — {endDate} · 生成于 {generatedTime} {generatedDate}",
     "viewDetails": "查看详情",
     "reportNames": {
       "daily": "{date} 日报",
@@ -588,6 +589,7 @@
     "toc": "目录",
     "tocEmpty": "该报告暂无标题。",
     "print": "打印",
+    "subtitle": "周期：{startDate} — {endDate} · 生成于 {generatedTime} {generatedDate}",
     "displayTypes": {
       "daily": "每日市场报告",
       "weekly": "每周市场报告",

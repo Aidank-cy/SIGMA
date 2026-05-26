@@ -1868,3 +1868,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Analytics intelligence reports now use a 50/50 master-detail list preview, list rows are fully clickable with selected styling, report type pills were replaced by right-edge color bars in list and grid views, and report details use the generated timestamp for the subtitle end time. The report detail TOC column is now 280px with proportional right padding.
 - Verification: `npm run build`, `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff errors in untracked `sigma-backend/scripts/test_report_pipeline.py`.
 - Timestamp: 2026-05-26T16:56:44+08:00
+
+### [Maintenance] Sub-feature: Report subtitle and preview refinement
+- Status: COMPLETE
+- Files modified: sigma-backend/app/analyzers/prompts.py, sigma-backend/tests/test_prompts.py, sigma-frontend/src/app/[locale]/(main)/analytics/page.tsx, sigma-frontend/src/app/[locale]/(main)/reports/[id]/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Report color bars now sit on the left edge in list and grid cards, the LLM report prompt no longer asks for duplicate period subtitle lines in markdown, detail and preview subtitles now use compact period/generated-at metadata, and analytics previews extract the full Executive Summary section.
+- Verification: `python3 -m ruff check app/analyzers/prompts.py tests/test_prompts.py`, `python3 -m pytest tests/test_prompts.py --tb=short -q`, `npm run build`, `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff errors in untracked `sigma-backend/scripts/test_report_pipeline.py`.
+- Timestamp: 2026-05-26T17:23:59+08:00

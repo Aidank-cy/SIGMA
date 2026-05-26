@@ -309,6 +309,7 @@
     "selectReportPreviewDescription": "Choose an intelligence report from the list to see its date, title, and summary.",
     "reportSummary": "Summary",
     "reportSummaryFallback": "No summary is available for this report.",
+    "reportSubtitle": "Period: {startDate} — {endDate} · Generated at {generatedTime} {generatedDate}",
     "viewDetails": "View details",
     "reportNames": {
       "daily": "{date} Daily Report",
@@ -588,6 +589,7 @@
     "toc": "Contents",
     "tocEmpty": "No headings in this report.",
     "print": "Print",
+    "subtitle": "Period: {startDate} — {endDate} · Generated at {generatedTime} {generatedDate}",
     "displayTypes": {
       "daily": "Daily Market Report",
       "weekly": "Weekly Market Report",
