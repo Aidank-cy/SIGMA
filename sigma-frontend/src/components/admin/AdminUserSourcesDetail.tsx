@@ -2,7 +2,7 @@
 
 import { Code, Database, Pencil, Plus, Rss, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/Button";
@@ -31,7 +31,15 @@ const initialPayload: SourcePayload = {
   source_type: "rss"
 };
 
-export function AdminUserSourcesDetail({ userId }: { userId: string }) {
+interface AdminUserSourcesDetailProps {
+  onSaveStateChange?: (state: { isDirty: boolean; isSaving: boolean; isValid: boolean }) => void;
+  userId: string;
+}
+
+export const AdminUserSourcesDetail = forwardRef<
+  { save: () => Promise<void> },
+  AdminUserSourcesDetailProps
+>(function AdminUserSourcesDetail({ onSaveStateChange, userId }, ref) {
   const t = useTranslations("sync");
   const common = useTranslations("common");
   const { showToast } = useToast();
@@ -40,14 +48,68 @@ export function AdminUserSourcesDetail({ userId }: { userId: string }) {
   const [editingSource, setEditingSource] = useState<DataSource | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [payload, setPayload] = useState<SourcePayload>(initialPayload);
+  const [draftSources, setDraftSources] = useState<DataSource[]>([]);
+  const baselineSourcesRef = useRef<DataSource[]>([]);
+  const draftSourcesRef = useRef<DataSource[]>([]);
+  const setSyncedDraftSources = useCallback((value: DataSource[] | ((current: DataSource[]) => DataSource[])) => {
+    setDraftSources((current) => {
+      const next = typeof value === "function" ? value(current) : value;
+      draftSourcesRef.current = next;
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (sources.data?.items) {
+      const nextSources = sources.data.items;
+      if (
+        !dataSourceListsEqual(draftSourcesRef.current, baselineSourcesRef.current) &&
+        !dataSourceListsEqual(nextSources, draftSourcesRef.current)
+      ) {
+        return;
+      }
+      baselineSourcesRef.current = nextSources;
+      draftSourcesRef.current = nextSources;
+      setDraftSources(nextSources);
+    }
+  }, [sources.data?.items]);
 
   const groupedSources = useMemo(() => {
     const groups = Object.fromEntries(markets.map((market) => [market, [] as DataSource[]])) as Record<Market, DataSource[]>;
-    for (const source of sources.data?.items ?? []) {
+    for (const source of draftSources) {
       groups[markets.includes(source.market) ? source.market : "global"].push(source);
     }
     return groups;
-  }, [sources.data?.items]);
+  }, [draftSources]);
+
+  const sourcesDirty = !dataSourceListsEqual(draftSources, baselineSourcesRef.current);
+  const isSaving = mutations.create.isPending || mutations.update.isPending || mutations.remove.isPending;
+
+  useEffect(() => {
+    onSaveStateChange?.({ isDirty: sourcesDirty, isSaving, isValid: true });
+  }, [isSaving, onSaveStateChange, sourcesDirty]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      async save() {
+        await persistSourceDraft({
+          baselineSources: baselineSourcesRef.current,
+          createSource: (source) => mutations.create.mutateAsync(sourcePayloadFromSource(source)),
+          deleteSource: (sourceId) => mutations.remove.mutateAsync(sourceId),
+          draftSources: draftSourcesRef.current,
+          updateSource: (source) =>
+            mutations.update.mutateAsync({ id: source.id, payload: sourcePayloadFromSource(source) })
+        });
+        const refreshed = await sources.refetch();
+        const latest = refreshed.data?.items ?? draftSourcesRef.current.filter((source) => !isDraftSource(source));
+        baselineSourcesRef.current = latest;
+        draftSourcesRef.current = latest;
+        setDraftSources(latest);
+      }
+    }),
+    [mutations.create, mutations.remove, mutations.update, sources]
+  );
 
   function openCreate() {
     setEditingSource(null);
@@ -70,38 +132,28 @@ export function AdminUserSourcesDetail({ userId }: { userId: string }) {
     setIsModalOpen(true);
   }
 
-  async function saveSource() {
-    try {
-      if (editingSource) {
-        await mutations.update.mutateAsync({ id: editingSource.id, payload });
-      } else {
-        await mutations.create.mutateAsync(payload);
-      }
-      setIsModalOpen(false);
-      showToast(t("sources.saved"), "success");
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : t("sources.error"), "error");
+  function saveSource() {
+    if (editingSource) {
+      setSyncedDraftSources((current) =>
+        current.map((source) => (source.id === editingSource.id ? { ...source, ...payload } : source))
+      );
+    } else {
+      setSyncedDraftSources((current) => [draftSourceFromPayload(payload, userId), ...current]);
     }
+    setIsModalOpen(false);
+    showToast(t("staged"), "success");
   }
 
-  async function deleteSource(source: DataSource) {
-    try {
-      await mutations.remove.mutateAsync(source.id);
-      await sources.refetch();
-      showToast(t("sourceDeleted"), "success");
-    } catch (error) {
-      await sources.refetch();
-      showToast(error instanceof Error ? error.message : t("sourceDeleteError"), "error");
-    }
+  function deleteSource(source: DataSource) {
+    setSyncedDraftSources((current) => current.filter((entry) => entry.id !== source.id));
+    showToast(t("staged"), "success");
   }
 
-  async function toggleSource(source: DataSource, checked: boolean) {
-    try {
-      await mutations.update.mutateAsync({ id: source.id, payload: { is_active: checked } });
-      showToast(t("sourceUpdated"), "success");
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : t("sourceUpdateError"), "error");
-    }
+  function toggleSource(source: DataSource, checked: boolean) {
+    setSyncedDraftSources((current) =>
+      current.map((entry) => (entry.id === source.id ? { ...entry, is_active: checked } : entry))
+    );
+    showToast(t("staged"), "success");
   }
 
   return (
@@ -119,7 +171,7 @@ export function AdminUserSourcesDetail({ userId }: { userId: string }) {
 
       {sources.isError ? (
         <Card className="p-5 text-sm text-sigma-muted">{t("sourceUpdateError")}</Card>
-      ) : sources.isLoading ? (
+      ) : sources.isLoading && draftSources.length === 0 ? (
         <div className="grid gap-3 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton className="h-48 rounded-lg" key={index} />
@@ -154,7 +206,7 @@ export function AdminUserSourcesDetail({ userId }: { userId: string }) {
               </section>
             );
           })}
-          {(sources.data?.items ?? []).length === 0 ? (
+          {draftSources.length === 0 ? (
             <Card className="p-5 text-sm text-sigma-muted md:col-span-2">{t("sources.emptyRegion")}</Card>
           ) : null}
         </div>
@@ -167,7 +219,7 @@ export function AdminUserSourcesDetail({ userId }: { userId: string }) {
         title={editingSource ? t("sources.editTitle") : t("sources.addTitle")}
       >
         <SourceForm
-          isSaving={mutations.create.isPending || mutations.update.isPending}
+          isSaving={false}
           onSave={saveSource}
           payload={payload}
           setPayload={(next) => setPayload((current) => ({ ...current, ...next }))}
@@ -175,7 +227,7 @@ export function AdminUserSourcesDetail({ userId }: { userId: string }) {
       </Modal>
     </div>
   );
-}
+});
 
 function SourceCard({
   onDelete,
@@ -296,6 +348,103 @@ function IconButton({ children, label, onClick }: { children: ReactNode; label: 
       {children}
     </button>
   );
+}
+
+async function persistSourceDraft({
+  baselineSources,
+  createSource,
+  deleteSource,
+  draftSources,
+  updateSource
+}: {
+  baselineSources: DataSource[];
+  createSource: (source: DataSource) => Promise<unknown>;
+  deleteSource: (sourceId: string) => Promise<unknown>;
+  draftSources: DataSource[];
+  updateSource: (source: DataSource) => Promise<unknown>;
+}) {
+  const draftById = new Map(draftSources.map((source) => [source.id, source]));
+  const baselineById = new Map(baselineSources.map((source) => [source.id, source]));
+
+  for (const source of baselineSources) {
+    if (!draftById.has(source.id)) {
+      await deleteSource(source.id);
+    }
+  }
+
+  for (const source of draftSources) {
+    if (isDraftSource(source)) {
+      await createSource(source);
+      continue;
+    }
+    const baseline = baselineById.get(source.id);
+    if (baseline && !dataSourcesEqual(source, baseline)) {
+      await updateSource(source);
+    }
+  }
+}
+
+function draftSourceFromPayload(payload: SourcePayload, userId: string): DataSource {
+  return {
+    ...payload,
+    created_by: userId,
+    id: `draft-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    is_system: false
+  };
+}
+
+function sourcePayloadFromSource(source: DataSource): SourcePayload {
+  return {
+    category: source.category,
+    config: source.config ?? defaultConfig(source.source_type),
+    is_active: source.is_active,
+    market: source.market,
+    max_execution_seconds: source.max_execution_seconds ?? 60,
+    name: source.name,
+    schedule_cron: source.schedule_cron ?? "0 * * * *",
+    source_type: source.source_type
+  };
+}
+
+function isDraftSource(source: DataSource) {
+  return source.id.startsWith("draft-");
+}
+
+function dataSourceListsEqual(left: DataSource[], right: DataSource[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+  const rightById = new Map(right.map((source) => [source.id, source]));
+  return left.every((source) => {
+    const other = rightById.get(source.id);
+    return other !== undefined && dataSourcesEqual(source, other);
+  });
+}
+
+function dataSourcesEqual(left: DataSource, right: DataSource) {
+  return (
+    left.name === right.name &&
+    left.source_type === right.source_type &&
+    left.category === right.category &&
+    left.market === right.market &&
+    (left.schedule_cron ?? "0 * * * *") === (right.schedule_cron ?? "0 * * * *") &&
+    (left.max_execution_seconds ?? 60) === (right.max_execution_seconds ?? 60) &&
+    left.is_active === right.is_active &&
+    stableStringify(left.config ?? {}) === stableStringify(right.config ?? {})
+  );
+}
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(",")}]`;
+  }
+  if (value !== null && typeof value === "object") {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => `${key}:${stableStringify(entry)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function defaultConfig(type: SourcePayload["source_type"]): Record<string, unknown> {

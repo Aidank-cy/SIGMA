@@ -1,10 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { RotateCcw } from "lucide-react";
 
-import { LLMSettingsPanel } from "@/components/settings/LLMSettingsPanel";
+import {
+  LLMSettingsPanel,
+  llmConfigsEqual,
+  normalizedLLMConfigForSave
+} from "@/components/settings/LLMSettingsPanel";
 import {
   ReportConfigEditor,
   defaultReportConfig,
@@ -14,16 +18,32 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useToast } from "@/components/ui/Toast";
 import { useAdminUserLLMConfig, useAdminUserReportConfig } from "@/hooks/useAdminUserDetail";
-import type { UserReportConfig } from "@/lib/types";
+import type { LLMConfig, UserReportConfig } from "@/lib/types";
 
-export function AdminUserLLMDetail({ userId }: { userId: string }) {
+export interface AdminDetailSaveState {
+  isDirty: boolean;
+  isSaving: boolean;
+  isValid: boolean;
+}
+
+export interface AdminDetailSaveHandle {
+  save: () => Promise<void>;
+}
+
+interface AdminUserLLMDetailProps {
+  onSaveStateChange?: (state: AdminDetailSaveState) => void;
+  userId: string;
+}
+
+export const AdminUserLLMDetail = forwardRef<AdminDetailSaveHandle, AdminUserLLMDetailProps>(function AdminUserLLMDetail(
+  { onSaveStateChange, userId },
+  ref
+) {
   const t = useTranslations("admin.llm");
   const userT = useTranslations("admin.users");
   const llm = useAdminUserLLMConfig(userId);
   const report = useAdminUserReportConfig(userId);
-  const toast = useToast();
   const [reportPayload, setReportPayload] = useState<UserReportConfig>(() => {
     if (report.config.data) {
       return normalizeReportConfig(report.config.data);
@@ -32,6 +52,9 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
   });
   const reportBaselineRef = useRef<UserReportConfig>(reportPayload);
   const reportPayloadRef = useRef<UserReportConfig>(reportPayload);
+  const llmBaselineRef = useRef<LLMConfig | null>(null);
+  const [llmDraft, setLlmDraft] = useState<LLMConfig | null>(null);
+  const [llmDraftHasInvalidApiKeys, setLlmDraftHasInvalidApiKeys] = useState(false);
   const setSyncedReportPayload = useCallback(
     (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => {
       setReportPayload((current) => {
@@ -58,18 +81,48 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
     }
   }, [report.config.data]);
 
-  async function saveReportConfig() {
-    try {
-      const saved = await report.update.mutateAsync(reportPayload);
-      const normalized = normalizeReportConfig(saved);
-      reportBaselineRef.current = normalized;
-      reportPayloadRef.current = normalized;
-      setReportPayload(normalized);
-      toast.showToast(userT("saved"), "success");
-    } catch (error) {
-      toast.showToast(error instanceof Error ? error.message : userT("error"), "error");
+  useEffect(() => {
+    if (llm.config.data) {
+      llmBaselineRef.current = normalizedLLMConfigForSave(llm.config.data);
     }
-  }
+  }, [llm.config.data]);
+
+  const reportIsDirty = !reportConfigsEqual(reportPayload, reportBaselineRef.current);
+  const llmIsDirty =
+    llmDraft !== null &&
+    llmBaselineRef.current !== null &&
+    !llmConfigsEqual(llmDraft, llmBaselineRef.current);
+  const isSaving = report.update.isPending || llm.update.isPending;
+  const isValid = !llmIsDirty || !llmDraftHasInvalidApiKeys;
+
+  useEffect(() => {
+    onSaveStateChange?.({ isDirty: reportIsDirty || llmIsDirty, isSaving, isValid });
+  }, [isSaving, isValid, llmIsDirty, onSaveStateChange, reportIsDirty]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      async save() {
+        if (!isValid) {
+          throw new Error(t("error"));
+        }
+        if (reportIsDirty) {
+          const saved = await report.update.mutateAsync(reportPayloadRef.current);
+          const normalized = normalizeReportConfig(saved);
+          reportBaselineRef.current = normalized;
+          reportPayloadRef.current = normalized;
+          setReportPayload(normalized);
+        }
+        if (llmIsDirty && llmDraft !== null) {
+          const saved = await llm.update.mutateAsync(llmDraft);
+          const normalized = normalizedLLMConfigForSave(saved);
+          llmBaselineRef.current = normalized;
+          setLlmDraft(normalized);
+        }
+      }
+    }),
+    [isValid, llm, llmDraft, llmIsDirty, report, reportIsDirty, t]
+  );
 
   return (
     <div className="min-h-0 space-y-4">
@@ -77,9 +130,8 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
         compact
         className="max-h-[34rem] overflow-auto"
         isSaving={report.update.isPending}
-        onSave={saveReportConfig}
+        hideSaveButton
         payload={reportPayload}
-        saveLabel={userT("saveReportConfig")}
         setPayload={setSyncedReportPayload}
         title={userT("reportConfig")}
       />
@@ -95,16 +147,23 @@ export function AdminUserLLMDetail({ userId }: { userId: string }) {
       ) : (
         <LLMSettingsPanel
           configData={llm.config.data}
+          hideSaveButton
+          ignoreDailyLimitCooldown
           isConfigLoading={llm.config.isLoading}
           isSaving={llm.update.isPending}
+          onDraftChange={(form, meta) => {
+            setLlmDraft(form);
+            setLlmDraftHasInvalidApiKeys(meta.hasInvalidApiKeys);
+          }}
           onSave={llm.update.mutateAsync}
+          preserveDirtyDraft
           showCharts
           usageData={llm.usage.data}
         />
       )}
     </div>
   );
-}
+});
 
 function ErrorCard({
   isRetrying,

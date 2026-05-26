@@ -79,6 +79,7 @@ interface ReportConfigEditorProps {
   className?: string;
   compact?: boolean;
   isSaving?: boolean;
+  hideSaveButton?: boolean;
   onSave?: () => void;
   payload: UserReportConfig;
   saveLabel?: string;
@@ -89,6 +90,7 @@ interface ReportConfigEditorProps {
 export const ReportConfigEditor = memo(function ReportConfigEditor({
   className,
   compact = false,
+  hideSaveButton = false,
   isSaving = false,
   onSave,
   payload,
@@ -102,7 +104,7 @@ export const ReportConfigEditor = memo(function ReportConfigEditor({
   const disabledControlClass = !payload.is_active && "pointer-events-none select-none opacity-40";
   const advancedSettingsButton = (
     <Button
-      className="ml-auto"
+      className={compact ? undefined : "ml-auto"}
       onClick={() => setIsAdvancedOpen(true)}
       size="sm"
       type="button"
@@ -117,7 +119,10 @@ export const ReportConfigEditor = memo(function ReportConfigEditor({
     <Card className={cn("p-5", className)}>
       <div className={cn("flex flex-col", compact ? "gap-4" : "gap-5")}>
         {compact ? (
-          <h2 className="text-base font-semibold text-foreground">{title ?? t("reports.title")}</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-foreground">{title ?? t("reports.title")}</h2>
+            <ActiveReportToggle payload={payload} setPayload={setPayload} />
+          </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-semibold text-foreground">{title ?? t("reports.title")}</h2>
@@ -126,27 +131,24 @@ export const ReportConfigEditor = memo(function ReportConfigEditor({
         )}
         <div className={cn("flex flex-col", compact ? "gap-4" : "gap-5")}>
           {compact ? (
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <ActiveReportToggle payload={payload} setPayload={setPayload} />
-              <div className={cn("min-w-0 flex-1", disabledControlClass)}>
-                <FrequencyPills
-                  compact
-                  label={t("reports.frequency")}
-                  onChange={(value) =>
-                    setPayload((current) => {
-                      const nextFrequencies = toggleReportFrequency(reportFrequencies(current), value);
-                      return {
-                        ...current,
-                        report_frequency: nextFrequencies[0],
-                        report_frequencies: nextFrequencies
-                      };
-                    })
-                  }
-                  options={reportTypes.map((value) => ({ label: t(`reports.${value}`), value }))}
-                  values={activeReportFrequencies}
-                  extraContent={advancedSettingsButton}
-                />
-              </div>
+            <div className={cn(disabledControlClass)}>
+              <FrequencyPills
+                compact
+                label={t("reports.frequency")}
+                onChange={(value) =>
+                  setPayload((current) => {
+                    const nextFrequencies = toggleReportFrequency(reportFrequencies(current), value);
+                    return {
+                      ...current,
+                      report_frequency: nextFrequencies[0],
+                      report_frequencies: nextFrequencies
+                    };
+                  })
+                }
+                options={reportTypes.map((value) => ({ label: t(`reports.${value}`), value }))}
+                values={activeReportFrequencies}
+                extraContent={advancedSettingsButton}
+              />
             </div>
           ) : (
             <div className={cn(disabledControlClass)}>
@@ -189,7 +191,7 @@ export const ReportConfigEditor = memo(function ReportConfigEditor({
               values={payload.categories}
             />
           </div>
-          {onSave ? (
+          {onSave && !hideSaveButton ? (
             <Button className="w-full" isLoading={isSaving} onClick={onSave} type="button">
               {saveLabel ?? t("save")}
             </Button>
@@ -211,6 +213,7 @@ function reportConfigEditorPropsEqual(prev: ReportConfigEditorProps, next: Repor
   return (
     prev.className === next.className &&
     prev.compact === next.compact &&
+    prev.hideSaveButton === next.hideSaveButton &&
     prev.isSaving === next.isSaving &&
     prev.onSave === next.onSave &&
     prev.saveLabel === next.saveLabel &&
@@ -307,64 +310,66 @@ function ReportAdvancedSettingsModal({
       title={t("reports.advancedSettingsTitle")}
     >
       <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-        {tokenLimitReportTypes.map((reportType) => {
-          const label = t(`reports.${reportType}`);
-          const isActive = reportTypeIsActive(reportType, activeReportFrequencies);
-          const maxTokensError = maxTokensValidationError(draftMaxTokens[reportType], t);
-          const generationTimeError = generationTimeValidationError(
-            normalizedTimeRange(reportType, draftTimeRanges[reportType]).generation_time,
-            t
-          );
-          const maxTokensInput = (
-            <Input
-              error={maxTokensError ?? undefined}
-              inputMode="numeric"
-              label={t("reports.maxTokensLabel", { label })}
-              labelMode="stacked"
-              min={1}
-              max={50000}
-              onChange={(event) =>
-                setDraftMaxTokens((current) => ({ ...current, [reportType]: event.target.value }))
-              }
-              type="number"
-              value={draftMaxTokens[reportType] ?? ""}
-            />
-          );
-          return (
-            <div
-              className={cn(
-                "space-y-3 rounded-lg bg-sigma-elevated p-3",
-                !isActive && "pointer-events-none select-none opacity-60"
-              )}
-              key={reportType}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-sigma-text">{label}</h3>
-                {!isActive ? (
-                  <span className="rounded-full bg-sigma-surface px-2.5 py-1 text-xs font-medium text-sigma-muted">
-                    {t("reports.notActive")}
-                  </span>
-                ) : null}
-              </div>
-              <TimeRangeFields
-                generationTimeError={generationTimeError ?? undefined}
-                maxTokensInput={maxTokensInput}
-                reportType={reportType}
-                range={draftTimeRanges[reportType]}
-                setRange={(next) =>
-                  setDraftTimeRanges((current) => ({
-                    ...current,
-                    [reportType]: {
-                      ...(defaultReportTimeRanges[reportType] ?? {}),
-                      ...(current[reportType] ?? {}),
-                      ...next
-                    }
-                  }))
+        <div className="grid gap-4 sm:grid-cols-2">
+          {tokenLimitReportTypes.map((reportType) => {
+            const label = t(`reports.${reportType}`);
+            const isActive = reportTypeIsActive(reportType, activeReportFrequencies);
+            const maxTokensError = maxTokensValidationError(draftMaxTokens[reportType], t);
+            const generationTimeError = generationTimeValidationError(
+              normalizedTimeRange(reportType, draftTimeRanges[reportType]).generation_time,
+              t
+            );
+            const maxTokensInput = (
+              <Input
+                error={maxTokensError ?? undefined}
+                inputMode="numeric"
+                label={t("reports.maxTokensLabel", { label })}
+                labelMode="stacked"
+                min={1}
+                max={50000}
+                onChange={(event) =>
+                  setDraftMaxTokens((current) => ({ ...current, [reportType]: event.target.value }))
                 }
+                type="number"
+                value={draftMaxTokens[reportType] ?? ""}
               />
-            </div>
-          );
-        })}
+            );
+            return (
+              <div
+                className={cn(
+                  "space-y-3 rounded-lg bg-sigma-elevated p-3",
+                  !isActive && "pointer-events-none select-none opacity-60"
+                )}
+                key={reportType}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-sigma-text">{label}</h3>
+                  {!isActive ? (
+                    <span className="rounded-full bg-sigma-surface px-2.5 py-1 text-xs font-medium text-sigma-muted">
+                      {t("reports.notActive")}
+                    </span>
+                  ) : null}
+                </div>
+                <TimeRangeFields
+                  generationTimeError={generationTimeError ?? undefined}
+                  maxTokensInput={maxTokensInput}
+                  reportType={reportType}
+                  range={draftTimeRanges[reportType]}
+                  setRange={(next) =>
+                    setDraftTimeRanges((current) => ({
+                      ...current,
+                      [reportType]: {
+                        ...(defaultReportTimeRanges[reportType] ?? {}),
+                        ...(current[reportType] ?? {}),
+                        ...next
+                      }
+                    }))
+                  }
+                />
+              </div>
+            );
+          })}
+        </div>
         {validationErrors.length > 0 ? (
           <div className="space-y-1 rounded-lg bg-sigma-danger/10 p-3">
             {Array.from(new Set(validationErrors)).map((error) => (

@@ -112,7 +112,7 @@ def test_admin_user_management_guards(client: TestClient) -> None:
 def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
     """Admins can manage another user's LLM config and custom sources."""
     admin_token = _token(client, "admin-user-detail@example.com")
-    _token(client, "managed-detail@example.com")
+    managed_token = _token(client, "managed-detail@example.com")
     regular_token = _token(client, "regular-user-detail@example.com")
     headers = _auth(admin_token)
     managed_id = client.get("/api/v1/admin/users?q=managed-detail", headers=headers).json()[
@@ -132,6 +132,40 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
                     "key": "gemini-managed-key",
                     "provider": "gemini",
                     "token_limit": 42_000,
+                    "is_default": True,
+                }
+            ],
+        },
+    )
+    admin_cooldown_bypass_update = client.put(
+        f"/api/v1/admin/users/{managed_id}/llm/config",
+        headers=headers,
+        json={
+            "daily_token_limit": 43_000,
+            "cost_guard_enabled": True,
+            "api_keys": [
+                {
+                    "name": "Managed Gemini",
+                    "key": "gemini-managed-key",
+                    "provider": "gemini",
+                    "token_limit": 43_000,
+                    "is_default": True,
+                }
+            ],
+        },
+    )
+    user_cooldown_response = client.put(
+        "/api/v1/me/llm/config",
+        headers=_auth(managed_token),
+        json={
+            "daily_token_limit": 44_000,
+            "cost_guard_enabled": True,
+            "api_keys": [
+                {
+                    "name": "Managed Gemini",
+                    "key": "gemini-managed-key",
+                    "provider": "gemini",
+                    "token_limit": 43_000,
                     "is_default": True,
                 }
             ],
@@ -201,8 +235,12 @@ def test_admin_user_detail_llm_and_sources(client: TestClient) -> None:
 
     assert llm_update.status_code == 200
     assert llm_update.json()["api_keys"][0]["provider"] == "gemini"
+    assert admin_cooldown_bypass_update.status_code == 200
+    assert admin_cooldown_bypass_update.json()["daily_token_limit"] == 43_000
+    assert admin_cooldown_bypass_update.json()["daily_token_limit_changed_at"] is not None
+    assert user_cooldown_response.status_code == 429
     assert llm_read.status_code == 200
-    assert llm_read.json()["daily_token_limit"] == 42_000
+    assert llm_read.json()["daily_token_limit"] == 43_000
     assert report_read.status_code == 200
     assert report_read.json()["is_active"] is True
     assert report_update.status_code == 200

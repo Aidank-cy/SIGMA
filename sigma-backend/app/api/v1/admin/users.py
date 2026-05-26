@@ -125,7 +125,7 @@ async def update_admin_user_llm_config(
 ) -> LLMConfigRead:
     """Update a user's LLM settings for admin management."""
     await _get_user(db, user_id)
-    return await update_llm_config(db, payload, user_id)
+    return await update_llm_config(db, payload, user_id, bypass_cooldown=True)
 
 
 @router.get("/{user_id}/llm/usage", response_model=LLMUsageResponse)

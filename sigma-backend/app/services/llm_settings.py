@@ -27,7 +27,10 @@ async def get_llm_config(db: AsyncSession, user_id: UUID | None = None) -> LLMCo
 
 
 async def update_llm_config(
-    db: AsyncSession, payload: LLMConfigUpdate, user_id: UUID | None = None
+    db: AsyncSession,
+    payload: LLMConfigUpdate,
+    user_id: UUID | None = None,
+    bypass_cooldown: bool = False,
 ) -> LLMConfigRead:
     """Update user-scoped LLM budget and API key settings."""
     prefix = _llm_config_prefix(user_id)
@@ -41,7 +44,8 @@ async def update_llm_config(
     )
     changed_at = await _daily_token_limit_changed_at(db, user_id)
     if next_limit != current_limit:
-        _enforce_daily_token_limit_cooldown(changed_at)
+        if not bypass_cooldown:
+            _enforce_daily_token_limit_cooldown(changed_at)
         changed_at = datetime.now(timezone.utc)
         await _upsert_config(db, f"{prefix}.daily_token_limit_changed_at", changed_at.isoformat())
     await _upsert_config(db, f"{prefix}.daily_token_limit", next_limit)

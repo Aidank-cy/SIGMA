@@ -28,8 +28,7 @@ export function useLLMSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["llm", "config"] });
       queryClient.invalidateQueries({ queryKey: ["llm", "usage"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "llm", "config"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
     }
   });
 

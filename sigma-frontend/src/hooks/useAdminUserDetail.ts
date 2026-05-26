@@ -31,7 +31,7 @@ export function useAdminUserLLMConfig(userId: string | null) {
     queryKey: ["admin", "users", userId, "llm", "config"],
     queryFn: () => apiFetch<LLMConfig>(`/admin/users/${userId}/llm/config`),
     refetchOnMount: true,
-    staleTime: 5_000
+    staleTime: 0
   });
   const update = useMutation({
     mutationFn: (payload: LLMConfig) =>
@@ -40,6 +40,7 @@ export function useAdminUserLLMConfig(userId: string | null) {
         method: "PUT"
       }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "users", userId, "llm", "config"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       queryClient.invalidateQueries({ queryKey: ["llm", "config"] });
@@ -51,7 +52,7 @@ export function useAdminUserLLMConfig(userId: string | null) {
     queryKey: ["admin", "users", userId, "llm", "usage"],
     queryFn: () => apiFetch<LLMUsageResponse>(`/admin/users/${userId}/llm/usage`),
     refetchOnMount: true,
-    staleTime: 5_000
+    staleTime: 0
   });
 
   return { config, update, usage };
@@ -66,7 +67,7 @@ export function useAdminUserReportConfig(userId: string | null) {
     placeholderData: undefined,
     refetchOnMount: true,
     retry: 1,
-    staleTime: 5_000
+    staleTime: 0
   });
   const update = useMutation({
     mutationFn: (payload: UserReportConfig) =>
@@ -75,6 +76,7 @@ export function useAdminUserReportConfig(userId: string | null) {
         method: "PUT"
       }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "users", userId, "report-config"] });
       queryClient.invalidateQueries({ queryKey: ["report-config"] });
     }
@@ -89,7 +91,7 @@ export function useAdminUserSources(userId: string | null) {
     queryKey: ["admin", "users", userId, "sources"],
     queryFn: () => apiFetch<PaginatedResponse<DataSource>>(`/admin/users/${userId}/sources?page=1&page_size=100`),
     refetchOnMount: true,
-    staleTime: 5_000
+    staleTime: 0
   });
 }
 
@@ -98,6 +100,7 @@ export function useAdminUserSourceMutations(userId: string | null) {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin", "users", userId, "sources"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    queryClient.invalidateQueries({ queryKey: ["sources"] });
   };
 
   const create = useMutation({
@@ -117,11 +120,10 @@ export function useAdminUserSourceMutations(userId: string | null) {
     onSuccess: invalidate
   });
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      await apiFetch<void>(`/admin/users/${userId}/sources/${id}`, {
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/admin/users/${userId}/sources/${id}`, {
         method: "DELETE"
-      }).catch(() => undefined);
-    },
+      }),
     onError: invalidate,
     onSuccess: invalidate
   });

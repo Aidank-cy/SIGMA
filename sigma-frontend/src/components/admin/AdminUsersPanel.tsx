@@ -1,10 +1,11 @@
 "use client";
 
-import { Database, KeyRound, Shield, Trash2, UserCheck, UserX } from "lucide-react";
+import { Database, KeyRound, Save, Shield, Trash2, UserCheck, UserX } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AdminUserLLMDetail } from "@/components/admin/AdminUserLLMDetail";
+import type { AdminDetailSaveHandle, AdminDetailSaveState } from "@/components/admin/AdminUserLLMDetail";
 import { AdminUserSourcesDetail } from "@/components/admin/AdminUserSourcesDetail";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -17,6 +18,7 @@ import type { AdminUser } from "@/hooks/useAdmin";
 import { cn } from "@/lib/cn";
 
 type DetailTab = "llm" | "sources";
+const initialSaveState: AdminDetailSaveState = { isDirty: false, isSaving: false, isValid: true };
 
 export function AdminUsersPanel() {
   const [query, setQuery] = useState("");
@@ -24,6 +26,8 @@ export function AdminUsersPanel() {
   const [confirmation, setConfirmation] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>("llm");
+  const [detailSaveState, setDetailSaveState] = useState<AdminDetailSaveState>(initialSaveState);
+  const detailRef = useRef<AdminDetailSaveHandle | null>(null);
   const t = useTranslations("admin.users");
   const common = useTranslations("common");
   const llmT = useTranslations("admin.llm");
@@ -39,6 +43,10 @@ export function AdminUsersPanel() {
     }
     setSelectedUserId(users[0]?.id ?? null);
   }, [selectedUserId, users]);
+
+  useEffect(() => {
+    setDetailSaveState(initialSaveState);
+  }, [activeDetailTab, selectedUserId]);
 
   const handleUpdate = async (user: AdminUser, payload: { role?: "admin" | "user"; is_active?: boolean }) => {
     try {
@@ -60,6 +68,19 @@ export function AdminUsersPanel() {
       setConfirmation("");
     } catch (error) {
       toast.showToast(error instanceof Error ? error.message : t("error"), "error");
+    }
+  };
+
+  const handleDetailSave = async () => {
+    if (!detailRef.current || !detailSaveState.isDirty || detailSaveState.isSaving || !detailSaveState.isValid) {
+      return;
+    }
+    try {
+      await detailRef.current.save();
+      toast.showToast(llmT("saved"), "success");
+      setDetailSaveState(initialSaveState);
+    } catch (error) {
+      toast.showToast(error instanceof Error ? error.message : llmT("error"), "error");
     }
   };
 
@@ -195,16 +216,40 @@ export function AdminUsersPanel() {
                   <SegmentControl
                     activeId={activeDetailTab}
                     items={[
-                      { id: "llm", label: llmT("apiKeys") },
+                      { id: "llm", label: llmT("llmConfiguration") },
                       { id: "sources", label: syncT("dataSources") }
                     ]}
                     onChange={(value) => setActiveDetailTab(value as DetailTab)}
                   />
+                  <Button
+                    disabled={!detailSaveState.isDirty || detailSaveState.isSaving || !detailSaveState.isValid}
+                    isLoading={detailSaveState.isSaving}
+                    onClick={handleDetailSave}
+                    size="sm"
+                    type="button"
+                  >
+                    <Save className="h-4 w-4" aria-hidden />
+                    {llmT("save")}
+                  </Button>
                 </div>
               </div>
               <div className="min-h-0 flex-1 overflow-auto pr-1">
-                {activeDetailTab === "llm" ? <AdminUserLLMDetail key={selectedUser.id} userId={selectedUser.id} /> : null}
-                {activeDetailTab === "sources" ? <AdminUserSourcesDetail key={selectedUser.id} userId={selectedUser.id} /> : null}
+                {activeDetailTab === "llm" ? (
+                  <AdminUserLLMDetail
+                    key={selectedUser.id}
+                    onSaveStateChange={setDetailSaveState}
+                    ref={detailRef}
+                    userId={selectedUser.id}
+                  />
+                ) : null}
+                {activeDetailTab === "sources" ? (
+                  <AdminUserSourcesDetail
+                    key={selectedUser.id}
+                    onSaveStateChange={setDetailSaveState}
+                    ref={detailRef}
+                    userId={selectedUser.id}
+                  />
+                ) : null}
               </div>
             </div>
           ) : (

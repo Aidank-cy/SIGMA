@@ -225,6 +225,7 @@ export default function SyncPage() {
         method: "PUT"
       })
       mutate()
+      queryClient.invalidateQueries({ queryKey: ["admin"] })
       showToast(t("sourceUpdated"), "success")
     } catch {
       showToast(t("sourceUpdateError"), "error")
@@ -247,6 +248,7 @@ export default function SyncPage() {
         : current
     )
     mutate()
+    queryClient.invalidateQueries({ queryKey: ["admin"] })
     showToast(t("sourceDeleted"), "success")
   }
 
@@ -287,6 +289,7 @@ export default function SyncPage() {
         })
       }
       mutate()
+      queryClient.invalidateQueries({ queryKey: ["admin"] })
       setWizardOpen(false)
       showToast(t("sources.saved"), "success")
     } catch {

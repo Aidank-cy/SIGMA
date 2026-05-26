@@ -1795,3 +1795,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Report configuration editors now render immediately with safe defaults, admin report config fetches fail faster, weekly/monthly advanced settings include report-day selectors, inactive sections block pointer/text selection, and the modal is wider.
 - Verification: `python3 -m pytest tests/test_user_settings_api.py tests/test_admin_api.py --tb=short -q`, `npm run build`, and `./hooks/post-file-edit.sh`.
 - Timestamp: 2026-05-25T13:10:26Z
+
+### [Maintenance] Admin unified save flow
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/components/admin/AdminUsersPanel.tsx, sigma-frontend/src/components/admin/AdminUserLLMDetail.tsx, sigma-frontend/src/components/admin/AdminUserSourcesDetail.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/components/settings/ReportConfigEditor.tsx, sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/hooks/useLLMSettings.ts, sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-backend/app/api/v1/admin/users.py, sigma-backend/app/services/llm_settings.py, sigma-backend/tests/test_admin_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Admin user LLM/report/source edits now stage locally behind the right-panel Save button, compact report settings were realigned, advanced report settings use a 2x2 grid, admin token-limit overrides bypass cooldown while resetting the timestamp, and admin/user LLM and source query caches invalidate bidirectionally.
+- Verification: `npm run build`, `python3 -m ruff check .`, `python3 -m pytest --tb=short -q`, focused admin detail cooldown test, `./hooks/post-file-edit.sh`, `git diff --check`, and browser smoke of `/en/login` plus unauthenticated `/en/settings?admin=users` redirect. The bare `python -m ruff check .` and `python -m pytest ...` commands could not run because that interpreter lacks Ruff and pytest.
+- Timestamp: 2026-05-26T01:35:25Z

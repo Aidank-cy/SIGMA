@@ -346,6 +346,7 @@
     "sourceUpdateError": "无法更新数据源。",
     "sourceDeleted": "数据源已删除",
     "sourceDeleteError": "删除数据源失败",
+    "staged": "已暂存。点击保存后生效。",
     "filters": {
       "all": "全部",
       "success": "成功",
@@ -809,6 +810,7 @@
       "model": "模型",
       "dailyLimit": "每日 Token 上限",
       "costGuard": "成本保护",
+      "llmConfiguration": "LLM 配置",
       "apiKeys": "API Keys",
       "apiKeysCaption": "为当前工作区使用的模型保存带名称的凭据。",
       "addKey": "新增 Key",

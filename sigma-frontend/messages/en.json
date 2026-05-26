@@ -346,6 +346,7 @@
     "sourceUpdateError": "Unable to update source.",
     "sourceDeleted": "Source deleted",
     "sourceDeleteError": "Unable to delete source",
+    "staged": "Staged. Click Save to persist.",
     "filters": {
       "all": "All",
       "success": "Success",
@@ -809,6 +810,7 @@
       "model": "Model",
       "dailyLimit": "Daily token limit",
       "costGuard": "Cost guard",
+      "llmConfiguration": "LLM Configuration",
       "apiKeys": "API keys",
       "apiKeysCaption": "Store named credentials for the models you use from this workspace.",
       "addKey": "Add key",

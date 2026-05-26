@@ -54,7 +54,7 @@ const defaultConfig: LLMConfig = {
 
 const chartColors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
-function normalizedLLMConfig(config: LLMConfig, newKeyName: string): LLMConfig {
+export function normalizedLLMConfig(config: LLMConfig): LLMConfig {
   const apiKeys = (config.api_keys ?? []).map((entry) => ({
     ...entry,
     is_default: Boolean(entry.is_default),
@@ -65,7 +65,7 @@ function normalizedLLMConfig(config: LLMConfig, newKeyName: string): LLMConfig {
     apiKeys.push({
       is_default: true,
       key: "",
-      name: newKeyName,
+      name: "",
       provider: "anthropic",
       token_limit: 1_000_000
     });
@@ -76,7 +76,7 @@ function normalizedLLMConfig(config: LLMConfig, newKeyName: string): LLMConfig {
   };
 }
 
-function llmConfigsEqual(left: LLMConfig, right: LLMConfig) {
+export function llmConfigsEqual(left: LLMConfig, right: LLMConfig) {
   return (
     left.daily_token_limit === right.daily_token_limit &&
     left.cost_guard_enabled === right.cost_guard_enabled &&
@@ -101,20 +101,60 @@ function llmApiKeysEqual(left: LLMApiKey[], right: LLMApiKey[]) {
   );
 }
 
+export function normalizedLLMConfigForSave(config: LLMConfig): LLMConfig {
+  const apiKeys = (config.api_keys ?? [])
+    .filter((entry) => !apiKeyIsBlank(entry))
+    .map((entry) => ({
+      ...entry,
+      is_default: Boolean(entry.is_default),
+      provider: entry.provider || "anthropic",
+      token_limit: entry.token_limit || 1_000_000
+    }));
+  const hasDefault = apiKeys.some((entry) => entry.is_default);
+  return {
+    ...config,
+    api_keys: apiKeys.map((entry, index) => ({
+      ...entry,
+      is_default: entry.is_default || (!hasDefault && index === 0)
+    }))
+  };
+}
+
+function apiKeyIsBlank(entry: LLMApiKey) {
+  return entry.name.trim().length === 0 && entry.key.trim().length === 0;
+}
+
+function apiKeyIsInvalid(entry: LLMApiKey) {
+  return (
+    !apiKeyIsBlank(entry) &&
+    (entry.name.trim().length === 0 ||
+      entry.key.trim().length === 0 ||
+      entry.provider.trim().length === 0)
+  );
+}
+
 interface LLMSettingsPanelProps {
   configData?: LLMConfig;
+  hideSaveButton?: boolean;
+  ignoreDailyLimitCooldown?: boolean;
   isConfigLoading?: boolean;
   isSaving: boolean;
+  onDraftChange?: (form: LLMConfig, meta: { hasInvalidApiKeys: boolean }) => void;
   onSave: (form: LLMConfig) => Promise<unknown>;
+  preserveDirtyDraft?: boolean;
   showCharts?: boolean;
   usageData?: LLMUsageResponse;
 }
 
 export function LLMSettingsPanel({
   configData,
+  hideSaveButton = false,
+  ignoreDailyLimitCooldown = false,
   isConfigLoading = false,
   isSaving,
+  onDraftChange,
   onSave,
+  preserveDirtyDraft = false,
   showCharts = false,
   usageData
 }: LLMSettingsPanelProps) {
@@ -123,11 +163,24 @@ export function LLMSettingsPanel({
   const toast = useToast();
   const [form, setForm] = useState<LLMConfig>(defaultConfig);
   const lastAppliedConfigRef = useRef<LLMConfig | null>(null);
+  const formRef = useRef<LLMConfig>(defaultConfig);
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
 
   useEffect(() => {
     if (configData) {
-      const nextForm = normalizedLLMConfig(configData, t("newKeyName"));
+      const nextForm = normalizedLLMConfig(configData);
       if (lastAppliedConfigRef.current && llmConfigsEqual(nextForm, lastAppliedConfigRef.current)) {
+        return;
+      }
+      if (
+        preserveDirtyDraft &&
+        lastAppliedConfigRef.current &&
+        !llmConfigsEqual(formRef.current, lastAppliedConfigRef.current) &&
+        !llmConfigsEqual(nextForm, formRef.current)
+      ) {
         return;
       }
       lastAppliedConfigRef.current = nextForm;
@@ -141,7 +194,7 @@ export function LLMSettingsPanel({
           {
             is_default: true,
             key: "",
-            name: t("newKeyName"),
+            name: "",
             provider: "anthropic",
             token_limit: 1_000_000
           }
@@ -150,10 +203,18 @@ export function LLMSettingsPanel({
       if (lastAppliedConfigRef.current && llmConfigsEqual(nextForm, lastAppliedConfigRef.current)) {
         return;
       }
+      if (
+        preserveDirtyDraft &&
+        lastAppliedConfigRef.current &&
+        !llmConfigsEqual(formRef.current, lastAppliedConfigRef.current) &&
+        !llmConfigsEqual(nextForm, formRef.current)
+      ) {
+        return;
+      }
       lastAppliedConfigRef.current = nextForm;
       setForm(nextForm);
     }
-  }, [configData, isConfigLoading, t]);
+  }, [configData, isConfigLoading, preserveDirtyDraft, t]);
 
   const totals = useMemo(() => {
     const now = new Date();
@@ -254,21 +315,25 @@ export function LLMSettingsPanel({
   const usageRemainingPercent =
     form.daily_token_limit > 0 ? Math.max(0, Math.round((usageRemaining / form.daily_token_limit) * 100)) : 0;
   const cooldownSeconds = configData?.daily_token_limit_cooldown_remaining_seconds ?? 0;
-  const isDailyLimitCooldownActive = cooldownSeconds > 0;
+  const isDailyLimitCooldownActive = !ignoreDailyLimitCooldown && cooldownSeconds > 0;
   const cooldownHours = Math.ceil(cooldownSeconds / 3600);
   const hasExplicitDefault = form.api_keys.some((entry) => entry.is_default);
 
-  const hasInvalidApiKeys = form.api_keys.some(
-    (entry) =>
-      entry.name.trim().length === 0 ||
-      entry.key.trim().length === 0 ||
-      entry.provider.trim().length === 0
-  );
+  const hasInvalidApiKeys = form.api_keys.some((entry) => apiKeyIsInvalid(entry));
 
   const providerOptions = apiKeyProviders.map((provider) => ({
     label: t(`providers.${provider}`),
     value: provider
   }));
+
+  const formForSave = useMemo(
+    () => normalizedLLMConfigForSave(form),
+    [form]
+  );
+
+  useEffect(() => {
+    onDraftChange?.(formForSave, { hasInvalidApiKeys });
+  }, [formForSave, hasInvalidApiKeys, onDraftChange]);
 
   function addApiKey() {
     setForm({
@@ -278,7 +343,7 @@ export function LLMSettingsPanel({
         {
           is_default: form.api_keys.length === 0,
           key: "",
-          name: t("newKeyName"),
+          name: "",
           provider: "anthropic",
           token_limit: 1_000_000
         }
@@ -318,13 +383,7 @@ export function LLMSettingsPanel({
 
   async function save() {
     try {
-      await onSave({
-        ...form,
-        api_keys: form.api_keys.map((entry, index) => ({
-          ...entry,
-          is_default: entry.is_default || (!hasExplicitDefault && index === 0)
-        }))
-      });
+      await onSave(formForSave);
       toast.showToast(t("saved"), "success");
     } catch (error) {
       toast.showToast(error instanceof Error ? error.message : t("error"), "error");
@@ -409,9 +468,11 @@ export function LLMSettingsPanel({
                 </div>
               </div>
             )}
-            <Button className="w-full" disabled={!showCharts && hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
-              {t("save")}
-            </Button>
+            {!hideSaveButton ? (
+              <Button className="w-full" disabled={!showCharts && hasInvalidApiKeys} isLoading={isSaving} onClick={save}>
+                {t("save")}
+              </Button>
+            ) : null}
           </Card>
           <Card className="flex h-[16rem] flex-col gap-4 p-4">
             <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-sigma-text">

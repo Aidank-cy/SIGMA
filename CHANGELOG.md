@@ -60,6 +60,10 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change Admin Users LLM and source detail edits to stage locally behind a unified Save button, with unsaved tab/user switches discarded.
+- Change admin daily-token-limit overrides to bypass the self-service cooldown while resetting the user's next cooldown window.
+- Change compact admin report configuration layout to align the scheduled-report toggle, frequency controls, and advanced settings action with the card header/content.
+- Change report advanced settings cards to render in a responsive two-column grid.
 - Widen the report Advanced Settings modal and disable pointer/text selection inside inactive frequency sections.
 - Change report advanced settings to use a two-column range/generation/token layout and allow monthly collection days up to 31 with short-month capping.
 - Change Settings and admin report/LLM configuration queries to converge with ten-second polling, five-second stale windows, and cross-panel invalidation.
@@ -178,6 +182,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix LLM and data-source cache invalidation so user Settings and admin user detail panels refetch each other's latest changes.
 - Fix Settings and admin report configuration cards so they render immediately with safe defaults while config data loads or retries.
 - Fix admin user report configuration so query errors do not block the editor and report config normalization stays out of TanStack Query `select`.
 - Fix report frequency toggles so removing weekly or monthly preserves an existing daily selection.
