@@ -68,8 +68,13 @@ docker compose -f docker-compose.prod.yml config
 | `QWEN_API_KEY` | Qwen API key |
 | `DEFAULT_LLM_PROVIDER` | `anthropic`, `openai`, `deepseek`, or `qwen` |
 | `DEFAULT_LLM_MODEL` | Runtime default LLM model |
-| `RESEND_API_KEY` | Resend API key for verification emails |
 | `EMAIL_FROM` | Sender identity for verification emails |
+| `RESEND_API_KEY` | Optional Resend API key for verification emails |
+| `SMTP_HOST` | SMTP hostname for verification emails when Resend is not configured |
+| `SMTP_PORT` | SMTP port, defaults to `587` |
+| `SMTP_USER` | SMTP username |
+| `SMTP_PASSWORD` | SMTP password |
+| `SMTP_USE_TLS` | Whether SMTP should use STARTTLS |
 | `NEWSAPI_KEY` | NewsAPI source key |
 | `ALPHAVANTAGE_KEY` | Alpha Vantage source key |
 | `FINNHUB_KEY` | Finnhub source key |

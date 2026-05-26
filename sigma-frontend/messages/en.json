@@ -863,7 +863,7 @@
         "anthropic": "Anthropic",
         "openai": "OpenAI",
         "deepseek": "DeepSeek",
-        "qwen": "Qwen (Alibaba)"
+        "qwen": "Qwen"
       },
       "functions": {
         "summary": "Summaries",

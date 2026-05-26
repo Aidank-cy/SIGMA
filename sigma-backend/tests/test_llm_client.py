@@ -76,6 +76,7 @@ async def test_llm_client_openai_complete_json(db_session: AsyncSession) -> None
         payload = json.loads(request.content)
         assert request.headers["authorization"] == "Bearer sk-openai-test"
         assert payload["model"] == "gpt-4o"
+        assert payload["max_tokens"] == 16_384
         return httpx.Response(
             200,
             json={

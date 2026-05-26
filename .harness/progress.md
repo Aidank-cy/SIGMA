@@ -1828,3 +1828,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Added Resend-backed email delivery for verification codes, introduced registration request/verify endpoints with Redis-backed payload storage, moved the frontend register page to a two-step email-code flow, and changed the supported LLM provider set to Anthropic/OpenAI/DeepSeek/Qwen. Retained historical LLM usage rows with deprecated provider strings for display compatibility.
 - Verification: `python3 -m pip install -e "sigma-backend[dev]"`, `python3 -m ruff check .`, focused backend auth/LLM/admin tests, full backend `python3 -m pytest --tb=short -q`, frontend `npm run build`, `./hooks/post-file-edit.sh`, `git diff --check`, and an in-app browser smoke of `/en/register` showing the registration form with no console errors.
 - Timestamp: 2026-05-26T06:02:10Z
+
+### [Maintenance] Sub-feature: Report LLM cap, SMTP email fallback, and Qwen label
+- Status: COMPLETE
+- Files modified: sigma-backend/app/analyzers/llm_client.py, sigma-backend/app/core/config.py, sigma-backend/app/services/email_service.py, sigma-backend/tests/test_llm.py, sigma-backend/tests/test_llm_client.py, sigma-backend/tests/test_email_service.py, sigma-frontend/messages/en.json, .env.example, README.md, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Report LLM calls now keep the user token target as prompt guidance while sending a 16,384-token provider cap and using a doubled bounded pre-flight budget estimate. Verification emails now use Resend when configured, SMTP when Resend is absent, and warning-level code logging when neither delivery path is configured. The English Qwen provider label now displays as `Qwen`.
+- Verification: `./hooks/post-file-edit.sh`, `python3 -m ruff check .`, `python3 -m pytest tests/test_llm.py tests/test_llm_client.py tests/test_email_service.py --tb=short -q`, `python3 -m pytest --tb=short -q`.
+- Timestamp: 2026-05-26T06:30:17Z

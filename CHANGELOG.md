@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add SMTP delivery for verification emails when Resend is not configured.
 - Add Resend-backed verification emails for password resets and registration codes.
 - Add two-step registration verification endpoints and frontend code-entry flow.
 - Add Qwen as a supported OpenAI-compatible LLM provider.
@@ -64,6 +65,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change report-generation LLM calls to use a generous provider cap while keeping user token limits as prompt guidance and budget estimates.
+- Change the English Qwen provider label to "Qwen".
 - Change configurable LLM providers to Anthropic, OpenAI, DeepSeek, and Qwen.
 - Change daily token-limit cooldown messaging to a live HH:MM:SS countdown with dimmed locked controls.
 - Widen the report Advanced Settings modal so the responsive two-column cards have more room.
@@ -189,6 +192,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix verification email fallback behavior so missing delivery configuration logs a clear warning with the code instead of raising from the email service.
 - Fix password reset requests so generated verification codes are emailed instead of only logged.
 - Fix admin report advanced-settings saves by sanitizing max-token and time-range payloads before submission.
 - Fix FastAPI validation error messages in the frontend so 422 responses show readable field messages instead of object strings.

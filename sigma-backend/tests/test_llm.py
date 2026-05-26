@@ -196,12 +196,12 @@ async def test_budget_guard_allows_calls_under_limit(db_session: AsyncSession) -
     )
     await db_session.commit()
 
-    await LLMClient(db_session)._check_budget(daily_token_limit=10, max_tokens=4)
+    await LLMClient(db_session)._check_budget(daily_token_limit=20, max_tokens=4)
 
 
 @pytest.mark.asyncio
 async def test_budget_guard_raises_when_limit_would_be_exceeded(db_session: AsyncSession) -> None:
-    """Budget guard blocks calls whose max output would exceed the daily limit."""
+    """Budget guard blocks calls whose estimated output would exceed the daily limit."""
     db_session.add(
         LLMUsageLog(
             provider="anthropic",
@@ -244,7 +244,7 @@ async def test_budget_guard_scopes_to_user_when_user_id_is_set(db_session: Async
     )
     await db_session.commit()
 
-    await LLMClient(db_session, user_id=user_id)._check_budget(daily_token_limit=10, max_tokens=4)
+    await LLMClient(db_session, user_id=user_id)._check_budget(daily_token_limit=20, max_tokens=4)
 
 
 @pytest.mark.asyncio
@@ -258,11 +258,13 @@ async def test_complete_retries_rate_limits_then_succeeds(
     async def no_sleep(_delay: int) -> None:
         return None
 
-    def handler(_request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx.Request) -> httpx.Response:
         nonlocal calls
         calls += 1
+        payload = request.content
         if calls < 3:
             return httpx.Response(429, json={"error": "rate limited"})
+        assert b'"max_tokens":16384' in payload
         return httpx.Response(
             200,
             json={
