@@ -1844,3 +1844,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Verification email delivery now returns a `dev_code` only when no email provider is configured or delivery fails, while successful Resend/SMTP sends still omit it. Registration and password-reset UI flows now auto-fill and surface the dev-mode code with localized success messaging.
 - Verification: `./hooks/post-file-edit.sh`, `python3 -m ruff check .`, `python3 -m pytest tests/test_auth.py tests/test_email_service.py --tb=short -q`, `python3 -m pytest --tb=short -q`.
 - Timestamp: 2026-05-26T06:54:12Z
+
+### [Maintenance] Sub-feature: Report detail datetime subtitle parsing
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/reports/[id]/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Report detail subtitles now parse the backend `period_start` datetime directly instead of appending a date-only time suffix, avoiding `RangeError: Invalid time value` for ISO datetimes with offsets.
+- Verification: `npm run build`, `git diff --check`. `./hooks/post-file-edit.sh` was blocked by pre-existing Ruff errors in untracked `sigma-backend/scripts/test_report_pipeline.py`.
+- Timestamp: 2026-05-26T07:28:15Z
