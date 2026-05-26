@@ -55,7 +55,7 @@ function formatReportSubtitle(report: {
     minute: "2-digit"
   });
   const typeLabel = `${report.report_type.charAt(0).toUpperCase()}${report.report_type.slice(1)} Market Report`;
-  const startTime = timeFormatter.format(new Date(`${report.period_start}T00:00:00`));
+  const startTime = timeFormatter.format(new Date(report.period_start));
   const endTime = timeFormatter.format(new Date(report.generated_at));
   return `${typeLabel} | ${report.period_start} (${startTime}) to ${report.period_end} (${endTime})`;
 }

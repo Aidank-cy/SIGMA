@@ -192,6 +192,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix report detail subtitles to parse datetime report periods without appending an extra time fragment.
 - Fix dev-mode verification flows to return and auto-fill codes when no email provider is configured.
 - Fix verification email fallback behavior so missing delivery configuration logs a clear warning with the code instead of raising from the email service.
 - Fix password reset requests so generated verification codes are emailed instead of only logged.
