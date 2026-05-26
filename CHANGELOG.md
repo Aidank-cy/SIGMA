@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add inline daily token-limit Save controls for user Settings and admin LLM detail panels.
 - Add weekly and monthly report-day selectors to advanced report settings.
 - Add report generation time controls to advanced report settings and persist them in report time ranges.
 - Add report advanced settings for per-frequency token limits and custom time ranges in user and admin report configuration.
@@ -60,7 +61,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
-- Widen the report Advanced Settings modal to a 75rem max width so the responsive two-column cards have more room.
+- Change daily token-limit cooldown messaging to a live HH:MM:SS countdown with dimmed locked controls.
+- Widen the report Advanced Settings modal so the responsive two-column cards have more room.
 - Change Admin Users LLM and source detail edits to stage locally behind a unified Save button, with unsaved tab/user switches discarded.
 - Change admin daily-token-limit overrides to bypass the self-service cooldown while resetting the user's next cooldown window.
 - Change compact admin report configuration layout to align the scheduled-report toggle, frequency controls, and advanced settings action with the card header/content.
@@ -183,7 +185,6 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
-- Fix LLM config saves from admin and user settings by stripping read-only cooldown metadata from update requests.
 - Fix admin report advanced-settings saves by sanitizing max-token and time-range payloads before submission.
 - Fix FastAPI validation error messages in the frontend so 422 responses show readable field messages instead of object strings.
 - Fix Admin Users unified Save to use generic configuration success/error toasts across LLM and Data Sources tabs.

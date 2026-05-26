@@ -193,6 +193,7 @@ export default function SettingsPage() {
               configData={llmSettings.config.data}
               isConfigLoading={llmSettings.config.isLoading}
               isSaving={llmSettings.update.isPending}
+              onConfigRefetch={llmSettings.config.refetch}
               onSave={llmSettings.update.mutateAsync}
               usageData={llmSettings.usage.data}
             />
@@ -229,12 +230,14 @@ function LLMConfigSection({
   configData,
   isConfigLoading,
   isSaving,
+  onConfigRefetch,
   onSave,
   usageData
 }: {
   configData?: LLMConfig;
   isConfigLoading: boolean;
   isSaving: boolean;
+  onConfigRefetch: () => Promise<unknown> | unknown;
   onSave: (form: LLMConfig) => Promise<unknown>;
   usageData?: LLMUsageResponse;
 }) {
@@ -250,6 +253,7 @@ function LLMConfigSection({
         configData={configData}
         isConfigLoading={isConfigLoading}
         isSaving={isSaving}
+        onConfigRefetch={onConfigRefetch}
         onSave={onSave}
         usageData={usageData}
       />

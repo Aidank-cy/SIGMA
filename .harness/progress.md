@@ -1812,10 +1812,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Verification: `npm run build`, `./hooks/post-file-edit.sh`, and `git diff --check`.
 - Timestamp: 2026-05-26T02:03:29Z
 
-### [Maintenance] Admin workspace bug fixes round 2
+### [Maintenance] Settings and admin token-limit UX
 - Status: COMPLETE
-- Files modified: sigma-frontend/src/hooks/useAdminUserDetail.ts, sigma-frontend/src/hooks/useLLMSettings.ts, sigma-frontend/src/components/settings/ReportConfigEditor.tsx, CHANGELOG.md, .harness/progress.md
+- Files modified: sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/ReportConfigEditor.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
 - Tests: PASS
-- Notes: Admin and user LLM config update requests now send only backend-writable fields, preventing read-only cooldown metadata from triggering Pydantic extra-field validation errors. The report Advanced Settings modal now uses a 75rem max width.
-- Verification: `npm run build`.
-- Timestamp: 2026-05-26T02:33:17Z
+- Notes: User Settings daily-token-limit edits now use an inline Save button that persists immediately and then locks behind a dimmed cooldown row with a live HH:MM:SS countdown. Admin LLM detail token-limit edits use the same row layout but only commit local drafts into the unified Save Config flow. The report Advanced Settings modal max width is now 70rem.
+- Verification: `npm run build`, `./hooks/post-file-edit.sh`, `git diff --check`, and an in-app browser smoke of `/en/settings` redirecting to the protected login view with no console errors.
+- Timestamp: 2026-05-26T03:01:00Z

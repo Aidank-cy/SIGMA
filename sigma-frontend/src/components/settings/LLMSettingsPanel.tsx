@@ -1,6 +1,6 @@
 "use client";
 
-import { Gauge, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Gauge, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -139,6 +139,7 @@ interface LLMSettingsPanelProps {
   ignoreDailyLimitCooldown?: boolean;
   isConfigLoading?: boolean;
   isSaving: boolean;
+  onConfigRefetch?: () => Promise<unknown> | unknown;
   onDraftChange?: (form: LLMConfig, meta: { hasInvalidApiKeys: boolean }) => void;
   onSave: (form: LLMConfig) => Promise<unknown>;
   preserveDirtyDraft?: boolean;
@@ -152,6 +153,7 @@ export function LLMSettingsPanel({
   ignoreDailyLimitCooldown = false,
   isConfigLoading = false,
   isSaving,
+  onConfigRefetch,
   onDraftChange,
   onSave,
   preserveDirtyDraft = false,
@@ -162,8 +164,12 @@ export function LLMSettingsPanel({
   const locale = useLocale();
   const toast = useToast();
   const [form, setForm] = useState<LLMConfig>(defaultConfig);
+  const [cooldownRemainingSeconds, setCooldownRemainingSeconds] = useState(0);
+  const [tokenLimitDraft, setTokenLimitDraft] = useState(defaultConfig.daily_token_limit);
   const lastAppliedConfigRef = useRef<LLMConfig | null>(null);
+  const savedTokenLimitRef = useRef(defaultConfig.daily_token_limit);
   const formRef = useRef<LLMConfig>(defaultConfig);
+  const wasCooldownActiveRef = useRef(false);
 
   useEffect(() => {
     formRef.current = form;
@@ -184,6 +190,8 @@ export function LLMSettingsPanel({
         return;
       }
       lastAppliedConfigRef.current = nextForm;
+      savedTokenLimitRef.current = nextForm.daily_token_limit;
+      setTokenLimitDraft(nextForm.daily_token_limit);
       setForm(nextForm);
       return;
     }
@@ -212,6 +220,8 @@ export function LLMSettingsPanel({
         return;
       }
       lastAppliedConfigRef.current = nextForm;
+      savedTokenLimitRef.current = nextForm.daily_token_limit;
+      setTokenLimitDraft(nextForm.daily_token_limit);
       setForm(nextForm);
     }
   }, [configData, isConfigLoading, preserveDirtyDraft, t]);
@@ -315,9 +325,10 @@ export function LLMSettingsPanel({
   const usageRemainingPercent =
     form.daily_token_limit > 0 ? Math.max(0, Math.round((usageRemaining / form.daily_token_limit) * 100)) : 0;
   const cooldownSeconds = configData?.daily_token_limit_cooldown_remaining_seconds ?? 0;
-  const isDailyLimitCooldownActive = !ignoreDailyLimitCooldown && cooldownSeconds > 0;
-  const cooldownHours = Math.ceil(cooldownSeconds / 3600);
+  const isDailyLimitCooldownActive = !ignoreDailyLimitCooldown && cooldownRemainingSeconds > 0;
   const hasExplicitDefault = form.api_keys.some((entry) => entry.is_default);
+  const tokenLimitSaveTarget = hideSaveButton ? form.daily_token_limit : savedTokenLimitRef.current;
+  const hasTokenLimitDraftChange = tokenLimitDraft !== tokenLimitSaveTarget;
 
   const hasInvalidApiKeys = form.api_keys.some((entry) => apiKeyIsInvalid(entry));
 
@@ -330,6 +341,31 @@ export function LLMSettingsPanel({
     () => normalizedLLMConfigForSave(form),
     [form]
   );
+
+  useEffect(() => {
+    setCooldownRemainingSeconds(cooldownSeconds);
+  }, [cooldownSeconds]);
+
+  useEffect(() => {
+    if (!isDailyLimitCooldownActive) {
+      return;
+    }
+    const intervalId = window.setInterval(() => {
+      setCooldownRemainingSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [isDailyLimitCooldownActive]);
+
+  useEffect(() => {
+    if (isDailyLimitCooldownActive) {
+      wasCooldownActiveRef.current = true;
+      return;
+    }
+    if (wasCooldownActiveRef.current && cooldownRemainingSeconds === 0) {
+      wasCooldownActiveRef.current = false;
+      void onConfigRefetch?.();
+    }
+  }, [cooldownRemainingSeconds, isDailyLimitCooldownActive, onConfigRefetch]);
 
   useEffect(() => {
     onDraftChange?.(formForSave, { hasInvalidApiKeys });
@@ -388,6 +424,34 @@ export function LLMSettingsPanel({
     } catch (error) {
       toast.showToast(error instanceof Error ? error.message : t("error"), "error");
     }
+  }
+
+  async function saveTokenLimit() {
+    if (!hasTokenLimitDraftChange || isDailyLimitCooldownActive) {
+      return;
+    }
+    const nextForm = { ...form, daily_token_limit: tokenLimitDraft };
+    if (hideSaveButton) {
+      setForm(nextForm);
+      return;
+    }
+    const payload = normalizedLLMConfigForSave(nextForm);
+    try {
+      await onSave(payload);
+      savedTokenLimitRef.current = tokenLimitDraft;
+      setForm(nextForm);
+      toast.showToast(t("saved"), "success");
+    } catch (error) {
+      toast.showToast(error instanceof Error ? error.message : t("error"), "error");
+    }
+  }
+
+  function formatCooldownCountdown(totalSeconds: number) {
+    const seconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    return [hours, minutes, remainingSeconds].map((value) => String(value).padStart(2, "0")).join(":");
   }
 
   if (isConfigLoading) {
@@ -485,15 +549,33 @@ export function LLMSettingsPanel({
               {t("costGuard")}
             </label>
             <div className={cn(!form.cost_guard_enabled && "pointer-events-none select-none opacity-40")}>
-              <TokenLimitInput
-                disabled={isDailyLimitCooldownActive}
-                label={t("dailyLimit")}
-                onChange={(value) => setForm({ ...form, daily_token_limit: value })}
-                value={form.cost_guard_enabled ? form.daily_token_limit : defaultConfig.daily_token_limit}
-              />
+              <div className={cn("flex items-end gap-2", isDailyLimitCooldownActive && "select-none opacity-40")}>
+                <div className="min-w-0 flex-[2]">
+                  <TokenLimitInput
+                    disabled={isDailyLimitCooldownActive}
+                    label={t("dailyLimit")}
+                    onChange={setTokenLimitDraft}
+                    value={form.cost_guard_enabled ? tokenLimitDraft : defaultConfig.daily_token_limit}
+                  />
+                </div>
+                {!isDailyLimitCooldownActive ? (
+                  <Button
+                    className="shrink-0"
+                    disabled={!hasTokenLimitDraftChange || (!hideSaveButton && hasInvalidApiKeys)}
+                    isLoading={isSaving}
+                    onClick={saveTokenLimit}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    <Save className="h-4 w-4" aria-hidden />
+                    {t("saveLimit")}
+                  </Button>
+                ) : null}
+              </div>
               {isDailyLimitCooldownActive ? (
                 <p className="mt-2 text-xs font-medium text-sigma-muted">
-                  {t("limitCooldown", { hours: cooldownHours })}
+                  {t("limitCooldown", { countdown: formatCooldownCountdown(cooldownRemainingSeconds) })}
                 </p>
               ) : null}
             </div>
