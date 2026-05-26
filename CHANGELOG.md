@@ -65,6 +65,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change Analytics intelligence reports to use a master-detail list preview with right-edge report type color bars.
 - Change analytics intelligence reports to default to a list layout with standardized report names and a list/grid toggle.
 - Change report-generation prompts to require cleaner markdown spacing, timeline formatting, and underscore-free titles.
 - Change report-generation LLM calls to use a generous provider cap while keeping user token limits as prompt guidance and budget estimates.
@@ -194,6 +195,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix report detail subtitles so the end time reflects report generation time instead of the midnight period boundary.
 - Fix report detail titles/subtitles and LLM usage charts so report labels, dates, and token trend lines render clearly.
 - Fix report detail subtitles to parse datetime report periods without appending an extra time fragment.
 - Fix dev-mode verification flows to return and auto-fill codes when no email provider is configured.

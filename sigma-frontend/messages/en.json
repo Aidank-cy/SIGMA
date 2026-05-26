@@ -305,6 +305,11 @@
     "adminOnly": "Admin access is required to generate reports.",
     "generationQueued": "Report generation queued.",
     "generationError": "Unable to queue report generation.",
+    "selectReportPreview": "Select a report to preview",
+    "selectReportPreviewDescription": "Choose an intelligence report from the list to see its date, title, and summary.",
+    "reportSummary": "Summary",
+    "reportSummaryFallback": "No summary is available for this report.",
+    "viewDetails": "View details",
     "reportNames": {
       "daily": "{date} Daily Report",
       "daily_morning": "{date} Daily Morning Report",

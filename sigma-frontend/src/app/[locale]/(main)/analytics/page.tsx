@@ -29,6 +29,14 @@ const categoryColors: Record<Category, string> = {
   technology: "oklch(0.6 0.18 250)"
 }
 
+const reportTypeColors: Record<string, string> = {
+  daily: "bg-chart-1",
+  daily_afternoon: "bg-chart-1",
+  daily_morning: "bg-chart-1",
+  monthly: "bg-amber-500",
+  weekly: "bg-indigo-500"
+}
+
 function inferSentiment(item: ItemSummary): Sentiment {
   const text = `${item.title} ${item.summary ?? ""}`.toLowerCase()
   const bearishPatterns = /\b(fall|falls|fell|drop|drops|dropped|risk|risks|bear|bearish|decline|declines|declined|weak|weaken|cut|cuts|pressure|loss|losses|crash|plunge|plunges|plunged|slump|slumps|tumble|tumbles|sink|sinks|sank|downturn|recession|layoff|layoffs|deficit|downgrade|downgrades|warning|sell-off|selloff|negative|slowdown|contraction|bankruptcy|default|crisis|fear|fears|inflation|tariff|tariffs|sanction|sanctions|volatility|uncertainty|debt|bubble)\b/
@@ -50,6 +58,20 @@ function formatRelative(date: string, locale: string) {
 
 function readingTime(content: string) {
   return Math.max(1, Math.ceil(content.split(/\s+/).filter(Boolean).length / 220))
+}
+
+function extractReportPreview(content: string, maxLength = 200) {
+  const text = content
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^[>\s-]*[-*+]\s+/gm, "")
+    .replace(/[`*_~|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  if (text.length <= maxLength) return text
+  return `${text.slice(0, maxLength).trimEnd()}...`
 }
 
 function formatReportDate(value: string, locale: string) {
@@ -160,51 +182,62 @@ function ReportCard({ report }: { report: ReportSummary }) {
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
-      className="group rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
+      className="group flex items-stretch overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
       initial={{ opacity: 0, y: 20 }}
       whileHover={{ y: -4 }}
     >
-      <div className="mb-3 flex items-start justify-between">
-        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-          {t(`reportTypes.${report.report_type}`)}
-        </span>
-        <FileText className="h-5 w-5 text-muted-foreground" />
+      <div className="flex min-w-0 flex-1 flex-col p-5">
+        <div className="mb-3 flex items-start justify-end">
+          <FileText className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <h3 className="mb-1 font-semibold text-foreground">{displayName}</h3>
+        <p className="mb-1 text-sm text-muted-foreground">
+          {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(report.generated_at))}
+        </p>
+        <p className="mb-4 text-xs text-muted-foreground">
+          {t("reportMeta", { count: report.item_count, minutes: readingTime(report.content) })}
+        </p>
+        <div className="mt-auto flex items-center justify-between border-t border-border pt-3">
+          <span className="text-xs text-muted-foreground">{formatRelative(report.generated_at, locale)}</span>
+          <Link className="flex items-center gap-1 text-sm font-medium text-primary transition-colors group-hover:gap-2" href={`/${locale}/reports/${report.id}`}>
+            {t("readReport")}
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </div>
       </div>
-      <h3 className="mb-1 font-semibold text-foreground">{displayName}</h3>
-      <p className="mb-1 text-sm text-muted-foreground">
-        {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(report.generated_at))}
-      </p>
-      <p className="mb-4 text-xs text-muted-foreground">
-        {t("reportMeta", { count: report.item_count, minutes: readingTime(report.content) })}
-      </p>
-      <div className="flex items-center justify-between border-t border-border pt-3">
-        <span className="text-xs text-muted-foreground">{formatRelative(report.generated_at, locale)}</span>
-        <Link className="flex items-center gap-1 text-sm font-medium text-primary transition-colors group-hover:gap-2" href={`/${locale}/reports/${report.id}`}>
-          {t("readReport")}
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-        </Link>
-      </div>
+      <div className={cn("w-1.5 shrink-0 rounded-r-xl", reportTypeColors[report.report_type] ?? "bg-muted-foreground")} />
     </motion.div>
   )
 }
 
-function ReportListRow({ report }: { report: ReportSummary }) {
+function ReportListRow({
+  isSelected,
+  onSelect,
+  report
+}: {
+  isSelected: boolean
+  onSelect: () => void
+  report: ReportSummary
+}) {
   const locale = useLocale()
   const t = useTranslations("analytics")
   const displayName = formatReportDisplayName(report, locale, t)
   const generatedDate = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(report.generated_at))
 
   return (
-    <motion.div
+    <motion.button
       animate={{ opacity: 1, y: 0 }}
-      className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
+      aria-pressed={isSelected}
+      className={cn(
+        "group flex w-full items-stretch overflow-hidden rounded-xl border bg-card text-left transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5",
+        isSelected ? "border-primary bg-primary/5" : "border-border"
+      )}
       initial={{ opacity: 0, y: 12 }}
+      onClick={onSelect}
+      type="button"
       whileHover={{ y: -2 }}
     >
-      <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
-        <span className="w-fit rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-          {t(`reportTypes.${report.report_type}`)}
-        </span>
+      <div className="grid min-w-0 flex-1 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">{displayName}</h3>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -216,16 +249,50 @@ function ReportListRow({ report }: { report: ReportSummary }) {
             <p className="text-sm font-medium text-foreground">{generatedDate}</p>
             <p className="text-xs text-muted-foreground">{formatRelative(report.generated_at, locale)}</p>
           </div>
-          <Link
-            aria-label={`${t("readReport")}: ${displayName}`}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-primary transition-colors hover:bg-primary/10"
-            href={`/${locale}/reports/${report.id}`}
-          >
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-          </Link>
         </div>
       </div>
-    </motion.div>
+      <div className={cn("w-1.5 shrink-0 rounded-r-xl", reportTypeColors[report.report_type] ?? "bg-muted-foreground")} />
+    </motion.button>
+  )
+}
+
+function ReportPreview({ report }: { report: ReportSummary | null }) {
+  const locale = useLocale()
+  const t = useTranslations("analytics")
+
+  if (!report) {
+    return (
+      <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-8 text-center">
+        <FileText className="mb-3 h-8 w-8 text-muted-foreground" />
+        <h3 className="text-base font-semibold text-foreground">{t("selectReportPreview")}</h3>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">{t("selectReportPreviewDescription")}</p>
+      </div>
+    )
+  }
+
+  const displayName = formatReportDisplayName(report, locale, t)
+  const generatedDate = new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(new Date(report.generated_at))
+  const summary = extractReportPreview(report.content)
+
+  return (
+    <div className="flex min-h-[320px] flex-col rounded-xl border border-border bg-card p-5">
+      <div>
+        <p className="text-sm font-medium text-muted-foreground">{generatedDate}</p>
+        <h3 className="mt-2 text-xl font-semibold leading-tight text-foreground">{displayName}</h3>
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">{t("reportSummary")}</p>
+          <p className="mt-2 text-sm leading-6 text-foreground/75">{summary || t("reportSummaryFallback")}</p>
+        </div>
+      </div>
+      <div className="mt-auto flex justify-end pt-6">
+        <Link
+          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          href={`/${locale}/reports/${report.id}`}
+        >
+          {t("viewDetails")}
+        </Link>
+      </div>
+    </div>
   )
 }
 
@@ -237,6 +304,7 @@ export default function AnalyticsPage() {
   const { showToast } = useToast()
   const [timeRange, setTimeRange] = useState("7D")
   const [reportView, setReportView] = useState<"grid" | "list">("list")
+  const [selectedReport, setSelectedReport] = useState<ReportSummary | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [liveTick, setLiveTick] = useState(0)
   const rangeDays = useMemo(() => timeRangeDays[timeRange] ?? 7, [timeRange])
@@ -275,6 +343,12 @@ export default function AnalyticsPage() {
     const all = reportsQuery.data?.pages.flatMap((page) => page.items) ?? []
     return all.filter((report) => report.generated_at >= dateFrom)
   }, [reportsQuery.data, dateFrom])
+
+  useEffect(() => {
+    if (selectedReport && !reports.some((report) => report.id === selectedReport.id)) {
+      setSelectedReport(null)
+    }
+  }, [reports, selectedReport])
 
   useEffect(() => {
     if (itemQuery.hasNextPage && !itemQuery.isFetchingNextPage) {
@@ -537,8 +611,18 @@ export default function AnalyticsPage() {
           </div>
         </div>
         {reportView === "list" ? (
-          <div className="grid gap-3">
-            {reports.map((report) => <ReportListRow key={report.id} report={report} />)}
+          <div className="grid grid-cols-[1fr_1fr] gap-4">
+            <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
+              {reports.map((report) => (
+                <ReportListRow
+                  isSelected={selectedReport?.id === report.id}
+                  key={report.id}
+                  onSelect={() => setSelectedReport(report)}
+                  report={report}
+                />
+              ))}
+            </div>
+            <ReportPreview report={selectedReport} />
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
