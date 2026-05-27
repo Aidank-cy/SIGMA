@@ -1941,3 +1941,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with targeted backend Ruff, focused market-index tests, and full backend pytest. `./hooks/post-file-edit.sh` is blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Yahoo chart requests now cache an in-memory cookie jar and crumb token before hitting the v8 chart API, refresh crumb state on 401, and append the crumb to chart URLs. Finnhub candles now use US ETF proxy symbols when configured and scale proxy prices back to index level before caching.
 - Timestamp: 2026-05-27T02:54:01Z
+
+### [Maintenance] Sub-feature: Proxy candle scaling and pre-market Redis charts
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with targeted backend Ruff, focused market-index tests, and full backend pytest. Full backend Ruff remains blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Finnhub proxy candles now scale from a live quote reference instead of static fallback values, 1D candles are rejected when clearly outside the configured index range, startup performs a one-time PostgreSQL candle integrity cleanup, and pre-open market-index reads can reuse the latest completed Redis session.
+- Timestamp: 2026-05-27T04:07:53Z

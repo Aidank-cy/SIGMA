@@ -377,7 +377,7 @@ async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
 
 
 async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] | None:
-    """Read today's 1-minute candle data from Redis."""
+    """Read the latest session's 1-minute candle data from Redis."""
     from app.services.market_candles import _redis_get_1d
 
     points = await _redis_get_1d(config.symbol)
@@ -385,14 +385,7 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
         return None
 
     now = _now_utc()
-    local_now = now.astimezone(ZoneInfo(config.timezone))
-    current_time = local_now.time().replace(tzinfo=None)
-    if local_now.weekday() < 5 and current_time < config.open_time:
-        return None
-
-    if not _is_trading(config, now) and (
-        local_now.weekday() >= 5 or current_time >= config.close_time
-    ):
+    if not _is_trading(config, now):
         return points if len(points) >= 10 else None
 
     session_date = _latest_session_date(config)

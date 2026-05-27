@@ -13,6 +13,12 @@ from app.services import market_candles
 from app.services import market_indices
 
 
+@pytest.fixture(autouse=True)
+def skip_pg_integrity_check(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Most scheduler tests focus on candle flow, not startup database cleanup."""
+    monkeypatch.setattr(market_candles, "_pg_integrity_checked", True)
+
+
 def test_market_indices_http_response_shape(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """Market-indices endpoint returns timestamped index quotes with sparkline data."""
 
@@ -506,8 +512,8 @@ async def test_read_intraday_from_redis_keeps_last_session_when_closed(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_read_intraday_from_redis_clears_weekday_pre_open(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Weekday pre-open Redis data waits for fresh candles instead of serving the old session."""
+async def test_read_intraday_from_redis_keeps_last_session_before_open(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Weekday pre-open reads can still serve the latest full Redis session."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 0, 30, tzinfo=UTC))
     redis_points = [
@@ -523,7 +529,7 @@ async def test_read_intraday_from_redis_clears_weekday_pre_open(monkeypatch: pyt
 
     monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
 
-    assert await market_indices._read_intraday_from_redis(sse) is None
+    assert await market_indices._read_intraday_from_redis(sse) == redis_points
 
 
 @pytest.mark.asyncio
@@ -1110,15 +1116,15 @@ async def test_finnhub_candle_fallback_filters_regular_session_points(
     market_candles._finnhub_candle_last_fetch.clear()
     caplog.set_level("INFO", logger=market_candles.LOGGER.name)
 
-    points = await market_candles._fetch_finnhub_candles(spx)
+    points = await market_candles._fetch_finnhub_candles(spx, reference_value=5880.0)
 
     assert points is not None
     assert len(points) == 1
-    assert points[0].value == pytest.approx(590.0 * (spx.fallback_value / 590.0))
+    assert points[0].value == pytest.approx(5880.0)
     assert captured_params["symbol"] == spx.finnhub_proxy_symbol
     assert captured_params["resolution"] == "5"
     assert captured_params["token"] == "token"
-    assert "Scaled Finnhub proxy SPY candles by 9.90x for SPX" in caplog.text
+    assert "Scaled Finnhub proxy SPY candles by 9.97x for SPX (ref=5880.00)" in caplog.text
     assert "Finnhub candle fallback provided 1 points for SPX (res=5)" in caplog.text
 
 
@@ -1165,7 +1171,7 @@ async def test_finnhub_candle_fallback_tries_daily_after_intraday_no_data(
     market_candles._finnhub_candle_last_fetch.clear()
     caplog.set_level("INFO", logger=market_candles.LOGGER.name)
 
-    points = await market_candles._fetch_finnhub_candles(spx)
+    points = await market_candles._fetch_finnhub_candles(spx, reference_value=5880.0)
 
     assert points is not None
     assert len(points) == 1
@@ -1255,22 +1261,64 @@ async def test_fetch_and_store_1d_uses_finnhub_when_yahoo_fails(monkeypatch: pyt
         calls.append(f"yahoo:{interval}:{range_}")
         return None
 
-    async def fake_finnhub(_config: market_indices.IndexConfig) -> list[market_indices.IntradayPoint]:
-        calls.append("finnhub")
+    async def fake_reference(_config: market_indices.IndexConfig) -> float:
+        calls.append("reference")
+        return 5880.0
+
+    async def fake_finnhub(
+        _config: market_indices.IndexConfig,
+        reference_value: float | None = None,
+    ) -> list[market_indices.IntradayPoint]:
+        calls.append(f"finnhub:{reference_value}")
         return [point]
 
     async def fake_set_1d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
         stored_lengths.append(len(points))
 
     monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
+    monkeypatch.setattr(market_candles, "_fetch_candle_reference_value", fake_reference)
     monkeypatch.setattr(market_candles, "_fetch_finnhub_candles", fake_finnhub)
     monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
 
     stored_count = await market_candles._fetch_and_store_1d_1min(spx)
 
-    assert calls == ["yahoo:1m:1d", "finnhub"]
+    assert calls == ["yahoo:1m:1d", "reference", "finnhub:5880.0"]
     assert stored_lengths == [1]
     assert stored_count == 1
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_store_1d_discards_suspicious_candles(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Redis 1D storage rejects candles that are clearly outside the configured index range."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            15000.0 + offset,
+        )
+        for offset in range(10)
+    ]
+    calls: list[str] = []
+
+    async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> list[market_indices.IntradayPoint]:
+        calls.append(f"yahoo:{interval}:{range_}")
+        return points
+
+    async def fake_set_1d(_symbol: str, _points: list[market_indices.IntradayPoint]) -> None:
+        calls.append("set1d")
+
+    monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
+    monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
+    caplog.set_level("WARNING", logger=market_candles.LOGGER.name)
+
+    stored_count = await market_candles._fetch_and_store_1d_1min(spx)
+
+    assert stored_count == 0
+    assert calls == ["yahoo:1m:1d"]
+    assert "Discarding suspicious candle data for SPX" in caplog.text
 
 
 @pytest.mark.asyncio

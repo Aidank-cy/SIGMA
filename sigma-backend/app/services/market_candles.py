@@ -47,11 +47,20 @@ _cold_start_done: dict[str, bool] = {}
 _cold_start_attempts: dict[str, int] = {}
 _finnhub_candle_last_fetch: dict[str, float] = {}
 _last_health_check = 0.0
+_pg_integrity_checked = False
 
 
 async def candle_refresh_job() -> None:
     """Refresh per-market candle storage without blocking quote refreshes."""
-    global _last_health_check
+    global _last_health_check, _pg_integrity_checked
+    if not _pg_integrity_checked:
+        try:
+            await _check_pg_candle_integrity()
+        except Exception as exc:
+            LOGGER.warning("PostgreSQL candle integrity check failed: %s: %s", type(exc).__name__, exc)
+        else:
+            _pg_integrity_checked = True
+
     now_beijing = _now_utc().astimezone(BEIJING_TZ)
 
     for config in INDEX_CONFIGS:
@@ -217,8 +226,12 @@ def _cold_start_step_reset_all(symbol: str) -> None:
 async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: bool = True) -> int:
     points = await _yahoo_fetch(config, interval="1m", range_="1d")
     if not points:
-        points = await _fetch_finnhub_candles(config)
+        reference_value = await _fetch_candle_reference_value(config)
+        points = await _fetch_finnhub_candles(config, reference_value=reference_value)
     if not points:
+        return 0
+
+    if not _candles_are_reasonable(config, points):
         return 0
 
     stored_points = points
@@ -235,8 +248,44 @@ async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: b
                     len(today_points),
                 )
 
+    if stored_points is not points and not _candles_are_reasonable(config, stored_points):
+        return 0
+
     await _redis_set_1d(config.symbol, stored_points)
     return len(stored_points)
+
+
+async def _fetch_candle_reference_value(config: IndexConfig) -> float | None:
+    try:
+        from app.services.market_indices import _fetch_index_quote
+
+        quote = await _fetch_index_quote(config)
+    except Exception as exc:
+        LOGGER.warning(
+            "Unable to fetch candle reference quote for %s: %s: %s",
+            config.symbol,
+            type(exc).__name__,
+            exc,
+        )
+        return None
+    return quote.current if quote is not None and quote.current > 0 else None
+
+
+def _candles_are_reasonable(config: IndexConfig, points: list[IntradayPoint]) -> bool:
+    if config.fallback_value <= 0 or not points:
+        return True
+    median_candle = statistics.median(point.value for point in points)
+    ratio = median_candle / config.fallback_value
+    if ratio > 2.0 or ratio < 0.3:
+        LOGGER.warning(
+            "Discarding suspicious candle data for %s: median=%.2f vs expected ~%.2f (ratio=%.2f)",
+            config.symbol,
+            median_candle,
+            config.fallback_value,
+            ratio,
+        )
+        return False
+    return True
 
 
 def _has_intraday_gap(config: IndexConfig, points: list[IntradayPoint]) -> bool:
@@ -315,7 +364,10 @@ async def _yahoo_fetch(config: IndexConfig, interval: str, range_: str) -> list[
     return sorted(points, key=lambda point: point.timestamp) or None
 
 
-async def _fetch_finnhub_candles(config: IndexConfig) -> list[IntradayPoint] | None:
+async def _fetch_finnhub_candles(
+    config: IndexConfig,
+    reference_value: float | None = None,
+) -> list[IntradayPoint] | None:
     token = os.getenv("FINNHUB_KEY", "")
     if not token:
         LOGGER.warning("Finnhub candle fallback for %s skipped because FINNHUB_KEY is not configured.", config.symbol)
@@ -407,14 +459,23 @@ async def _fetch_finnhub_candles(config: IndexConfig) -> list[IntradayPoint] | N
             )
             continue
         if config.finnhub_proxy_symbol:
+            if reference_value is None:
+                reference_value = await _fetch_candle_reference_value(config)
+            scaling_reference = reference_value if reference_value is not None else config.fallback_value
             median_value = statistics.median(point.value for point in sorted_points)
-            scale = config.fallback_value / median_value if median_value > 0 else 0
+            scale = scaling_reference / median_value if median_value > 0 else 0
             if scale > 2:
                 sorted_points = [
                     IntradayPoint(timestamp=point.timestamp, value=round(point.value * scale, 2))
                     for point in sorted_points
                 ]
-                LOGGER.info("Scaled Finnhub proxy %s candles by %.2fx for %s", candle_symbol, scale, config.symbol)
+                LOGGER.info(
+                    "Scaled Finnhub proxy %s candles by %.2fx for %s (ref=%.2f)",
+                    candle_symbol,
+                    scale,
+                    config.symbol,
+                    scaling_reference,
+                )
         LOGGER.info(
             "Finnhub candle fallback provided %d points for %s (res=%s)",
             len(sorted_points),
@@ -468,6 +529,45 @@ async def _pg_has_full_year(symbol: str) -> bool:
             select(sa_func.count()).where(MarketCandle.symbol == symbol, MarketCandle.interval == "60m")
         )
         return (count or 0) >= 1200
+
+
+async def _check_pg_candle_integrity() -> None:
+    """Delete PostgreSQL candle rows that are unreasonably far from expected index values."""
+    async with AsyncSessionLocal() as db:
+        for config in INDEX_CONFIGS:
+            if config.fallback_value <= 0:
+                continue
+            for interval in ("15m", "60m"):
+                result = await db.execute(
+                    select(
+                        sa_func.count(),
+                        sa_func.min(MarketCandle.close),
+                        sa_func.max(MarketCandle.close),
+                    ).where(
+                        MarketCandle.symbol == config.symbol,
+                        MarketCandle.interval == interval,
+                    )
+                )
+                count, min_value, max_value = result.one()
+                if count == 0 or min_value is None or max_value is None:
+                    continue
+                if max_value > config.fallback_value * 2.0 or min_value < config.fallback_value * 0.1:
+                    await db.execute(
+                        delete(MarketCandle).where(
+                            MarketCandle.symbol == config.symbol,
+                            MarketCandle.interval == interval,
+                        )
+                    )
+                    LOGGER.warning(
+                        "Deleted %d corrupted %s candles for %s (range [%.2f, %.2f] vs expected ~%.2f)",
+                        count,
+                        interval,
+                        config.symbol,
+                        min_value,
+                        max_value,
+                        config.fallback_value,
+                    )
+        await db.commit()
 
 
 async def _pg_has_interval(symbol: str, interval: str) -> bool:
