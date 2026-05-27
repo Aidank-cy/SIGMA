@@ -74,9 +74,9 @@ class IndexQuote:
 
 
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
-    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "SPY", "^spx", 5842.15, 0.41, "USD"),
-    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "QQQ", "^ndq", 18352.04, 0.56, "USD"),
-    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "DIA", "^dji", 40218.33, 0.24, "USD"),
+    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "^GSPC", "^spx", 5842.15, 0.41, "USD"),
+    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "^IXIC", "^ndq", 18352.04, 0.56, "USD"),
+    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "^DJI", "^dji", 40218.33, 0.24, "USD"),
     IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", None, "000001.SHH", "^shc", 3138.92, -0.18, "CNY"),
     IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "HSI", "^hsi", 19553.61, 0.32, "HKD"),
     IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "N225", "^nkx", 38570.76, -0.12, "JPY"),
@@ -128,7 +128,7 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
     quote = await _fetch_index_quote(config)
     if quote is None:
         quote = await _quote_from_redis_candle(config)
-    if quote is not None and config.fallback_value > 0 and quote.current < config.fallback_value * 0.1:
+    if quote is not None and config.fallback_value > 0 and quote.current < config.fallback_value * 0.5:
         LOGGER.warning(
             "Discarding suspicious quote for %s: got %.2f but expected ~%.2f",
             config.symbol,
@@ -164,6 +164,16 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
         elif use_intraday_value:
             first_value = intraday[0].value
             change_pct = ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
+    if previous_close > 0 and value > 0 and abs(value - previous_close) / previous_close > 0.5:
+        LOGGER.warning(
+            "Suspicious previous_close for %s: value=%.2f, previous_close=%.2f. "
+            "Falling back to estimated previous_close.",
+            config.symbol,
+            value,
+            previous_close,
+        )
+        previous_close = _previous_close_from_change(value, config.fallback_change_pct)
+        change_pct = config.fallback_change_pct
     if len(intraday) < 30:
         LOGGER.warning(
             "%s has only %s intraday chart points; charts may appear undersampled.",

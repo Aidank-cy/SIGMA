@@ -224,6 +224,18 @@ def test_dax_skips_alpha_vantage_etf_symbol() -> None:
     assert dax.stooq_symbol == "^dax"
 
 
+def test_us_indices_use_index_symbols_for_alpha_vantage() -> None:
+    """US Alpha Vantage lookups must not use ETF proxies as raw index quotes."""
+    configs = {config.symbol: config for config in market_indices.INDEX_CONFIGS}
+
+    assert configs["SPX"].alpha_symbol == "^GSPC"
+    assert configs["IXIC"].alpha_symbol == "^IXIC"
+    assert configs["DJI"].alpha_symbol == "^DJI"
+    assert configs["SPX"].finnhub_proxy_symbol == "SPY"
+    assert configs["IXIC"].finnhub_proxy_symbol == "QQQ"
+    assert configs["DJI"].finnhub_proxy_symbol == "DIA"
+
+
 @pytest.mark.asyncio
 async def test_build_index_discards_suspiciously_small_quote(
     monkeypatch: pytest.MonkeyPatch,
@@ -255,6 +267,82 @@ async def test_build_index_discards_suspiciously_small_quote(
     assert index.value == pytest.approx(dax.fallback_value)
     assert index.change_pct == pytest.approx(dax.fallback_change_pct)
     assert "Discarding suspicious quote for DAX: got 30.00" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_build_index_discards_us_etf_level_quote(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """ETF-level US prices are rejected before fallback chart data is generated."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+
+    async def fake_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
+        return market_indices.IndexQuote(current=590.0, change_pct=0.5, previous_close=587.06)
+
+    async def fake_intraday(_config: market_indices.IndexConfig) -> None:
+        return None
+
+    async def fake_historical(
+        _config: market_indices.IndexConfig,
+        _value: float,
+        _change_pct: float,
+    ) -> dict[str, market_indices.MarketSparkline]:
+        return {}
+
+    monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
+    monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
+    monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+
+    index = await market_indices._build_index(spx)
+
+    assert index.value == pytest.approx(spx.fallback_value)
+    assert index.change_pct == pytest.approx(spx.fallback_change_pct)
+    assert index.previous_close == pytest.approx(
+        market_indices._previous_close_from_change(spx.fallback_value, spx.fallback_change_pct)
+    )
+    assert min(index.sparkline_24h) > spx.fallback_value * 0.5
+    assert "Discarding suspicious quote for SPX: got 590.00" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_build_index_sanitizes_etf_level_previous_close(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A correct index-level value cannot keep an ETF-level previous close."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+
+    async def fake_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
+        return market_indices.IndexQuote(current=5842.15, change_pct=886.0, previous_close=592.51)
+
+    async def fake_intraday(_config: market_indices.IndexConfig) -> None:
+        return None
+
+    async def fake_historical(
+        _config: market_indices.IndexConfig,
+        _value: float,
+        _change_pct: float,
+    ) -> dict[str, market_indices.MarketSparkline]:
+        return {}
+
+    monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
+    monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
+    monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+
+    index = await market_indices._build_index(spx)
+
+    assert index.value == pytest.approx(5842.15)
+    assert index.previous_close == pytest.approx(
+        market_indices._previous_close_from_change(index.value, spx.fallback_change_pct)
+    )
+    assert index.change_pct == pytest.approx(spx.fallback_change_pct)
+    assert abs(index.change_pct) < 15
+    assert "Suspicious previous_close for SPX" in caplog.text
 
 
 def test_market_cache_ttl_shortens_during_trading() -> None:
@@ -826,6 +914,7 @@ async def test_trading_fetch_backfills_sparse_1d_from_5d(monkeypatch: pytest.Mon
         stored_lengths.append(len(points))
 
     monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 2, 30, tzinfo=UTC))
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 2, 30, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
     monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
 
