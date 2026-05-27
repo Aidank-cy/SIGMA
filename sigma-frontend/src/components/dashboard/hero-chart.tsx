@@ -286,10 +286,11 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const timestamp = String(payload[0].payload?.timestamp ?? "");
+                      const value = Number(payload[0].payload?.value ?? 0);
                       return (
                         <div className="rounded-xl bg-foreground px-4 py-3 text-background shadow-xl dark:border dark:border-border dark:bg-card dark:text-card-foreground">
                           <p className="text-base font-bold">
-                            {Number(payload[0].value ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                            {value.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                           </p>
                           <p className="mt-1 text-xs font-medium text-background/70 dark:text-muted-foreground">
                             {formatTooltipTime(timestamp)}
