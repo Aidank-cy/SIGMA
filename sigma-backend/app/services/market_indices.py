@@ -1,11 +1,14 @@
 import asyncio
 import csv
+import http.cookiejar
 import json
 import logging
 import math
 import os
 import random
 import time as _time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from urllib.parse import quote as quote_path
@@ -32,7 +35,12 @@ _yahoo_min_interval = 1.0
 _yahoo_last_request_time = 0.0
 _yahoo_backoff_until = 0.0
 _yahoo_consecutive_429s = 0
+_yahoo_crumb: str | None = None
+_yahoo_cookie_jar: http.cookiejar.CookieJar | None = None
+_yahoo_crumb_expires = 0.0
+_yahoo_crumb_lock = asyncio.Lock()
 YAHOO_MAX_BACKOFF_SECONDS = 300
+YAHOO_CRUMB_TTL_SECONDS = 3600
 
 
 @dataclass(frozen=True)
@@ -399,6 +407,7 @@ async def _yahoo_rate_limit_wait() -> bool:
     """Wait for Yahoo rate-limit clearance, returning False while in backoff."""
     global _yahoo_last_request_time
 
+    await _ensure_yahoo_crumb()
     now = _time.monotonic()
     if now < _yahoo_backoff_until:
         LOGGER.warning("Yahoo backoff active, %.0fs remaining — candle fetch skipped.", _yahoo_backoff_until - now)
@@ -425,6 +434,50 @@ def _yahoo_on_success() -> None:
     if _yahoo_consecutive_429s > 0:
         LOGGER.info("Yahoo OK, resetting backoff from %d.", _yahoo_consecutive_429s)
     _yahoo_consecutive_429s = 0
+
+
+async def _ensure_yahoo_crumb() -> None:
+    if _yahoo_crumb and _time.monotonic() < _yahoo_crumb_expires:
+        return
+    async with _yahoo_crumb_lock:
+        if _yahoo_crumb and _time.monotonic() < _yahoo_crumb_expires:
+            return
+        await asyncio.to_thread(_ensure_yahoo_crumb_sync)
+
+
+def _ensure_yahoo_crumb_sync() -> None:
+    """Fetch Yahoo cookie and crumb for chart API requests."""
+    global _yahoo_cookie_jar, _yahoo_crumb, _yahoo_crumb_expires
+
+    if _yahoo_crumb and _time.monotonic() < _yahoo_crumb_expires:
+        return
+
+    cookie_jar = http.cookiejar.MozillaCookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
+    try:
+        fc_request = urllib.request.Request("https://fc.yahoo.com/", headers=YAHOO_HEADERS)
+        try:
+            opener.open(fc_request, timeout=10)
+        except urllib.error.HTTPError:
+            pass
+        crumb_request = urllib.request.Request(
+            "https://query2.finance.yahoo.com/v1/test/getcrumb",
+            headers=YAHOO_HEADERS,
+        )
+        with opener.open(crumb_request, timeout=10) as response:
+            crumb = response.read().decode("utf-8").strip()
+    except Exception as exc:
+        LOGGER.warning("Yahoo crumb fetch failed: %s: %s", type(exc).__name__, exc)
+        return
+
+    if not crumb:
+        LOGGER.warning("Yahoo crumb fetch returned an empty crumb.")
+        return
+
+    _yahoo_cookie_jar = cookie_jar
+    _yahoo_crumb = crumb
+    _yahoo_crumb_expires = _time.monotonic() + YAHOO_CRUMB_TTL_SECONDS
+    LOGGER.info("Yahoo crumb obtained successfully")
 
 
 async def _fetch_yahoo_chart_result(
@@ -460,13 +513,23 @@ async def _fetch_yahoo_chart_result(
 
 def _yahoo_urllib_fetch(url: str, purpose: str, symbol: str, host: str) -> dict[str, object] | str | None:
     """Synchronous Yahoo fetch using urllib to avoid httpx TLS fingerprint blocking."""
-    import urllib.error
-    import urllib.request
+    global _yahoo_crumb
 
-    req = urllib.request.Request(url, headers=YAHOO_HEADERS)
+    fetch_url = url
+    if _yahoo_crumb:
+        separator = "&" if "?" in fetch_url else "?"
+        fetch_url = f"{fetch_url}{separator}crumb={quote_path(_yahoo_crumb, safe='')}"
+    req = urllib.request.Request(fetch_url, headers=YAHOO_HEADERS)
+    opener = (
+        urllib.request.build_opener(urllib.request.HTTPCookieProcessor(_yahoo_cookie_jar))
+        if _yahoo_cookie_jar is not None
+        else urllib.request.build_opener()
+    )
     try:
-        resp = urllib.request.urlopen(req, timeout=10)
+        resp = opener.open(req, timeout=10)
     except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            _yahoo_crumb = None
         if exc.code == 429:
             return "_429"
         LOGGER.warning(

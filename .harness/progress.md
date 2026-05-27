@@ -1920,3 +1920,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with targeted backend Ruff, focused market-index tests, and full backend pytest. `./hooks/post-file-edit.sh` is blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Yahoo 1D candle failures now fall back to Finnhub `/stock/candle` with per-symbol throttling, cold-start stages skip forward after three failed attempts, Yahoo backoff skips log at warning level, and low-change generated intraday fallbacks use smooth interpolation to avoid fake chart cliffs.
 - Timestamp: 2026-05-27T02:36:30Z
+
+### [Maintenance] Sub-feature: Yahoo crumb auth and scaled proxy candles
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with targeted backend Ruff, focused market-index tests, and full backend pytest. `./hooks/post-file-edit.sh` is blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Yahoo chart requests now cache an in-memory cookie jar and crumb token before hitting the v8 chart API, refresh crumb state on 401, and append the crumb to chart URLs. Finnhub candles now use US ETF proxy symbols when configured and scale proxy prices back to index level before caching.
+- Timestamp: 2026-05-27T02:54:01Z
