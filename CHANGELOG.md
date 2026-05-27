@@ -67,6 +67,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Increase Yahoo Finance candle fetch throughput to two concurrent requests with half-second global pacing.
 - Change shared LLM usage charts to use padded Y domains, compact 14-day X ticks, k-formatted token ticks, and hidden function-chart Y labels.
 - Change Analytics intelligence reports to use a list-only paginated master-detail preview with left-edge report type color bars and full Executive Summary previews.
 - Change report-generation prompts to stop asking LLMs to duplicate the report period subtitle inside markdown bodies.
@@ -198,6 +199,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix sparse closed-session KOSPI intraday charts by recovering complete latest-session candles from 5D Redis or PostgreSQL fallback data.
+- Fix scheduled report matching and overlap checks so split daily report selections no longer generate duplicate reports.
+- Fix intelligence report titles to use Beijing-time coverage dates and the requested cadence-specific title format.
 - Fix market dashboard 1D charts so US intraday tails no longer mix quote providers, session close boundaries match backend checks, and sparse Asian-market Redis candle sets trigger recovery instead of rendering partial lines.
 - Fix closed-market chart tail rendering and include exact session-close candles in market chart data.
 - Fix market chart baselines, Finnhub proxy scaling thresholds, and closed-market gap backfills so valid index candles are retained across all configured markets.

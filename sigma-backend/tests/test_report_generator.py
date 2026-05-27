@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import select
@@ -45,7 +46,7 @@ async def test_report_generator_creates_persisted_markdown_report(
 
     stored = await db_session.scalar(select(Report).where(Report.id == report.id))
     assert stored is not None
-    assert stored.title == "Daily Intelligence Report"
+    assert stored.title.endswith("Daily Report")
     assert stored.content.startswith("# Overview")
     assert stored.item_count == 2
 
@@ -87,6 +88,67 @@ async def test_report_generator_uses_map_reduce_for_large_sets(
     assert report.sentiment_score == 0
     assert "# Overview" in report.content
     assert len(calls) > 1
+
+
+@pytest.mark.parametrize(
+    ("report_type", "period_end", "expected"),
+    [
+        (
+            ReportType.DAILY_MORNING,
+            datetime(2026, 5, 27, 9, 20, tzinfo=ZoneInfo("Asia/Shanghai")),
+            "27/05/2026 Daily Morning Report",
+        ),
+        (
+            ReportType.DAILY_AFTERNOON,
+            datetime(2026, 5, 27, 17, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+            "27/05/2026 Daily Afternoon Report",
+        ),
+        (
+            ReportType.DAILY,
+            datetime(2026, 5, 27, 23, 59, tzinfo=ZoneInfo("Asia/Shanghai")),
+            "27/05/2026 Daily Report",
+        ),
+        (
+            ReportType.WEEKLY,
+            datetime(2026, 5, 27, 9, 0, tzinfo=timezone.utc),
+            "27/05/2026 Weekly Report",
+        ),
+        (
+            ReportType.MONTHLY,
+            datetime(2026, 5, 27, 9, 0, tzinfo=timezone.utc),
+            "05/2026 Monthly Report",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_report_generator_formats_titles_from_beijing_period_end(
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    report_type: ReportType,
+    period_end: datetime,
+    expected: str,
+) -> None:
+    """Report titles use the requested cadence and Beijing coverage end date."""
+
+    class FakeLLMClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def complete(self, *_args: object, **_kwargs: object) -> str:
+            return "# Overview\n\nReport body."
+
+    monkeypatch.setattr("app.analyzers.report_generator.LLMClient", FakeLLMClient)
+
+    report = await generate_report(
+        db_session,
+        report_type,
+        ["us"],
+        ["finance"],
+        period_end - timedelta(hours=1),
+        period_end,
+    )
+
+    assert report.title == expected
 
 
 def _source() -> DataSource:

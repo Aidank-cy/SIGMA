@@ -20,6 +20,7 @@ from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, IntelligenceCategory, Market, ReportType
+from app.models.report import Report
 from app.models.user_report_config import UserReportConfig
 from app.schemas.item import CollectedItemCreate
 from app.services.market_candles import candle_refresh_job
@@ -124,6 +125,8 @@ async def generate_scheduled_reports(
                 resolved_type,
                 time_ranges=config.time_ranges or {},
             )
+            if await _report_exists_for_period(db, resolved_type, period_start, period_end):
+                continue
             await generate_report(
                 db,
                 resolved_type,
@@ -137,17 +140,33 @@ async def generate_scheduled_reports(
 
 
 def _config_frequencies_for(report_type: ReportType) -> tuple[ReportType, ...]:
-    if report_type == ReportType.DAILY:
-        return (ReportType.DAILY, ReportType.DAILY_MORNING, ReportType.DAILY_AFTERNOON)
-    if report_type in {ReportType.DAILY_MORNING, ReportType.DAILY_AFTERNOON}:
-        return (ReportType.DAILY, report_type)
     return (report_type,)
 
 
 def _config_matches_report_type(config: UserReportConfig, report_type: ReportType) -> bool:
     frequencies = config.report_frequencies or [config.report_frequency.value]
     configured = {ReportType(value) for value in frequencies}
-    return any(frequency in configured for frequency in _config_frequencies_for(report_type))
+    if report_type in {ReportType.DAILY_MORNING, ReportType.DAILY_AFTERNOON}:
+        return ReportType.DAILY in configured or report_type in configured
+    return report_type in configured
+
+
+async def _report_exists_for_period(
+    db: AsyncSession,
+    report_type: ReportType,
+    period_start: datetime,
+    period_end: datetime,
+) -> bool:
+    existing = await db.scalar(
+        select(Report)
+        .where(
+            Report.report_type == report_type,
+            Report.period_start <= period_end,
+            Report.period_end >= period_start,
+        )
+        .limit(1)
+    )
+    return existing is not None
 
 
 def _period_for(

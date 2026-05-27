@@ -13,6 +13,8 @@ from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, IntelligenceCategory, Market, ReportType, SourceType
+from app.models.report import Report
+from app.models.user import User
 from app.models.user_report_config import UserReportConfig
 from app.scheduler.engine import (
     add_cleanup_job,
@@ -28,6 +30,7 @@ from app.scheduler.engine import (
 from app.scheduler.jobs import (
     _config_frequencies_for,
     _config_matches_report_type,
+    generate_scheduled_reports,
     _insert_new_items,
     _period_for,
     collect_from_source,
@@ -355,21 +358,11 @@ def test_report_periods_use_configured_time_ranges() -> None:
     assert short_month_end == datetime(2026, 2, 28, 23, 59, 59, tzinfo=beijing)
 
 
-def test_daily_report_frequency_matching_is_backward_compatible() -> None:
-    """Daily configs participate in both split daily report jobs."""
-    assert _config_frequencies_for(ReportType.DAILY_MORNING) == (
-        ReportType.DAILY,
-        ReportType.DAILY_MORNING,
-    )
-    assert _config_frequencies_for(ReportType.DAILY_AFTERNOON) == (
-        ReportType.DAILY,
-        ReportType.DAILY_AFTERNOON,
-    )
-    assert _config_frequencies_for(ReportType.DAILY) == (
-        ReportType.DAILY,
-        ReportType.DAILY_MORNING,
-        ReportType.DAILY_AFTERNOON,
-    )
+def test_daily_report_frequency_matching_uses_exact_base_mapping() -> None:
+    """Frequency expansion happens in config matching, not the base mapping."""
+    assert _config_frequencies_for(ReportType.DAILY_MORNING) == (ReportType.DAILY_MORNING,)
+    assert _config_frequencies_for(ReportType.DAILY_AFTERNOON) == (ReportType.DAILY_AFTERNOON,)
+    assert _config_frequencies_for(ReportType.DAILY) == (ReportType.DAILY,)
 
 
 def test_report_frequency_list_matching_deduplicates_daily_overlap() -> None:
@@ -382,13 +375,101 @@ def test_report_frequency_list_matching_deduplicates_daily_overlap() -> None:
 
     assert _config_matches_report_type(config, ReportType.DAILY_MORNING) is True
     assert _config_matches_report_type(config, ReportType.DAILY_AFTERNOON) is True
+    assert _config_matches_report_type(config, ReportType.DAILY) is True
     assert _config_matches_report_type(config, ReportType.WEEKLY) is False
+
+
+def test_split_daily_config_does_not_match_unsplit_daily_job() -> None:
+    """A split daily-only config is not picked up by an unsplit daily invocation."""
+    config = UserReportConfig(
+        user_id=uuid4(),
+        report_frequency=ReportType.DAILY_MORNING,
+        report_frequencies=["daily_morning"],
+    )
+
+    assert _config_matches_report_type(config, ReportType.DAILY_MORNING) is True
+    assert _config_matches_report_type(config, ReportType.DAILY) is False
+
+
+@pytest.mark.asyncio
+async def test_generate_scheduled_reports_skips_existing_overlapping_report(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Scheduled report generation does not insert a duplicate overlapping report."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+    user = User(
+        id=uuid4(),
+        email="scheduled@example.com",
+        hashed_password="hash",
+        display_name="Scheduled",
+    )
+    period_start, period_end = _period_for(
+        ReportType.DAILY_MORNING,
+        datetime(2026, 5, 27, 2, 0, tzinfo=timezone.utc),
+    )
+    async with session_factory() as db:
+        db.add(user)
+        db.add(
+            UserReportConfig(
+                user_id=user.id,
+                report_frequency=ReportType.DAILY_MORNING,
+                report_frequencies=["daily_morning"],
+                markets=["us"],
+                categories=["finance"],
+                is_active=True,
+            )
+        )
+        db.add(
+            Report(
+                report_type=ReportType.DAILY_MORNING,
+                title="Existing",
+                content="# Existing",
+                market_scope=["us"],
+                category_scope=["finance"],
+                period_start=period_start,
+                period_end=period_end,
+                item_count=0,
+                sentiment_score=0.5,
+            )
+        )
+        await db.commit()
+
+    async def fail_generate(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("overlapping scheduled report should be skipped")
+
+    monkeypatch.setattr(
+        "app.scheduler.jobs.datetime",
+        _FixedDateTime,
+    )
+    monkeypatch.setattr("app.scheduler.jobs.generate_report", fail_generate)
+
+    try:
+        await generate_scheduled_reports(ReportType.DAILY_MORNING, session_factory)
+    finally:
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
 
 
 async def asyncio_sleep() -> None:
     import asyncio
 
     await asyncio.sleep(0)
+
+
+class _FixedDateTime(datetime):
+    @classmethod
+    def now(cls, tz: timezone | None = None) -> datetime:
+        current = datetime(2026, 5, 27, 2, 0, tzinfo=timezone.utc)
+        return current if tz is None else current.astimezone(tz)
 
 
 def _source(index: int) -> DataSource:

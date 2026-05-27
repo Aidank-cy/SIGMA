@@ -1,8 +1,10 @@
+import asyncio
 import json
 import logging
 import os
 import statistics
 import time as _time
+from collections.abc import Awaitable
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -69,10 +71,13 @@ async def candle_refresh_job() -> None:
     ]
     if cold_start_pending:
         batch = cold_start_pending[:_COLD_START_BATCH_SIZE]
+        tasks = []
         for config in batch:
             status = _market_status_beijing(config, now_beijing)
-            await _cold_start_fetch(config, status)
+            tasks.append(_cold_start_fetch(config, status))
+        await asyncio.gather(*tasks)
     else:
+        tasks = []
         for config in INDEX_CONFIGS:
             status = _market_status_beijing(config, now_beijing)
 
@@ -83,10 +88,10 @@ async def candle_refresh_job() -> None:
                 now_utc = _now_utc()
                 if last is not None and (now_utc - last).total_seconds() < TRADING_FETCH_INTERVAL:
                     continue
-                await _fetch_and_store_1d_1min(config)
-                _last_fetch_time[config.symbol] = _now_utc()
+                tasks.append(_fetch_trading_market(config))
                 continue
-            await _end_of_day_downsample_if_needed(config)
+            tasks.append(_end_of_day_downsample_if_needed(config))
+        await _run_limited(tasks, limit=2)
 
     now_mono = _time.monotonic()
     if now_mono - _last_health_check >= _DATA_HEALTH_CHECK_INTERVAL:
@@ -101,6 +106,21 @@ async def candle_refresh_job() -> None:
                 )
                 _cold_start_done[config.symbol] = False
                 _cold_start_step_reset_all(config.symbol)
+
+
+async def _run_limited(tasks: list[Awaitable[object]], limit: int) -> None:
+    semaphore = asyncio.Semaphore(limit)
+
+    async def run_task(task: Awaitable[object]) -> None:
+        async with semaphore:
+            await task
+
+    await asyncio.gather(*(run_task(task) for task in tasks))
+
+
+async def _fetch_trading_market(config: IndexConfig) -> None:
+    await _fetch_and_store_1d_1min(config)
+    _last_fetch_time[config.symbol] = _now_utc()
 
 
 async def _cold_start_fetch(config: IndexConfig, status: str) -> None:

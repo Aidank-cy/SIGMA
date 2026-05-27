@@ -238,6 +238,7 @@ _This file is read at the start of each agent session and updated after each sub
 
 ### [Maintenance] Sub-feature: Scheduled report windows and user LLM usage
 - Status: COMPLETE
+
 - Files modified: sigma-backend/app/analyzers/llm_client.py, sigma-backend/app/analyzers/prompts.py, sigma-backend/app/analyzers/report_generator.py, sigma-backend/app/api/v1/routes/reports.py, sigma-backend/app/api/v1/routes/user_settings.py, sigma-backend/app/models/enums.py, sigma-backend/app/models/llm_usage_log.py, sigma-backend/app/models/report.py, sigma-backend/app/scheduler/engine.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/app/schemas/report.py, sigma-backend/app/services/llm_settings.py, sigma-backend/alembic/versions/20260525_0006_report_windows_user_usage.py, sigma-backend/tests/test_llm.py, sigma-backend/tests/test_llm_client.py, sigma-backend/tests/test_reports_api.py, sigma-backend/tests/test_scheduler.py, sigma-backend/tests/test_user_settings_api.py, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, sigma-frontend/src/app/[locale]/(main)/settings/page.tsx, sigma-frontend/src/components/settings/LLMSettingsPanel.tsx, sigma-frontend/src/lib/types.ts, CHANGELOG.md, .harness/progress.md
 - Tests: PASS
 - Notes: Settings Cost Guard now matches the API Keys card height, scheduled reports now support daily morning/afternoon Beijing-time windows with updated weekly/monthly triggers, report periods persist exact datetimes, and LLM token logging, budget checks, and user Settings usage are scoped per user while admin usage remains global.
@@ -1976,3 +1977,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with targeted backend Ruff, focused market-index tests, full backend pytest, frontend build/type-check, and `git diff --check`. Full backend Ruff and `./hooks/post-file-edit.sh` remain blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Removed frontend authoritative last-point anchoring, aligned frontend session-close checks with backend inclusive boundaries, throttled candle cold starts to two markets per scheduler tick, raised Redis 1D freshness thresholds to 30 points, and added sparse closed-session coverage.
 - Timestamp: 2026-05-27T11:21:40Z
+
+### [Maintenance] Sub-feature: Market and scheduled report fixes
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/services/market_candles.py, sigma-backend/app/analyzers/report_generator.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_market_indices.py, sigma-backend/tests/test_report_generator.py, sigma-backend/tests/test_scheduler.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with touched-path Ruff, focused backend tests, and full backend pytest. Full backend Ruff remains blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Closed-session sparse intraday charts now recover latest-session candles from 5D Redis or PostgreSQL; Yahoo candle fetches allow two concurrent requests with shared pacing/backoff; report titles use Beijing coverage dates; scheduled reports use exact split-daily matching plus overlap deduplication before generation.
+- Timestamp: 2026-05-27T12:38:54Z
