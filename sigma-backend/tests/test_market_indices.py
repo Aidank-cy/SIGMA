@@ -165,8 +165,11 @@ def test_market_trading_hours_respect_lunch_breaks() -> None:
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
 
     assert market_indices._is_trading(sse, datetime(2026, 5, 18, 3, 0, tzinfo=UTC)) is True
+    assert market_indices._is_trading(sse, datetime(2026, 5, 18, 3, 30, tzinfo=UTC)) is True
     assert market_indices._is_trading(sse, datetime(2026, 5, 18, 4, 0, tzinfo=UTC)) is False
     assert market_indices._is_trading(sse, datetime(2026, 5, 18, 5, 0, tzinfo=UTC)) is True
+    assert market_indices._is_trading(sse, datetime(2026, 5, 18, 7, 0, tzinfo=UTC)) is True
+    assert market_indices._is_trading(sse, datetime(2026, 5, 18, 7, 1, tzinfo=UTC)) is False
 
 
 @pytest.mark.asyncio

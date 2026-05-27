@@ -657,8 +657,8 @@ def _is_within_session(timestamp: datetime, config: IndexConfig) -> bool:
 
 def _time_in_session(current: time, session_open: time, session_close: time) -> bool:
     if session_close <= session_open:
-        return current >= session_open or current < session_close
-    return session_open <= current < session_close
+        return current >= session_open or current <= session_close
+    return session_open <= current <= session_close
 
 
 def _sessions_to_beijing(config: IndexConfig) -> list[TradingSession]:

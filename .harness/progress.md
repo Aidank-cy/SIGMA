@@ -1962,3 +1962,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with targeted backend Ruff, focused market-index tests, full backend pytest, frontend build, and `git diff --check`.
 - Notes: Updated all market fallback baselines to current ranges, added FTSE/DAX Finnhub ETF proxies, lowered PG fallback point gates, enabled closed-market intraday gap detection, defaulted cold-start gap backfill on, tightened sanity/integrity bounds to the requested thresholds, scaled Finnhub proxy candles at 5% drift, and replaced the frontend authoritative chart tail point instead of appending a duplicate timestamp.
 - Timestamp: 2026-05-27T15:49:06+08:00
+
+### [Maintenance] Sub-feature: Chart tail and session boundary fixes
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/lib/marketChart.ts, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with targeted backend Ruff, focused market-index tests, frontend build, and `git diff --check`.
+- Notes: Closed-market intraday charts now leave candle data unchanged instead of anchoring the final point to a proxy-derived quote, and market session checks now include exact close-minute candles so split Asian sessions keep their final minute data.
+- Timestamp: 2026-05-27T16:19:17+08:00

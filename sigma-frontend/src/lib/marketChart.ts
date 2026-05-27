@@ -362,7 +362,7 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
         value: point
       }];
     });
-    const anchoredPoints = appendAuthoritativeLastPoint(points, index.value);
+    const anchoredPoints = isTrading ? appendAuthoritativeLastPoint(points, index.value) : points;
     if (anchoredPoints.length > 0 || !isTrading) {
       return anchoredPoints;
     }
