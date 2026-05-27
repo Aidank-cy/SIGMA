@@ -219,6 +219,17 @@
 **Uncommitted work:** NO — committing in this session as the tooltip/ticker/axis refinement checkpoint.
 
 ---
+## Session 21 — 2026-05-27T06:53:13Z
+**Phase:** Maintenance
+**Resuming from:** Proxy candle scaling and pre-market Redis chart fixes.
+**Prior status from progress.md:** Market index chart infrastructure had Redis and Finnhub recovery, but generated backend/frontend fallback curves could still appear when Redis expired and PostgreSQL candles were not consulted for 1D/5D reads.
+
+**Ending at:** Market chart data accuracy repair
+**Completion:** SUB-FEATURE COMPLETE
+**Next session should:** Continue user-requested maintenance. Full backend Ruff and `./hooks/post-file-edit.sh` still need the pre-existing `sigma-backend/scripts/test_report_pipeline.py` issues cleaned up if a whole-repo lint gate is required.
+**Uncommitted work:** YES — local branch contains implemented fixes pending user handoff.
+
+---
 ## Session 21 — 2026-05-24T01:32:03Z
 **Phase:** Maintenance
 **Resuming from:** Settings and admin LLM panel refactor complete; user requested Settings, Analytics, and Sync refinements.

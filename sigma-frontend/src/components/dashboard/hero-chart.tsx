@@ -245,72 +245,78 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
             key={selectedMarket}
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <ResponsiveContainer height="100%" width="100%">
-              <AreaChart data={chartData} margin={{ bottom: 14, left: 50, right: 50, top: 10 }}>
-                <defs>
-                  <linearGradient id="colorPositive" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorNegative" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.6 0.22 25)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="oklch(0.6 0.22 25)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  allowDataOverflow={false}
-                  axisLine={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.28 }}
-                  dataKey="time"
-                  domain={xAxisDomain}
-                  minTickGap={40}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
-                  tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now, chartSessions, chartData)}
-                  tickLine={false}
-                  tickMargin={12}
-                  ticks={chartTicks}
-                  padding={{ left: 18, right: 18 }}
-                  type="number"
-                />
-                <YAxis axisLine={false} domain={yAxisDomain} hide tickLine={false} />
-                {boundaryTicks.map((tick) => (
-                  <ReferenceLine
-                    ifOverflow="extendDomain"
-                    key={tick}
-                    stroke="var(--muted-foreground)"
-                    strokeDasharray="3 5"
-                    strokeOpacity={0.24}
-                    x={tick}
+            {chartData.length === 0 ? (
+              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 text-sm font-medium text-muted-foreground">
+                {chartT("chartDataLoading")}
+              </div>
+            ) : (
+              <ResponsiveContainer height="100%" width="100%">
+                <AreaChart data={chartData} margin={{ bottom: 14, left: 50, right: 50, top: 10 }}>
+                  <defs>
+                    <linearGradient id="colorPositive" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorNegative" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="oklch(0.6 0.22 25)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="oklch(0.6 0.22 25)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    allowDataOverflow={false}
+                    axisLine={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.28 }}
+                    dataKey="time"
+                    domain={xAxisDomain}
+                    minTickGap={40}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 13, fontWeight: 600 }}
+                    tickFormatter={(value) => formatRangeAxisTick(Number(value), activeRange, chartTimeZone, now, chartSessions, chartData)}
+                    tickLine={false}
+                    tickMargin={12}
+                    ticks={chartTicks}
+                    padding={{ left: 18, right: 18 }}
+                    type="number"
                   />
-                ))}
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const timestamp = String(payload[0].payload?.timestamp ?? "");
-                      const value = Number(payload[0].payload?.value ?? 0);
-                      return (
-                        <div className="rounded-xl bg-foreground px-4 py-3 text-background shadow-xl dark:border dark:border-border dark:bg-card dark:text-card-foreground">
-                          <p className="text-base font-bold">
-                            {value.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                          </p>
-                          <p className="mt-1 text-xs font-medium text-background/70 dark:text-muted-foreground">
-                            {formatTooltipTime(timestamp)}
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Area
-                  animationDuration={800}
-                  dataKey="value"
-                  fill={isPositive ? "url(#colorPositive)" : "url(#colorNegative)"}
-                  stroke={isPositive ? "oklch(0.65 0.22 145)" : "oklch(0.6 0.22 25)"}
-                  strokeWidth={2.5}
-                  type="linear"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+                  <YAxis axisLine={false} domain={yAxisDomain} hide tickLine={false} />
+                  {boundaryTicks.map((tick) => (
+                    <ReferenceLine
+                      ifOverflow="extendDomain"
+                      key={tick}
+                      stroke="var(--muted-foreground)"
+                      strokeDasharray="3 5"
+                      strokeOpacity={0.24}
+                      x={tick}
+                    />
+                  ))}
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const timestamp = String(payload[0].payload?.timestamp ?? "");
+                        const value = Number(payload[0].payload?.value ?? 0);
+                        return (
+                          <div className="rounded-xl bg-foreground px-4 py-3 text-background shadow-xl dark:border dark:border-border dark:bg-card dark:text-card-foreground">
+                            <p className="text-base font-bold">
+                              {value.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                            </p>
+                            <p className="mt-1 text-xs font-medium text-background/70 dark:text-muted-foreground">
+                              {formatTooltipTime(timestamp)}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Area
+                    animationDuration={800}
+                    dataKey="value"
+                    fill={isPositive ? "url(#colorPositive)" : "url(#colorNegative)"}
+                    stroke={isPositive ? "oklch(0.65 0.22 145)" : "oklch(0.6 0.22 25)"}
+                    strokeWidth={2.5}
+                    type="linear"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </motion.div>
         </AnimatePresence>
 

@@ -12,7 +12,6 @@ import { toIntradayChartData } from "@/lib/marketChart";
 import { isPreMarketClearWindow, isTradingHoursActive } from "@/lib/marketSessions";
 import { cn } from "@/lib/utils";
 
-const warnedTickerFallbacks = new Set<string>();
 type MarketState = "trading" | "closed" | "unopened";
 
 interface TickerCarouselProps {
@@ -20,26 +19,12 @@ interface TickerCarouselProps {
   onSelectMarket?: (symbol: string) => void;
 }
 
-function fallbackSparkline(value: number, positive: boolean, symbol: string) {
-  if (!warnedTickerFallbacks.has(symbol)) {
-    warnedTickerFallbacks.add(symbol);
-    console.warn(
-      `SIGMA is displaying a generated ticker sparkline for ${symbol} because the API response did not include enough live sparkline points.`
-    );
-  }
-  return Array.from({ length: 12 }).map((_, index) => {
-    const drift = positive ? index * value * 0.001 : -index * value * 0.001;
-    const wave = Math.sin(index) * value * 0.002;
-    return value + drift + wave;
-  });
-}
-
 export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselProps) {
   const t = useTranslations("dashboard");
   const { data } = useMarketIndices();
   const now = useMarketClock();
   const { resolvedTheme } = useTheme();
-  const flatLineColor = resolvedTheme === "light" ? "oklch(0.15 0 0)" : "oklch(0.3 0 0)";
+  const flatLineColor = resolvedTheme === "light" ? "oklch(0.62 0 0)" : "oklch(0.55 0 0)";
   const tickers = useMemo(
     () =>
       (data?.indices ?? []).map((index) => {
@@ -51,10 +36,12 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
           ? Array.from({ length: 12 }).map(() => index.value)
           : intraday.length > 1
             ? intraday.map((point) => point.value)
-            : fallbackSparkline(index.value, index.change_pct >= 0, index.symbol);
+            : Array.from({ length: 12 }).map(() => index.value);
+        const hasMovementData = new Set(sparkline.map((value) => value.toFixed(4))).size > 1;
         return {
           change: index.change_pct,
           currency: index.currency,
+          hasMovementData,
           marketState,
           name: index.name,
           price: index.value,
@@ -77,7 +64,7 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
         <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
           {tickers.map((ticker, index) => {
             const isPositive = ticker.change >= 0;
-            const lineColor = ticker.marketState === "unopened"
+            const lineColor = !ticker.hasMovementData
               ? flatLineColor
               : isPositive
                 ? "oklch(0.65 0.22 145)"

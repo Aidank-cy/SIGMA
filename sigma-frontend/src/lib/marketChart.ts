@@ -24,73 +24,9 @@ interface IntradayAxisSegment {
 }
 
 const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const warnedChartFallbacks = new Set<string>();
 const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
 const calendarRangeDays: Record<string, number> = { "1M": 30, "3M": 90, "1Y": 365 };
 const dayMs = 24 * 60 * 60 * 1000;
-
-function warnChartFallback(key: string, message: string): void {
-  if (warnedChartFallbacks.has(key)) {
-    return;
-  }
-  warnedChartFallbacks.add(key);
-  console.warn(message);
-}
-
-function generateChartData(points: number, value: number, positive: boolean, label = "market index"): MarketChartPoint[] {
-  warnChartFallback(
-    label,
-    `SIGMA is displaying generated fallback chart data for ${label} because the API response did not include a usable sparkline.`
-  );
-  const floor = value * 0.975;
-  const ceiling = value * 1.025;
-  let current = positive ? value * 0.985 : value * 1.015;
-
-  return Array.from({ length: points }).map((_, index) => {
-    const wave = Math.sin(index / 4) * value * 0.0025;
-    const drift = positive ? index * value * 0.00018 : -index * value * 0.00018;
-    current = Math.min(ceiling, Math.max(floor, current + wave + drift));
-    const totalMinutes = 9 * 60 + 30 + index;
-    const day = totalMinutes >= 24 * 60 ? "02" : "01";
-    const hour = Math.floor((totalMinutes % (24 * 60)) / 60);
-    const minute = totalMinutes % 60;
-    const timestamp = `2026-01-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+08:00`;
-    return { time: index, timestamp, value: Math.round(current * 100) / 100 };
-  });
-}
-
-function generateRangeChartData(
-  activeRange: string,
-  value: number,
-  positive: boolean,
-  label = "market index",
-  now = new Date(),
-  timeZone = "Asia/Shanghai"
-): MarketChartPoint[] {
-  const pointCounts: Record<string, number> = { "5D": 5, "1M": 22, "3M": 66, "1Y": 252 };
-  const points = pointCounts[activeRange] ?? 22;
-  warnChartFallback(
-    `${label}-${activeRange}`,
-    `SIGMA is displaying generated fallback ${activeRange} chart data for ${label} because the API response did not include a usable historical sparkline.`
-  );
-  let currentDate = dateKeyToUtcDate(latestAxisDateKey(now, timeZone));
-  const dateKeys: string[] = [];
-  while (dateKeys.length < points) {
-    if (currentDate.getUTCDay() !== 0 && currentDate.getUTCDay() !== 6) {
-      dateKeys.push(utcDateToKey(currentDate));
-    }
-    currentDate = new Date(currentDate.getTime() - dayMs);
-  }
-  dateKeys.reverse();
-
-  const start = positive ? value * 0.985 : value * 1.015;
-  return dateKeys.map((dateKey, index) => {
-    const progress = points <= 1 ? 1 : index / (points - 1);
-    const wave = Math.sin(progress * Math.PI * 4) * value * 0.003;
-    const pointValue = start + (value - start) * progress + wave;
-    return { time: index, timestamp: dateKeyToNoonUtcTimestamp(dateKey), value: Math.round(pointValue * 100) / 100 };
-  });
-}
 
 function dateTimeFormatter(timeZone: string): Intl.DateTimeFormat {
   const cached = dateTimeFormatters.get(timeZone);
@@ -314,10 +250,6 @@ function fiveDayAxisDateKeys(now = new Date(), timeZone = "Asia/Shanghai"): stri
   return dates.reverse();
 }
 
-function dateKeyToNoonUtcTimestamp(dateKey: string): string {
-  return `${dateKey}T12:00:00.000Z`;
-}
-
 function formatDateKeyShort(dateKey: string): string {
   const [, month = "01", day = "01"] = dateKey.split("-");
   return `${Number(month)}/${Number(day)}`;
@@ -431,11 +363,7 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
     }
   }
 
-  const [, axisEnd] = intradayAxisBounds(chartSessions);
-  return generateChartData(60, index.value || 100, index.change_pct >= 0, index.symbol).map((point, pointIndex) => ({
-    ...point,
-    time: Math.min(pointIndex, axisEnd)
-  }));
+  return [];
 }
 
 function toFiveDayChartData(index: MarketIndex, now = new Date()): MarketChartPoint[] {
@@ -447,7 +375,7 @@ function toFiveDayChartData(index: MarketIndex, now = new Date()): MarketChartPo
   const source =
     rangeValues.length > 0 && rangeTimes.length === rangeValues.length
       ? rangeValues.map((value, pointIndex) => ({ timestamp: rangeTimes[pointIndex], value }))
-      : generateRangeChartData("5D", index.value || 100, index.change_pct >= 0, index.symbol, now, timeZone);
+      : [];
   const intraday = toIntradayChartData(index, now);
   const dateKeys = tradingDateKeysFromPoints(
     [
@@ -495,7 +423,7 @@ function toCalendarRangeChartData(index: MarketIndex, activeRange: string, now =
   const source =
     rangeValues.length > 0 && rangeTimes.length === rangeValues.length
       ? rangeValues.map((value, pointIndex) => ({ timestamp: rangeTimes[pointIndex], value }))
-      : generateRangeChartData(activeRange, index.value || 100, index.change_pct >= 0, index.symbol, now, timeZone);
+      : [];
   const dateKeys = tradingDateKeysFromPoints(source, chartSessions, timeZone);
   const dateIndexByKey = new Map(dateKeys.map((dateKey, index) => [dateKey, index]));
 

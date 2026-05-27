@@ -3,9 +3,7 @@ import csv
 import http.cookiejar
 import json
 import logging
-import math
 import os
-import random
 import time as _time
 import urllib.error
 import urllib.request
@@ -39,7 +37,7 @@ _yahoo_crumb: str | None = None
 _yahoo_cookie_jar: http.cookiejar.CookieJar | None = None
 _yahoo_crumb_expires = 0.0
 _yahoo_crumb_lock = asyncio.Lock()
-YAHOO_MAX_BACKOFF_SECONDS = 300
+YAHOO_MAX_BACKOFF_SECONDS = 120
 YAHOO_CRUMB_TTL_SECONDS = 3600
 
 
@@ -156,10 +154,10 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
     is_fallback_data = intraday is None
     if intraday is None:
         LOGGER.warning(
-            "Using generated fallback intraday series for %s because no Redis 1D candles are available.",
+            "No usable intraday candle series is available for %s after Redis and PostgreSQL fallback checks.",
             config.symbol,
         )
-        intraday = _fallback_intraday_series(config, value, change_pct)
+        intraday = []
     elif intraday:
         intraday_last = intraday[-1]
         use_intraday_value = quote is None or quote.timestamp is None or intraday_last.timestamp >= quote.timestamp
@@ -237,16 +235,21 @@ async def _fetch_finnhub_quote(config: IndexConfig) -> IndexQuote | None:
         proxy_quote = await _fetch_finnhub_symbol_quote(config.finnhub_proxy_symbol, token)
         if proxy_quote is not None:
             change_pct = proxy_quote.change_pct
-            current = config.fallback_value * (1 + change_pct / 100)
+            base_value = config.fallback_value
+            redis_quote = await _quote_from_redis_candle(config)
+            if redis_quote is not None and redis_quote.current > 0 and redis_quote.previous_close > 0:
+                base_value = redis_quote.previous_close
+            current = base_value * (1 + change_pct / 100)
             LOGGER.warning(
-                "Using Finnhub proxy %s scaled from fallback base value for %s because the direct index quote is unavailable.",
+                "Using Finnhub proxy %s scaled from %.2f base value for %s because the direct index quote is unavailable.",
                 config.finnhub_proxy_symbol,
+                base_value,
                 config.symbol,
             )
             return IndexQuote(
                 current=current,
                 change_pct=change_pct,
-                previous_close=config.fallback_value,
+                previous_close=base_value,
                 timestamp=proxy_quote.timestamp,
             )
     return None
@@ -378,10 +381,25 @@ async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
 
 async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] | None:
     """Read the latest session's 1-minute candle data from Redis."""
-    from app.services.market_candles import _redis_get_1d
+    from app.services.market_candles import _pg_get_candles, _redis_get_1d
 
     points = await _redis_get_1d(config.symbol)
     if not points:
+        pg_points = await _pg_get_candles(config.symbol, "15m", limit=100)
+        if pg_points and len(pg_points) >= 10:
+            session_date = _latest_session_date(config)
+            zone = ZoneInfo(config.timezone)
+            session_points = [
+                point for point in pg_points if point.timestamp.astimezone(zone).date() == session_date
+            ]
+            if len(session_points) >= 10:
+                return session_points
+            latest_date = pg_points[-1].timestamp.astimezone(zone).date()
+            latest_points = [
+                point for point in pg_points if point.timestamp.astimezone(zone).date() == latest_date
+            ]
+            if len(latest_points) >= 5:
+                return latest_points
         return None
 
     now = _now_utc()
@@ -398,13 +416,15 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
 
 async def _yahoo_rate_limit_wait() -> bool:
     """Wait for Yahoo rate-limit clearance, returning False while in backoff."""
-    global _yahoo_last_request_time
+    global _yahoo_consecutive_429s, _yahoo_last_request_time
 
     await _ensure_yahoo_crumb()
     now = _time.monotonic()
     if now < _yahoo_backoff_until:
         LOGGER.warning("Yahoo backoff active, %.0fs remaining — candle fetch skipped.", _yahoo_backoff_until - now)
         return False
+    if _yahoo_consecutive_429s > 0 and now >= _yahoo_backoff_until:
+        _yahoo_consecutive_429s = 0
     elapsed = now - _yahoo_last_request_time
     if elapsed < _yahoo_min_interval:
         await asyncio.sleep(_yahoo_min_interval - elapsed)
@@ -571,8 +591,8 @@ def _yahoo_urllib_fetch(url: str, purpose: str, symbol: str, host: str) -> dict[
 
 async def _read_candle_ranges(
     config: IndexConfig,
-    value: float,
-    change_pct: float,
+    _value: float,
+    _change_pct: float,
 ) -> dict[str, MarketSparkline]:
     """Read chart range candles from Redis and PostgreSQL without fetching Yahoo."""
     from app.services.market_candles import _pg_get_candles, _redis_get_5d
@@ -580,36 +600,24 @@ async def _read_candle_ranges(
     ranges: dict[str, MarketSparkline] = {}
 
     data_5d = await _redis_get_5d(config.symbol)
+    if not data_5d:
+        pg_15m = await _pg_get_candles(config.symbol, "15m", limit=600)
+        if pg_15m and len(pg_15m) >= 20:
+            data_5d = pg_15m
     if data_5d:
         ranges["5D"] = MarketSparkline(
             values=[round(point.value, 2) for point in data_5d],
             times=[point.timestamp.isoformat() for point in data_5d],
         )
     else:
-        LOGGER.warning(
-            "Using generated fallback 5D historical series for %s because no Redis 5D candles are available.",
-            config.symbol,
-        )
-        fallback = _fallback_historical_series(config, value, change_pct, 5)
-        ranges["5D"] = MarketSparkline(
-            values=[round(point.value, 2) for point in fallback],
-            times=[point.timestamp.isoformat() for point in fallback],
-        )
+        ranges["5D"] = MarketSparkline(values=[], times=[])
 
-    for range_key, interval, limit, fallback_points in (
-        ("1M", "15m", 600, 22),
-        ("3M", "60m", 500, 66),
-        ("1Y", "60m", 1800, 252),
+    for range_key, interval, limit in (
+        ("1M", "15m", 600),
+        ("3M", "60m", 500),
+        ("1Y", "60m", 1800),
     ):
         series = await _pg_get_candles(config.symbol, interval, limit=limit)
-        if not series:
-            LOGGER.warning(
-                "Using generated fallback %s historical series for %s because no %s candles are available.",
-                range_key,
-                config.symbol,
-                interval,
-            )
-            series = _fallback_historical_series(config, value, change_pct, fallback_points)
         ranges[range_key] = MarketSparkline(
             values=[round(point.value, 2) for point in series],
             times=[point.timestamp.isoformat() for point in series],
@@ -629,31 +637,6 @@ def _market_status_beijing(config: IndexConfig, now_beijing: datetime) -> str:
     if any(current < session_open for session_open, _session_close in config.sessions):
         return "not_opened"
     return "closed"
-
-
-def _fallback_historical_series(
-    config: IndexConfig,
-    value: float,
-    change_pct: float,
-    points: int,
-) -> list[IntradayPoint]:
-    session_dates = _latest_session_dates(config, points)
-    start = value / (1 + change_pct / 100) if change_pct != -100 else value
-    if len(session_dates) <= 1:
-        return [IntradayPoint(timestamp=_session_close_timestamp(config, session_dates[0]), value=value)]
-
-    series: list[IntradayPoint] = []
-    for index, session_date in enumerate(session_dates):
-        progress = index / (len(session_dates) - 1)
-        wave = math.sin(progress * math.pi * 4) * value * 0.003
-        price = start + (value - start) * progress + wave
-        series.append(
-            IntradayPoint(
-                timestamp=_session_close_timestamp(config, session_date),
-                value=round(price, 2),
-            )
-        )
-    return series
 
 
 def _is_trading(config: IndexConfig, now: datetime | None = None) -> bool:
@@ -697,41 +680,6 @@ def _sessions_to_beijing(config: IndexConfig) -> list[TradingSession]:
             )
         )
     return beijing_sessions
-
-
-def _fallback_intraday_series(config: IndexConfig, value: float, change_pct: float) -> list[IntradayPoint]:
-    """Generate fallback prices over the exchange's actual trading minutes."""
-    session_date = _latest_session_date(config)
-    timestamps = _elapsed_trading_minutes(config, session_date)
-    num_points = len(timestamps)
-    if num_points == 0:
-        return []
-    start = value / (1 + change_pct / 100) if change_pct != -100 else value
-    if num_points <= 1:
-        return [IntradayPoint(timestamp=timestamps[0], value=round(value, 2))]
-
-    if abs(change_pct) < 2.0:
-        points = [
-            round(start + (value - start) * (index / (num_points - 1)), 2)
-            for index in range(num_points)
-        ]
-    else:
-        rng = random.Random(f"{config.symbol}:{session_date.isoformat()}")
-        current = start
-        volatility = value * 0.0003
-        lower_bound = value * 0.95
-        upper_bound = value * 1.05
-        points = []
-        for index in range(num_points):
-            drift = ((value - current) / max(num_points - index, 1)) * 0.5
-            current += drift + rng.gauss(0, volatility)
-            current = max(lower_bound, min(upper_bound, current))
-            points.append(round(current, 2))
-    points[-1] = round(value, 2)
-    return [
-        IntradayPoint(timestamp=timestamp, value=point)
-        for timestamp, point in zip(timestamps, points, strict=True)
-    ]
 
 
 def _align_intraday_points(
@@ -802,24 +750,6 @@ def _latest_session_date(config: IndexConfig, now: datetime | None = None) -> da
     while session_date.weekday() >= 5:
         session_date -= timedelta(days=1)
     return session_date
-
-
-def _latest_session_dates(config: IndexConfig, count: int, now: datetime | None = None) -> list[date]:
-    session_date = _latest_session_date(config, now)
-    dates: list[date] = []
-    while len(dates) < count:
-        if session_date.weekday() < 5:
-            dates.append(session_date)
-        session_date -= timedelta(days=1)
-    return list(reversed(dates))
-
-
-def _session_close_timestamp(config: IndexConfig, session_date: date) -> datetime:
-    zone = ZoneInfo(config.timezone)
-    timestamp = datetime.combine(session_date, config.close_time, tzinfo=zone)
-    if config.close_time <= config.open_time:
-        timestamp += timedelta(days=1)
-    return timestamp.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
 
 
 def _elapsed_trading_minutes(config: IndexConfig, session_date: date, now: datetime | None = None) -> list[datetime]:

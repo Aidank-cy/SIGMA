@@ -1948,3 +1948,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with targeted backend Ruff, focused market-index tests, and full backend pytest. Full backend Ruff remains blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Finnhub proxy candles now scale from a live quote reference instead of static fallback values, 1D candles are rejected when clearly outside the configured index range, startup performs a one-time PostgreSQL candle integrity cleanup, and pre-open market-index reads can reuse the latest completed Redis session.
 - Timestamp: 2026-05-27T04:07:53Z
+
+### [Maintenance] Sub-feature: Market chart data accuracy
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, sigma-frontend/src/components/dashboard/ticker-carousel.tsx, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with targeted backend Ruff, focused market-index tests, full backend pytest, frontend build, and browser smoke. Full backend Ruff and `./hooks/post-file-edit.sh` remain blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Removed backend/frontend generated market chart fallbacks, added PostgreSQL 15m candle recovery for missing Redis 1D/5D data, extended Redis 1D TTL to four days, tightened Finnhub proxy candle scaling and quote bases, batched candle cold starts, reduced Yahoo backoff escalation, and added chart loading placeholders for empty real-data series.
+- Timestamp: 2026-05-27T06:53:13Z

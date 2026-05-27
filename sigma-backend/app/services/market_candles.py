@@ -31,7 +31,7 @@ LOGGER = logging.getLogger(__name__)
 
 CANDLE_1D_KEY = "sigma:candles:1d:{symbol}"
 CANDLE_5D_KEY = "sigma:candles:5d:{symbol}"
-CANDLE_1D_TTL = 60 * 60 * 24 * 2
+CANDLE_1D_TTL = 60 * 60 * 24 * 4
 CANDLE_5D_TTL = 60 * 60 * 24 * 7
 
 TRADING_FETCH_INTERVAL = 30
@@ -63,23 +63,27 @@ async def candle_refresh_job() -> None:
 
     now_beijing = _now_utc().astimezone(BEIJING_TZ)
 
-    for config in INDEX_CONFIGS:
-        symbol = config.symbol
-        status = _market_status_beijing(config, now_beijing)
-
-        if not _cold_start_done.get(symbol, False):
+    cold_start_pending = [
+        config for config in INDEX_CONFIGS if not _cold_start_done.get(config.symbol, False)
+    ]
+    if cold_start_pending:
+        for config in cold_start_pending:
+            status = _market_status_beijing(config, now_beijing)
             await _cold_start_fetch(config, status)
-            break
+        return
+
+    for config in INDEX_CONFIGS:
+        status = _market_status_beijing(config, now_beijing)
 
         if status == "not_opened":
             continue
         if status == "trading":
-            last = _last_fetch_time.get(symbol)
+            last = _last_fetch_time.get(config.symbol)
             now_utc = _now_utc()
             if last is not None and (now_utc - last).total_seconds() < TRADING_FETCH_INTERVAL:
                 continue
             await _fetch_and_store_1d_1min(config)
-            _last_fetch_time[symbol] = _now_utc()
+            _last_fetch_time[config.symbol] = _now_utc()
             continue
         await _end_of_day_downsample_if_needed(config)
 
@@ -464,7 +468,7 @@ async def _fetch_finnhub_candles(
             scaling_reference = reference_value if reference_value is not None else config.fallback_value
             median_value = statistics.median(point.value for point in sorted_points)
             scale = scaling_reference / median_value if median_value > 0 else 0
-            if scale > 2:
+            if abs(scale - 1.0) > 0.1:
                 sorted_points = [
                     IntradayPoint(timestamp=point.timestamp, value=round(point.value * scale, 2))
                     for point in sorted_points
@@ -476,6 +480,18 @@ async def _fetch_finnhub_candles(
                     config.symbol,
                     scaling_reference,
                 )
+            scaled_median = statistics.median(point.value for point in sorted_points)
+            if (
+                config.fallback_value > 0
+                and (scaled_median / config.fallback_value > 1.5 or scaled_median / config.fallback_value < 0.5)
+            ):
+                LOGGER.warning(
+                    "Discarding Finnhub proxy candles for %s: scaled median=%.2f vs expected ~%.2f",
+                    config.symbol,
+                    scaled_median,
+                    config.fallback_value,
+                )
+                continue
         LOGGER.info(
             "Finnhub candle fallback provided %d points for %s (res=%s)",
             len(sorted_points),
@@ -551,7 +567,7 @@ async def _check_pg_candle_integrity() -> None:
                 count, min_value, max_value = result.one()
                 if count == 0 or min_value is None or max_value is None:
                     continue
-                if max_value > config.fallback_value * 2.0 or min_value < config.fallback_value * 0.1:
+                if max_value > config.fallback_value * 1.5 or min_value < config.fallback_value * 0.3:
                     await db.execute(
                         delete(MarketCandle).where(
                             MarketCandle.symbol == config.symbol,
