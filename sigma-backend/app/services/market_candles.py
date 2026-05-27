@@ -1,10 +1,8 @@
-import asyncio
 import json
 import logging
 import os
 import statistics
 import time as _time
-from collections.abc import Awaitable
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -37,11 +35,10 @@ CANDLE_1D_TTL = 60 * 60 * 24 * 4
 CANDLE_5D_TTL = 60 * 60 * 24 * 7
 
 TRADING_FETCH_INTERVAL = 30
-COLD_START_NOT_OPEN_DELAY = 30
+COLD_START_NOT_OPEN_DELAY = 5
 INTRADAY_GAP_MIN_EXPECTED_POINTS = 30
 INTRADAY_GAP_MIN_COVERAGE_RATIO = 0.8
 FINNHUB_CANDLE_MIN_INTERVAL_SECONDS = 60
-_COLD_START_BATCH_SIZE = 2
 _MAX_COLD_START_ATTEMPTS_PER_STEP = 10
 _DATA_HEALTH_CHECK_INTERVAL = 300
 
@@ -70,14 +67,10 @@ async def candle_refresh_job() -> None:
         config for config in INDEX_CONFIGS if not _cold_start_done.get(config.symbol, False)
     ]
     if cold_start_pending:
-        batch = cold_start_pending[:_COLD_START_BATCH_SIZE]
-        tasks = []
-        for config in batch:
+        for config in cold_start_pending:
             status = _market_status_beijing(config, now_beijing)
-            tasks.append(_cold_start_fetch(config, status))
-        await asyncio.gather(*tasks)
+            await _cold_start_fetch(config, status)
     else:
-        tasks = []
         for config in INDEX_CONFIGS:
             status = _market_status_beijing(config, now_beijing)
 
@@ -88,10 +81,10 @@ async def candle_refresh_job() -> None:
                 now_utc = _now_utc()
                 if last is not None and (now_utc - last).total_seconds() < TRADING_FETCH_INTERVAL:
                     continue
-                tasks.append(_fetch_trading_market(config))
+                await _fetch_and_store_1d_1min(config)
+                _last_fetch_time[config.symbol] = _now_utc()
                 continue
-            tasks.append(_end_of_day_downsample_if_needed(config))
-        await _run_limited(tasks, limit=2)
+            await _end_of_day_downsample_if_needed(config)
 
     now_mono = _time.monotonic()
     if now_mono - _last_health_check >= _DATA_HEALTH_CHECK_INTERVAL:
@@ -106,21 +99,6 @@ async def candle_refresh_job() -> None:
                 )
                 _cold_start_done[config.symbol] = False
                 _cold_start_step_reset_all(config.symbol)
-
-
-async def _run_limited(tasks: list[Awaitable[object]], limit: int) -> None:
-    semaphore = asyncio.Semaphore(limit)
-
-    async def run_task(task: Awaitable[object]) -> None:
-        async with semaphore:
-            await task
-
-    await asyncio.gather(*(run_task(task) for task in tasks))
-
-
-async def _fetch_trading_market(config: IndexConfig) -> None:
-    await _fetch_and_store_1d_1min(config)
-    _last_fetch_time[config.symbol] = _now_utc()
 
 
 async def _cold_start_fetch(config: IndexConfig, status: str) -> None:
@@ -685,7 +663,7 @@ async def _redis_has_fresh_1d(config: IndexConfig) -> bool:
     session_date = _latest_session_date(config)
     zone = ZoneInfo(config.timezone)
     session_points = [point for point in points if point.timestamp.astimezone(zone).date() == session_date]
-    return len(session_points) >= 30
+    return len(session_points) >= 10
 
 
 async def _redis_has_fresh_5d(config: IndexConfig) -> bool:

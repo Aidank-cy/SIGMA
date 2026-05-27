@@ -28,12 +28,11 @@ YAHOO_CHART_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
 YAHOO_HEADERS = {
     "User-Agent": "Mozilla/5.0",
 }
-_yahoo_semaphore = asyncio.Semaphore(2)
-_yahoo_min_interval = 0.5
+_yahoo_semaphore = asyncio.Semaphore(1)
+_yahoo_min_interval = 1.0
 _yahoo_last_request_time = 0.0
 _yahoo_backoff_until = 0.0
 _yahoo_consecutive_429s = 0
-_yahoo_rate_limit_lock = asyncio.Lock()
 _yahoo_crumb: str | None = None
 _yahoo_cookie_jar: http.cookiejar.CookieJar | None = None
 _yahoo_crumb_expires = 0.0
@@ -381,19 +380,50 @@ async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
 
 
 async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] | None:
-    """Read the latest session's 1-minute candle data from Redis, falling back to PG 15m."""
-    from app.services.market_candles import _redis_get_1d
+    """Read the latest session's 1-minute candle data from Redis, falling back to 5D Redis then PG."""
+    from app.services.market_candles import _pg_get_candles, _redis_get_1d, _redis_get_5d
 
     points = await _redis_get_1d(config.symbol)
     if not points:
-        return await _read_intraday_history_fallback(config)
+        # Try 5D Redis first — it often has today's 1-min data merged in.
+        five_day = await _redis_get_5d(config.symbol)
+        if five_day:
+            session_date = _latest_session_date(config)
+            zone = ZoneInfo(config.timezone)
+            session_points = [
+                point for point in five_day if point.timestamp.astimezone(zone).date() == session_date
+            ]
+            if len(session_points) >= 10:
+                points = session_points
+            else:
+                latest_date = five_day[-1].timestamp.astimezone(zone).date()
+                latest_points = [
+                    point for point in five_day if point.timestamp.astimezone(zone).date() == latest_date
+                ]
+                if len(latest_points) >= 10:
+                    points = latest_points
+    if not points:
+        pg_points = await _pg_get_candles(config.symbol, "15m", limit=100)
+        if pg_points and len(pg_points) >= 5:
+            session_date = _latest_session_date(config)
+            zone = ZoneInfo(config.timezone)
+            session_points = [
+                point for point in pg_points if point.timestamp.astimezone(zone).date() == session_date
+            ]
+            if len(session_points) >= 5:
+                return _forward_fill_to_session_close(config, session_points)
+            latest_date = pg_points[-1].timestamp.astimezone(zone).date()
+            latest_points = [
+                point for point in pg_points if point.timestamp.astimezone(zone).date() == latest_date
+            ]
+            if len(latest_points) >= 5:
+                return _forward_fill_to_session_close(config, latest_points)
+        return None
 
     now = _now_utc()
     if not _is_trading(config, now):
-        if len(points) >= 30:
-            return points
-        fallback = await _read_intraday_history_fallback(config)
-        return fallback if fallback is not None else None
+        filled = _forward_fill_to_session_close(config, points)
+        return filled if len(filled) >= 10 else None
 
     session_date = _latest_session_date(config)
     zone = ZoneInfo(config.timezone)
@@ -403,36 +433,46 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
     return current_session_points if len(current_session_points) >= 10 else None
 
 
-async def _read_intraday_history_fallback(config: IndexConfig) -> list[IntradayPoint] | None:
-    """Recover a latest-session intraday chart from 5D Redis or PostgreSQL candles."""
-    from app.services.market_candles import _pg_get_candles, _redis_get_5d
+def _forward_fill_to_session_close(config: IndexConfig, points: list[IntradayPoint]) -> list[IntradayPoint]:
+    """Extend sparkline data to the session close time by forward-filling the last known value.
 
-    five_day_points = await _redis_get_5d(config.symbol)
-    five_day_session = _latest_session_points(config, five_day_points, min_points=30)
-    if five_day_session is not None:
-        return five_day_session
-
-    pg_points = await _pg_get_candles(config.symbol, "15m", limit=100)
-    return _latest_session_points(config, pg_points, min_points=5)
-
-
-def _latest_session_points(
-    config: IndexConfig,
-    points: list[IntradayPoint] | None,
-    min_points: int,
-) -> list[IntradayPoint] | None:
+    Yahoo Finance does not always return data up to the exact session close for
+    some indices (e.g. KOSPI ^KS11 typically stops ~30 min before 15:30 KST).
+    This leaves a visible gap at the right edge of the intraday chart because
+    the X-axis domain extends to the session close.  Forward-filling the last
+    price to the close time eliminates the gap.
+    """
     if not points:
-        return None
+        return points
 
+    last_point = points[-1]
     zone = ZoneInfo(config.timezone)
-    session_date = _latest_session_date(config)
-    session_points = [point for point in points if point.timestamp.astimezone(zone).date() == session_date]
-    if len(session_points) >= min_points:
-        return session_points
+    session_date = last_point.timestamp.astimezone(zone).date()
 
-    latest_date = points[-1].timestamp.astimezone(zone).date()
-    latest_points = [point for point in points if point.timestamp.astimezone(zone).date() == latest_date]
-    return latest_points if len(latest_points) >= min_points else None
+    # Determine session close in Beijing time for the date of the last point.
+    close_time = config.close_time
+    close_local = datetime.combine(session_date, close_time, tzinfo=zone)
+    close_beijing = close_local.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
+    last_beijing = last_point.timestamp.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
+
+    if last_beijing >= close_beijing:
+        return points
+
+    gap_minutes = int((close_beijing - last_beijing).total_seconds() / 60)
+    # Only forward-fill gaps up to 60 minutes; larger gaps suggest genuinely
+    # missing data rather than Yahoo's late-session truncation.
+    if gap_minutes > 60 or gap_minutes <= 0:
+        return points
+
+    filled = list(points)
+    for offset in range(1, gap_minutes + 1):
+        filled.append(
+            IntradayPoint(
+                timestamp=last_beijing + timedelta(minutes=offset),
+                value=last_point.value,
+            )
+        )
+    return filled
 
 
 async def _yahoo_rate_limit_wait() -> bool:
@@ -440,18 +480,17 @@ async def _yahoo_rate_limit_wait() -> bool:
     global _yahoo_consecutive_429s, _yahoo_last_request_time
 
     await _ensure_yahoo_crumb()
-    async with _yahoo_rate_limit_lock:
-        now = _time.monotonic()
-        if now < _yahoo_backoff_until:
-            LOGGER.warning("Yahoo backoff active, %.0fs remaining — candle fetch skipped.", _yahoo_backoff_until - now)
-            return False
-        if _yahoo_consecutive_429s > 0 and now >= _yahoo_backoff_until:
-            _yahoo_consecutive_429s = 0
-        elapsed = now - _yahoo_last_request_time
-        if elapsed < _yahoo_min_interval:
-            await asyncio.sleep(_yahoo_min_interval - elapsed)
-        _yahoo_last_request_time = _time.monotonic()
-        return True
+    now = _time.monotonic()
+    if now < _yahoo_backoff_until:
+        LOGGER.warning("Yahoo backoff active, %.0fs remaining — candle fetch skipped.", _yahoo_backoff_until - now)
+        return False
+    if _yahoo_consecutive_429s > 0 and now >= _yahoo_backoff_until:
+        _yahoo_consecutive_429s = 0
+    elapsed = now - _yahoo_last_request_time
+    if elapsed < _yahoo_min_interval:
+        await asyncio.sleep(_yahoo_min_interval - elapsed)
+    _yahoo_last_request_time = _time.monotonic()
+    return True
 
 
 def _yahoo_on_429() -> None:
