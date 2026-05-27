@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add Yahoo Finance crumb/cookie authentication for chart API requests.
 - Add a rate-limited Finnhub intraday candle fallback when Yahoo one-day candles are unavailable.
 - Add SMTP delivery for verification emails when Resend is not configured.
 - Add Resend-backed verification emails for password resets and registration codes.
@@ -197,6 +198,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Finnhub candle fallback for US indices by using scaled ETF proxy candles when direct index candles are unavailable.
 - Fix market candle cold starts so repeated provider failures skip failed stages instead of blocking later symbols.
 - Fix Yahoo candle backoff visibility and smooth low-change fallback sparklines to avoid fake chart cliffs.
 - Fix US market-index quote fallbacks so ETF-level Alpha Vantage prices cannot leak into SPX, Nasdaq, or Dow charts.

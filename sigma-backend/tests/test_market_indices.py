@@ -709,6 +709,8 @@ async def test_yahoo_chart_result_uses_user_agent_and_query2_retry(monkeypatch: 
     monkeypatch.setattr(market_indices, "_yahoo_last_request_time", 0.0)
     monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 0.0)
     monkeypatch.setattr(market_indices, "_yahoo_consecutive_429s", 0)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb", "crumb")
+    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 999999.0)
 
     result = await market_indices._fetch_yahoo_chart_result(spx, params={}, purpose="test")
 
@@ -738,6 +740,8 @@ async def test_yahoo_chart_result_backs_off_on_429(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(market_indices, "_yahoo_last_request_time", 0.0)
     monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 0.0)
     monkeypatch.setattr(market_indices, "_yahoo_consecutive_429s", 0)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb", "crumb")
+    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 999999.0)
 
     result = await market_indices._fetch_yahoo_chart_result(spx, params={}, purpose="test")
 
@@ -752,12 +756,90 @@ async def test_yahoo_backoff_logs_warning(monkeypatch: pytest.MonkeyPatch, caplo
     """Yahoo backoff skips are visible in warning logs."""
     monkeypatch.setattr(market_indices._time, "monotonic", lambda: 10.0)
     monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 70.0)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb", "crumb")
+    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 999999.0)
     caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
 
     can_fetch = await market_indices._yahoo_rate_limit_wait()
 
     assert can_fetch is False
     assert "Yahoo backoff active, 60s remaining — candle fetch skipped." in caplog.text
+
+
+def test_yahoo_crumb_sync_fetches_cookie_and_crumb(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    """Yahoo crumb initialization stores the cookie jar and logs success."""
+    import urllib.request
+
+    opened_urls: list[str] = []
+
+    class FakeResponse:
+        def __init__(self, body: bytes = b"") -> None:
+            self.body = body
+
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return self.body
+
+    class FakeOpener:
+        def open(self, request: urllib.request.Request, timeout: int) -> FakeResponse:
+            opened_urls.append(request.full_url)
+            if "getcrumb" in request.full_url:
+                return FakeResponse(b"crumb-value")
+            return FakeResponse()
+
+    monkeypatch.setattr(market_indices.urllib.request, "build_opener", lambda *_args: FakeOpener())
+    monkeypatch.setattr(market_indices._time, "monotonic", lambda: 100.0)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb", None)
+    monkeypatch.setattr(market_indices, "_yahoo_cookie_jar", None)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 0.0)
+    caplog.set_level("INFO", logger=market_indices.LOGGER.name)
+
+    market_indices._ensure_yahoo_crumb_sync()
+
+    assert opened_urls == ["https://fc.yahoo.com/", "https://query2.finance.yahoo.com/v1/test/getcrumb"]
+    assert market_indices._yahoo_crumb == "crumb-value"
+    assert market_indices._yahoo_cookie_jar is not None
+    assert market_indices._yahoo_crumb_expires == pytest.approx(3700.0)
+    assert "Yahoo crumb obtained successfully" in caplog.text
+
+
+def test_yahoo_urllib_fetch_uses_cookie_jar_and_crumb(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Yahoo chart requests append crumb and use the cached cookie jar."""
+    import urllib.request
+
+    requested_urls: list[str] = []
+
+    class FakeResponse:
+        def read(self) -> bytes:
+            return b'{"chart":{"result":[{"meta":{"regularMarketPrice":6000}}],"error":null}}'
+
+    class FakeOpener:
+        def open(self, request: urllib.request.Request, timeout: int) -> FakeResponse:
+            requested_urls.append(request.full_url)
+            return FakeResponse()
+
+    cookie_jar = market_indices.http.cookiejar.MozillaCookieJar()
+    monkeypatch.setattr(market_indices, "_yahoo_crumb", "crumb value")
+    monkeypatch.setattr(market_indices, "_yahoo_cookie_jar", cookie_jar)
+    monkeypatch.setattr(market_indices.urllib.request, "build_opener", lambda *_args: FakeOpener())
+
+    result = market_indices._yahoo_urllib_fetch(
+        "https://query2.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1m",
+        "test",
+        "^GSPC",
+        "query2.finance.yahoo.com",
+    )
+
+    assert isinstance(result, dict)
+    assert result["meta"]["regularMarketPrice"] == 6000
+    assert requested_urls == [
+        "https://query2.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1m&crumb=crumb%20value"
+    ]
 
 
 @pytest.mark.asyncio
@@ -921,7 +1003,7 @@ async def test_finnhub_candle_fallback_filters_regular_session_points(
             return None
 
         def json(self) -> dict[str, object]:
-            return {"s": "ok", "c": [5990.0, 6000.0], "t": [premarket_epoch, session_epoch]}
+            return {"s": "ok", "c": [580.0, 590.0], "t": [premarket_epoch, session_epoch]}
 
     class FakeClient:
         def __init__(self, *_args: object, **_kwargs: object) -> None:
@@ -948,10 +1030,11 @@ async def test_finnhub_candle_fallback_filters_regular_session_points(
 
     assert points is not None
     assert len(points) == 1
-    assert points[0].value == pytest.approx(6000.0)
-    assert captured_params["symbol"] == spx.finnhub_symbol
+    assert points[0].value == pytest.approx(590.0 * (spx.fallback_value / 590.0))
+    assert captured_params["symbol"] == spx.finnhub_proxy_symbol
     assert captured_params["resolution"] == "1"
     assert captured_params["token"] == "token"
+    assert "Scaled Finnhub proxy SPY candles by 9.90x for SPX" in caplog.text
     assert "Finnhub candle fallback provided 1 points for SPX" in caplog.text
 
 

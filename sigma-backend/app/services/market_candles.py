@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import statistics
 import time as _time
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -267,6 +268,7 @@ async def _fetch_finnhub_candles(config: IndexConfig) -> list[IntradayPoint] | N
     if not token:
         LOGGER.warning("Finnhub candle fallback for %s skipped because FINNHUB_KEY is not configured.", config.symbol)
         return None
+    candle_symbol = config.finnhub_proxy_symbol or config.finnhub_symbol
 
     now = _time.monotonic()
     last_fetch = _finnhub_candle_last_fetch.get(config.symbol)
@@ -281,7 +283,7 @@ async def _fetch_finnhub_candles(config: IndexConfig) -> list[IntradayPoint] | N
             response = await client.get(
                 "https://finnhub.io/api/v1/stock/candle",
                 params={
-                    "symbol": config.finnhub_symbol,
+                    "symbol": candle_symbol,
                     "resolution": "1",
                     "from": str(int((now_utc - timedelta(days=1)).timestamp())),
                     "to": str(int(now_utc.timestamp())),
@@ -326,6 +328,15 @@ async def _fetch_finnhub_candles(config: IndexConfig) -> list[IntradayPoint] | N
     if not sorted_points:
         LOGGER.warning("Finnhub candle fallback for %s returned no regular-session points.", config.symbol)
         return None
+    if config.finnhub_proxy_symbol:
+        median_value = statistics.median(point.value for point in sorted_points)
+        scale = config.fallback_value / median_value if median_value > 0 else 0
+        if scale > 2:
+            sorted_points = [
+                IntradayPoint(timestamp=point.timestamp, value=round(point.value * scale, 2))
+                for point in sorted_points
+            ]
+            LOGGER.info("Scaled Finnhub proxy %s candles by %.2fx for %s", candle_symbol, scale, config.symbol)
     LOGGER.info("Finnhub candle fallback provided %d points for %s", len(sorted_points), config.symbol)
     return sorted_points
 
