@@ -962,7 +962,7 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
 
-    async def fake_redis_has_1d(_symbol: str) -> bool:
+    async def fake_redis_has_fresh_1d(_config: market_indices.IndexConfig) -> bool:
         return False
 
     async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> list[market_indices.IntradayPoint]:
@@ -974,17 +974,19 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
 
     market_candles._last_fetch_time.clear()
     market_candles._cold_start_done.clear()
+    market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 13, 31, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 13, 31, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_redis_has_1d", fake_redis_has_1d)
+    monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_redis_has_fresh_1d)
     monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
     monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
 
     await market_candles.candle_refresh_job()
 
     assert calls == ["1m:1d", "set1d:1"]
+    market_candles._last_health_check = 0.0
 
 
 @pytest.mark.asyncio
@@ -992,7 +994,7 @@ async def test_finnhub_candle_fallback_filters_regular_session_points(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Finnhub candle fallback reads one-minute candles and keeps exchange-session points."""
+    """Finnhub candle fallback reads intraday candles and keeps exchange-session points."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     captured_params: dict[str, str] = {}
     session_epoch = int(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ).timestamp())
@@ -1032,10 +1034,61 @@ async def test_finnhub_candle_fallback_filters_regular_session_points(
     assert len(points) == 1
     assert points[0].value == pytest.approx(590.0 * (spx.fallback_value / 590.0))
     assert captured_params["symbol"] == spx.finnhub_proxy_symbol
-    assert captured_params["resolution"] == "1"
+    assert captured_params["resolution"] == "5"
     assert captured_params["token"] == "token"
     assert "Scaled Finnhub proxy SPY candles by 9.90x for SPX" in caplog.text
-    assert "Finnhub candle fallback provided 1 points for SPX" in caplog.text
+    assert "Finnhub candle fallback provided 1 points for SPX (res=5)" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_finnhub_candle_fallback_tries_daily_after_intraday_no_data(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Finnhub candle fallback keeps trying lower resolutions until daily data is available."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    requested_resolutions: list[str] = []
+    daily_epoch = int(datetime(2026, 5, 18, 12, 0, tzinfo=UTC).timestamp())
+
+    class FakeResponse:
+        def __init__(self, resolution: str) -> None:
+            self.resolution = resolution
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            if self.resolution == "D":
+                return {"s": "ok", "c": [590.0], "t": [daily_epoch]}
+            return {"s": "no_data"}
+
+    class FakeClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        async def __aenter__(self) -> "FakeClient":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def get(self, _url: str, params: dict[str, str]) -> FakeResponse:
+            requested_resolutions.append(params["resolution"])
+            return FakeResponse(params["resolution"])
+
+    monkeypatch.setenv("FINNHUB_KEY", "token")
+    monkeypatch.setattr(market_candles.httpx, "AsyncClient", FakeClient)
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 22, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_candles._time, "monotonic", lambda: 1000.0)
+    market_candles._finnhub_candle_last_fetch.clear()
+    caplog.set_level("INFO", logger=market_candles.LOGGER.name)
+
+    points = await market_candles._fetch_finnhub_candles(spx)
+
+    assert points is not None
+    assert len(points) == 1
+    assert requested_resolutions == ["5", "15", "60", "D"]
+    assert "Finnhub candle fallback provided 1 points for SPX (res=D)" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -1162,10 +1215,10 @@ async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
         calls.append(f"set1d:{len(points)}")
         state["has_1d"] = True
 
-    async def fake_has_1d(_symbol: str) -> bool:
+    async def fake_has_1d(_config: market_indices.IndexConfig) -> bool:
         return state["has_1d"]
 
-    async def fake_has_5d(_symbol: str) -> bool:
+    async def fake_has_5d(_config: market_indices.IndexConfig) -> bool:
         return state["has_5d"]
 
     async def fake_has_interval(_symbol: str, interval: str) -> bool:
@@ -1187,8 +1240,8 @@ async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
     monkeypatch.setattr(market_candles, "_pg_upsert_candles", fake_upsert_with_state)
     monkeypatch.setattr(market_candles, "_redis_set_5d", fake_set_5d_with_state)
     monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
-    monkeypatch.setattr(market_candles, "_redis_has_1d", fake_has_1d)
-    monkeypatch.setattr(market_candles, "_redis_has_5d", fake_has_5d)
+    monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_has_1d)
+    monkeypatch.setattr(market_candles, "_redis_has_fresh_5d", fake_has_5d)
     monkeypatch.setattr(market_candles, "_pg_has_interval", fake_has_interval)
     monkeypatch.setattr(market_candles, "_filter_today", lambda _config, points: points)
 
@@ -1210,11 +1263,11 @@ async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
 
 
 @pytest.mark.asyncio
-async def test_cold_start_skips_failed_steps_after_three_attempts(
+async def test_cold_start_resets_failed_steps_when_no_data_was_stored(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Cold start falls through failed steps so one broken symbol cannot block the queue forever."""
+    """Cold start does not mark a symbol complete when every step failed."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
 
@@ -1233,23 +1286,103 @@ async def test_cold_start_skips_failed_steps_after_three_attempts(
     market_candles._cold_start_done.clear()
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch_1d)
     monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
-    monkeypatch.setattr(market_candles, "_redis_has_1d", fake_false)
-    monkeypatch.setattr(market_candles, "_redis_has_5d", fake_false)
+    monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_false)
+    monkeypatch.setattr(market_candles, "_redis_has_fresh_5d", fake_false)
     monkeypatch.setattr(market_candles, "_pg_has_interval", fake_false)
     caplog.set_level("WARNING", logger=market_candles.LOGGER.name)
 
-    for _ in range(13):
+    for _ in range(41):
         await market_candles._cold_start_next_piece(spx)
 
-    assert calls.count("1d:False") == 3
-    assert calls.count("1m:5d") == 3
-    assert calls.count("15m:1mo") == 3
-    assert calls.count("60m:1y") == 3
-    assert market_candles._cold_start_done[spx.symbol] is True
-    assert "Skipping 1D cold start for SPX after 3 failed attempts." in caplog.text
-    assert "Skipping 60m cold start for SPX after 3 failed attempts." in caplog.text
+    assert calls.count("1d:False") == 10
+    assert calls.count("1m:5d") == 10
+    assert calls.count("15m:1mo") == 10
+    assert calls.count("60m:1y") == 10
+    assert market_candles._cold_start_done.get(spx.symbol) is None
+    assert market_candles._cold_start_attempts == {}
+    assert "Skipping 1D cold start for SPX after 10 failed attempts." in caplog.text
+    assert "Skipping 60m cold start for SPX after 10 failed attempts." in caplog.text
+    assert "Cold start for SPX completed all steps but stored no data." in caplog.text
     market_candles._cold_start_attempts.clear()
     market_candles._cold_start_done.clear()
+
+
+@pytest.mark.asyncio
+async def test_redis_freshness_checks_reject_stale_candle_sets(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Cold start freshness checks reject previous-session Redis leftovers."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    current_points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 26, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3100.0 + offset,
+        )
+        for offset in range(10)
+    ]
+    stale_points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 25, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3050.0 + offset,
+        )
+        for offset in range(10)
+    ]
+    one_day_cache: list[market_indices.IntradayPoint] | None = stale_points
+    five_day_cache: list[market_indices.IntradayPoint] | None = current_points
+
+    async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint] | None:
+        return one_day_cache
+
+    async def fake_get_5d(_symbol: str) -> list[market_indices.IntradayPoint] | None:
+        return five_day_cache
+
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 8, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
+    monkeypatch.setattr(market_candles, "_redis_get_5d", fake_get_5d)
+
+    assert await market_candles._redis_has_fresh_1d(sse) is False
+    assert await market_candles._redis_has_fresh_5d(sse) is False
+
+    one_day_cache = current_points
+    five_day_cache = [*stale_points, *current_points]
+
+    assert await market_candles._redis_has_fresh_1d(sse) is True
+    assert await market_candles._redis_has_fresh_5d(sse) is True
+
+
+@pytest.mark.asyncio
+async def test_candle_job_health_check_resets_done_symbol_without_fresh_data(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Periodic health checks recover symbols that were marked done without usable Redis data."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+
+    async def fake_has_fresh_1d(_config: market_indices.IndexConfig) -> bool:
+        return False
+
+    market_candles._cold_start_done.clear()
+    market_candles._cold_start_attempts.clear()
+    market_candles._last_fetch_time.clear()
+    market_candles._cold_start_done[spx.symbol] = True
+    market_candles._cold_start_attempts[market_candles._cold_start_step_key(spx.symbol, "1D")] = 4
+    market_candles._last_health_check = 0.0
+
+    monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
+    monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 13, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 13, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_candles._time, "monotonic", lambda: 1000.0)
+    monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_has_fresh_1d)
+    caplog.set_level("WARNING", logger=market_candles.LOGGER.name)
+
+    await market_candles.candle_refresh_job()
+
+    assert market_candles._cold_start_done[spx.symbol] is False
+    assert market_candles._cold_start_attempts == {}
+    assert "Health check: SPX has no fresh 1D data. Resetting cold start." in caplog.text
+
+    market_candles._cold_start_done.clear()
+    market_candles._last_fetch_time.clear()
+    market_candles._last_health_check = 0.0
 
 
 @pytest.mark.asyncio
@@ -1310,15 +1443,20 @@ async def test_candle_job_rate_limits_trading_fetches(monkeypatch: pytest.Monkey
     async def fake_fetch_1d(_config: market_indices.IndexConfig) -> None:
         calls.append("fetch")
 
+    async def fake_has_fresh_1d(_config: market_indices.IndexConfig) -> bool:
+        return True
+
     market_candles._last_fetch_time.clear()
     market_candles._cold_start_done.clear()
     market_candles._cold_start_done[spx.symbol] = True
+    market_candles._last_health_check = 0.0
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_pg_has_full_year", fake_has_full_year)
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch_1d)
+    monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_has_fresh_1d)
 
     await market_candles.candle_refresh_job()
     await market_candles.candle_refresh_job()
@@ -1326,6 +1464,7 @@ async def test_candle_job_rate_limits_trading_fetches(monkeypatch: pytest.Monkey
     assert calls == ["fetch"]
     market_candles._last_fetch_time.clear()
     market_candles._cold_start_done.clear()
+    market_candles._last_health_check = 0.0
 
 
 def test_trim_to_trading_days_uses_exchange_timezone() -> None:

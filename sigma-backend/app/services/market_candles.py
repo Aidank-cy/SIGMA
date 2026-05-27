@@ -39,16 +39,19 @@ COLD_START_NOT_OPEN_DELAY = 30
 INTRADAY_GAP_MIN_EXPECTED_POINTS = 30
 INTRADAY_GAP_MIN_COVERAGE_RATIO = 0.8
 FINNHUB_CANDLE_MIN_INTERVAL_SECONDS = 60
-_MAX_COLD_START_ATTEMPTS_PER_STEP = 3
+_MAX_COLD_START_ATTEMPTS_PER_STEP = 10
+_DATA_HEALTH_CHECK_INTERVAL = 300
 
 _last_fetch_time: dict[str, datetime] = {}
 _cold_start_done: dict[str, bool] = {}
 _cold_start_attempts: dict[str, int] = {}
 _finnhub_candle_last_fetch: dict[str, float] = {}
+_last_health_check = 0.0
 
 
 async def candle_refresh_job() -> None:
     """Refresh per-market candle storage without blocking quote refreshes."""
+    global _last_health_check
     now_beijing = _now_utc().astimezone(BEIJING_TZ)
 
     for config in INDEX_CONFIGS:
@@ -71,27 +74,47 @@ async def candle_refresh_job() -> None:
             continue
         await _end_of_day_downsample_if_needed(config)
 
+    now_mono = _time.monotonic()
+    if now_mono - _last_health_check >= _DATA_HEALTH_CHECK_INTERVAL:
+        _last_health_check = now_mono
+        for config in INDEX_CONFIGS:
+            if await _redis_has_fresh_1d(config):
+                continue
+            if _cold_start_done.get(config.symbol, False):
+                LOGGER.warning(
+                    "Health check: %s has no fresh 1D data. Resetting cold start.",
+                    config.symbol,
+                )
+                _cold_start_done[config.symbol] = False
+                _cold_start_step_reset_all(config.symbol)
+
 
 async def _cold_start_fetch(config: IndexConfig, status: str) -> None:
     symbol = config.symbol
+    last = _last_fetch_time.get(symbol)
+    now_utc = _now_utc()
+    if last is not None and (now_utc - last).total_seconds() < COLD_START_NOT_OPEN_DELAY:
+        return
+
     if status == "trading":
-        last = _last_fetch_time.get(symbol)
-        now_utc = _now_utc()
-        if last is not None and (now_utc - last).total_seconds() < COLD_START_NOT_OPEN_DELAY:
-            return
         await _cold_start_next_piece(config, backfill_intraday_gap=True)
         _last_fetch_time[symbol] = _now_utc()
         return
 
     await _cold_start_next_piece(config)
+    _last_fetch_time[symbol] = _now_utc()
 
 
 async def _cold_start_next_piece(config: IndexConfig, backfill_intraday_gap: bool = False) -> None:
     symbol = config.symbol
 
-    if not await _redis_has_1d(symbol):
+    if not await _redis_has_fresh_1d(config):
         if _cold_start_step_exceeded(symbol, "1D"):
-            LOGGER.warning("Skipping 1D cold start for %s after 3 failed attempts.", symbol)
+            LOGGER.warning(
+                "Skipping 1D cold start for %s after %d failed attempts.",
+                symbol,
+                _MAX_COLD_START_ATTEMPTS_PER_STEP,
+            )
         else:
             _cold_start_step_attempt(symbol, "1D")
             stored_count = await _fetch_and_store_1d_1min(config, backfill_intraday_gap=backfill_intraday_gap)
@@ -100,9 +123,13 @@ async def _cold_start_next_piece(config: IndexConfig, backfill_intraday_gap: boo
                 LOGGER.info("Cold start piece: %s 1D 1min to Redis (%d points)", symbol, stored_count)
             return
 
-    if not await _redis_has_5d(symbol):
+    if not await _redis_has_fresh_5d(config):
         if _cold_start_step_exceeded(symbol, "5D"):
-            LOGGER.warning("Skipping 5D cold start for %s after 3 failed attempts.", symbol)
+            LOGGER.warning(
+                "Skipping 5D cold start for %s after %d failed attempts.",
+                symbol,
+                _MAX_COLD_START_ATTEMPTS_PER_STEP,
+            )
         else:
             _cold_start_step_attempt(symbol, "5D")
             one_min = await _yahoo_fetch(config, interval="1m", range_="5d")
@@ -117,7 +144,11 @@ async def _cold_start_next_piece(config: IndexConfig, backfill_intraday_gap: boo
 
     if not await _pg_has_interval(symbol, "15m"):
         if _cold_start_step_exceeded(symbol, "15m"):
-            LOGGER.warning("Skipping 15m cold start for %s after 3 failed attempts.", symbol)
+            LOGGER.warning(
+                "Skipping 15m cold start for %s after %d failed attempts.",
+                symbol,
+                _MAX_COLD_START_ATTEMPTS_PER_STEP,
+            )
         else:
             _cold_start_step_attempt(symbol, "15m")
             fifteen = await _yahoo_fetch(config, interval="15m", range_="1mo")
@@ -129,7 +160,11 @@ async def _cold_start_next_piece(config: IndexConfig, backfill_intraday_gap: boo
 
     if not await _pg_has_interval(symbol, "60m"):
         if _cold_start_step_exceeded(symbol, "60m"):
-            LOGGER.warning("Skipping 60m cold start for %s after 3 failed attempts.", symbol)
+            LOGGER.warning(
+                "Skipping 60m cold start for %s after %d failed attempts.",
+                symbol,
+                _MAX_COLD_START_ATTEMPTS_PER_STEP,
+            )
         else:
             _cold_start_step_attempt(symbol, "60m")
             hourly = await _yahoo_fetch(config, interval="60m", range_="1y")
@@ -139,8 +174,20 @@ async def _cold_start_next_piece(config: IndexConfig, backfill_intraday_gap: boo
                 LOGGER.info("Cold start piece: %s 1Y 60min to PG", symbol)
             return
 
-    _cold_start_done[symbol] = True
-    LOGGER.info("Cold start complete for %s", symbol)
+    has_1d = await _redis_has_fresh_1d(config)
+    has_5d = await _redis_has_fresh_5d(config)
+    has_pg = await _pg_has_interval(symbol, "15m") or await _pg_has_interval(symbol, "60m")
+    if has_1d or has_5d or has_pg:
+        _cold_start_done[symbol] = True
+        LOGGER.info("Cold start complete for %s", symbol)
+        return
+
+    _cold_start_step_reset_all(symbol)
+    LOGGER.warning(
+        "Cold start for %s completed all steps but stored no data. "
+        "Resetting attempt counters to retry on next cycle.",
+        symbol,
+    )
 
 
 def _cold_start_step_key(symbol: str, step: str) -> str:
@@ -160,6 +207,11 @@ def _cold_start_step_exceeded(symbol: str, step: str) -> bool:
 
 def _cold_start_step_reset(symbol: str, step: str) -> None:
     _cold_start_attempts.pop(_cold_start_step_key(symbol, step), None)
+
+
+def _cold_start_step_reset_all(symbol: str) -> None:
+    for step in ("1D", "5D", "15m", "60m"):
+        _cold_start_step_reset(symbol, step)
 
 
 async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: bool = True) -> int:
@@ -278,67 +330,101 @@ async def _fetch_finnhub_candles(config: IndexConfig) -> list[IntradayPoint] | N
     _finnhub_candle_last_fetch[config.symbol] = now
 
     now_utc = _now_utc()
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            response = await client.get(
-                "https://finnhub.io/api/v1/stock/candle",
-                params={
-                    "symbol": candle_symbol,
-                    "resolution": "1",
-                    "from": str(int((now_utc - timedelta(days=1)).timestamp())),
-                    "to": str(int(now_utc.timestamp())),
-                    "token": token,
-                },
+    for resolution in ("5", "15", "60", "D"):
+        try:
+            async with httpx.AsyncClient(timeout=8) as client:
+                response = await client.get(
+                    "https://finnhub.io/api/v1/stock/candle",
+                    params={
+                        "symbol": candle_symbol,
+                        "resolution": resolution,
+                        "from": str(int((now_utc - timedelta(days=1)).timestamp())),
+                        "to": str(int(now_utc.timestamp())),
+                        "token": token,
+                    },
+                )
+                response.raise_for_status()
+                payload = response.json()
+        except httpx.HTTPStatusError as exc:
+            LOGGER.warning(
+                "Finnhub candle fallback for %s res=%s failed with status %s.",
+                config.symbol,
+                resolution,
+                exc.response.status_code,
             )
-            response.raise_for_status()
-            payload = response.json()
-    except httpx.HTTPStatusError as exc:
-        LOGGER.warning("Finnhub candle fallback for %s failed with status %s.", config.symbol, exc.response.status_code)
-        return None
-    except httpx.HTTPError as exc:
-        LOGGER.warning("Finnhub candle fallback for %s failed: %s.", config.symbol, type(exc).__name__)
-        return None
-    except Exception as exc:
-        LOGGER.warning("Finnhub candle fallback for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc)
-        return None
-
-    if payload.get("s") != "ok":
-        LOGGER.warning("Finnhub candle fallback for %s returned status %s.", config.symbol, payload.get("s"))
-        return None
-    closes = payload.get("c")
-    timestamps = payload.get("t")
-    if not isinstance(closes, list) or not isinstance(timestamps, list) or len(closes) != len(timestamps):
-        LOGGER.warning("Finnhub candle fallback for %s returned malformed candle arrays.", config.symbol)
-        return None
-
-    points: list[IntradayPoint] = []
-    for timestamp, close in zip(timestamps, closes, strict=False):
-        value = _as_float(close)
-        epoch = _as_float(timestamp)
-        if value is None or epoch is None or value <= 0:
             continue
-        point = IntradayPoint(
-            timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
-            value=value,
-        )
-        if _is_within_session(point.timestamp, config):
-            points.append(point)
+        except httpx.HTTPError as exc:
+            LOGGER.warning(
+                "Finnhub candle fallback for %s res=%s failed: %s.",
+                config.symbol,
+                resolution,
+                type(exc).__name__,
+            )
+            continue
+        except Exception as exc:
+            LOGGER.warning(
+                "Finnhub candle fallback for %s res=%s failed: %s: %s.",
+                config.symbol,
+                resolution,
+                type(exc).__name__,
+                exc,
+            )
+            continue
 
-    sorted_points = sorted(points, key=lambda point: point.timestamp)
-    if not sorted_points:
-        LOGGER.warning("Finnhub candle fallback for %s returned no regular-session points.", config.symbol)
-        return None
-    if config.finnhub_proxy_symbol:
-        median_value = statistics.median(point.value for point in sorted_points)
-        scale = config.fallback_value / median_value if median_value > 0 else 0
-        if scale > 2:
-            sorted_points = [
-                IntradayPoint(timestamp=point.timestamp, value=round(point.value * scale, 2))
-                for point in sorted_points
-            ]
-            LOGGER.info("Scaled Finnhub proxy %s candles by %.2fx for %s", candle_symbol, scale, config.symbol)
-    LOGGER.info("Finnhub candle fallback provided %d points for %s", len(sorted_points), config.symbol)
-    return sorted_points
+        if payload.get("s") != "ok":
+            LOGGER.warning(
+                "Finnhub candle fallback for %s returned status %s for res=%s.",
+                config.symbol,
+                payload.get("s"),
+                resolution,
+            )
+            continue
+        closes = payload.get("c")
+        timestamps = payload.get("t")
+        if not isinstance(closes, list) or not isinstance(timestamps, list) or len(closes) != len(timestamps):
+            LOGGER.warning("Finnhub candle fallback for %s returned malformed candle arrays.", config.symbol)
+            continue
+
+        points: list[IntradayPoint] = []
+        for timestamp, close in zip(timestamps, closes, strict=False):
+            value = _as_float(close)
+            epoch = _as_float(timestamp)
+            if value is None or epoch is None or value <= 0:
+                continue
+            point = IntradayPoint(
+                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
+                value=value,
+            )
+            if resolution == "D" or _is_within_session(point.timestamp, config):
+                points.append(point)
+
+        sorted_points = sorted(points, key=lambda point: point.timestamp)
+        if not sorted_points:
+            LOGGER.warning(
+                "Finnhub candle fallback for %s returned no usable points for res=%s.",
+                config.symbol,
+                resolution,
+            )
+            continue
+        if config.finnhub_proxy_symbol:
+            median_value = statistics.median(point.value for point in sorted_points)
+            scale = config.fallback_value / median_value if median_value > 0 else 0
+            if scale > 2:
+                sorted_points = [
+                    IntradayPoint(timestamp=point.timestamp, value=round(point.value * scale, 2))
+                    for point in sorted_points
+                ]
+                LOGGER.info("Scaled Finnhub proxy %s candles by %.2fx for %s", candle_symbol, scale, config.symbol)
+        LOGGER.info(
+            "Finnhub candle fallback provided %d points for %s (res=%s)",
+            len(sorted_points),
+            config.symbol,
+            resolution,
+        )
+        return sorted_points
+
+    LOGGER.warning("Finnhub candle fallback exhausted all resolutions for %s", config.symbol)
+    return None
 
 
 def _downsample(points: list[IntradayPoint], minutes: int) -> list[IntradayPoint]:
@@ -449,14 +535,23 @@ async def _redis_set_5d(symbol: str, points: list[IntradayPoint]) -> None:
     await _redis_set_points(CANDLE_5D_KEY.format(symbol=symbol), points, CANDLE_5D_TTL)
 
 
-async def _redis_has_1d(symbol: str) -> bool:
-    points = await _redis_get_1d(symbol)
-    return bool(points)
+async def _redis_has_fresh_1d(config: IndexConfig) -> bool:
+    points = await _redis_get_1d(config.symbol)
+    if not points:
+        return False
+    session_date = _latest_session_date(config)
+    zone = ZoneInfo(config.timezone)
+    session_points = [point for point in points if point.timestamp.astimezone(zone).date() == session_date]
+    return len(session_points) >= 10
 
 
-async def _redis_has_5d(symbol: str) -> bool:
-    points = await _redis_get_5d(symbol)
-    return bool(points)
+async def _redis_has_fresh_5d(config: IndexConfig) -> bool:
+    points = await _redis_get_5d(config.symbol)
+    if not points:
+        return False
+    zone = ZoneInfo(config.timezone)
+    dates = {point.timestamp.astimezone(zone).date() for point in points}
+    return len(dates) >= 2
 
 
 async def _redis_get_points(key: str) -> list[IntradayPoint] | None:

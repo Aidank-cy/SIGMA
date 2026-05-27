@@ -198,6 +198,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix market candle recovery so cold starts no longer complete without stored data, stale Redis candles are refetched, Finnhub candle fallback retries supported resolutions, and periodic health checks restart missing 1D caches.
 - Fix Finnhub candle fallback for US indices by using scaled ETF proxy candles when direct index candles are unavailable.
 - Fix market candle cold starts so repeated provider failures skip failed stages instead of blocking later symbols.
 - Fix Yahoo candle backoff visibility and smooth low-change fallback sparklines to avoid fake chart cliffs.

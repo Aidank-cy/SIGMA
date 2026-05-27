@@ -243,6 +243,13 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Settings Cost Guard now matches the API Keys card height, scheduled reports now support daily morning/afternoon Beijing-time windows with updated weekly/monthly triggers, report periods persist exact datetimes, and LLM token logging, budget checks, and user Settings usage are scoped per user while admin usage remains global.
 - Timestamp: 2026-05-25T03:57:52Z
 
+### [Maintenance] Sub-feature: Market candle cold-start recovery
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Cold starts now use freshness-aware Redis checks, retry up to ten provider attempts per step with a closed-market delay, avoid marking symbols complete when no candles were stored, retry Finnhub candle resolutions through daily data, and reset completed symbols during periodic health checks when fresh 1D candles are missing.
+- Timestamp: 2026-05-27T03:19:29Z
+
 ### Completed
 - Phase 2 sub-features 2.1 through 2.11.
 
