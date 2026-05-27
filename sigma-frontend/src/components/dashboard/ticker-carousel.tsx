@@ -32,11 +32,9 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
         const isTrading = index.is_trading || isTradingHoursActive(index.trading_hours, now);
         const marketState: MarketState = isPreMarket ? "unopened" : isTrading ? "trading" : "closed";
         const intraday = toIntradayChartData(index, now, false);
-        const sparkline = marketState === "unopened"
-          ? Array.from({ length: 12 }).map(() => index.value)
-          : intraday.length > 1
-            ? intraday.map((point) => point.value)
-            : Array.from({ length: 12 }).map(() => index.value);
+        const sparkline = intraday.length > 1
+          ? intraday.map((point) => point.value)
+          : Array.from({ length: 12 }).map(() => index.value);
         const hasMovementData = new Set(sparkline.map((value) => value.toFixed(4))).size > 1;
         return {
           change: index.change_pct,

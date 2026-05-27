@@ -1955,3 +1955,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with targeted backend Ruff, focused market-index tests, full backend pytest, frontend build, and browser smoke. Full backend Ruff and `./hooks/post-file-edit.sh` remain blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Removed backend/frontend generated market chart fallbacks, added PostgreSQL 15m candle recovery for missing Redis 1D/5D data, extended Redis 1D TTL to four days, tightened Finnhub proxy candle scaling and quote bases, batched candle cold starts, reduced Yahoo backoff escalation, and added chart loading placeholders for empty real-data series.
 - Timestamp: 2026-05-27T06:53:13Z
+
+### [Maintenance] Sub-feature: Market chart data accuracy follow-up
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/dashboard/ticker-carousel.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with targeted backend Ruff, focused market-index tests, full backend pytest, frontend build, and `git diff --check`.
+- Notes: Updated all market fallback baselines to current ranges, added FTSE/DAX Finnhub ETF proxies, lowered PG fallback point gates, enabled closed-market intraday gap detection, defaulted cold-start gap backfill on, tightened sanity/integrity bounds to the requested thresholds, scaled Finnhub proxy candles at 5% drift, and replaced the frontend authoritative chart tail point instead of appending a duplicate timestamp.
+- Timestamp: 2026-05-27T15:49:06+08:00

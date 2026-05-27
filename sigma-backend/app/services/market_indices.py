@@ -80,16 +80,16 @@ class IndexQuote:
 
 
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
-    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "^GSPC", "^spx", 5842.15, 0.41, "USD"),
-    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "^IXIC", "^ndq", 18352.04, 0.56, "USD"),
-    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "^DJI", "^dji", 40218.33, 0.24, "USD"),
-    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", None, "000001.SHH", "^shc", 3138.92, -0.18, "CNY"),
-    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "HSI", "^hsi", 19553.61, 0.32, "HKD"),
-    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "N225", "^nkx", 38570.76, -0.12, "JPY"),
-    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", None, "FTSE", "^ukx", 8433.21, 0.21, "GBP"),
-    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", None, "", "^dax", 18772.85, 0.37, "EUR"),
-    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", None, "KS11", "^kospi", 2650.30, 0.45, "KRW"),
-    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", None, "TWII", "^twse", 20500.15, 0.28, "TWD"),
+    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "^GSPC", "^spx", 7500.00, 0.40, "USD"),
+    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "^IXIC", "^ndq", 26500.00, 0.50, "USD"),
+    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "^DJI", "^dji", 50500.00, 0.25, "USD"),
+    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", None, "000001.SHH", "^shc", 4150.00, 0.20, "CNY"),
+    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "HSI", "^hsi", 25600.00, 0.30, "HKD"),
+    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "N225", "^nkx", 64900.00, 0.20, "JPY"),
+    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", "EWU", "FTSE", "^ukx", 10450.00, 0.20, "GBP"),
+    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", "EWG", "", "^dax", 25400.00, 0.35, "EUR"),
+    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", None, "KS11", "^kospi", 8050.00, 0.45, "KRW"),
+    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", None, "TWII", "^twse", 43500.00, 0.30, "TWD"),
 )
 
 
@@ -380,19 +380,19 @@ async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
 
 
 async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] | None:
-    """Read the latest session's 1-minute candle data from Redis."""
+    """Read the latest session's 1-minute candle data from Redis, falling back to PG 15m."""
     from app.services.market_candles import _pg_get_candles, _redis_get_1d
 
     points = await _redis_get_1d(config.symbol)
     if not points:
         pg_points = await _pg_get_candles(config.symbol, "15m", limit=100)
-        if pg_points and len(pg_points) >= 10:
+        if pg_points and len(pg_points) >= 5:
             session_date = _latest_session_date(config)
             zone = ZoneInfo(config.timezone)
             session_points = [
                 point for point in pg_points if point.timestamp.astimezone(zone).date() == session_date
             ]
-            if len(session_points) >= 10:
+            if len(session_points) >= 5:
                 return session_points
             latest_date = pg_points[-1].timestamp.astimezone(zone).date()
             latest_points = [
@@ -591,8 +591,8 @@ def _yahoo_urllib_fetch(url: str, purpose: str, symbol: str, host: str) -> dict[
 
 async def _read_candle_ranges(
     config: IndexConfig,
-    _value: float,
-    _change_pct: float,
+    value: float,
+    change_pct: float,
 ) -> dict[str, MarketSparkline]:
     """Read chart range candles from Redis and PostgreSQL without fetching Yahoo."""
     from app.services.market_candles import _pg_get_candles, _redis_get_5d
@@ -602,7 +602,7 @@ async def _read_candle_ranges(
     data_5d = await _redis_get_5d(config.symbol)
     if not data_5d:
         pg_15m = await _pg_get_candles(config.symbol, "15m", limit=600)
-        if pg_15m and len(pg_15m) >= 20:
+        if pg_15m and len(pg_15m) >= 10:
             data_5d = pg_15m
     if data_5d:
         ranges["5D"] = MarketSparkline(
@@ -612,10 +612,10 @@ async def _read_candle_ranges(
     else:
         ranges["5D"] = MarketSparkline(values=[], times=[])
 
-    for range_key, interval, limit in (
-        ("1M", "15m", 600),
-        ("3M", "60m", 500),
-        ("1Y", "60m", 1800),
+    for range_key, interval, limit, _fallback_points in (
+        ("1M", "15m", 600, 22),
+        ("3M", "60m", 500, 66),
+        ("1Y", "60m", 1800, 252),
     ):
         series = await _pg_get_candles(config.symbol, interval, limit=limit)
         ranges[range_key] = MarketSparkline(

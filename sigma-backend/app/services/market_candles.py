@@ -70,22 +70,21 @@ async def candle_refresh_job() -> None:
         for config in cold_start_pending:
             status = _market_status_beijing(config, now_beijing)
             await _cold_start_fetch(config, status)
-        return
+    else:
+        for config in INDEX_CONFIGS:
+            status = _market_status_beijing(config, now_beijing)
 
-    for config in INDEX_CONFIGS:
-        status = _market_status_beijing(config, now_beijing)
-
-        if status == "not_opened":
-            continue
-        if status == "trading":
-            last = _last_fetch_time.get(config.symbol)
-            now_utc = _now_utc()
-            if last is not None and (now_utc - last).total_seconds() < TRADING_FETCH_INTERVAL:
+            if status == "not_opened":
                 continue
-            await _fetch_and_store_1d_1min(config)
-            _last_fetch_time[config.symbol] = _now_utc()
-            continue
-        await _end_of_day_downsample_if_needed(config)
+            if status == "trading":
+                last = _last_fetch_time.get(config.symbol)
+                now_utc = _now_utc()
+                if last is not None and (now_utc - last).total_seconds() < TRADING_FETCH_INTERVAL:
+                    continue
+                await _fetch_and_store_1d_1min(config)
+                _last_fetch_time[config.symbol] = _now_utc()
+                continue
+            await _end_of_day_downsample_if_needed(config)
 
     now_mono = _time.monotonic()
     if now_mono - _last_health_check >= _DATA_HEALTH_CHECK_INTERVAL:
@@ -118,7 +117,7 @@ async def _cold_start_fetch(config: IndexConfig, status: str) -> None:
     _last_fetch_time[symbol] = _now_utc()
 
 
-async def _cold_start_next_piece(config: IndexConfig, backfill_intraday_gap: bool = False) -> None:
+async def _cold_start_next_piece(config: IndexConfig, backfill_intraday_gap: bool = True) -> None:
     symbol = config.symbol
 
     if not await _redis_has_fresh_1d(config):
@@ -280,7 +279,7 @@ def _candles_are_reasonable(config: IndexConfig, points: list[IntradayPoint]) ->
         return True
     median_candle = statistics.median(point.value for point in points)
     ratio = median_candle / config.fallback_value
-    if ratio > 2.0 or ratio < 0.3:
+    if ratio > 1.8 or ratio < 0.2:
         LOGGER.warning(
             "Discarding suspicious candle data for %s: median=%.2f vs expected ~%.2f (ratio=%.2f)",
             config.symbol,
@@ -294,12 +293,18 @@ def _candles_are_reasonable(config: IndexConfig, points: list[IntradayPoint]) ->
 
 def _has_intraday_gap(config: IndexConfig, points: list[IntradayPoint]) -> bool:
     now = _now_utc()
-    if not _is_trading(config, now):
-        return False
-
     session_date = _latest_session_date(config, now)
-    todays_points = [point for point in points if point.timestamp.astimezone(ZoneInfo(config.timezone)).date() == session_date]
-    expected_count = len(_elapsed_trading_minutes(config, session_date, now))
+    zone = ZoneInfo(config.timezone)
+    todays_points = [
+        point for point in points
+        if point.timestamp.astimezone(zone).date() == session_date
+    ]
+
+    if _is_trading(config, now):
+        expected_count = len(_elapsed_trading_minutes(config, session_date, now))
+    else:
+        expected_count = len(_elapsed_trading_minutes(config, session_date))
+
     if expected_count < INTRADAY_GAP_MIN_EXPECTED_POINTS:
         return False
 
@@ -468,7 +473,7 @@ async def _fetch_finnhub_candles(
             scaling_reference = reference_value if reference_value is not None else config.fallback_value
             median_value = statistics.median(point.value for point in sorted_points)
             scale = scaling_reference / median_value if median_value > 0 else 0
-            if abs(scale - 1.0) > 0.1:
+            if abs(scale - 1.0) > 0.05:
                 sorted_points = [
                     IntradayPoint(timestamp=point.timestamp, value=round(point.value * scale, 2))
                     for point in sorted_points
@@ -567,7 +572,7 @@ async def _check_pg_candle_integrity() -> None:
                 count, min_value, max_value = result.one()
                 if count == 0 or min_value is None or max_value is None:
                     continue
-                if max_value > config.fallback_value * 1.5 or min_value < config.fallback_value * 0.3:
+                if max_value > config.fallback_value * 1.8 or min_value < config.fallback_value * 0.2:
                     await db.execute(
                         delete(MarketCandle).where(
                             MarketCandle.symbol == config.symbol,

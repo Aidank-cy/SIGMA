@@ -198,6 +198,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix market chart baselines, Finnhub proxy scaling thresholds, and closed-market gap backfills so valid index candles are retained across all configured markets.
 - Fix market index charts to use Redis/PostgreSQL candle data only, preserve weekend intraday caches, and show honest loading states instead of generated fallback curves.
 - Fix Finnhub proxy candle scaling to use live index quotes, reject implausible 1D candles, and clean corrupted PostgreSQL candle rows on startup.
 - Fix pre-market market-index charts so Redis can serve the most recent completed session instead of generated fallback lines.

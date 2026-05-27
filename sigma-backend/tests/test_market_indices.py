@@ -266,6 +266,24 @@ def test_us_indices_use_index_symbols_for_alpha_vantage() -> None:
     assert configs["DJI"].finnhub_proxy_symbol == "DIA"
 
 
+def test_market_index_fallback_baselines_match_current_ranges() -> None:
+    """Fallback baselines stay close enough to real index ranges for candle sanity checks."""
+    configs = {config.symbol: config for config in market_indices.INDEX_CONFIGS}
+
+    assert configs["SPX"].fallback_value == pytest.approx(7500.00)
+    assert configs["IXIC"].fallback_value == pytest.approx(26500.00)
+    assert configs["DJI"].fallback_value == pytest.approx(50500.00)
+    assert configs["SSE"].fallback_value == pytest.approx(4150.00)
+    assert configs["HSI"].fallback_value == pytest.approx(25600.00)
+    assert configs["N225"].fallback_value == pytest.approx(64900.00)
+    assert configs["FTSE"].fallback_value == pytest.approx(10450.00)
+    assert configs["DAX"].fallback_value == pytest.approx(25400.00)
+    assert configs["KOSPI"].fallback_value == pytest.approx(8050.00)
+    assert configs["TAIEX"].fallback_value == pytest.approx(43500.00)
+    assert configs["FTSE"].finnhub_proxy_symbol == "EWU"
+    assert configs["DAX"].finnhub_proxy_symbol == "EWG"
+
+
 @pytest.mark.asyncio
 async def test_build_index_discards_suspiciously_small_quote(
     monkeypatch: pytest.MonkeyPatch,
@@ -1393,9 +1411,28 @@ async def test_trading_fetch_backfills_sparse_1d_from_5d(monkeypatch: pytest.Mon
     assert stored_count == 61
 
 
+def test_has_intraday_gap_checks_closed_market_full_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Closed markets still trigger gap backfill when cached intraday data is partial."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 26, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            4150.0 + offset,
+        )
+        for offset in range(20)
+    ]
+
+    closed_time = datetime(2026, 5, 26, 8, 0, tzinfo=UTC)
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: closed_time)
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: closed_time)
+
+    assert market_candles._is_trading(sse, closed_time) is False
+    assert market_candles._has_intraday_gap(sse, points) is True
+
+
 @pytest.mark.asyncio
 async def test_fetch_and_store_1d_uses_finnhub_when_yahoo_fails(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Yahoo 1D failures fall back to Finnhub candles before generated chart data is needed."""
+    """Yahoo 1D failures fall back to Finnhub candles before chart data is left empty."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     point = market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 6000.0)
     calls: list[str] = []
@@ -1423,6 +1460,7 @@ async def test_fetch_and_store_1d_uses_finnhub_when_yahoo_fails(monkeypatch: pyt
     monkeypatch.setattr(market_candles, "_fetch_candle_reference_value", fake_reference)
     monkeypatch.setattr(market_candles, "_fetch_finnhub_candles", fake_finnhub)
     monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
+    monkeypatch.setattr(market_candles, "_has_intraday_gap", lambda _config, _points: False)
 
     stored_count = await market_candles._fetch_and_store_1d_1min(spx)
 
@@ -1518,6 +1556,7 @@ async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
     monkeypatch.setattr(market_candles, "_redis_has_fresh_5d", fake_has_5d)
     monkeypatch.setattr(market_candles, "_pg_has_interval", fake_has_interval)
     monkeypatch.setattr(market_candles, "_filter_today", lambda _config, points: points)
+    monkeypatch.setattr(market_candles, "_has_intraday_gap", lambda _config, _points: False)
 
     for _ in range(5):
         await market_candles._cold_start_next_piece(spx)
@@ -1568,7 +1607,7 @@ async def test_cold_start_resets_failed_steps_when_no_data_was_stored(
     for _ in range(41):
         await market_candles._cold_start_next_piece(spx)
 
-    assert calls.count("1d:False") == 10
+    assert calls.count("1d:True") == 10
     assert calls.count("1m:5d") == 10
     assert calls.count("15m:1mo") == 10
     assert calls.count("60m:1y") == 10
