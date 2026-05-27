@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -766,11 +767,32 @@ async def test_yahoo_backoff_logs_warning(monkeypatch: pytest.MonkeyPatch, caplo
     assert "Yahoo backoff active, 60s remaining — candle fetch skipped." in caplog.text
 
 
+@pytest.mark.asyncio
+async def test_yahoo_crumb_cancelled_error_is_suppressed(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Cancelled crumb fetches do not escape into scheduler refresh jobs."""
+
+    async def fake_to_thread(_func: object) -> None:
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(market_indices.asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb", None)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 0.0)
+    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+
+    await market_indices._ensure_yahoo_crumb()
+
+    assert "Yahoo crumb fetch was cancelled; continuing without crumb." in caplog.text
+
+
 def test_yahoo_crumb_sync_fetches_cookie_and_crumb(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     """Yahoo crumb initialization stores the cookie jar and logs success."""
     import urllib.request
 
     opened_urls: list[str] = []
+    timeouts: list[int] = []
 
     class FakeResponse:
         def __init__(self, body: bytes = b"") -> None:
@@ -788,6 +810,7 @@ def test_yahoo_crumb_sync_fetches_cookie_and_crumb(monkeypatch: pytest.MonkeyPat
     class FakeOpener:
         def open(self, request: urllib.request.Request, timeout: int) -> FakeResponse:
             opened_urls.append(request.full_url)
+            timeouts.append(timeout)
             if "getcrumb" in request.full_url:
                 return FakeResponse(b"crumb-value")
             return FakeResponse()
@@ -802,10 +825,69 @@ def test_yahoo_crumb_sync_fetches_cookie_and_crumb(monkeypatch: pytest.MonkeyPat
     market_indices._ensure_yahoo_crumb_sync()
 
     assert opened_urls == ["https://fc.yahoo.com/", "https://query2.finance.yahoo.com/v1/test/getcrumb"]
+    assert timeouts == [5, 5]
     assert market_indices._yahoo_crumb == "crumb-value"
     assert market_indices._yahoo_cookie_jar is not None
     assert market_indices._yahoo_crumb_expires == pytest.approx(3700.0)
     assert "Yahoo crumb obtained successfully" in caplog.text
+
+
+def test_yahoo_crumb_sync_ignores_fc_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fc.yahoo.com failures do not block the fallback crumb endpoint."""
+    import urllib.request
+
+    opened_urls: list[str] = []
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b"crumb-after-fc-error"
+
+    class FakeOpener:
+        def open(self, request: urllib.request.Request, timeout: int) -> FakeResponse:
+            opened_urls.append(request.full_url)
+            if request.full_url == "https://fc.yahoo.com/":
+                raise OSError("fc unavailable")
+            return FakeResponse()
+
+    monkeypatch.setattr(market_indices.urllib.request, "build_opener", lambda *_args: FakeOpener())
+    monkeypatch.setattr(market_indices._time, "monotonic", lambda: 100.0)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb", None)
+    monkeypatch.setattr(market_indices, "_yahoo_cookie_jar", None)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 0.0)
+
+    market_indices._ensure_yahoo_crumb_sync()
+
+    assert opened_urls == ["https://fc.yahoo.com/", "https://query2.finance.yahoo.com/v1/test/getcrumb"]
+    assert market_indices._yahoo_crumb == "crumb-after-fc-error"
+
+
+def test_yahoo_crumb_sync_logs_and_suppresses_crumb_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Crumb endpoint network errors are logged but never raised."""
+    import urllib.request
+
+    class FakeOpener:
+        def open(self, _request: urllib.request.Request, timeout: int) -> object:
+            raise OSError("network down")
+
+    monkeypatch.setattr(market_indices.urllib.request, "build_opener", lambda *_args: FakeOpener())
+    monkeypatch.setattr(market_indices, "_yahoo_crumb", None)
+    monkeypatch.setattr(market_indices, "_yahoo_cookie_jar", None)
+    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 0.0)
+    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+
+    market_indices._ensure_yahoo_crumb_sync()
+
+    assert market_indices._yahoo_crumb is None
+    assert "Yahoo crumb fetch failed: OSError: network down" in caplog.text
 
 
 def test_yahoo_urllib_fetch_uses_cookie_jar_and_crumb(monkeypatch: pytest.MonkeyPatch) -> None:
