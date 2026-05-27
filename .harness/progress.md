@@ -1913,3 +1913,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with targeted backend Ruff, focused market-index tests, and full backend pytest. `./hooks/post-file-edit.sh` is blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: SPX, IXIC, and DJI Alpha Vantage symbols now use actual index symbols while Finnhub proxy ETF symbols remain unchanged. `_build_index()` now rejects quotes below 50% of configured index baseline and sanitizes implausible previous-close values before change percentages or fallback sparklines can be rendered.
 - Timestamp: 2026-05-27T01:49:38Z
+
+### [Maintenance] Sub-feature: Finnhub candle fallback and cold-start recovery
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with targeted backend Ruff, focused market-index tests, and full backend pytest. `./hooks/post-file-edit.sh` is blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Yahoo 1D candle failures now fall back to Finnhub `/stock/candle` with per-symbol throttling, cold-start stages skip forward after three failed attempts, Yahoo backoff skips log at warning level, and low-change generated intraday fallbacks use smooth interpolation to avoid fake chart cliffs.
+- Timestamp: 2026-05-27T02:36:30Z

@@ -401,7 +401,7 @@ async def _yahoo_rate_limit_wait() -> bool:
 
     now = _time.monotonic()
     if now < _yahoo_backoff_until:
-        LOGGER.debug("Yahoo backoff active, %.0fs remaining", _yahoo_backoff_until - now)
+        LOGGER.warning("Yahoo backoff active, %.0fs remaining — candle fetch skipped.", _yahoo_backoff_until - now)
         return False
     elapsed = now - _yahoo_last_request_time
     if elapsed < _yahoo_min_interval:
@@ -643,17 +643,23 @@ def _fallback_intraday_series(config: IndexConfig, value: float, change_pct: flo
     if num_points <= 1:
         return [IntradayPoint(timestamp=timestamps[0], value=round(value, 2))]
 
-    rng = random.Random(f"{config.symbol}:{session_date.isoformat()}")
-    current = start
-    volatility = value * 0.0003
-    lower_bound = value * 0.95
-    upper_bound = value * 1.05
-    points: list[float] = []
-    for index in range(num_points):
-        drift = ((value - current) / max(num_points - index, 1)) * 0.5
-        current += drift + rng.gauss(0, volatility)
-        current = max(lower_bound, min(upper_bound, current))
-        points.append(round(current, 2))
+    if abs(change_pct) < 2.0:
+        points = [
+            round(start + (value - start) * (index / (num_points - 1)), 2)
+            for index in range(num_points)
+        ]
+    else:
+        rng = random.Random(f"{config.symbol}:{session_date.isoformat()}")
+        current = start
+        volatility = value * 0.0003
+        lower_bound = value * 0.95
+        upper_bound = value * 1.05
+        points = []
+        for index in range(num_points):
+            drift = ((value - current) / max(num_points - index, 1)) * 0.5
+            current += drift + rng.gauss(0, volatility)
+            current = max(lower_bound, min(upper_bound, current))
+            points.append(round(current, 2))
     points[-1] = round(value, 2)
     return [
         IntradayPoint(timestamp=timestamp, value=point)

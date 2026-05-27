@@ -417,6 +417,23 @@ def test_intraday_fallback_only_generates_elapsed_minutes_during_trading(
     assert len({point.value for point in points}) > 10
 
 
+def test_intraday_fallback_uses_smooth_line_for_small_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Generated low-change fallback charts avoid random cliffs when providers are unavailable."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 2, 0, tzinfo=UTC))
+
+    points = market_indices._fallback_intraday_series(sse, 3200.0, 0.5)
+    deltas = [
+        round(points[index].value - points[index - 1].value, 2)
+        for index in range(1, len(points))
+    ]
+
+    assert points[-1].value == pytest.approx(3200.0)
+    assert len(set(deltas)) <= 2
+
+
 @pytest.mark.asyncio
 async def test_read_intraday_from_redis_requires_enough_points(monkeypatch: pytest.MonkeyPatch) -> None:
     """Market-index refresh reads intraday points from Redis instead of providers."""
@@ -731,6 +748,19 @@ async def test_yahoo_chart_result_backs_off_on_429(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.asyncio
+async def test_yahoo_backoff_logs_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    """Yahoo backoff skips are visible in warning logs."""
+    monkeypatch.setattr(market_indices._time, "monotonic", lambda: 10.0)
+    monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 70.0)
+    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+
+    can_fetch = await market_indices._yahoo_rate_limit_wait()
+
+    assert can_fetch is False
+    assert "Yahoo backoff active, 60s remaining — candle fetch skipped." in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_refresh_market_indices_throttles_between_index_builds(monkeypatch: pytest.MonkeyPatch) -> None:
     """Refresh cycles still space index builds to avoid provider bursts."""
     configs = market_indices.INDEX_CONFIGS[:3]
@@ -876,6 +906,76 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_finnhub_candle_fallback_filters_regular_session_points(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Finnhub candle fallback reads one-minute candles and keeps exchange-session points."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    captured_params: dict[str, str] = {}
+    session_epoch = int(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ).timestamp())
+    premarket_epoch = int(datetime(2026, 5, 18, 20, 30, tzinfo=market_indices.BEIJING_TZ).timestamp())
+
+    class FakeResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"s": "ok", "c": [5990.0, 6000.0], "t": [premarket_epoch, session_epoch]}
+
+    class FakeClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        async def __aenter__(self) -> "FakeClient":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def get(self, _url: str, params: dict[str, str]) -> FakeResponse:
+            captured_params.update(params)
+            return FakeResponse()
+
+    monkeypatch.setenv("FINNHUB_KEY", "token")
+    monkeypatch.setattr(market_candles.httpx, "AsyncClient", FakeClient)
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 22, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_candles._time, "monotonic", lambda: 1000.0)
+    market_candles._finnhub_candle_last_fetch.clear()
+    caplog.set_level("INFO", logger=market_candles.LOGGER.name)
+
+    points = await market_candles._fetch_finnhub_candles(spx)
+
+    assert points is not None
+    assert len(points) == 1
+    assert points[0].value == pytest.approx(6000.0)
+    assert captured_params["symbol"] == spx.finnhub_symbol
+    assert captured_params["resolution"] == "1"
+    assert captured_params["token"] == "token"
+    assert "Finnhub candle fallback provided 1 points for SPX" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_finnhub_candle_fallback_obeys_symbol_rate_limit(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Finnhub candle fallback does not call the same symbol more than once per minute."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+
+    monkeypatch.setenv("FINNHUB_KEY", "token")
+    monkeypatch.setattr(market_candles._time, "monotonic", lambda: 1050.0)
+    market_candles._finnhub_candle_last_fetch.clear()
+    market_candles._finnhub_candle_last_fetch[spx.symbol] = 1000.0
+    caplog.set_level("WARNING", logger=market_candles.LOGGER.name)
+
+    points = await market_candles._fetch_finnhub_candles(spx)
+
+    assert points is None
+    assert "Finnhub candle fallback for SPX skipped by per-symbol rate limit." in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_trading_fetch_backfills_sparse_1d_from_5d(monkeypatch: pytest.MonkeyPatch) -> None:
     """A mid-session Redis loss backfills today's 1D candles from Yahoo 5D data."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
@@ -923,6 +1023,36 @@ async def test_trading_fetch_backfills_sparse_1d_from_5d(monkeypatch: pytest.Mon
     assert calls == ["1m:1d", "1m:5d"]
     assert stored_lengths == [61]
     assert stored_count == 61
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_store_1d_uses_finnhub_when_yahoo_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Yahoo 1D failures fall back to Finnhub candles before generated chart data is needed."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    point = market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 6000.0)
+    calls: list[str] = []
+    stored_lengths: list[int] = []
+
+    async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> None:
+        calls.append(f"yahoo:{interval}:{range_}")
+        return None
+
+    async def fake_finnhub(_config: market_indices.IndexConfig) -> list[market_indices.IntradayPoint]:
+        calls.append("finnhub")
+        return [point]
+
+    async def fake_set_1d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+        stored_lengths.append(len(points))
+
+    monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
+    monkeypatch.setattr(market_candles, "_fetch_finnhub_candles", fake_finnhub)
+    monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
+
+    stored_count = await market_candles._fetch_and_store_1d_1min(spx)
+
+    assert calls == ["yahoo:1m:1d", "finnhub"]
+    assert stored_lengths == [1]
+    assert stored_count == 1
 
 
 @pytest.mark.asyncio
@@ -994,6 +1124,49 @@ async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
         "upsert:60m:1",
     ]
     assert market_candles._cold_start_done[spx.symbol] is True
+
+
+@pytest.mark.asyncio
+async def test_cold_start_skips_failed_steps_after_three_attempts(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Cold start falls through failed steps so one broken symbol cannot block the queue forever."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
+    calls: list[str] = []
+
+    async def fake_fetch_1d(_config: market_indices.IndexConfig, backfill_intraday_gap: bool = False) -> int:
+        calls.append(f"1d:{backfill_intraday_gap}")
+        return 0
+
+    async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> None:
+        calls.append(f"{interval}:{range_}")
+        return None
+
+    async def fake_false(*_args: object) -> bool:
+        return False
+
+    market_candles._cold_start_attempts.clear()
+    market_candles._cold_start_done.clear()
+    monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch_1d)
+    monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
+    monkeypatch.setattr(market_candles, "_redis_has_1d", fake_false)
+    monkeypatch.setattr(market_candles, "_redis_has_5d", fake_false)
+    monkeypatch.setattr(market_candles, "_pg_has_interval", fake_false)
+    caplog.set_level("WARNING", logger=market_candles.LOGGER.name)
+
+    for _ in range(13):
+        await market_candles._cold_start_next_piece(spx)
+
+    assert calls.count("1d:False") == 3
+    assert calls.count("1m:5d") == 3
+    assert calls.count("15m:1mo") == 3
+    assert calls.count("60m:1y") == 3
+    assert market_candles._cold_start_done[spx.symbol] is True
+    assert "Skipping 1D cold start for SPX after 3 failed attempts." in caplog.text
+    assert "Skipping 60m cold start for SPX after 3 failed attempts." in caplog.text
+    market_candles._cold_start_attempts.clear()
+    market_candles._cold_start_done.clear()
 
 
 @pytest.mark.asyncio

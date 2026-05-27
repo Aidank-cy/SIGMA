@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add a rate-limited Finnhub intraday candle fallback when Yahoo one-day candles are unavailable.
 - Add SMTP delivery for verification emails when Resend is not configured.
 - Add Resend-backed verification emails for password resets and registration codes.
 - Add two-step registration verification endpoints and frontend code-entry flow.
@@ -196,6 +197,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix market candle cold starts so repeated provider failures skip failed stages instead of blocking later symbols.
+- Fix Yahoo candle backoff visibility and smooth low-change fallback sparklines to avoid fake chart cliffs.
 - Fix US market-index quote fallbacks so ETF-level Alpha Vantage prices cannot leak into SPX, Nasdaq, or Dow charts.
 - Fix market index chart endpoints and tooltips so filtered intraday data, fallback sparklines, and displayed prices stay aligned.
 - Fix market index display values so real Redis intraday candles keep price and change percentages aligned with chart data when provider quotes are stale.
