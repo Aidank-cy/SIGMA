@@ -1906,3 +1906,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with targeted backend Ruff, focused market-index tests, full backend pytest, and frontend build. `./hooks/post-file-edit.sh` is blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Backend fallback intraday series now pins the final point to the authoritative value, timestamped quotes can remain authoritative over older Redis intraday data, frontend intraday filtering appends an authoritative endpoint anchor, and the hero tooltip reads the chart payload value.
 - Timestamp: 2026-05-27T01:28:34Z
+
+### [Maintenance] Sub-feature: US index ETF quote guard
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with targeted backend Ruff, focused market-index tests, and full backend pytest. `./hooks/post-file-edit.sh` is blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: SPX, IXIC, and DJI Alpha Vantage symbols now use actual index symbols while Finnhub proxy ETF symbols remain unchanged. `_build_index()` now rejects quotes below 50% of configured index baseline and sanitizes implausible previous-close values before change percentages or fallback sparklines can be rendered.
+- Timestamp: 2026-05-27T01:49:38Z
