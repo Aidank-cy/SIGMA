@@ -608,9 +608,51 @@ async def test_read_intraday_from_redis_rejects_sparse_closed_session(monkeypatc
     async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
         return redis_points
 
+    async def fake_history_fallback(_config: market_indices.IndexConfig) -> None:
+        return None
+
     monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
+    monkeypatch.setattr(market_indices, "_read_intraday_history_fallback", fake_history_fallback)
 
     assert await market_indices._read_intraday_from_redis(sse) is None
+
+
+@pytest.mark.asyncio
+async def test_read_intraday_from_redis_recovers_sparse_closed_session_from_5d(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Sparse closed-session 1D Redis data is replaced by complete 5D Redis data."""
+    kospi = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "KOSPI")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 27, 7, 0, tzinfo=UTC))
+    sparse_1d = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 27, 8, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3000.0 + offset,
+        )
+        for offset in range(25)
+    ]
+    full_5d = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 27, 8, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3100.0 + offset,
+        )
+        for offset in range(361)
+    ]
+
+    async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return sparse_1d
+
+    async def fake_get_5d(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return full_5d
+
+    async def fake_pg_get(_symbol: str, _interval: str, _limit: int) -> list[market_indices.IntradayPoint]:
+        raise AssertionError("5D Redis should satisfy the closed-market fallback")
+
+    monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
+    monkeypatch.setattr(market_candles, "_redis_get_5d", fake_get_5d)
+    monkeypatch.setattr(market_candles, "_pg_get_candles", fake_pg_get)
+
+    assert await market_indices._read_intraday_from_redis(kospi) == full_5d
 
 
 @pytest.mark.asyncio
@@ -1262,6 +1304,35 @@ async def test_candle_job_processes_pending_cold_start_symbols_in_batches(
     await market_candles.candle_refresh_job()
 
     assert calls == [config.symbol for config in configs[:market_candles._COLD_START_BATCH_SIZE]]
+
+
+@pytest.mark.asyncio
+async def test_candle_job_runs_cold_start_batch_concurrently(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Cold-start candle refresh can process two symbols at the same time."""
+    configs = tuple(market_indices.INDEX_CONFIGS[:2])
+    active = 0
+    max_active = 0
+
+    async def fake_cold_start_fetch(_config: market_indices.IndexConfig, _status: str) -> None:
+        nonlocal active, max_active
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0.01)
+        active -= 1
+
+    market_candles._cold_start_done.clear()
+    market_candles._last_fetch_time.clear()
+    market_candles._last_health_check = market_candles._time.monotonic()
+    monkeypatch.setattr(market_indices, "INDEX_CONFIGS", configs)
+    monkeypatch.setattr(market_candles, "INDEX_CONFIGS", configs)
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_cold_start_fetch", fake_cold_start_fetch)
+
+    await market_candles.candle_refresh_job()
+
+    assert max_active == 2
+    market_candles._last_health_check = 0.0
 
 
 @pytest.mark.asyncio

@@ -28,11 +28,12 @@ YAHOO_CHART_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
 YAHOO_HEADERS = {
     "User-Agent": "Mozilla/5.0",
 }
-_yahoo_semaphore = asyncio.Semaphore(1)
-_yahoo_min_interval = 1.0
+_yahoo_semaphore = asyncio.Semaphore(2)
+_yahoo_min_interval = 0.5
 _yahoo_last_request_time = 0.0
 _yahoo_backoff_until = 0.0
 _yahoo_consecutive_429s = 0
+_yahoo_rate_limit_lock = asyncio.Lock()
 _yahoo_crumb: str | None = None
 _yahoo_cookie_jar: http.cookiejar.CookieJar | None = None
 _yahoo_crumb_expires = 0.0
@@ -381,30 +382,18 @@ async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
 
 async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] | None:
     """Read the latest session's 1-minute candle data from Redis, falling back to PG 15m."""
-    from app.services.market_candles import _pg_get_candles, _redis_get_1d
+    from app.services.market_candles import _redis_get_1d
 
     points = await _redis_get_1d(config.symbol)
     if not points:
-        pg_points = await _pg_get_candles(config.symbol, "15m", limit=100)
-        if pg_points and len(pg_points) >= 5:
-            session_date = _latest_session_date(config)
-            zone = ZoneInfo(config.timezone)
-            session_points = [
-                point for point in pg_points if point.timestamp.astimezone(zone).date() == session_date
-            ]
-            if len(session_points) >= 5:
-                return session_points
-            latest_date = pg_points[-1].timestamp.astimezone(zone).date()
-            latest_points = [
-                point for point in pg_points if point.timestamp.astimezone(zone).date() == latest_date
-            ]
-            if len(latest_points) >= 5:
-                return latest_points
-        return None
+        return await _read_intraday_history_fallback(config)
 
     now = _now_utc()
     if not _is_trading(config, now):
-        return points if len(points) >= 30 else None
+        if len(points) >= 30:
+            return points
+        fallback = await _read_intraday_history_fallback(config)
+        return fallback if fallback is not None else None
 
     session_date = _latest_session_date(config)
     zone = ZoneInfo(config.timezone)
@@ -414,22 +403,55 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
     return current_session_points if len(current_session_points) >= 10 else None
 
 
+async def _read_intraday_history_fallback(config: IndexConfig) -> list[IntradayPoint] | None:
+    """Recover a latest-session intraday chart from 5D Redis or PostgreSQL candles."""
+    from app.services.market_candles import _pg_get_candles, _redis_get_5d
+
+    five_day_points = await _redis_get_5d(config.symbol)
+    five_day_session = _latest_session_points(config, five_day_points, min_points=30)
+    if five_day_session is not None:
+        return five_day_session
+
+    pg_points = await _pg_get_candles(config.symbol, "15m", limit=100)
+    return _latest_session_points(config, pg_points, min_points=5)
+
+
+def _latest_session_points(
+    config: IndexConfig,
+    points: list[IntradayPoint] | None,
+    min_points: int,
+) -> list[IntradayPoint] | None:
+    if not points:
+        return None
+
+    zone = ZoneInfo(config.timezone)
+    session_date = _latest_session_date(config)
+    session_points = [point for point in points if point.timestamp.astimezone(zone).date() == session_date]
+    if len(session_points) >= min_points:
+        return session_points
+
+    latest_date = points[-1].timestamp.astimezone(zone).date()
+    latest_points = [point for point in points if point.timestamp.astimezone(zone).date() == latest_date]
+    return latest_points if len(latest_points) >= min_points else None
+
+
 async def _yahoo_rate_limit_wait() -> bool:
     """Wait for Yahoo rate-limit clearance, returning False while in backoff."""
     global _yahoo_consecutive_429s, _yahoo_last_request_time
 
     await _ensure_yahoo_crumb()
-    now = _time.monotonic()
-    if now < _yahoo_backoff_until:
-        LOGGER.warning("Yahoo backoff active, %.0fs remaining — candle fetch skipped.", _yahoo_backoff_until - now)
-        return False
-    if _yahoo_consecutive_429s > 0 and now >= _yahoo_backoff_until:
-        _yahoo_consecutive_429s = 0
-    elapsed = now - _yahoo_last_request_time
-    if elapsed < _yahoo_min_interval:
-        await asyncio.sleep(_yahoo_min_interval - elapsed)
-    _yahoo_last_request_time = _time.monotonic()
-    return True
+    async with _yahoo_rate_limit_lock:
+        now = _time.monotonic()
+        if now < _yahoo_backoff_until:
+            LOGGER.warning("Yahoo backoff active, %.0fs remaining — candle fetch skipped.", _yahoo_backoff_until - now)
+            return False
+        if _yahoo_consecutive_429s > 0 and now >= _yahoo_backoff_until:
+            _yahoo_consecutive_429s = 0
+        elapsed = now - _yahoo_last_request_time
+        if elapsed < _yahoo_min_interval:
+            await asyncio.sleep(_yahoo_min_interval - elapsed)
+        _yahoo_last_request_time = _time.monotonic()
+        return True
 
 
 def _yahoo_on_429() -> None:

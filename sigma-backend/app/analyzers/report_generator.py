@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, time, timezone
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,8 @@ from app.models.enums import IntelligenceCategory, LLMFunctionType, Market, Repo
 from app.models.report import Report
 from app.services.report_settings import get_report_max_tokens_for_type, report_type_label
 from app.utils.event_hooks import notify_new_report
+
+BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 
 
 async def generate_report(
@@ -42,7 +45,7 @@ async def generate_report(
     )
     report = Report(
         report_type=resolved_type,
-        title=f"{resolved_type.value.title()} Intelligence Report",
+        title=_report_title(resolved_type, end),
         content=content,
         market_scope=market_scope,
         category_scope=category_scope,
@@ -148,6 +151,19 @@ def _period_end_datetime(value: date | datetime) -> datetime:
     if isinstance(value, datetime):
         return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
     return datetime.combine(value, time.max, tzinfo=timezone.utc)
+
+
+def _report_title(report_type: ReportType, period_end: datetime) -> str:
+    local_end = period_end.astimezone(BEIJING_TZ)
+    if report_type == ReportType.MONTHLY:
+        return f"{local_end:%m/%Y} Monthly Report"
+    labels = {
+        ReportType.DAILY_MORNING: "Daily Morning",
+        ReportType.DAILY_AFTERNOON: "Daily Afternoon",
+        ReportType.DAILY: "Daily",
+        ReportType.WEEKLY: "Weekly",
+    }
+    return f"{local_end:%d/%m/%Y} {labels[report_type]} Report"
 
 
 def _sentiment_score(items: list[CollectedItem]) -> float:
