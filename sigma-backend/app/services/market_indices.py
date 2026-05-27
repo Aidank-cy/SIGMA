@@ -70,6 +70,7 @@ class IndexQuote:
     current: float
     change_pct: float
     previous_close: float
+    timestamp: datetime | None = None
 
 
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
@@ -152,12 +153,15 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
         )
         intraday = _fallback_intraday_series(config, value, change_pct)
     elif intraday:
-        value = intraday[-1].value
+        intraday_last = intraday[-1]
+        use_intraday_value = quote is None or quote.timestamp is None or intraday_last.timestamp >= quote.timestamp
+        if use_intraday_value:
+            value = intraday_last.value
         if quote is None:
             previous_close = intraday[0].value
-        if previous_close > 0:
+        if use_intraday_value and previous_close > 0:
             change_pct = ((value - previous_close) / previous_close) * 100
-        else:
+        elif use_intraday_value:
             first_value = intraday[0].value
             change_pct = ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
     if len(intraday) < 30:
@@ -221,7 +225,12 @@ async def _fetch_finnhub_quote(config: IndexConfig) -> IndexQuote | None:
                 config.finnhub_proxy_symbol,
                 config.symbol,
             )
-            return IndexQuote(current=current, change_pct=change_pct, previous_close=config.fallback_value)
+            return IndexQuote(
+                current=current,
+                change_pct=change_pct,
+                previous_close=config.fallback_value,
+                timestamp=proxy_quote.timestamp,
+            )
     return None
 
 
@@ -248,7 +257,12 @@ async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> IndexQuote | N
     previous = _as_float(payload.get("pc"))
     if current is None or previous is None or current <= 0 or previous <= 0:
         return None
-    return IndexQuote(current=current, change_pct=((current - previous) / previous) * 100, previous_close=previous)
+    return IndexQuote(
+        current=current,
+        change_pct=((current - previous) / previous) * 100,
+        previous_close=previous,
+        timestamp=_timestamp_from_epoch(payload.get("t")),
+    )
 
 
 async def _fetch_alpha_vantage_quote(config: IndexConfig) -> IndexQuote | None:
@@ -317,7 +331,12 @@ async def _fetch_stooq_quote(config: IndexConfig) -> IndexQuote | None:
     previous = _as_float(rows[0].get("Prev"))
     if current is None or previous is None or current <= 0 or previous <= 0:
         return None
-    return IndexQuote(current=current, change_pct=((current - previous) / previous) * 100, previous_close=previous)
+    return IndexQuote(
+        current=current,
+        change_pct=((current - previous) / previous) * 100,
+        previous_close=previous,
+        timestamp=_timestamp_from_exchange_fields(config, rows[0].get("Date"), rows[0].get("Time")),
+    )
 
 
 async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
@@ -335,6 +354,7 @@ async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
         current=current,
         change_pct=((current - first) / first) * 100,
         previous_close=first,
+        timestamp=points[-1].timestamp,
     )
 
 
@@ -624,6 +644,7 @@ def _fallback_intraday_series(config: IndexConfig, value: float, change_pct: flo
         current += drift + rng.gauss(0, volatility)
         current = max(lower_bound, min(upper_bound, current))
         points.append(round(current, 2))
+    points[-1] = round(value, 2)
     return [
         IntradayPoint(timestamp=timestamp, value=point)
         for timestamp, point in zip(timestamps, points, strict=True)
@@ -762,6 +783,31 @@ def _as_float(value: object) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _timestamp_from_epoch(value: object) -> datetime | None:
+    epoch = _as_float(value)
+    if epoch is None or epoch <= 0:
+        return None
+    return datetime.fromtimestamp(epoch, tz=UTC)
+
+
+def _timestamp_from_exchange_fields(config: IndexConfig, date_value: object, time_value: object) -> datetime | None:
+    date_text = str(date_value or "").strip()
+    time_text = str(time_value or "").strip()
+    if not date_text or not time_text or date_text.upper() == "N/D" or time_text.upper() == "N/D":
+        return None
+    try:
+        local_date = date.fromisoformat(date_text)
+        time_parts = time_text.split(":")
+        local_time = time(
+            hour=int(time_parts[0]),
+            minute=int(time_parts[1]) if len(time_parts) > 1 else 0,
+            second=int(time_parts[2]) if len(time_parts) > 2 else 0,
+        )
+    except (TypeError, ValueError):
+        return None
+    return datetime.combine(local_date, local_time, tzinfo=ZoneInfo(config.timezone))
 
 
 async def _cache_get() -> str | None:

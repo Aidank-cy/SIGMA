@@ -383,6 +383,17 @@ function tradingDayPosition(
   return dayIndex + intradayProgress(timestamp, sessions, timeZone);
 }
 
+function appendAuthoritativeLastPoint(points: MarketChartPoint[], value: number): MarketChartPoint[] {
+  if (points.length === 0 || !Number.isFinite(value)) {
+    return points;
+  }
+  const lastPoint = points[points.length - 1];
+  if (Math.abs(lastPoint.value - value) < 0.005) {
+    return points;
+  }
+  return [...points, { ...lastPoint, value }];
+}
+
 export function toIntradayChartData(index: MarketIndex, now = new Date(), clearPreMarket = true): MarketChartPoint[] {
   if (clearPreMarket && isPreMarketClearWindow(index.trading_hours, now)) {
     return [];
@@ -414,8 +425,9 @@ export function toIntradayChartData(index: MarketIndex, now = new Date(), clearP
         value: point
       }];
     });
-    if (points.length > 0 || !isTrading) {
-      return points;
+    const anchoredPoints = appendAuthoritativeLastPoint(points, index.value);
+    if (anchoredPoints.length > 0 || !isTrading) {
+      return anchoredPoints;
     }
   }
 

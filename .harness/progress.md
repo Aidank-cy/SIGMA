@@ -218,7 +218,6 @@ _This file is read at the start of each agent session and updated after each sub
 ### [Maintenance] Sub-feature: Sync recency filter
 - Status: COMPLETE
 - Files modified: sigma-backend/app/collectors/normalizer.py, sigma-backend/tests/test_collectors.py, CHANGELOG.md, .harness/progress.md
-
 - Tests: PASS
 - Notes: Normalization now skips raw source items with `published_at` older than 30 days before persistence. Verified with `./hooks/post-file-edit.sh` and `python3 -m pytest --tb=short -q`.
 - Timestamp: 2026-05-23T00:00:00Z
@@ -1900,3 +1899,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Market index numeric values now follow the latest real Redis intraday candle whenever available, even if a quote provider returns a stale quote. Change percentage is recomputed from the quote previous close, or the first intraday point when no quote exists, so Dashboard and Markets values match the rendered chart line.
 - Verification: `python3 -m ruff check app/services/market_indices.py tests/test_market_indices.py`, `python3 -m pytest tests/test_market_indices.py --tb=short -q`, `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff errors in `sigma-backend/scripts/test_report_pipeline.py`.
 - Timestamp: 2026-05-26T18:32:34+08:00
+
+### [Maintenance] Sub-feature: Index chart price consistency
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/dashboard/hero-chart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with targeted backend Ruff, focused market-index tests, full backend pytest, and frontend build. `./hooks/post-file-edit.sh` is blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Backend fallback intraday series now pins the final point to the authoritative value, timestamped quotes can remain authoritative over older Redis intraday data, frontend intraday filtering appends an authoritative endpoint anchor, and the hero tooltip reads the chart payload value.
+- Timestamp: 2026-05-27T01:28:34Z

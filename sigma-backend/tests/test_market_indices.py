@@ -323,6 +323,7 @@ def test_intraday_fallback_only_generates_elapsed_minutes_during_trading(
 
     assert points[0].timestamp.isoformat().endswith("09:30:00+08:00")
     assert points[-1].timestamp.isoformat().endswith("10:00:00+08:00")
+    assert points[-1].value == pytest.approx(3200.0)
     assert len(points) == 31
     assert points == market_indices._fallback_intraday_series(sse, 3200.0, 1.0)
     assert len({point.value for point in points}) > 10
@@ -492,7 +493,7 @@ async def test_build_index_is_yahoo_free(monkeypatch: pytest.MonkeyPatch) -> Non
 async def test_build_index_syncs_value_to_real_intraday_when_quote_is_stale(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Displayed values follow real Redis intraday candles even when a quote exists."""
+    """Displayed values follow real Redis intraday candles when the quote has no fresher timestamp."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     redis_points = [
         market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3000.0),
@@ -533,6 +534,52 @@ async def test_build_index_syncs_value_to_real_intraday_when_quote_is_stale(
     assert len(range_inputs) == 1
     assert range_inputs[0][0] == pytest.approx(3030.0)
     assert range_inputs[0][1] == pytest.approx(1.0)
+
+
+@pytest.mark.asyncio
+async def test_build_index_keeps_fresher_quote_over_stale_intraday(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Displayed values stay on timestamped live quotes when Redis intraday is older."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    redis_points = [
+        market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3000.0),
+        market_indices.IntradayPoint(datetime(2026, 5, 18, 10, 30, tzinfo=market_indices.BEIJING_TZ), 3030.0),
+    ]
+    range_inputs: list[tuple[float, float]] = []
+
+    async def fake_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
+        return market_indices.IndexQuote(
+            current=3040.0,
+            change_pct=1.33,
+            previous_close=3000.0,
+            timestamp=datetime(2026, 5, 18, 10, 31, tzinfo=market_indices.BEIJING_TZ),
+        )
+
+    async def fake_intraday(_config: market_indices.IndexConfig) -> list[market_indices.IntradayPoint]:
+        return redis_points
+
+    async def fake_historical(
+        _config: market_indices.IndexConfig,
+        value: float,
+        change_pct: float,
+    ) -> dict[str, market_indices.MarketSparkline]:
+        range_inputs.append((value, change_pct))
+        return {}
+
+    monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
+    monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
+    monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
+
+    index = await market_indices._build_index(sse)
+
+    assert index.value == pytest.approx(3040.0)
+    assert index.previous_close == pytest.approx(3000.0)
+    assert index.change_pct == pytest.approx(1.33)
+    assert index.sparkline_24h[-1] == pytest.approx(3030.0)
+    assert len(range_inputs) == 1
+    assert range_inputs[0][0] == pytest.approx(3040.0)
+    assert range_inputs[0][1] == pytest.approx(1.33)
 
 
 @pytest.mark.asyncio

@@ -196,6 +196,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix market index chart endpoints and tooltips so filtered intraday data, fallback sparklines, and displayed prices stay aligned.
 - Fix market index display values so real Redis intraday candles keep price and change percentages aligned with chart data when provider quotes are stale.
 - Fix market candle cold-start recovery so sparse active-session 1D Yahoo data backfills today's Redis candles from 5D data, with Redis AOF persistence enabled for local and production compose services.
 - Fix report detail subtitles so they show compact period and generated-at metadata instead of the midnight period boundary time.
