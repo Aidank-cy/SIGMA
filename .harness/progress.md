@@ -1969,3 +1969,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with targeted backend Ruff, focused market-index tests, frontend build, and `git diff --check`.
 - Notes: Closed-market intraday charts now leave candle data unchanged instead of anchoring the final point to a proxy-derived quote, and market session checks now include exact close-minute candles so split Asian sessions keep their final minute data.
 - Timestamp: 2026-05-27T16:19:17+08:00
+
+### [Maintenance] Sub-feature: Market dashboard intraday candle recovery
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/lib/marketSessions.ts, sigma-backend/app/services/market_candles.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with targeted backend Ruff, focused market-index tests, full backend pytest, frontend build/type-check, and `git diff --check`. Full backend Ruff and `./hooks/post-file-edit.sh` remain blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Removed frontend authoritative last-point anchoring, aligned frontend session-close checks with backend inclusive boundaries, throttled candle cold starts to two markets per scheduler tick, raised Redis 1D freshness thresholds to 30 points, and added sparse closed-session coverage.
+- Timestamp: 2026-05-27T11:21:40Z

@@ -482,7 +482,7 @@ async def test_read_intraday_from_redis_filters_previous_session(monkeypatch: py
             datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
             3200.0 + offset,
         )
-        for offset in range(20)
+        for offset in range(30)
     ]
     redis_points.extend(
         market_indices.IntradayPoint(
@@ -581,7 +581,7 @@ async def test_read_intraday_from_redis_keeps_last_session_when_closed(monkeypat
             datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
             3200.0 + offset,
         )
-        for offset in range(20)
+        for offset in range(30)
     ]
 
     async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
@@ -590,6 +590,27 @@ async def test_read_intraday_from_redis_keeps_last_session_when_closed(monkeypat
     monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
 
     assert await market_indices._read_intraday_from_redis(sse) == redis_points
+
+
+@pytest.mark.asyncio
+async def test_read_intraday_from_redis_rejects_sparse_closed_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Closed markets reject sparse Redis sessions so PostgreSQL fallback can be used."""
+    sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 17, 4, 0, tzinfo=UTC))
+    redis_points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3200.0 + offset,
+        )
+        for offset in range(29)
+    ]
+
+    async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return redis_points
+
+    monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
+
+    assert await market_indices._read_intraday_from_redis(sse) is None
 
 
 @pytest.mark.asyncio
@@ -602,7 +623,7 @@ async def test_read_intraday_from_redis_keeps_last_session_before_open(monkeypat
             datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
             3200.0 + offset,
         )
-        for offset in range(20)
+        for offset in range(30)
     ]
 
     async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
@@ -1219,10 +1240,10 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_candle_job_processes_all_pending_cold_start_symbols(
+async def test_candle_job_processes_pending_cold_start_symbols_in_batches(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Cold start gives every pending index a chance during the same scheduler tick."""
+    """Cold start limits provider work to a small batch during each scheduler tick."""
     configs = tuple(market_indices.INDEX_CONFIGS[:3])
     calls: list[str] = []
 
@@ -1231,6 +1252,7 @@ async def test_candle_job_processes_all_pending_cold_start_symbols(
 
     market_candles._cold_start_done.clear()
     market_candles._last_fetch_time.clear()
+    market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", configs)
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", configs)
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
@@ -1239,7 +1261,7 @@ async def test_candle_job_processes_all_pending_cold_start_symbols(
 
     await market_candles.candle_refresh_job()
 
-    assert calls == [config.symbol for config in configs]
+    assert calls == [config.symbol for config in configs[:market_candles._COLD_START_BATCH_SIZE]]
 
 
 @pytest.mark.asyncio
@@ -1632,7 +1654,7 @@ async def test_redis_freshness_checks_reject_stale_candle_sets(monkeypatch: pyte
             datetime(2026, 5, 26, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
             3100.0 + offset,
         )
-        for offset in range(10)
+        for offset in range(30)
     ]
     stale_points = [
         market_indices.IntradayPoint(

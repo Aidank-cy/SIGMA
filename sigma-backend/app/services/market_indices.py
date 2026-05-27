@@ -404,7 +404,7 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
 
     now = _now_utc()
     if not _is_trading(config, now):
-        return points if len(points) >= 10 else None
+        return points if len(points) >= 30 else None
 
     session_date = _latest_session_date(config)
     zone = ZoneInfo(config.timezone)

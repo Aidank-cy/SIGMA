@@ -71,9 +71,9 @@ export function isTradingHoursActive(tradingHours: TradingHours, now = new Date(
     const openMinutes = timeToMinutes(session.open);
     const closeMinutes = timeToMinutes(session.close);
     if (closeMinutes <= openMinutes) {
-      return currentMinutes >= openMinutes || currentMinutes < closeMinutes;
+      return currentMinutes >= openMinutes || currentMinutes <= closeMinutes;
     }
-    return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+    return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
   });
 }
 

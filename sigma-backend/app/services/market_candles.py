@@ -39,6 +39,7 @@ COLD_START_NOT_OPEN_DELAY = 30
 INTRADAY_GAP_MIN_EXPECTED_POINTS = 30
 INTRADAY_GAP_MIN_COVERAGE_RATIO = 0.8
 FINNHUB_CANDLE_MIN_INTERVAL_SECONDS = 60
+_COLD_START_BATCH_SIZE = 2
 _MAX_COLD_START_ATTEMPTS_PER_STEP = 10
 _DATA_HEALTH_CHECK_INTERVAL = 300
 
@@ -67,7 +68,8 @@ async def candle_refresh_job() -> None:
         config for config in INDEX_CONFIGS if not _cold_start_done.get(config.symbol, False)
     ]
     if cold_start_pending:
-        for config in cold_start_pending:
+        batch = cold_start_pending[:_COLD_START_BATCH_SIZE]
+        for config in batch:
             status = _market_status_beijing(config, now_beijing)
             await _cold_start_fetch(config, status)
     else:
@@ -663,7 +665,7 @@ async def _redis_has_fresh_1d(config: IndexConfig) -> bool:
     session_date = _latest_session_date(config)
     zone = ZoneInfo(config.timezone)
     session_points = [point for point in points if point.timestamp.astimezone(zone).date() == session_date]
-    return len(session_points) >= 10
+    return len(session_points) >= 30
 
 
 async def _redis_has_fresh_5d(config: IndexConfig) -> bool:
