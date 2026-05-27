@@ -198,6 +198,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Finnhub proxy candle scaling to use live index quotes, reject implausible 1D candles, and clean corrupted PostgreSQL candle rows on startup.
+- Fix pre-market market-index charts so Redis can serve the most recent completed session instead of generated fallback lines.
 - Fix Yahoo crumb initialization so cancelled or failed cookie/crumb requests no longer abort market-index or candle scheduler refreshes.
 - Fix market candle recovery so cold starts no longer complete without stored data, stale Redis candles are refetched, Finnhub candle fallback retries supported resolutions, and periodic health checks restart missing 1D caches.
 - Fix Finnhub candle fallback for US indices by using scaled ETF proxy candles when direct index candles are unavailable.
