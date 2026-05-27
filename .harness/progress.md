@@ -250,6 +250,13 @@ _This file is read at the start of each agent session and updated after each sub
 - Notes: Cold starts now use freshness-aware Redis checks, retry up to ten provider attempts per step with a closed-market delay, avoid marking symbols complete when no candles were stored, retry Finnhub candle resolutions through daily data, and reset completed symbols during periodic health checks when fresh 1D candles are missing.
 - Timestamp: 2026-05-27T03:19:29Z
 
+### [Maintenance] Sub-feature: Yahoo crumb crash hardening
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS
+- Notes: Yahoo crumb initialization now catches async cancellation and sync urllib failures without aborting market-index or candle refresh jobs, treats `fc.yahoo.com` cookie errors as non-fatal, and uses shorter five-second crumb request timeouts.
+- Timestamp: 2026-05-27T03:29:36Z
+
 ### Completed
 - Phase 2 sub-features 2.1 through 2.11.
 

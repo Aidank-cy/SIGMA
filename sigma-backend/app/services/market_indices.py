@@ -439,10 +439,19 @@ def _yahoo_on_success() -> None:
 async def _ensure_yahoo_crumb() -> None:
     if _yahoo_crumb and _time.monotonic() < _yahoo_crumb_expires:
         return
-    async with _yahoo_crumb_lock:
-        if _yahoo_crumb and _time.monotonic() < _yahoo_crumb_expires:
-            return
-        await asyncio.to_thread(_ensure_yahoo_crumb_sync)
+    try:
+        async with _yahoo_crumb_lock:
+            if _yahoo_crumb and _time.monotonic() < _yahoo_crumb_expires:
+                return
+            await asyncio.to_thread(_ensure_yahoo_crumb_sync)
+    except asyncio.CancelledError:
+        LOGGER.warning("Yahoo crumb fetch was cancelled; continuing without crumb.")
+    except Exception as exc:
+        LOGGER.warning(
+            "Yahoo crumb fetch failed: %s: %s; continuing without crumb.",
+            type(exc).__name__,
+            exc,
+        )
 
 
 def _ensure_yahoo_crumb_sync() -> None:
@@ -452,19 +461,21 @@ def _ensure_yahoo_crumb_sync() -> None:
     if _yahoo_crumb and _time.monotonic() < _yahoo_crumb_expires:
         return
 
-    cookie_jar = http.cookiejar.MozillaCookieJar()
-    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
     try:
+        cookie_jar = http.cookiejar.MozillaCookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
         fc_request = urllib.request.Request("https://fc.yahoo.com/", headers=YAHOO_HEADERS)
         try:
-            opener.open(fc_request, timeout=10)
+            opener.open(fc_request, timeout=5)
         except urllib.error.HTTPError:
+            pass
+        except Exception:
             pass
         crumb_request = urllib.request.Request(
             "https://query2.finance.yahoo.com/v1/test/getcrumb",
             headers=YAHOO_HEADERS,
         )
-        with opener.open(crumb_request, timeout=10) as response:
+        with opener.open(crumb_request, timeout=5) as response:
             crumb = response.read().decode("utf-8").strip()
     except Exception as exc:
         LOGGER.warning("Yahoo crumb fetch failed: %s: %s", type(exc).__name__, exc)
@@ -477,7 +488,7 @@ def _ensure_yahoo_crumb_sync() -> None:
     _yahoo_cookie_jar = cookie_jar
     _yahoo_crumb = crumb
     _yahoo_crumb_expires = _time.monotonic() + YAHOO_CRUMB_TTL_SECONDS
-    LOGGER.info("Yahoo crumb obtained successfully")
+    LOGGER.info("Yahoo crumb obtained successfully.")
 
 
 async def _fetch_yahoo_chart_result(
