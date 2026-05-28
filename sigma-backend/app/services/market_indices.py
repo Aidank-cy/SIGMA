@@ -454,7 +454,7 @@ def _forward_fill_to_session_close(config: IndexConfig, points: list[IntradayPoi
         return points
 
     gap_minutes = int((close_beijing - last_beijing).total_seconds() // 60)
-    if gap_minutes > 30:
+    if gap_minutes > 15:
         return points
 
     filled = list(points)
