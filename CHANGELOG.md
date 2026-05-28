@@ -203,6 +203,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Asian-market intraday chart tails by requiring higher closed-session candle coverage, retrying shortly after close for delayed Yahoo candles, and filling any remaining close gap minute by minute.
 - Fix Dashboard HeroChart range switching so change values, signs, icons, and chart color use the selected range's start value instead of 1D movement.
 - Fix Markets index card change values and chart colors so they reflect the selected chart range instead of always using 1D movement.
 - Fix split-session market intraday charts so morning-only Redis data, including equal-session SSE data, is treated as stale after close and forward-filled only to the current session close.

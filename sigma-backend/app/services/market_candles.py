@@ -43,11 +43,14 @@ INTRADAY_GAP_MIN_COVERAGE_RATIO = 0.8
 FINNHUB_CANDLE_MIN_INTERVAL_SECONDS = 60
 _MAX_COLD_START_ATTEMPTS_PER_STEP = 3
 _DATA_HEALTH_CHECK_INTERVAL = 300
+POST_CLOSE_RETRY_MINUTES = (1, 3)
+POST_CLOSE_RETRY_WINDOW_MINUTES = 10
 
 _last_fetch_time: dict[str, datetime] = {}
 _cold_start_done: dict[str, bool] = {}
 _cold_start_attempts: dict[str, int] = {}
 _finnhub_candle_last_fetch: dict[str, float] = {}
+_post_close_retry_slots: dict[str, tuple[date, set[int]]] = {}
 _last_health_check = 0.0
 _pg_integrity_checked = False
 
@@ -99,7 +102,8 @@ async def candle_refresh_job() -> None:
                 return
 
             if status == "closed":
-                if not await _redis_has_fresh_1d(config):
+                has_fresh_1d = await _redis_has_fresh_1d(config)
+                if not has_fresh_1d or _post_close_retry_due(config, now_beijing):
                     await _fetch_and_store_1d_1min(config)
                     _last_fetch_time[config.symbol] = _now_utc()
                 return
@@ -140,6 +144,31 @@ def _is_pre_market(config: IndexConfig, now_beijing: datetime) -> bool:
     open_mins = first_open.hour * 60 + first_open.minute
     diff = open_mins - current_mins
     return 0 < diff <= PRE_MARKET_WINDOW_MINUTES
+
+
+def _post_close_retry_due(config: IndexConfig, now_beijing: datetime) -> bool:
+    local_now = now_beijing.astimezone(ZoneInfo(config.timezone))
+    session_date = _latest_session_date(config, now_beijing)
+    close_local = datetime.combine(session_date, config.close_time, tzinfo=ZoneInfo(config.timezone))
+    if config.close_time <= config.open_time:
+        close_local += timedelta(days=1)
+
+    minutes_after_close = int((local_now - close_local).total_seconds() // 60)
+    if minutes_after_close < POST_CLOSE_RETRY_MINUTES[0] or minutes_after_close > POST_CLOSE_RETRY_WINDOW_MINUTES:
+        return False
+
+    stored_date, completed_slots = _post_close_retry_slots.get(config.symbol, (session_date, set()))
+    if stored_date != session_date:
+        completed_slots = set()
+
+    for retry_minute in POST_CLOSE_RETRY_MINUTES:
+        if minutes_after_close >= retry_minute and retry_minute not in completed_slots:
+            completed_slots.add(retry_minute)
+            _post_close_retry_slots[config.symbol] = (session_date, completed_slots)
+            return True
+
+    _post_close_retry_slots[config.symbol] = (session_date, completed_slots)
+    return False
 
 
 async def _cold_start_fetch(config: IndexConfig, status: str) -> None:
@@ -707,9 +736,9 @@ async def _redis_has_fresh_1d(config: IndexConfig) -> bool:
     if len(session_points) < 10:
         return False
 
-    if not _is_trading(config) and len(config.sessions) > 1:
+    if not _is_trading(config):
         expected = len(_elapsed_trading_minutes(config, session_date))
-        if expected > 0 and len(session_points) < expected * 0.65:
+        if expected > 0 and len(session_points) < expected * 0.90:
             LOGGER.debug(
                 "%s 1D data covers only %d/%d expected trading minutes (%.0f%%). Treating as stale.",
                 config.symbol,

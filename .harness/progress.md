@@ -2027,3 +2027,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with frontend production build and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Added a shared active-range change helper and wired Markets index cards plus Dashboard HeroChart through it so point change, percent change, positive/negative state, icon, and chart color all use the selected range start value, with empty chart data falling back to previous close and API change percent.
 - Timestamp: 2026-05-28T05:16:22Z
+
+### [Maintenance] Sub-feature: Asian intraday close-gap recovery
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with touched-path Ruff, focused market-index tests, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Closed-market 1D Redis freshness now requires 90% trading-minute coverage for every market, candle refreshes run bounded 1-minute and 3-minute post-close retries even when Redis looks fresh, and closed-session chart tails fill minute by minute to the session close while still rejecting sparse source sessions.
+- Timestamp: 2026-05-28T07:30:36Z

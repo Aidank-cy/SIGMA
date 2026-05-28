@@ -401,6 +401,8 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
                     points = latest_points
 
     if not _is_trading(config, now):
+        if len(points) < 10:
+            return None
         filled = _forward_fill_to_session_close(config, points)
         return filled if len(filled) >= 10 else None
 
@@ -451,7 +453,10 @@ def _forward_fill_to_session_close(config: IndexConfig, points: list[IntradayPoi
         return points
 
     filled = list(points)
-    filled.append(IntradayPoint(timestamp=close_beijing, value=last_point.value))
+    current = last_beijing + timedelta(minutes=1)
+    while current <= close_beijing:
+        filled.append(IntradayPoint(timestamp=current, value=last_point.value))
+        current += timedelta(minutes=1)
     return filled
 
 
