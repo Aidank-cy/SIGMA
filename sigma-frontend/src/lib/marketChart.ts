@@ -14,6 +14,48 @@ export interface MarketChartPoint {
   value: number;
 }
 
+interface ActiveRangeChangeInput {
+  activeRange: string;
+  chartData: MarketChartPoint[];
+  currentValue: number;
+  fallbackChangePct: number;
+  previousClose: number;
+}
+
+export function calculateActiveRangeChange({
+  activeRange,
+  chartData,
+  currentValue,
+  fallbackChangePct,
+  previousClose
+}: ActiveRangeChangeInput): {
+  changePct: number;
+  changeSign: string;
+  isPositive: boolean;
+  pointChange: number;
+  rangeStartValue: number;
+} {
+  const rangeStartValue =
+    activeRange === "1D" || chartData.length === 0
+      ? previousClose
+      : chartData[0].value;
+  const pointChange = currentValue - rangeStartValue;
+  const changePct =
+    rangeStartValue > 0
+      ? (pointChange / rangeStartValue) * 100
+      : fallbackChangePct;
+  const isPositive = changePct >= 0;
+  const changeSign = isPositive ? "+" : "";
+
+  return {
+    changePct,
+    changeSign,
+    isPositive,
+    pointChange,
+    rangeStartValue
+  };
+}
+
 interface IntradayAxisSegment {
   axisEnd: number;
   axisStart: number;

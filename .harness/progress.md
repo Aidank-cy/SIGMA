@@ -2020,3 +2020,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with frontend production build and `git diff --check`.
 - Notes: Markets index card point change, percent change, line color, and Y-axis reference now use the selected range's starting value while preserving the latest displayed index price.
 - Timestamp: 2026-05-28T04:27:02Z
+
+### [Maintenance] Sub-feature: Active-range chart change calculation
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/lib/marketChart.ts, sigma-frontend/src/components/markets/indices-tab.tsx, sigma-frontend/src/components/dashboard/hero-chart.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Added a shared active-range change helper and wired Markets index cards plus Dashboard HeroChart through it so point change, percent change, positive/negative state, icon, and chart color all use the selected range start value, with empty chart data falling back to previous close and API change percent.
+- Timestamp: 2026-05-28T05:16:22Z

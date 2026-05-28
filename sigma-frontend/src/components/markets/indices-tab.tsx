@@ -11,6 +11,7 @@ import { useMarketIndices } from "@/hooks/useMarketIndices"
 import {
   buildCompactChartTicks,
   buildChartXAxisDomain,
+  calculateActiveRangeChange,
   formatRangeAxisTick,
   marketChartRanges,
   toMarketChartData,
@@ -160,16 +161,14 @@ export function IndicesTab() {
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
               {group.indices.map((index) => {
                 const chartData = toMarketChartData(index, activeRange, now)
-                const rangeStartValue =
-                  activeRange === "1D" || chartData.length === 0
-                    ? index.previous_close
-                    : chartData[0].value
-                const pointChange = index.value - rangeStartValue
-                const changePct =
-                  rangeStartValue > 0
-                    ? ((index.value - rangeStartValue) / rangeStartValue) * 100
-                    : index.change_pct
-                const isPositive = changePct >= 0
+                const { changePct, changeSign: rangeChangeSign, isPositive, pointChange, rangeStartValue } =
+                  calculateActiveRangeChange({
+                    activeRange,
+                    chartData,
+                    currentValue: index.value,
+                    fallbackChangePct: index.change_pct,
+                    previousClose: index.previous_close,
+                  })
                 const chartSessions = index.trading_hours.beijing_sessions?.length
                   ? index.trading_hours.beijing_sessions
                   : index.trading_hours.sessions
@@ -189,7 +188,7 @@ export function IndicesTab() {
                 const xAxisDomain = buildChartXAxisDomain(activeRange, chartSessions, chartData)
                 const isAwaitingOpen = isPreMarketClearWindow(index.trading_hours, now)
                 const displayChangePct = isAwaitingOpen ? 0 : changePct
-                const changeSign = !isAwaitingOpen && isPositive ? "+" : ""
+                const changeSign = isAwaitingOpen ? "" : rangeChangeSign
                 const displayPointChange = isAwaitingOpen ? "0.00" : pointChange.toFixed(2)
                 const chartColor = isPositive
                   ? "oklch(0.65 0.22 145)"
