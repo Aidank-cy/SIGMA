@@ -1999,3 +1999,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused market-index tests, touched-path Ruff, full backend pytest, and compile checks. Full backend Ruff remains blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Yahoo chart results now cache quote metadata for Yahoo-first quote resolution, Alpha Vantage quote calls were removed, candle refreshes dispatch needed markets concurrently with pre-market and closed-market cache checks, cold-start retry waste was reduced, trading refreshes run at a 10-second interval, and closed-session forward fill now appends only the session-close endpoint.
 - Timestamp: 2026-05-28T03:07:39Z
+
+### [Maintenance] Sub-feature: Nikkei lunch-break flat-line fix
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused market-index tests, touched-path Ruff, and full backend pytest. Full backend Ruff and `./hooks/post-file-edit.sh` remain blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Closed split-session 1D Redis caches now require at least 50% full-day trading-minute coverage, preventing Nikkei morning-only data from being treated as fresh after close. Closed-chart forward fill now targets the session containing the last point, so morning data stops at the morning close instead of drawing through lunch and the afternoon.
+- Timestamp: 2026-05-28T03:30:58Z

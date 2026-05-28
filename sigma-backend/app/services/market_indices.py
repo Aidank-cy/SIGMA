@@ -427,9 +427,22 @@ def _forward_fill_to_session_close(config: IndexConfig, points: list[IntradayPoi
     last_point = points[-1]
     zone = ZoneInfo(config.timezone)
     session_date = last_point.timestamp.astimezone(zone).date()
+    last_local = last_point.timestamp.astimezone(zone).time().replace(tzinfo=None)
+
+    target_close = config.close_time
+    if len(config.sessions) > 1:
+        for session_open, session_close in config.sessions:
+            if _time_in_session(last_local, session_open, session_close):
+                target_close = session_close
+                break
+        else:
+            for session_open, session_close in config.sessions:
+                if last_local < session_open:
+                    target_close = session_close
+                    break
 
     # Determine session close in Beijing time for the date of the last point.
-    close_time = config.close_time
+    close_time = target_close
     close_local = datetime.combine(session_date, close_time, tzinfo=zone)
     close_beijing = close_local.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
     last_beijing = last_point.timestamp.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
