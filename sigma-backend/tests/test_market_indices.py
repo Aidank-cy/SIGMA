@@ -1418,11 +1418,11 @@ async def test_candle_job_runs_cold_start_batch_concurrently(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
-async def test_candle_job_force_refetches_kospi_once_after_yahoo_delay(
+async def test_candle_job_force_refetches_closed_market_once_after_yahoo_delay(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """KOSPI gets one forced post-close refetch after Yahoo's delayed window expires."""
-    kospi = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "KOSPI")
+    """Any market gets one forced post-close refetch after Yahoo's delayed window expires."""
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[tuple[str, bool]] = []
 
     async def fake_redis_has_fresh_1d(_config: market_indices.IndexConfig) -> bool:
@@ -1438,29 +1438,29 @@ async def test_candle_job_force_refetches_kospi_once_after_yahoo_delay(
     market_candles._cold_start_done.clear()
     market_candles._last_fetch_time.clear()
     market_candles._post_close_refetch_done.clear()
-    market_candles._cold_start_done[kospi.symbol] = True
+    market_candles._cold_start_done[spx.symbol] = True
     market_candles._last_health_check = market_candles._time.monotonic()
-    monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (kospi,))
-    monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (kospi,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 7, 0, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 7, 0, tzinfo=UTC))
+    monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
+    monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 30, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 30, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_redis_has_fresh_1d)
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch)
 
     await market_candles.candle_refresh_job()
     await market_candles.candle_refresh_job()
 
-    assert calls == [("KOSPI", True)]
-    assert market_candles._post_close_refetch_done[kospi.symbol] == date(2026, 5, 26)
+    assert calls == [("SPX", True)]
+    assert market_candles._post_close_refetch_done[spx.symbol] == date(2026, 5, 26)
     market_candles._last_health_check = 0.0
 
 
 @pytest.mark.asyncio
-async def test_candle_job_waits_before_kospi_post_close_refetch(
+async def test_candle_job_waits_before_closed_market_post_close_refetch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The delayed Yahoo refetch does not run before 30 minutes after close."""
-    kospi = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "KOSPI")
+    spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
 
     async def fake_redis_has_fresh_1d(_config: market_indices.IndexConfig) -> bool:
@@ -1476,19 +1476,19 @@ async def test_candle_job_waits_before_kospi_post_close_refetch(
     market_candles._cold_start_done.clear()
     market_candles._last_fetch_time.clear()
     market_candles._post_close_refetch_done.clear()
-    market_candles._cold_start_done[kospi.symbol] = True
+    market_candles._cold_start_done[spx.symbol] = True
     market_candles._last_health_check = market_candles._time.monotonic()
-    monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (kospi,))
-    monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (kospi,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 6, 59, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 6, 59, tzinfo=UTC))
+    monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
+    monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 29, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 29, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_redis_has_fresh_1d)
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch)
 
     await market_candles.candle_refresh_job()
 
     assert calls == []
-    assert kospi.symbol not in market_candles._post_close_refetch_done
+    assert spx.symbol not in market_candles._post_close_refetch_done
     market_candles._last_health_check = 0.0
 
 

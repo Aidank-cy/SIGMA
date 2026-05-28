@@ -47,7 +47,6 @@ _MAX_COLD_START_ATTEMPTS_PER_STEP = 3
 _DATA_HEALTH_CHECK_INTERVAL = 300
 POST_CLOSE_RETRY_MINUTES = (1, 3)
 POST_CLOSE_RETRY_WINDOW_MINUTES = 10
-POST_CLOSE_REFETCH_SYMBOLS = {"KOSPI"}
 POST_CLOSE_REFETCH_WINDOW_MINUTES = (30, 35)
 
 _last_fetch_time: dict[str, datetime] = {}
@@ -208,9 +207,6 @@ def _minutes_since_last_session_close(config: IndexConfig, now_beijing: datetime
 
 
 def _post_close_refetch_due(config: IndexConfig, now_beijing: datetime) -> bool:
-    if config.symbol not in POST_CLOSE_REFETCH_SYMBOLS:
-        return False
-
     refetch_date = _post_close_refetch_date(config, now_beijing)
     if _post_close_refetch_done.get(config.symbol) == refetch_date:
         return False
