@@ -2041,3 +2041,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with touched-path Ruff, focused market-index tests, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Sparse successful Yahoo 1D candle fetches now trigger Finnhub tail backfill when coverage remains below 90%, appending only Finnhub candles after the last Yahoo timestamp and deduplicating before Redis storage. Display forward fill now stops entirely when the remaining close gap exceeds 30 minutes, preventing long flat KOSPI chart tails.
 - Timestamp: 2026-05-28T07:44:53Z
+
+### [Maintenance] Sub-feature: KOSPI close-gap backfill trigger
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with touched-path Ruff, focused market-index tests, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Finnhub tail backfill now triggers when the last Yahoo candle is more than five minutes before the market-local session close, even when overall KOSPI point coverage is above 90%. The merge still appends only Finnhub points after the last Yahoo timestamp.
+- Timestamp: 2026-05-28T07:56:46Z

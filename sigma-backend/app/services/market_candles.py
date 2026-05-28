@@ -41,6 +41,7 @@ PRE_MARKET_WINDOW_MINUTES = 60
 INTRADAY_GAP_MIN_EXPECTED_POINTS = 30
 INTRADAY_GAP_MIN_COVERAGE_RATIO = 0.8
 INTRADAY_TAIL_BACKFILL_MIN_COVERAGE_RATIO = 0.9
+INTRADAY_TAIL_BACKFILL_MAX_CLOSE_GAP_MINUTES = 5
 FINNHUB_CANDLE_MIN_INTERVAL_SECONDS = 60
 _MAX_COLD_START_ATTEMPTS_PER_STEP = 3
 _DATA_HEALTH_CHECK_INTERVAL = 300
@@ -338,7 +339,10 @@ async def _backfill_intraday_tail_from_finnhub(
     config: IndexConfig,
     points: list[IntradayPoint],
 ) -> list[IntradayPoint]:
-    if not _has_intraday_gap(config, points, coverage_ratio=INTRADAY_TAIL_BACKFILL_MIN_COVERAGE_RATIO):
+    if not (
+        _has_intraday_gap(config, points, coverage_ratio=INTRADAY_TAIL_BACKFILL_MIN_COVERAGE_RATIO)
+        or _has_intraday_tail_close_gap(config, points)
+    ):
         return points
 
     last_yahoo_timestamp = max(point.timestamp for point in points)
@@ -366,6 +370,28 @@ def _dedupe_points_by_timestamp(points: list[IntradayPoint]) -> list[IntradayPoi
     for point in points:
         points_by_timestamp[int(point.timestamp.timestamp())] = point
     return sorted(points_by_timestamp.values(), key=lambda point: point.timestamp)
+
+
+def _has_intraday_tail_close_gap(config: IndexConfig, points: list[IntradayPoint]) -> bool:
+    if not points:
+        return False
+
+    last_point = max(points, key=lambda point: point.timestamp)
+    if not _is_within_session(last_point.timestamp, config):
+        return False
+
+    zone = ZoneInfo(config.timezone)
+    last_local = last_point.timestamp.astimezone(zone).replace(second=0, microsecond=0)
+    close_local = datetime.combine(last_local.date(), config.close_time, tzinfo=zone)
+    if config.close_time <= config.open_time and last_local.time().replace(tzinfo=None) >= config.open_time:
+        close_local += timedelta(days=1)
+
+    now_local = _now_utc().astimezone(zone)
+    if now_local < close_local:
+        return False
+
+    gap_minutes = (close_local - last_local).total_seconds() / 60
+    return gap_minutes > INTRADAY_TAIL_BACKFILL_MAX_CLOSE_GAP_MINUTES
 
 
 async def _fetch_candle_reference_value(config: IndexConfig) -> float | None:

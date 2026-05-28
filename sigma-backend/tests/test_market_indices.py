@@ -1648,22 +1648,22 @@ async def test_fetch_and_store_1d_uses_finnhub_when_yahoo_fails(monkeypatch: pyt
 
 
 @pytest.mark.asyncio
-async def test_fetch_and_store_1d_merges_finnhub_tail_after_sparse_yahoo(
+async def test_fetch_and_store_1d_merges_finnhub_tail_after_yahoo_close_gap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Sparse Yahoo 1D data can be completed with only Finnhub points after Yahoo's tail."""
+    """A late-session Yahoo tail gap triggers Finnhub even when point coverage is high."""
     kospi = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "KOSPI")
     yahoo_points = [
         market_indices.IntradayPoint(
             datetime(2026, 5, 26, 8, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
             3900.0 + offset,
         )
-        for offset in range(320)
+        for offset in range(362)
     ]
     finnhub_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 26, 13, 18, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
-            4218.0 + offset,
+            datetime(2026, 5, 26, 14, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            4260.0 + offset,
         )
         for offset in range(5)
     ]
@@ -1703,9 +1703,9 @@ async def test_fetch_and_store_1d_merges_finnhub_tail_after_sparse_yahoo(
     stored_count = await market_candles._fetch_and_store_1d_1min(kospi)
 
     assert calls == ["yahoo:1m:1d", "reference", "finnhub:4200.0"]
-    assert stored_count == 323
-    assert stored_points[:320] == yahoo_points
-    assert stored_points[320:] == finnhub_points[-3:]
+    assert stored_count == 365
+    assert stored_points[:362] == yahoo_points
+    assert stored_points[362:] == finnhub_points[-3:]
     assert len({point.timestamp for point in stored_points}) == len(stored_points)
 
 
