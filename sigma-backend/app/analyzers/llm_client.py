@@ -60,11 +60,17 @@ class LLMClient:
         function_type: LLMFunctionType = LLMFunctionType.SUMMARY,
         http_client: httpx.AsyncClient | None = None,
         user_id: UUID | None = None,
+        provider: str | None = None,
+        model: str | None = None,
+        api_key: str | None = None,
     ) -> None:
         self.db = db
         self.function_type = function_type
         self.http_client = http_client
         self.user_id = user_id
+        self.provider = provider.lower() if provider else None
+        self.model = model
+        self.api_key = api_key
 
     async def complete(
         self,
@@ -116,24 +122,35 @@ class LLMClient:
         return parsed
 
     async def _runtime_config(self) -> LLMRuntimeConfig:
+        daily_limit = settings.daily_token_limit
         if self.user_id is not None:
-            default_key = await get_default_api_key(self.db, self.user_id)
             daily_limit = await self._config_value(
                 f"sigma.user.{self.user_id}.llm.daily_token_limit",
                 settings.daily_token_limit,
             )
+        if self.provider is not None:
+            return LLMRuntimeConfig(
+                provider=self.provider,
+                model=self.model or DEFAULT_PROVIDER_MODELS.get(self.provider, str(settings.default_llm_model)),
+                daily_token_limit=int(daily_limit),
+                api_key=self.api_key,
+            )
+
+        if self.user_id is not None:
+            default_key = await get_default_api_key(self.db, self.user_id)
             if default_key is not None:
                 provider = default_key.provider.lower()
                 return LLMRuntimeConfig(
                     provider=provider,
-                    model=DEFAULT_PROVIDER_MODELS[provider],
+                    model=self.model or DEFAULT_PROVIDER_MODELS[provider],
                     daily_token_limit=int(daily_limit),
-                    api_key=default_key.key,
+                    api_key=self.api_key or default_key.key,
                 )
         return LLMRuntimeConfig(
             provider=str(settings.default_llm_provider).lower(),
-            model=str(settings.default_llm_model),
-            daily_token_limit=int(settings.daily_token_limit),
+            model=self.model or str(settings.default_llm_model),
+            daily_token_limit=int(daily_limit),
+            api_key=self.api_key,
         )
 
     async def _config_value(self, key: str, default: object) -> object:

@@ -145,6 +145,27 @@ async def test_runtime_config_uses_user_default_api_key(db_session: AsyncSession
     assert headers["authorization"] == "Bearer sk-report"
 
 
+@pytest.mark.asyncio
+async def test_runtime_config_accepts_explicit_provider_model_and_api_key(
+    db_session: AsyncSession,
+) -> None:
+    """Callers can override provider, model, and API key without changing env settings."""
+    client = LLMClient(
+        db_session,
+        provider="deepseek",
+        model="deepseek-report",
+        api_key="sk-explicit",
+    )
+
+    runtime = await client._runtime_config()
+    headers = client._headers(runtime.provider, runtime.api_key)
+
+    assert runtime.provider == "deepseek"
+    assert runtime.model == "deepseek-report"
+    assert runtime.api_key == "sk-explicit"
+    assert headers["authorization"] == "Bearer sk-explicit"
+
+
 @pytest.mark.parametrize(
     ("provider", "expected"),
     [

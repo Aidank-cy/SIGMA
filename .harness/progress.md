@@ -2062,3 +2062,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with touched-path Ruff, focused market-index tests, full market-index test module, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Removed closed-market synthetic forward fill from intraday candle reads and moved the forced post-close Yahoo refetch window to 15-20 minutes after the final market-local session close.
 - Timestamp: 2026-05-28T08:54:12Z
+
+### [Maintenance] Sub-feature: User-scoped report LLM credentials
+- Status: COMPLETE
+- Files modified: sigma-backend/app/analyzers/report_generator.py, sigma-backend/app/analyzers/llm_client.py, sigma-backend/tests/test_report_generator.py, sigma-backend/tests/test_llm.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with touched-path Ruff, focused report/LLM/scheduler tests, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Report generation now resolves the requesting user's saved default LLM API key plus user/system provider and model config before creating the LLM client, while explicit empty user key lists skip report generation with a warning.
+- Timestamp: 2026-05-28T10:05:50Z

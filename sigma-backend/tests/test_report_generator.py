@@ -11,6 +11,7 @@ from app.models.collected_item import CollectedItem
 from app.models.data_source import DataSource
 from app.models.enums import IntelligenceCategory, Market, ReportType, SourceType
 from app.models.report import Report
+from app.models.system_config import SystemConfig
 
 
 @pytest.mark.asyncio
@@ -200,6 +201,155 @@ async def test_report_generator_scopes_items_to_user_and_system_sources(
 
     assert report.user_id == user_id
     assert report.item_count == 2
+
+
+@pytest.mark.asyncio
+async def test_report_generator_uses_user_default_llm_api_key(
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Report generation passes the requesting user's saved LLM key to the client."""
+    user_id = uuid4()
+    source = _source_with_owner(created_by=user_id)
+    captured: dict[str, object] = {}
+    db_session.add(source)
+    db_session.add(_item(source, "User key report item"))
+    db_session.add_all(
+        [
+            SystemConfig(
+                key=f"sigma.user.{user_id}.llm.api_keys",
+                value={
+                    "value": [
+                        {
+                            "name": "Backup",
+                            "key": "sk-backup",
+                            "provider": "anthropic",
+                            "token_limit": 1000,
+                            "is_default": False,
+                        },
+                        {
+                            "name": "Default",
+                            "key": "sk-user-default",
+                            "provider": "openai",
+                            "token_limit": 2000,
+                            "is_default": True,
+                        },
+                    ]
+                },
+            ),
+            SystemConfig(key=f"sigma.user.{user_id}.llm.provider", value={"value": "openai"}),
+            SystemConfig(key=f"sigma.user.{user_id}.llm.model", value={"value": "gpt-user-report"}),
+        ]
+    )
+    await db_session.commit()
+
+    class FakeLLMClient:
+        def __init__(self, *_args: object, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+        async def complete(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> str:
+            assert "User key report item" in user_prompt
+            return "# Overview\n\nUser-key report body."
+
+    monkeypatch.setattr("app.analyzers.report_generator.LLMClient", FakeLLMClient)
+
+    report = await generate_report(
+        db_session,
+        ReportType.DAILY,
+        ["us"],
+        ["finance"],
+        date.today(),
+        date.today(),
+        user_id=user_id,
+    )
+
+    assert report is not None
+    assert captured["user_id"] == user_id
+    assert captured["provider"] == "openai"
+    assert captured["model"] == "gpt-user-report"
+    assert captured["api_key"] == "sk-user-default"
+
+
+@pytest.mark.asyncio
+async def test_report_generator_skips_user_with_empty_llm_api_keys(
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An explicitly empty user API-key list skips report generation without crashing."""
+    user_id = uuid4()
+    source = _source_with_owner(created_by=user_id)
+    db_session.add(source)
+    db_session.add(_item(source, "Skipped report item"))
+    db_session.add(SystemConfig(key=f"sigma.user.{user_id}.llm.api_keys", value={"value": []}))
+    await db_session.commit()
+
+    class FakeLLMClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            raise AssertionError("LLM client should not be constructed without user keys")
+
+    monkeypatch.setattr("app.analyzers.report_generator.LLMClient", FakeLLMClient)
+    caplog.set_level("WARNING", logger="app.analyzers.report_generator")
+
+    report = await generate_report(
+        db_session,
+        ReportType.DAILY,
+        ["us"],
+        ["finance"],
+        date.today(),
+        date.today(),
+        user_id=user_id,
+    )
+
+    stored_reports = list(await db_session.scalars(select(Report)))
+    assert report is None
+    assert stored_reports == []
+    assert "because no LLM API keys are configured" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_report_generator_keeps_env_key_fallback_without_user_key_config(
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing user key config leaves API key unset so LLMClient can use env fallback."""
+    user_id = uuid4()
+    source = _source_with_owner(created_by=user_id)
+    captured: dict[str, object] = {}
+    db_session.add(source)
+    db_session.add(_item(source, "Env fallback report item"))
+    db_session.add_all(
+        [
+            SystemConfig(key="sigma.llm.provider", value={"value": "anthropic"}),
+            SystemConfig(key="sigma.llm.model", value={"value": "claude-report"}),
+        ]
+    )
+    await db_session.commit()
+
+    class FakeLLMClient:
+        def __init__(self, *_args: object, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+        async def complete(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> str:
+            assert "Env fallback report item" in user_prompt
+            return "# Overview\n\nEnv fallback report body."
+
+    monkeypatch.setattr("app.analyzers.report_generator.LLMClient", FakeLLMClient)
+
+    report = await generate_report(
+        db_session,
+        ReportType.DAILY,
+        ["us"],
+        ["finance"],
+        date.today(),
+        date.today(),
+        user_id=user_id,
+    )
+
+    assert report is not None
+    assert captured["provider"] == "anthropic"
+    assert captured["model"] == "claude-report"
+    assert captured["api_key"] is None
 
 
 def _source_with_owner(
