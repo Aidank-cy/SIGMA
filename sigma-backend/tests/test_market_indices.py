@@ -690,12 +690,7 @@ async def test_read_intraday_from_redis_recovers_sparse_closed_session_from_5d(
     result = await market_indices._read_intraday_from_redis(kospi)
 
     assert result is not None
-    assert result[: len(full_5d)] == full_5d
-    assert len(result) == len(full_5d) + 30
-    assert result[-1] == market_indices.IntradayPoint(
-        datetime(2026, 5, 27, 14, 30, tzinfo=market_indices.BEIJING_TZ),
-        3460.0,
-    )
+    assert result == full_5d
 
 
 @pytest.mark.asyncio
@@ -723,8 +718,11 @@ async def test_read_intraday_from_redis_keeps_last_session_before_open(monkeypat
     assert result == redis_points
 
 
-def test_forward_fill_multi_session_stops_at_current_session_close() -> None:
-    """Morning-only split-session data is extended only to the morning close."""
+@pytest.mark.asyncio
+async def test_read_intraday_from_redis_keeps_closed_session_points_unfilled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Closed-session reads return real candles without synthetic forward fill."""
     n225 = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "N225")
     morning_points = [
         market_indices.IntradayPoint(
@@ -734,25 +732,15 @@ def test_forward_fill_multi_session_stops_at_current_session_close() -> None:
         for offset in range(150)
     ]
 
-    filled = market_indices._forward_fill_to_session_close(n225, morning_points)
+    async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
+        return morning_points
 
-    assert filled == [
-        *morning_points,
-        market_indices.IntradayPoint(datetime(2026, 5, 26, 10, 30, tzinfo=market_indices.BEIJING_TZ), 39149.0),
-    ]
-    assert filled[-1].timestamp != datetime(2026, 5, 26, 14, 30, tzinfo=market_indices.BEIJING_TZ)
+    monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 8, 0, tzinfo=UTC))
 
+    result = await market_indices._read_intraday_from_redis(n225)
 
-def test_forward_fill_multi_session_between_sessions_targets_next_session_close() -> None:
-    """A lunch-break leak still targets the following session close."""
-    n225 = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "N225")
-    points = [
-        market_indices.IntradayPoint(datetime(2026, 5, 26, 11, 0, tzinfo=market_indices.BEIJING_TZ), 39100.0),
-    ]
-
-    filled = market_indices._forward_fill_to_session_close(n225, points)
-
-    assert filled == points
+    assert result == morning_points
 
 
 @pytest.mark.asyncio
@@ -1442,8 +1430,8 @@ async def test_candle_job_force_refetches_closed_market_once_after_yahoo_delay(
     market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 30, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 30, tzinfo=UTC))
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 15, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 15, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_redis_has_fresh_1d)
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch)
 
@@ -1459,7 +1447,7 @@ async def test_candle_job_force_refetches_closed_market_once_after_yahoo_delay(
 async def test_candle_job_waits_before_closed_market_post_close_refetch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The delayed Yahoo refetch does not run before 30 minutes after close."""
+    """The delayed Yahoo refetch does not run before 15 minutes after close."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
 
@@ -1480,8 +1468,8 @@ async def test_candle_job_waits_before_closed_market_post_close_refetch(
     market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 29, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 29, tzinfo=UTC))
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 14, tzinfo=UTC))
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 14, tzinfo=UTC))
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_redis_has_fresh_1d)
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch)
 
@@ -1496,10 +1484,10 @@ def test_post_close_refetch_waits_until_last_session_close() -> None:
     """Split-session lunch breaks are not treated as the market's final close."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     lunch_break = datetime(2026, 5, 26, 4, 15, tzinfo=UTC).astimezone(market_indices.BEIJING_TZ)
-    after_close = datetime(2026, 5, 26, 7, 30, tzinfo=UTC).astimezone(market_indices.BEIJING_TZ)
+    after_close = datetime(2026, 5, 26, 7, 15, tzinfo=UTC).astimezone(market_indices.BEIJING_TZ)
 
     assert market_candles._minutes_since_last_session_close(sse, lunch_break) is None
-    assert market_candles._minutes_since_last_session_close(sse, after_close) == 30
+    assert market_candles._minutes_since_last_session_close(sse, after_close) == 15
 
 
 def test_post_close_refetch_done_resets_when_market_date_changes() -> None:

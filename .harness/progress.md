@@ -2053,5 +2053,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Status: COMPLETE
 - Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
 - Tests: PASS with focused market-index tests, full market-index test module, full backend pytest, touched-path Ruff, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
-- Notes: Added a once-per-market-date forced 1D candle refetch for every configured market during the 30-35 minute post-close window, independent of Redis freshness, while verifying the window is after the final local session close and not a split-session lunch break.
+- Notes: Added a once-per-market-date forced 1D candle refetch for every configured market during the post-close window, independent of Redis freshness, while verifying the window is after the final local session close and not a split-session lunch break.
 - Timestamp: 2026-05-28T08:26:34Z
+
+### [Maintenance] Sub-feature: Real-only post-close intraday candles
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with touched-path Ruff, focused market-index tests, full market-index test module, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Removed closed-market synthetic forward fill from intraday candle reads and moved the forced post-close Yahoo refetch window to 15-20 minutes after the final market-local session close.
+- Timestamp: 2026-05-28T08:54:12Z

@@ -372,13 +372,13 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
                 point for point in pg_points if point.timestamp.astimezone(zone).date() == session_date
             ]
             if len(session_points) >= 5:
-                return _forward_fill_to_session_close(config, session_points)
+                return session_points
             latest_date = pg_points[-1].timestamp.astimezone(zone).date()
             latest_points = [
                 point for point in pg_points if point.timestamp.astimezone(zone).date() == latest_date
             ]
             if len(latest_points) >= 5:
-                return _forward_fill_to_session_close(config, latest_points)
+                return latest_points
         return None
 
     now = _now_utc()
@@ -403,8 +403,7 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
     if not _is_trading(config, now):
         if len(points) < 10:
             return None
-        filled = _forward_fill_to_session_close(config, points)
-        return filled if len(filled) >= 10 else None
+        return points
 
     session_date = _latest_session_date(config)
     zone = ZoneInfo(config.timezone)
@@ -412,58 +411,6 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
         point for point in points if point.timestamp.astimezone(zone).date() == session_date
     ]
     return current_session_points if len(current_session_points) >= 10 else None
-
-
-def _forward_fill_to_session_close(config: IndexConfig, points: list[IntradayPoint]) -> list[IntradayPoint]:
-    """Extend sparkline data to the session close time by forward-filling the last known value.
-
-    Yahoo Finance does not always return data up to the exact session close for
-    some indices (e.g. KOSPI ^KS11 typically stops ~30 min before 15:30 KST).
-    This leaves a visible gap at the right edge of the intraday chart because
-    the X-axis domain extends to the session close. Small tail gaps are filled
-    to the close, while large gaps are left unfilled so incomplete data stops
-    at the last real candle instead of drawing a long flat line.
-    """
-    if not points:
-        return points
-
-    last_point = points[-1]
-    zone = ZoneInfo(config.timezone)
-    session_date = last_point.timestamp.astimezone(zone).date()
-    last_local = last_point.timestamp.astimezone(zone).time().replace(tzinfo=None)
-
-    target_close = config.close_time
-    if len(config.sessions) > 1:
-        for session_open, session_close in config.sessions:
-            if _time_in_session(last_local, session_open, session_close):
-                target_close = session_close
-                break
-        else:
-            for session_open, session_close in config.sessions:
-                if last_local < session_open:
-                    target_close = session_close
-                    break
-
-    # Determine session close in Beijing time for the date of the last point.
-    close_time = target_close
-    close_local = datetime.combine(session_date, close_time, tzinfo=zone)
-    close_beijing = close_local.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
-    last_beijing = last_point.timestamp.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
-
-    if last_beijing >= close_beijing:
-        return points
-
-    gap_minutes = int((close_beijing - last_beijing).total_seconds() // 60)
-    if gap_minutes > 15:
-        return points
-
-    filled = list(points)
-    current = last_beijing + timedelta(minutes=1)
-    while current <= close_beijing:
-        filled.append(IntradayPoint(timestamp=current, value=last_point.value))
-        current += timedelta(minutes=1)
-    return filled
-
 
 async def _yahoo_rate_limit_wait() -> bool:
     """Wait for Yahoo rate-limit clearance, returning False while in backoff."""

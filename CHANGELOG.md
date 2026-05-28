@@ -68,6 +68,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change closed-market intraday charts to use only real candle points while moving the forced post-close refetch window to 15-20 minutes after the final session close.
 - Change market candle refresh scheduling to fetch trading, missing pre-market, and missing closed-market 1D data in parallel while skipping already-warm closed markets.
 - Change market-index quote resolution to reuse Yahoo chart metadata before falling back to Finnhub and Stooq.
 - Increase Yahoo Finance candle fetch throughput to two concurrent requests with half-second global pacing.
@@ -203,7 +204,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
-- Fix post-close candle refreshes so delayed Yahoo 1-minute data is refetched once after the 30-minute delay window for all configured markets.
+- Fix post-close candle refreshes so delayed Yahoo 1-minute data is refetched once after the 15-minute delay window for all configured markets.
 - Fix KOSPI Finnhub tail backfill so high-coverage Yahoo data still backfills when the last candle is more than five minutes before the local close.
 - Fix KOSPI intraday chart tails by merging Finnhub candles after sparse Yahoo data and avoiding long synthetic forward-fill lines.
 - Fix Asian-market intraday chart tails by requiring higher closed-session candle coverage, retrying shortly after close for delayed Yahoo candles, and filling any remaining close gap minute by minute.
