@@ -709,7 +709,7 @@ async def _redis_has_fresh_1d(config: IndexConfig) -> bool:
 
     if not _is_trading(config) and len(config.sessions) > 1:
         expected = len(_elapsed_trading_minutes(config, session_date))
-        if expected > 0 and len(session_points) < expected * 0.5:
+        if expected > 0 and len(session_points) < expected * 0.65:
             LOGGER.debug(
                 "%s 1D data covers only %d/%d expected trading minutes (%.0f%%). Treating as stale.",
                 config.symbol,
