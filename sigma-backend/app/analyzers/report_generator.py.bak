@@ -209,17 +209,7 @@ async def _resolve_report_llm_runtime(
 
     user_model = await _config_value(db, f"{user_prefix}.model") if user_prefix else None
     system_model = await _config_value(db, "sigma.llm.model")
-
-    # Use user-level model if explicitly set; otherwise fall back to the
-    # provider's default model so we never send e.g. a Claude model name to
-    # the Qwen endpoint.  system_model is only used when the resolved provider
-    # matches the system-level provider (prevents cross-provider mismatch).
-    if user_model:
-        model = str(user_model)
-    elif system_model and provider == _normalize_provider(system_provider):
-        model = str(system_model)
-    else:
-        model = DEFAULT_PROVIDER_MODELS.get(provider, str(settings.default_llm_model))
+    model = str(user_model or system_model or DEFAULT_PROVIDER_MODELS.get(provider, settings.default_llm_model))
 
     return ReportLLMRuntime(provider=provider, model=model, api_key=selected_api_key)
 

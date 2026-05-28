@@ -27,7 +27,7 @@ DEPRECATED_KEYS = (
 
 def upgrade() -> None:
     keys = ", ".join(f"'{key}'" for key in DEPRECATED_KEYS)
-    op.execute(f"DELETE FROM system_config WHERE key IN ({keys})")
+    op.execute(f"DELETE FROM system_configs WHERE key IN ({keys})")
 
 
 def downgrade() -> None:
