@@ -203,7 +203,7 @@ async def _resolve_report_llm_runtime(
     user_prefix = f"sigma.user.{user_id}.llm" if user_id is not None else None
     user_provider = await _config_value(db, f"{user_prefix}.provider") if user_prefix else None
     system_provider = await _config_value(db, "sigma.llm.provider")
-    provider = _normalize_provider(user_provider or system_provider or selected_key_provider)
+    provider = _normalize_provider(user_provider or selected_key_provider or system_provider)
     if provider is None:
         provider = str(settings.default_llm_provider).lower()
 

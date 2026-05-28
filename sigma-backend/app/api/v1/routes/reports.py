@@ -96,6 +96,20 @@ async def generate_report_endpoint(
     return {"status": "accepted"}
 
 
+@router.post("/generate-mine", status_code=status.HTTP_202_ACCEPTED)
+async def generate_user_report(
+    payload: ManualReportGenerateRequest,
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    """Allow any authenticated user to generate their own report.
+
+    Uses the caller's own API key and only their visible data sources
+    (system sources + sources they created).
+    """
+    asyncio.create_task(_generate_report_task(payload, current_user.id))
+    return {"status": "accepted"}
+
+
 async def _generate_report_task(payload: ManualReportGenerateRequest, user_id: UUID) -> None:
     async with AsyncSessionLocal() as db:
         await generate_report(

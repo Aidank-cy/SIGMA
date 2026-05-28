@@ -38,14 +38,14 @@ class LLMRuntimeConfig:
 OPENAI_COMPATIBLE_BASE_URLS = {
     "openai": "https://api.openai.com/v1",
     "deepseek": "https://api.deepseek.com",
-    "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "qwen": "https://api.zhizengzeng.com/v1",
 }
 
 DEFAULT_PROVIDER_MODELS = {
     "anthropic": "claude-sonnet-4-20250514",
     "openai": "gpt-4o",
     "deepseek": "deepseek-chat",
-    "qwen": "qwen-plus",
+    "qwen": "qwen3.5-397b-a17b",
 }
 
 LLM_API_MAX_TOKENS = 16_384
@@ -245,11 +245,11 @@ class LLMClient:
     ) -> dict[str, Any]:
         delays = (1, 2, 4)
         owns_client = self.http_client is None
-        client = self.http_client or httpx.AsyncClient(timeout=60)
+        client = self.http_client or httpx.AsyncClient(timeout=300)
         try:
             for attempt in range(3):
                 try:
-                    response = await client.post(url, headers=headers, json=payload, timeout=60)
+                    response = await client.post(url, headers=headers, json=payload, timeout=300)
                     if response.status_code not in {429, 500, 502, 503, 504}:
                         response.raise_for_status()
                         return response.json()
