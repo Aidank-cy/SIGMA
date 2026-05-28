@@ -2048,3 +2048,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with touched-path Ruff, focused market-index tests, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Finnhub tail backfill now triggers when the last Yahoo candle is more than five minutes before the market-local session close, even when overall KOSPI point coverage is above 90%. The merge still appends only Finnhub points after the last Yahoo timestamp.
 - Timestamp: 2026-05-28T07:56:46Z
+
+### [Maintenance] Sub-feature: KOSPI post-close delayed Yahoo refetch
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused market-index tests, full market-index test module, full backend pytest, touched-path Ruff, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Added a KOSPI-only once-per-market-date forced 1D candle refetch during the 30-35 minute post-close window, independent of Redis freshness, while verifying the window is after the final local session close and not a split-session lunch break.
+- Timestamp: 2026-05-28T08:26:34Z

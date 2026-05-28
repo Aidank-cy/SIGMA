@@ -47,12 +47,15 @@ _MAX_COLD_START_ATTEMPTS_PER_STEP = 3
 _DATA_HEALTH_CHECK_INTERVAL = 300
 POST_CLOSE_RETRY_MINUTES = (1, 3)
 POST_CLOSE_RETRY_WINDOW_MINUTES = 10
+POST_CLOSE_REFETCH_SYMBOLS = {"KOSPI"}
+POST_CLOSE_REFETCH_WINDOW_MINUTES = (30, 35)
 
 _last_fetch_time: dict[str, datetime] = {}
 _cold_start_done: dict[str, bool] = {}
 _cold_start_attempts: dict[str, int] = {}
 _finnhub_candle_last_fetch: dict[str, float] = {}
 _post_close_retry_slots: dict[str, tuple[date, set[int]]] = {}
+_post_close_refetch_done: dict[str, date] = {}
 _last_health_check = 0.0
 _pg_integrity_checked = False
 
@@ -69,6 +72,7 @@ async def candle_refresh_job() -> None:
             _pg_integrity_checked = True
 
     now_beijing = _now_utc().astimezone(BEIJING_TZ)
+    _reset_post_close_refetch_done(now_beijing)
 
     cold_start_pending = [
         config for config in INDEX_CONFIGS if not _cold_start_done.get(config.symbol, False)
@@ -104,6 +108,12 @@ async def candle_refresh_job() -> None:
                 return
 
             if status == "closed":
+                if _post_close_refetch_due(config, now_beijing):
+                    await _fetch_and_store_1d_1min(config, backfill_intraday_gap=True)
+                    _post_close_refetch_done[config.symbol] = _post_close_refetch_date(config, now_beijing)
+                    _last_fetch_time[config.symbol] = _now_utc()
+                    return
+
                 has_fresh_1d = await _redis_has_fresh_1d(config)
                 if not has_fresh_1d or _post_close_retry_due(config, now_beijing):
                     await _fetch_and_store_1d_1min(config)
@@ -171,6 +181,46 @@ def _post_close_retry_due(config: IndexConfig, now_beijing: datetime) -> bool:
 
     _post_close_retry_slots[config.symbol] = (session_date, completed_slots)
     return False
+
+
+def _post_close_refetch_date(config: IndexConfig, now_beijing: datetime) -> date:
+    return now_beijing.astimezone(ZoneInfo(config.timezone)).date()
+
+
+def _reset_post_close_refetch_done(now_beijing: datetime) -> None:
+    configs_by_symbol = {config.symbol: config for config in INDEX_CONFIGS}
+    for symbol, completed_date in list(_post_close_refetch_done.items()):
+        config = configs_by_symbol.get(symbol)
+        if config is None or completed_date != _post_close_refetch_date(config, now_beijing):
+            _post_close_refetch_done.pop(symbol, None)
+
+
+def _minutes_since_last_session_close(config: IndexConfig, now_beijing: datetime) -> int | None:
+    zone = ZoneInfo(config.timezone)
+    local_now = now_beijing.astimezone(zone)
+    session_date = _latest_session_date(config, now_beijing)
+    close_local = datetime.combine(session_date, config.close_time, tzinfo=zone)
+    if config.close_time <= config.open_time:
+        close_local += timedelta(days=1)
+    if local_now < close_local:
+        return None
+    return int((local_now - close_local).total_seconds() // 60)
+
+
+def _post_close_refetch_due(config: IndexConfig, now_beijing: datetime) -> bool:
+    if config.symbol not in POST_CLOSE_REFETCH_SYMBOLS:
+        return False
+
+    refetch_date = _post_close_refetch_date(config, now_beijing)
+    if _post_close_refetch_done.get(config.symbol) == refetch_date:
+        return False
+
+    minutes_since_close = _minutes_since_last_session_close(config, now_beijing)
+    if minutes_since_close is None:
+        return False
+
+    min_minutes, max_minutes = POST_CLOSE_REFETCH_WINDOW_MINUTES
+    return min_minutes <= minutes_since_close <= max_minutes
 
 
 async def _cold_start_fetch(config: IndexConfig, status: str) -> None:

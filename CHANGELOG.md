@@ -203,6 +203,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix KOSPI post-close candle refreshes so delayed Yahoo 1-minute data is refetched once after the 30-minute delay window.
 - Fix KOSPI Finnhub tail backfill so high-coverage Yahoo data still backfills when the last candle is more than five minutes before the local close.
 - Fix KOSPI intraday chart tails by merging Finnhub candles after sparse Yahoo data and avoiding long synthetic forward-fill lines.
 - Fix Asian-market intraday chart tails by requiring higher closed-session candle coverage, retrying shortly after close for delayed Yahoo candles, and filling any remaining close gap minute by minute.
