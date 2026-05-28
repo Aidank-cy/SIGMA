@@ -2006,3 +2006,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused market-index tests, touched-path Ruff, and full backend pytest. Full backend Ruff and `./hooks/post-file-edit.sh` remain blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Closed split-session 1D Redis caches now require at least 50% full-day trading-minute coverage, preventing Nikkei morning-only data from being treated as fresh after close. Closed-chart forward fill now targets the session containing the last point, so morning data stops at the morning close instead of drawing through lunch and the afternoon.
 - Timestamp: 2026-05-28T03:30:58Z
+
+### [Maintenance] Sub-feature: SSE lunch-break freshness threshold
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_candles.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused market-index tests and touched-path Ruff.
+- Notes: Raised the closed multi-session Redis freshness threshold from 50% to 65% so SSE morning-only data at the exact 50% full-day boundary is treated as stale after close.
+- Timestamp: 2026-05-28T03:44:56Z
