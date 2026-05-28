@@ -593,7 +593,7 @@ function GenerationDayTimeRow({
 }) {
   const t = useTranslations("settings");
   return (
-    <div className="grid gap-3 sm:grid-cols-[minmax(0,1.25fr)_minmax(8rem,0.75fr)]">
+    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(8rem,1fr)]">
       <CustomSelect
         label={dayLabel}
         labelMode="stacked"
