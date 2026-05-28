@@ -203,6 +203,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix split-session market intraday charts so morning-only Redis data is treated as stale after close and forward-filled only to the current session close.
 - Fix closed-session intraday forward fill so charts append a single session-close endpoint instead of synthetic minute-by-minute candles.
 - Fix sparse closed-session KOSPI intraday charts by recovering complete latest-session candles from 5D Redis or PostgreSQL fallback data.
 - Fix scheduled report matching and overlap checks so split daily report selections no longer generate duplicate reports.
