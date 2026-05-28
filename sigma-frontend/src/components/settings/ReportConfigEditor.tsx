@@ -308,7 +308,7 @@ function ReportAdvancedSettingsModal({
 
   return (
     <Modal
-      className="max-w-[80rem]"
+      className="max-w-[90rem]"
       closeLabel={t("password.close")}
       isOpen={isOpen}
       onClose={onClose}
