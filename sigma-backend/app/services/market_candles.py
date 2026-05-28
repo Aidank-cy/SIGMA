@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -34,12 +35,13 @@ CANDLE_5D_KEY = "sigma:candles:5d:{symbol}"
 CANDLE_1D_TTL = 60 * 60 * 24 * 4
 CANDLE_5D_TTL = 60 * 60 * 24 * 7
 
-TRADING_FETCH_INTERVAL = 30
+TRADING_FETCH_INTERVAL = 10
 COLD_START_NOT_OPEN_DELAY = 5
+PRE_MARKET_WINDOW_MINUTES = 60
 INTRADAY_GAP_MIN_EXPECTED_POINTS = 30
 INTRADAY_GAP_MIN_COVERAGE_RATIO = 0.8
 FINNHUB_CANDLE_MIN_INTERVAL_SECONDS = 60
-_MAX_COLD_START_ATTEMPTS_PER_STEP = 10
+_MAX_COLD_START_ATTEMPTS_PER_STEP = 3
 _DATA_HEALTH_CHECK_INTERVAL = 300
 
 _last_fetch_time: dict[str, datetime] = {}
@@ -67,24 +69,50 @@ async def candle_refresh_job() -> None:
         config for config in INDEX_CONFIGS if not _cold_start_done.get(config.symbol, False)
     ]
     if cold_start_pending:
-        for config in cold_start_pending:
-            status = _market_status_beijing(config, now_beijing)
-            await _cold_start_fetch(config, status)
+        cold_start_pending.sort(
+            key=lambda config: 0 if _market_status_beijing(config, now_beijing) == "trading" else 1
+        )
+        await asyncio.gather(
+            *(
+                _cold_start_fetch(config, _market_status_beijing(config, now_beijing))
+                for config in cold_start_pending
+            )
+        )
     else:
-        for config in INDEX_CONFIGS:
+        async def _process_market(config: IndexConfig) -> None:
             status = _market_status_beijing(config, now_beijing)
 
-            if status == "not_opened":
-                continue
             if status == "trading":
                 last = _last_fetch_time.get(config.symbol)
                 now_utc = _now_utc()
                 if last is not None and (now_utc - last).total_seconds() < TRADING_FETCH_INTERVAL:
-                    continue
+                    return
                 await _fetch_and_store_1d_1min(config)
                 _last_fetch_time[config.symbol] = _now_utc()
-                continue
-            await _end_of_day_downsample_if_needed(config)
+                return
+
+            if _is_pre_market(config, now_beijing):
+                if await _redis_has_fresh_1d(config):
+                    return
+                await _fetch_and_store_1d_1min(config)
+                _last_fetch_time[config.symbol] = _now_utc()
+                return
+
+            if status == "closed":
+                if not await _redis_has_fresh_1d(config):
+                    await _fetch_and_store_1d_1min(config)
+                    _last_fetch_time[config.symbol] = _now_utc()
+                return
+
+        sorted_configs = sorted(
+            INDEX_CONFIGS,
+            key=lambda config: (
+                0 if _market_status_beijing(config, now_beijing) == "trading"
+                else 1 if _is_pre_market(config, now_beijing)
+                else 2
+            ),
+        )
+        await asyncio.gather(*(_process_market(config) for config in sorted_configs))
 
     now_mono = _time.monotonic()
     if now_mono - _last_health_check >= _DATA_HEALTH_CHECK_INTERVAL:
@@ -99,6 +127,19 @@ async def candle_refresh_job() -> None:
                 )
                 _cold_start_done[config.symbol] = False
                 _cold_start_step_reset_all(config.symbol)
+
+
+def _is_pre_market(config: IndexConfig, now_beijing: datetime) -> bool:
+    """Return True within the warm-up window before the first session opens."""
+    local_now = now_beijing.astimezone(ZoneInfo(config.timezone))
+    if local_now.weekday() >= 5:
+        return False
+    current = local_now.time()
+    first_open = config.sessions[0][0]
+    current_mins = current.hour * 60 + current.minute
+    open_mins = first_open.hour * 60 + first_open.minute
+    diff = open_mins - current_mins
+    return 0 < diff <= PRE_MARKET_WINDOW_MINUTES
 
 
 async def _cold_start_fetch(config: IndexConfig, status: str) -> None:

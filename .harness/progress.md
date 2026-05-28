@@ -1992,3 +1992,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PARTIAL PASS
 - Notes: Added nullable report ownership, report owner relationships, an indexed report user_id migration, source-owner filtering during report generation, and authenticated current-user scoping for report list/latest/detail APIs. Targeted report tests, `python3 -m ruff check app tests`, and Alembic offline SQL generation pass. Full backend pytest still has unrelated market-index failures in tests/test_market_indices.py, and hooks/post-file-edit.sh still fails on pre-existing lint in scripts/test_report_pipeline.py.
 - Timestamp: 2026-05-27T13:18:01Z
+
+### [Maintenance] Sub-feature: Yahoo-first market data scheduling
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_indices.py, sigma-backend/app/services/market_candles.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused market-index tests, touched-path Ruff, full backend pytest, and compile checks. Full backend Ruff remains blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Yahoo chart results now cache quote metadata for Yahoo-first quote resolution, Alpha Vantage quote calls were removed, candle refreshes dispatch needed markets concurrently with pre-market and closed-market cache checks, cold-start retry waste was reduced, trading refreshes run at a 10-second interval, and closed-session forward fill now appends only the session-close endpoint.
+- Timestamp: 2026-05-28T03:07:39Z

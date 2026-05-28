@@ -68,6 +68,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change market candle refresh scheduling to fetch trading, missing pre-market, and missing closed-market 1D data in parallel while skipping already-warm closed markets.
+- Change market-index quote resolution to reuse Yahoo chart metadata before falling back to Finnhub and Stooq.
 - Increase Yahoo Finance candle fetch throughput to two concurrent requests with half-second global pacing.
 - Change shared LLM usage charts to use padded Y domains, compact 14-day X ticks, k-formatted token ticks, and hidden function-chart Y labels.
 - Change Analytics intelligence reports to use a list-only paginated master-detail preview with left-edge report type color bars and full Executive Summary previews.
@@ -189,6 +191,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Removed
+- Remove Alpha Vantage from market-index quote resolution.
 - Remove admin LLM config read/write endpoints while keeping admin LLM usage reporting.
 - Remove the Admin Sources tab, frontend panel, hook mutations, translations, and backend admin source routes.
 - Remove source creation, editing, and deletion controls from the Admin Sources UI.
@@ -200,6 +203,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix closed-session intraday forward fill so charts append a single session-close endpoint instead of synthetic minute-by-minute candles.
 - Fix sparse closed-session KOSPI intraday charts by recovering complete latest-session candles from 5D Redis or PostgreSQL fallback data.
 - Fix scheduled report matching and overlap checks so split daily report selections no longer generate duplicate reports.
 - Fix intelligence report titles to use Beijing-time coverage dates and the requested cadence-specific title format.
