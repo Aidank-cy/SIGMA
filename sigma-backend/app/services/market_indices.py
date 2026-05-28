@@ -28,11 +28,12 @@ YAHOO_CHART_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
 YAHOO_HEADERS = {
     "User-Agent": "Mozilla/5.0",
 }
-_yahoo_semaphore = asyncio.Semaphore(1)
-_yahoo_min_interval = 1.0
+_yahoo_semaphore = asyncio.Semaphore(2)
+_yahoo_min_interval = 0.5
 _yahoo_last_request_time = 0.0
 _yahoo_backoff_until = 0.0
 _yahoo_consecutive_429s = 0
+_yahoo_meta_cache: dict[str, "IndexQuote"] = {}
 _yahoo_crumb: str | None = None
 _yahoo_cookie_jar: http.cookiejar.CookieJar | None = None
 _yahoo_crumb_expires = 0.0
@@ -50,7 +51,6 @@ class IndexConfig:
     sessions: tuple[tuple[time, time], ...]
     finnhub_symbol: str
     finnhub_proxy_symbol: str | None
-    alpha_symbol: str
     stooq_symbol: str | None
     fallback_value: float
     fallback_change_pct: float
@@ -80,16 +80,16 @@ class IndexQuote:
 
 
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
-    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "^GSPC", "^spx", 7500.00, 0.40, "USD"),
-    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "^IXIC", "^ndq", 26500.00, 0.50, "USD"),
-    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "^DJI", "^dji", 50500.00, 0.25, "USD"),
-    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", None, "000001.SHH", "^shc", 4150.00, 0.20, "CNY"),
-    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "HSI", "^hsi", 25600.00, 0.30, "HKD"),
-    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "N225", "^nkx", 64900.00, 0.20, "JPY"),
-    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", "EWU", "FTSE", "^ukx", 10450.00, 0.20, "GBP"),
-    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", "EWG", "", "^dax", 25400.00, 0.35, "EUR"),
-    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", None, "KS11", "^kospi", 8050.00, 0.45, "KRW"),
-    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", None, "TWII", "^twse", 43500.00, 0.30, "TWD"),
+    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "^spx", 7500.00, 0.40, "USD"),
+    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "^ndq", 26500.00, 0.50, "USD"),
+    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "^dji", 50500.00, 0.25, "USD"),
+    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", None, "^shc", 4150.00, 0.20, "CNY"),
+    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "^hsi", 25600.00, 0.30, "HKD"),
+    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "^nkx", 64900.00, 0.20, "JPY"),
+    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", "EWU", "^ukx", 10450.00, 0.20, "GBP"),
+    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", "EWG", "^dax", 25400.00, 0.35, "EUR"),
+    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", None, "^kospi", 8050.00, 0.45, "KRW"),
+    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", None, "^twse", 43500.00, 0.30, "TWD"),
 )
 
 
@@ -215,10 +215,10 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
 
 
 async def _fetch_index_quote(config: IndexConfig) -> IndexQuote | None:
+    cached = _yahoo_meta_cache.get(config.symbol)
+    if cached is not None:
+        return cached
     quote = await _fetch_finnhub_quote(config)
-    if quote is not None:
-        return quote
-    quote = await _fetch_alpha_vantage_quote(config)
     if quote is not None:
         return quote
     return await _fetch_stooq_quote(config)
@@ -283,45 +283,6 @@ async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> IndexQuote | N
         change_pct=((current - previous) / previous) * 100,
         previous_close=previous,
         timestamp=_timestamp_from_epoch(payload.get("t")),
-    )
-
-
-async def _fetch_alpha_vantage_quote(config: IndexConfig) -> IndexQuote | None:
-    token = os.getenv("ALPHAVANTAGE_KEY", "")
-    if not token or not config.alpha_symbol:
-        return None
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            response = await client.get(
-                "https://www.alphavantage.co/query",
-                params={"function": "GLOBAL_QUOTE", "symbol": config.alpha_symbol, "apikey": token},
-            )
-            response.raise_for_status()
-            payload = response.json().get("Global Quote", {})
-    except httpx.HTTPStatusError as exc:
-        LOGGER.warning("Alpha Vantage quote request for %s failed with status %s.", config.symbol, exc.response.status_code)
-        return None
-    except httpx.HTTPError as exc:
-        LOGGER.warning("Alpha Vantage quote request for %s failed: %s.", config.symbol, type(exc).__name__)
-        return None
-    except Exception as exc:
-        LOGGER.warning("Alpha Vantage quote request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc)
-        return None
-
-    if not payload:
-        LOGGER.warning("Alpha Vantage quote response for %s did not include Global Quote data.", config.symbol)
-        return None
-
-    current = _as_float(payload.get("05. price"))
-    previous = _as_float(payload.get("08. previous close"))
-    change_text = str(payload.get("10. change percent", "")).removesuffix("%")
-    change_pct = _as_float(change_text)
-    if current is None or change_pct is None or current <= 0:
-        return None
-    return IndexQuote(
-        current=current,
-        change_pct=change_pct,
-        previous_close=previous if previous is not None and previous > 0 else _previous_close_from_change(current, change_pct),
     )
 
 
@@ -421,6 +382,24 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
         return None
 
     now = _now_utc()
+    if not _is_trading(config, now) and len(points) < 30:
+        five_day = await _redis_get_5d(config.symbol)
+        if five_day:
+            session_date = _latest_session_date(config)
+            zone = ZoneInfo(config.timezone)
+            session_points = [
+                point for point in five_day if point.timestamp.astimezone(zone).date() == session_date
+            ]
+            if len(session_points) >= 30:
+                points = session_points
+            else:
+                latest_date = five_day[-1].timestamp.astimezone(zone).date()
+                latest_points = [
+                    point for point in five_day if point.timestamp.astimezone(zone).date() == latest_date
+                ]
+                if len(latest_points) >= 30:
+                    points = latest_points
+
     if not _is_trading(config, now):
         filled = _forward_fill_to_session_close(config, points)
         return filled if len(filled) >= 10 else None
@@ -458,20 +437,8 @@ def _forward_fill_to_session_close(config: IndexConfig, points: list[IntradayPoi
     if last_beijing >= close_beijing:
         return points
 
-    gap_minutes = int((close_beijing - last_beijing).total_seconds() / 60)
-    # Only forward-fill gaps up to 60 minutes; larger gaps suggest genuinely
-    # missing data rather than Yahoo's late-session truncation.
-    if gap_minutes > 60 or gap_minutes <= 0:
-        return points
-
     filled = list(points)
-    for offset in range(1, gap_minutes + 1):
-        filled.append(
-            IntradayPoint(
-                timestamp=last_beijing + timedelta(minutes=offset),
-                value=last_point.value,
-            )
-        )
+    filled.append(IntradayPoint(timestamp=close_beijing, value=last_point.value))
     return filled
 
 
@@ -586,6 +553,16 @@ async def _fetch_yahoo_chart_result(
                     return None
                 if result is not None:
                     _yahoo_on_success()
+                    meta = result.get("meta", {})
+                    if isinstance(meta, dict):
+                        rmp = _as_float(meta.get("regularMarketPrice"))
+                        cpc = _as_float(meta.get("chartPreviousClose"))
+                        if rmp is not None and rmp > 0 and cpc is not None and cpc > 0:
+                            _yahoo_meta_cache[config.symbol] = IndexQuote(
+                                current=rmp,
+                                change_pct=((rmp - cpc) / cpc) * 100,
+                                previous_close=cpc,
+                            )
                     return result
             except Exception as exc:
                 LOGGER.warning(
