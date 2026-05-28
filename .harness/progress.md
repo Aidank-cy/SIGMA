@@ -2013,3 +2013,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused market-index tests and touched-path Ruff.
 - Notes: Raised the closed multi-session Redis freshness threshold from 50% to 65% so SSE morning-only data at the exact 50% full-day boundary is treated as stale after close.
 - Timestamp: 2026-05-28T03:44:56Z
+
+### [Maintenance] Sub-feature: Markets range-aware chart changes
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build and `git diff --check`.
+- Notes: Markets index card point change, percent change, line color, and Y-axis reference now use the selected range's starting value while preserving the latest displayed index price.
+- Timestamp: 2026-05-28T04:27:02Z

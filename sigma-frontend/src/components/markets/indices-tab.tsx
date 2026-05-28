@@ -159,8 +159,17 @@ export function IndicesTab() {
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
               {group.indices.map((index) => {
-                const isPositive = index.change_pct >= 0
                 const chartData = toMarketChartData(index, activeRange, now)
+                const rangeStartValue =
+                  activeRange === "1D" || chartData.length === 0
+                    ? index.previous_close
+                    : chartData[0].value
+                const pointChange = index.value - rangeStartValue
+                const changePct =
+                  rangeStartValue > 0
+                    ? ((index.value - rangeStartValue) / rangeStartValue) * 100
+                    : index.change_pct
+                const isPositive = changePct >= 0
                 const chartSessions = index.trading_hours.beijing_sessions?.length
                   ? index.trading_hours.beijing_sessions
                   : index.trading_hours.sessions
@@ -179,9 +188,8 @@ export function IndicesTab() {
                 const filteredTicks = chartTicks.filter((tick) => !hiddenTicks.has(tick))
                 const xAxisDomain = buildChartXAxisDomain(activeRange, chartSessions, chartData)
                 const isAwaitingOpen = isPreMarketClearWindow(index.trading_hours, now)
-                const displayChangePct = isAwaitingOpen ? 0 : index.change_pct
+                const displayChangePct = isAwaitingOpen ? 0 : changePct
                 const changeSign = !isAwaitingOpen && isPositive ? "+" : ""
-                const pointChange = index.value - index.previous_close
                 const displayPointChange = isAwaitingOpen ? "0.00" : pointChange.toFixed(2)
                 const chartColor = isPositive
                   ? "oklch(0.65 0.22 145)"
@@ -270,7 +278,7 @@ export function IndicesTab() {
                               padding={{ left: 12, right: 12 }}
                               type="number"
                             />
-                            <YAxis domain={computeChartYDomain(chartData, index.previous_close)} hide />
+                            <YAxis domain={computeChartYDomain(chartData, rangeStartValue)} hide />
                             <Area
                               animationDuration={450}
                               dataKey="value"
