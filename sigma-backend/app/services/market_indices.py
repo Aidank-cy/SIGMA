@@ -420,8 +420,9 @@ def _forward_fill_to_session_close(config: IndexConfig, points: list[IntradayPoi
     Yahoo Finance does not always return data up to the exact session close for
     some indices (e.g. KOSPI ^KS11 typically stops ~30 min before 15:30 KST).
     This leaves a visible gap at the right edge of the intraday chart because
-    the X-axis domain extends to the session close.  Forward-filling the last
-    price to the close time eliminates the gap.
+    the X-axis domain extends to the session close. Small tail gaps are filled
+    to the close, while large gaps are left unfilled so incomplete data stops
+    at the last real candle instead of drawing a long flat line.
     """
     if not points:
         return points
@@ -450,6 +451,10 @@ def _forward_fill_to_session_close(config: IndexConfig, points: list[IntradayPoi
     last_beijing = last_point.timestamp.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
 
     if last_beijing >= close_beijing:
+        return points
+
+    gap_minutes = int((close_beijing - last_beijing).total_seconds() // 60)
+    if gap_minutes > 30:
         return points
 
     filled = list(points)

@@ -557,11 +557,7 @@ async def test_read_intraday_from_redis_falls_back_to_pg_latest_session(
 
     assert result is not None
     assert result[: len(pg_points)] == pg_points
-    assert len(result) == len(pg_points) + 195
-    assert result[-1] == market_indices.IntradayPoint(
-        datetime(2026, 5, 18, 15, 0, tzinfo=market_indices.BEIJING_TZ),
-        3209.0,
-    )
+    assert result == pg_points
 
 
 @pytest.mark.asyncio
@@ -607,11 +603,7 @@ async def test_read_intraday_from_redis_falls_back_to_pg_most_recent_day(
 
     assert result is not None
     assert result[:5] == pg_points[-5:]
-    assert len(result) == 65
-    assert result[-1] == market_indices.IntradayPoint(
-        datetime(2026, 5, 22, 11, 30, tzinfo=market_indices.BEIJING_TZ),
-        3204.0,
-    )
+    assert result == pg_points[-5:]
 
 
 @pytest.mark.asyncio
@@ -636,11 +628,7 @@ async def test_read_intraday_from_redis_keeps_last_session_when_closed(monkeypat
 
     assert result is not None
     assert result[: len(redis_points)] == redis_points
-    assert len(result) == len(redis_points) + 91
-    assert result[-1] == market_indices.IntradayPoint(
-        datetime(2026, 5, 15, 11, 30, tzinfo=market_indices.BEIJING_TZ),
-        3229.0,
-    )
+    assert result == redis_points
 
 
 @pytest.mark.asyncio
@@ -732,11 +720,7 @@ async def test_read_intraday_from_redis_keeps_last_session_before_open(monkeypat
 
     assert result is not None
     assert result[: len(redis_points)] == redis_points
-    assert len(result) == len(redis_points) + 91
-    assert result[-1] == market_indices.IntradayPoint(
-        datetime(2026, 5, 15, 11, 30, tzinfo=market_indices.BEIJING_TZ),
-        3229.0,
-    )
+    assert result == redis_points
 
 
 def test_forward_fill_multi_session_stops_at_current_session_close() -> None:
@@ -768,16 +752,7 @@ def test_forward_fill_multi_session_between_sessions_targets_next_session_close(
 
     filled = market_indices._forward_fill_to_session_close(n225, points)
 
-    assert filled[: len(points)] == points
-    assert len(filled) == len(points) + 210
-    assert filled[1] == market_indices.IntradayPoint(
-        datetime(2026, 5, 26, 11, 1, tzinfo=market_indices.BEIJING_TZ),
-        39100.0,
-    )
-    assert filled[-1] == market_indices.IntradayPoint(
-        datetime(2026, 5, 26, 14, 30, tzinfo=market_indices.BEIJING_TZ),
-        39100.0,
-    )
+    assert filled == points
 
 
 @pytest.mark.asyncio
@@ -1673,6 +1648,68 @@ async def test_fetch_and_store_1d_uses_finnhub_when_yahoo_fails(monkeypatch: pyt
 
 
 @pytest.mark.asyncio
+async def test_fetch_and_store_1d_merges_finnhub_tail_after_sparse_yahoo(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Sparse Yahoo 1D data can be completed with only Finnhub points after Yahoo's tail."""
+    kospi = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "KOSPI")
+    yahoo_points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 26, 8, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            3900.0 + offset,
+        )
+        for offset in range(320)
+    ]
+    finnhub_points = [
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 26, 13, 18, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            4218.0 + offset,
+        )
+        for offset in range(5)
+    ]
+    stored_points: list[market_indices.IntradayPoint] = []
+    calls: list[str] = []
+
+    async def fake_yahoo(
+        _config: market_indices.IndexConfig,
+        interval: str,
+        range_: str,
+    ) -> list[market_indices.IntradayPoint]:
+        calls.append(f"yahoo:{interval}:{range_}")
+        return yahoo_points
+
+    async def fake_reference(_config: market_indices.IndexConfig) -> float:
+        calls.append("reference")
+        return 4200.0
+
+    async def fake_finnhub(
+        _config: market_indices.IndexConfig,
+        reference_value: float | None = None,
+    ) -> list[market_indices.IntradayPoint]:
+        calls.append(f"finnhub:{reference_value}")
+        return finnhub_points
+
+    async def fake_set_1d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+        stored_points.extend(points)
+
+    closed_time = datetime(2026, 5, 26, 7, 0, tzinfo=UTC)
+    monkeypatch.setattr(market_candles, "_now_utc", lambda: closed_time)
+    monkeypatch.setattr(market_indices, "_now_utc", lambda: closed_time)
+    monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
+    monkeypatch.setattr(market_candles, "_fetch_candle_reference_value", fake_reference)
+    monkeypatch.setattr(market_candles, "_fetch_finnhub_candles", fake_finnhub)
+    monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
+
+    stored_count = await market_candles._fetch_and_store_1d_1min(kospi)
+
+    assert calls == ["yahoo:1m:1d", "reference", "finnhub:4200.0"]
+    assert stored_count == 323
+    assert stored_points[:320] == yahoo_points
+    assert stored_points[320:] == finnhub_points[-3:]
+    assert len({point.timestamp for point in stored_points}) == len(stored_points)
+
+
+@pytest.mark.asyncio
 async def test_fetch_and_store_1d_discards_suspicious_candles(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
@@ -1743,6 +1780,12 @@ async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
         await fake_set_5d(_symbol, points)
         state["has_5d"] = True
 
+    async def fake_tail_backfill(
+        _config: market_indices.IndexConfig,
+        points: list[market_indices.IntradayPoint],
+    ) -> list[market_indices.IntradayPoint]:
+        return points
+
     async def fake_upsert_with_state(
         _symbol: str,
         interval: str,
@@ -1760,6 +1803,7 @@ async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
     monkeypatch.setattr(market_candles, "_pg_has_interval", fake_has_interval)
     monkeypatch.setattr(market_candles, "_filter_today", lambda _config, points: points)
     monkeypatch.setattr(market_candles, "_has_intraday_gap", lambda _config, _points: False)
+    monkeypatch.setattr(market_candles, "_backfill_intraday_tail_from_finnhub", fake_tail_backfill)
 
     for _ in range(5):
         await market_candles._cold_start_next_piece(spx)

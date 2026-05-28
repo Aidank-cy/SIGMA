@@ -2034,3 +2034,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with touched-path Ruff, focused market-index tests, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Closed-market 1D Redis freshness now requires 90% trading-minute coverage for every market, candle refreshes run bounded 1-minute and 3-minute post-close retries even when Redis looks fresh, and closed-session chart tails fill minute by minute to the session close while still rejecting sparse source sessions.
 - Timestamp: 2026-05-28T07:30:36Z
+
+### [Maintenance] Sub-feature: KOSPI intraday tail backfill
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with touched-path Ruff, focused market-index tests, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Sparse successful Yahoo 1D candle fetches now trigger Finnhub tail backfill when coverage remains below 90%, appending only Finnhub candles after the last Yahoo timestamp and deduplicating before Redis storage. Display forward fill now stops entirely when the remaining close gap exceeds 30 minutes, preventing long flat KOSPI chart tails.
+- Timestamp: 2026-05-28T07:44:53Z

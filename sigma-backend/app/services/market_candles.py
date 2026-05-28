@@ -40,6 +40,7 @@ COLD_START_NOT_OPEN_DELAY = 5
 PRE_MARKET_WINDOW_MINUTES = 60
 INTRADAY_GAP_MIN_EXPECTED_POINTS = 30
 INTRADAY_GAP_MIN_COVERAGE_RATIO = 0.8
+INTRADAY_TAIL_BACKFILL_MIN_COVERAGE_RATIO = 0.9
 FINNHUB_CANDLE_MIN_INTERVAL_SECONDS = 60
 _MAX_COLD_START_ATTEMPTS_PER_STEP = 3
 _DATA_HEALTH_CHECK_INTERVAL = 300
@@ -297,7 +298,8 @@ def _cold_start_step_reset_all(symbol: str) -> None:
 
 
 async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: bool = True) -> int:
-    points = await _yahoo_fetch(config, interval="1m", range_="1d")
+    yahoo_points = await _yahoo_fetch(config, interval="1m", range_="1d")
+    points = yahoo_points
     if not points:
         reference_value = await _fetch_candle_reference_value(config)
         points = await _fetch_finnhub_candles(config, reference_value=reference_value)
@@ -321,11 +323,49 @@ async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: b
                     len(today_points),
                 )
 
-    if stored_points is not points and not _candles_are_reasonable(config, stored_points):
+    if backfill_intraday_gap and yahoo_points:
+        stored_points = await _backfill_intraday_tail_from_finnhub(config, stored_points)
+
+    stored_points = _dedupe_points_by_timestamp(stored_points)
+    if not _candles_are_reasonable(config, stored_points):
         return 0
 
     await _redis_set_1d(config.symbol, stored_points)
     return len(stored_points)
+
+
+async def _backfill_intraday_tail_from_finnhub(
+    config: IndexConfig,
+    points: list[IntradayPoint],
+) -> list[IntradayPoint]:
+    if not _has_intraday_gap(config, points, coverage_ratio=INTRADAY_TAIL_BACKFILL_MIN_COVERAGE_RATIO):
+        return points
+
+    last_yahoo_timestamp = max(point.timestamp for point in points)
+    reference_value = await _fetch_candle_reference_value(config)
+    finnhub_points = await _fetch_finnhub_candles(config, reference_value=reference_value)
+    if not finnhub_points:
+        return points
+
+    tail_points = [point for point in finnhub_points if point.timestamp > last_yahoo_timestamp]
+    if not tail_points:
+        return points
+
+    merged_points = _dedupe_points_by_timestamp([*points, *tail_points])
+    LOGGER.info(
+        "Backfilled %s 1D candle tail from Finnhub after sparse Yahoo data: %d -> %d points",
+        config.symbol,
+        len(points),
+        len(merged_points),
+    )
+    return merged_points
+
+
+def _dedupe_points_by_timestamp(points: list[IntradayPoint]) -> list[IntradayPoint]:
+    points_by_timestamp: dict[int, IntradayPoint] = {}
+    for point in points:
+        points_by_timestamp[int(point.timestamp.timestamp())] = point
+    return sorted(points_by_timestamp.values(), key=lambda point: point.timestamp)
 
 
 async def _fetch_candle_reference_value(config: IndexConfig) -> float | None:
@@ -361,7 +401,11 @@ def _candles_are_reasonable(config: IndexConfig, points: list[IntradayPoint]) ->
     return True
 
 
-def _has_intraday_gap(config: IndexConfig, points: list[IntradayPoint]) -> bool:
+def _has_intraday_gap(
+    config: IndexConfig,
+    points: list[IntradayPoint],
+    coverage_ratio: float = INTRADAY_GAP_MIN_COVERAGE_RATIO,
+) -> bool:
     now = _now_utc()
     session_date = _latest_session_date(config, now)
     zone = ZoneInfo(config.timezone)
@@ -378,7 +422,7 @@ def _has_intraday_gap(config: IndexConfig, points: list[IntradayPoint]) -> bool:
     if expected_count < INTRADAY_GAP_MIN_EXPECTED_POINTS:
         return False
 
-    return len(todays_points) < expected_count * INTRADAY_GAP_MIN_COVERAGE_RATIO
+    return len(todays_points) < expected_count * coverage_ratio
 
 
 async def _end_of_day_downsample_if_needed(config: IndexConfig) -> None:
