@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.analyzers.report_generator import generate_report
 from app.database import AsyncSessionLocal, get_db
-from app.middleware.auth import require_role
+from app.middleware.auth import get_current_user, require_role
 from app.models.enums import ReportType, UserRole
 from app.models.report import Report
 from app.models.user import User
@@ -31,10 +31,11 @@ async def list_reports(
     market: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ReportListResponse:
     """Return generated reports with standard pagination metadata."""
-    predicate = _report_predicate(report_type, market, date_from, date_to)
+    predicate = _report_predicate(report_type, market, date_from, date_to, current_user.id)
     total = await db.scalar(select(func.count()).select_from(Report).where(*predicate))
     rows = await db.scalars(
         select(Report)
@@ -54,13 +55,16 @@ async def list_reports(
 
 
 @router.get("/latest", response_model=LatestReportsResponse)
-async def latest_reports(db: AsyncSession = Depends(get_db)) -> LatestReportsResponse:
+async def latest_reports(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> LatestReportsResponse:
     """Return the latest report for each report type."""
     items: list[ReportSummary] = []
     for report_type in ReportType:
         report = await db.scalar(
             select(Report)
-            .where(Report.report_type == report_type)
+            .where(Report.report_type == report_type, Report.user_id == current_user.id)
             .order_by(Report.generated_at.desc())
             .limit(1)
         )
@@ -70,10 +74,14 @@ async def latest_reports(db: AsyncSession = Depends(get_db)) -> LatestReportsRes
 
 
 @router.get("/{report_id}", response_model=ReportDetail)
-async def get_report(report_id: UUID, db: AsyncSession = Depends(get_db)) -> ReportDetail:
+async def get_report(
+    report_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ReportDetail:
     """Return a full generated report."""
     report = await db.scalar(select(Report).where(Report.id == report_id))
-    if report is None:
+    if report is None or (report.user_id is not None and report.user_id != current_user.id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
     return ReportDetail.model_validate(report)
 
@@ -108,8 +116,9 @@ def _report_predicate(
     market: str | None,
     date_from: date | None,
     date_to: date | None,
+    user_id: UUID,
 ) -> list[object]:
-    predicate: list[object] = []
+    predicate: list[object] = [Report.user_id == user_id]
     if report_type is not None:
         predicate.append(Report.report_type == report_type)
     if market:

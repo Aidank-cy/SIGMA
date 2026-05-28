@@ -10,6 +10,7 @@ from app.models.enums import UserLocale, UserRole
 
 if TYPE_CHECKING:
     from app.models.data_source import DataSource
+    from app.models.report import Report
     from app.models.user_report_config import UserReportConfig
     from app.models.watchlist import Watchlist
 
@@ -38,4 +39,5 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     data_sources: Mapped[list[DataSource]] = relationship(back_populates="creator")
     watchlists: Mapped[list[Watchlist]] = relationship(back_populates="user")
+    reports: Mapped[list[Report]] = relationship(back_populates="owner")
     report_config: Mapped[UserReportConfig | None] = relationship(back_populates="user")

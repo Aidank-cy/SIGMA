@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Added
+- Add user ownership and source-ownership filtering for intelligence reports.
 - Add Yahoo Finance crumb/cookie authentication for chart API requests.
 - Add a rate-limited Finnhub intraday candle fallback when Yahoo one-day candles are unavailable.
 - Add SMTP delivery for verification emails when Resend is not configured.

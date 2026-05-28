@@ -3,12 +3,13 @@ from datetime import date, datetime, time, timezone
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.analyzers.llm_client import LLMClient
 from app.analyzers.prompts import report_system_prompt, report_user_prompt
 from app.models.collected_item import CollectedItem
+from app.models.data_source import DataSource
 from app.models.enums import IntelligenceCategory, LLMFunctionType, Market, ReportType
 from app.models.report import Report
 from app.services.report_settings import get_report_max_tokens_for_type, report_type_label
@@ -31,7 +32,7 @@ async def generate_report(
     resolved_type = ReportType(report_type)
     start = _period_start_datetime(period_start)
     end = _period_end_datetime(period_end)
-    items = await _load_items(db, market_scope, category_scope, start, end)
+    items = await _load_items(db, market_scope, category_scope, start, end, user_id=user_id)
     content = await _generate_content(
         db,
         resolved_type,
@@ -51,6 +52,7 @@ async def generate_report(
         category_scope=category_scope,
         period_start=start,
         period_end=end,
+        user_id=user_id,
         item_count=len(items),
         sentiment_score=_sentiment_score(items),
     )
@@ -66,6 +68,7 @@ async def _load_items(
     category_scope: list[str],
     period_start: datetime,
     period_end: datetime,
+    user_id: UUID | None = None,
 ) -> list[CollectedItem]:
     predicates = [
         CollectedItem.published_at >= period_start,
@@ -79,8 +82,13 @@ async def _load_items(
                 [IntelligenceCategory(category) for category in category_scope]
             )
         )
+    statement = select(CollectedItem)
+    if user_id is not None:
+        statement = statement.join(DataSource, CollectedItem.source_id == DataSource.id)
+        predicates.append(CollectedItem.source_id == DataSource.id)
+        predicates.append(or_(DataSource.is_system.is_(True), DataSource.created_by == user_id))
     rows = await db.scalars(
-        select(CollectedItem).where(*predicates).order_by(CollectedItem.published_at.desc())
+        statement.where(*predicates).order_by(CollectedItem.published_at.desc())
     )
     return list(rows)
 

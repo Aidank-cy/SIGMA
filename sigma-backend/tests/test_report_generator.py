@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -152,6 +152,61 @@ async def test_report_generator_formats_titles_from_beijing_period_end(
 
 
 def _source() -> DataSource:
+    return _source_with_owner()
+
+
+@pytest.mark.asyncio
+async def test_report_generator_scopes_items_to_user_and_system_sources(
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """User reports include system sources and the user's own sources only."""
+    user_id = uuid4()
+    other_user_id = uuid4()
+    user_source = _source_with_owner(created_by=user_id)
+    system_source = _source_with_owner(is_system=True)
+    other_source = _source_with_owner(created_by=other_user_id)
+    db_session.add_all([user_source, system_source, other_source])
+    db_session.add_all(
+        [
+            _item(user_source, "Owned source item"),
+            _item(system_source, "System source item"),
+            _item(other_source, "Other user item"),
+        ]
+    )
+    await db_session.commit()
+
+    class FakeLLMClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def complete(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> str:
+            assert "Owned source item" in user_prompt
+            assert "System source item" in user_prompt
+            assert "Other user item" not in user_prompt
+            return "# Overview\n\nScoped report body."
+
+    monkeypatch.setattr("app.analyzers.report_generator.LLMClient", FakeLLMClient)
+
+    report = await generate_report(
+        db_session,
+        ReportType.DAILY,
+        ["us"],
+        ["finance"],
+        date.today(),
+        date.today(),
+        user_id=user_id,
+    )
+
+    assert report.user_id == user_id
+    assert report.item_count == 2
+
+
+def _source_with_owner(
+    *,
+    is_system: bool = False,
+    created_by: UUID | None = None,
+) -> DataSource:
     return DataSource(
         id=uuid4(),
         name=f"report-source-{uuid4()}",
@@ -161,6 +216,8 @@ def _source() -> DataSource:
         config={"feed_url": "https://rss.test/feed.xml"},
         schedule_cron="*/5 * * * *",
         max_execution_seconds=60,
+        is_system=is_system,
+        created_by=created_by,
     )
 
 

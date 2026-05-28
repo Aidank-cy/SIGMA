@@ -1,6 +1,6 @@
 import asyncio
 from datetime import UTC, date, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
@@ -11,20 +11,27 @@ from app.models.report import Report
 
 def test_reports_list_and_latest_empty(client: TestClient) -> None:
     """Report list endpoints return paginated empty payloads."""
-    list_response = client.get("/api/v1/reports")
-    latest_response = client.get("/api/v1/reports/latest")
+    token = _token(client, "empty-reports@example.com")
+    list_response = client.get("/api/v1/reports", headers=_auth(token))
+    latest_response = client.get("/api/v1/reports/latest", headers=_auth(token))
+    unauthenticated_response = client.get("/api/v1/reports")
 
     assert list_response.status_code == 200
     assert list_response.json()["total"] == 0
     assert latest_response.status_code == 200
     assert latest_response.json()["items"] == []
+    assert unauthenticated_response.status_code == 401
 
 
 def test_reports_http_filters_latest_detail_and_generation(client: TestClient, monkeypatch) -> None:
     """Report HTTP endpoints expose pagination, filters, latest reports, details, and admin generation."""
-    seeded = _seed_reports(client)
+    token = _token(client, "report-owner@example.com")
+    other_token = _token(client, "other-report-owner@example.com")
+    user_id = _user_id(client, token)
+    other_user_id = _user_id(client, other_token)
+    seeded = _seed_reports(client, user_id, other_user_id)
 
-    list_response = client.get("/api/v1/reports?page=1&page_size=5")
+    list_response = client.get("/api/v1/reports?page=1&page_size=5", headers=_auth(token))
     assert list_response.status_code == 200
     list_payload = list_response.json()
     assert list_payload["page"] == 1
@@ -32,16 +39,17 @@ def test_reports_http_filters_latest_detail_and_generation(client: TestClient, m
     assert list_payload["total"] == 4
     assert list_payload["has_next"] is False
 
-    daily_response = client.get("/api/v1/reports?report_type=daily")
+    daily_response = client.get("/api/v1/reports?report_type=daily", headers=_auth(token))
     assert daily_response.status_code == 200
     assert {item["report_type"] for item in daily_response.json()["items"]} == {"daily"}
 
-    market_response = client.get("/api/v1/reports?market=us")
+    market_response = client.get("/api/v1/reports?market=us", headers=_auth(token))
     assert market_response.status_code == 200
     assert all("us" in item["market_scope"] for item in market_response.json()["items"])
 
     date_response = client.get(
         "/api/v1/reports",
+        headers=_auth(token),
         params={"date_from": "2026-01-01", "date_to": "2026-01-31"},
     )
     assert date_response.status_code == 200
@@ -51,7 +59,7 @@ def test_reports_http_filters_latest_detail_and_generation(client: TestClient, m
         "Weekly US report",
     }
 
-    latest_response = client.get("/api/v1/reports/latest")
+    latest_response = client.get("/api/v1/reports/latest", headers=_auth(token))
     assert latest_response.status_code == 200
     latest_by_type = {
         item["report_type"]: item["title"] for item in latest_response.json()["items"]
@@ -62,10 +70,17 @@ def test_reports_http_filters_latest_detail_and_generation(client: TestClient, m
         "monthly": "Monthly CN report",
     }
 
-    detail_response = client.get(f"/api/v1/reports/{seeded['daily_id']}")
-    missing_response = client.get(f"/api/v1/reports/{uuid4()}")
+    other_list_response = client.get("/api/v1/reports", headers=_auth(other_token))
+    detail_response = client.get(f"/api/v1/reports/{seeded['daily_id']}", headers=_auth(token))
+    legacy_detail_response = client.get(f"/api/v1/reports/{seeded['legacy_id']}", headers=_auth(token))
+    other_detail_response = client.get(f"/api/v1/reports/{seeded['other_id']}", headers=_auth(token))
+    missing_response = client.get(f"/api/v1/reports/{uuid4()}", headers=_auth(token))
+    assert other_list_response.status_code == 200
+    assert other_list_response.json()["total"] == 1
     assert detail_response.status_code == 200
     assert detail_response.json()["content"] == "# Daily\nFull content"
+    assert legacy_detail_response.status_code == 200
+    assert other_detail_response.status_code == 404
     assert missing_response.status_code == 404
 
     async def fake_generate_task(_payload: object, _user_id: object) -> None:
@@ -73,8 +88,8 @@ def test_reports_http_filters_latest_detail_and_generation(client: TestClient, m
 
     monkeypatch.setattr(reports_routes, "_generate_report_task", fake_generate_task)
 
-    admin_token = _token(client, "report-admin@example.com")
-    user_token = _token(client, "report-non-admin@example.com")
+    admin_token = token
+    user_token = other_token
     generate_payload = {
         "report_type": "daily",
         "market_scope": ["us"],
@@ -313,11 +328,17 @@ def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _seed_reports(client: TestClient) -> dict[str, str]:
-    return asyncio.run(_seed_reports_async(client))
+def _user_id(client: TestClient, token: str) -> str:
+    response = client.get("/api/v1/auth/me", headers=_auth(token))
+    assert response.status_code == 200
+    return str(response.json()["id"])
 
 
-async def _seed_reports_async(client: TestClient) -> dict[str, str]:
+def _seed_reports(client: TestClient, user_id: str, other_user_id: str) -> dict[str, str]:
+    return asyncio.run(_seed_reports_async(client, user_id, other_user_id))
+
+
+async def _seed_reports_async(client: TestClient, user_id: str, other_user_id: str) -> dict[str, str]:
     session_factory = client.app.state.session_factory
     generated_base = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
     reports = [
@@ -330,6 +351,7 @@ async def _seed_reports_async(client: TestClient) -> dict[str, str]:
             date(2026, 1, 31),
             generated_base,
             "# Daily\nFull content",
+            user_id=user_id,
         ),
         _report(
             ReportType.DAILY,
@@ -340,6 +362,7 @@ async def _seed_reports_async(client: TestClient) -> dict[str, str]:
             date(2026, 1, 7),
             generated_base - timedelta(days=1),
             "# Older",
+            user_id=user_id,
         ),
         _report(
             ReportType.WEEKLY,
@@ -350,6 +373,7 @@ async def _seed_reports_async(client: TestClient) -> dict[str, str]:
             date(2026, 1, 14),
             generated_base - timedelta(hours=1),
             "# Weekly",
+            user_id=user_id,
         ),
         _report(
             ReportType.MONTHLY,
@@ -360,6 +384,28 @@ async def _seed_reports_async(client: TestClient) -> dict[str, str]:
             date(2025, 12, 31),
             generated_base - timedelta(hours=2),
             "# Monthly",
+            user_id=user_id,
+        ),
+        _report(
+            ReportType.DAILY,
+            "Other user daily report",
+            ["us"],
+            ["finance"],
+            date(2026, 1, 15),
+            date(2026, 1, 31),
+            generated_base + timedelta(minutes=1),
+            "# Other",
+            user_id=other_user_id,
+        ),
+        _report(
+            ReportType.DAILY,
+            "Legacy shared report",
+            ["us"],
+            ["finance"],
+            date(2026, 1, 15),
+            date(2026, 1, 31),
+            generated_base + timedelta(minutes=2),
+            "# Legacy",
         ),
     ]
     async with session_factory() as db:
@@ -367,7 +413,11 @@ async def _seed_reports_async(client: TestClient) -> dict[str, str]:
         await db.commit()
         for report in reports:
             await db.refresh(report)
-    return {"daily_id": str(reports[0].id)}
+    return {
+        "daily_id": str(reports[0].id),
+        "other_id": str(reports[4].id),
+        "legacy_id": str(reports[5].id),
+    }
 
 
 def _report(
@@ -379,6 +429,7 @@ def _report(
     period_end: date,
     generated_at: datetime,
     content: str,
+    user_id: str | None = None,
 ) -> Report:
     return Report(
         report_type=report_type,
@@ -389,6 +440,7 @@ def _report(
         period_start=datetime.combine(period_start, datetime.min.time(), tzinfo=UTC),
         period_end=datetime.combine(period_end, datetime.max.time(), tzinfo=UTC),
         generated_at=generated_at,
+        user_id=UUID(user_id) if user_id is not None else None,
         item_count=3,
         sentiment_score=0.6,
     )

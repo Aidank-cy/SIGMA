@@ -1984,3 +1984,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with touched-path Ruff, focused backend tests, and full backend pytest. Full backend Ruff remains blocked by pre-existing issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Closed-session sparse intraday charts now recover latest-session candles from 5D Redis or PostgreSQL; Yahoo candle fetches allow two concurrent requests with shared pacing/backoff; report titles use Beijing coverage dates; scheduled reports use exact split-daily matching plus overlap deduplication before generation.
 - Timestamp: 2026-05-27T12:38:54Z
+
+### [Maintenance] Sub-feature: User-scoped intelligence reports
+- Status: COMPLETE
+- Files created: sigma-backend/alembic/versions/20260527_0009_report_user_id.py
+- Files modified: sigma-backend/app/models/report.py, sigma-backend/app/models/user.py, sigma-backend/app/analyzers/report_generator.py, sigma-backend/app/api/v1/routes/reports.py, sigma-backend/tests/test_report_generator.py, sigma-backend/tests/test_reports_api.py, CHANGELOG.md, .harness/progress.md
+- Tests: PARTIAL PASS
+- Notes: Added nullable report ownership, report owner relationships, an indexed report user_id migration, source-owner filtering during report generation, and authenticated current-user scoping for report list/latest/detail APIs. Targeted report tests, `python3 -m ruff check app tests`, and Alembic offline SQL generation pass. Full backend pytest still has unrelated market-index failures in tests/test_market_indices.py, and hooks/post-file-edit.sh still fails on pre-existing lint in scripts/test_report_pipeline.py.
+- Timestamp: 2026-05-27T13:18:01Z

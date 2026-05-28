@@ -1,12 +1,18 @@
-from datetime import datetime
-from typing import Any
+from __future__ import annotations
 
-from sqlalchemy import DateTime, Enum, Float, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
+from uuid import UUID
+
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDPrimaryKeyMixin, enum_values
 from app.models.enums import ReportType
 from app.models.types import jsonb_type
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class Report(UUIDPrimaryKeyMixin, Base):
@@ -29,5 +35,8 @@ class Report(UUIDPrimaryKeyMixin, Base):
         server_default=func.now(),
         nullable=False,
     )
+    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     item_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     sentiment_score: Mapped[float] = mapped_column(Float, default=0.5, nullable=False)
+
+    owner: Mapped[User | None] = relationship(back_populates="reports")
