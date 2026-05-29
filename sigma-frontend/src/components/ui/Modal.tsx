@@ -37,24 +37,24 @@ export function Modal({ children, className, closeLabel, isOpen, onClose, title 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         aria-label={closeLabel}
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50"
         onClick={onClose}
         type="button"
       />
       <section
         aria-modal="true"
         className={cn(
-          "relative w-full max-w-lg animate-modal-in rounded-lg border border-sigma-line",
-          "bg-card p-6 shadow-apple",
+          "relative w-full max-w-lg animate-modal-in rounded-2xl border border-border",
+          "bg-card p-6 shadow-sm",
           className
         )}
         role="dialog"
       >
         <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-sigma-text">{title}</h2>
+          <h2 className="text-lg font-bold text-foreground">{title}</h2>
           <button
             aria-label={closeLabel}
-            className="flex h-11 w-11 items-center justify-center rounded-full text-sigma-muted hover:bg-sigma-surface hover:text-sigma-text"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground"
             onClick={onClose}
             type="button"
           >

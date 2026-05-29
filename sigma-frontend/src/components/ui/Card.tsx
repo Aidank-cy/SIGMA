@@ -11,8 +11,8 @@ export function Card({ children, className, interactive = false, ...props }: Car
   return (
     <div
       className={cn(
-        "rounded-lg border border-sigma-line bg-sigma-surface shadow-apple-soft",
-        interactive ? "hover:-translate-y-0.5 hover:shadow-apple" : "",
+        "rounded-2xl border border-border bg-card shadow-sm",
+        interactive ? "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" : "",
         className
       )}
       {...props}

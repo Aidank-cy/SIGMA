@@ -6,7 +6,7 @@ const categoryClasses = {
   technology: "bg-category-tech/10 text-category-tech ring-category-tech/20",
   tech: "bg-category-tech/10 text-category-tech ring-category-tech/20",
   macro: "bg-category-macro/10 text-category-macro ring-category-macro/20",
-  other: "bg-sigma-elevated text-sigma-muted ring-sigma-line"
+  other: "bg-secondary text-muted-foreground ring-border"
 } as const;
 
 const marketFlags = {
@@ -31,8 +31,8 @@ export function Badge({ category, children, className, market }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ring-1",
-        category ? categoryClasses[category] : "bg-sigma-elevated text-sigma-muted ring-sigma-line",
+        "inline-flex h-7 items-center gap-1.5 rounded-2xl px-3 text-xs font-bold ring-1",
+        category ? categoryClasses[category] : "bg-secondary text-muted-foreground ring-border",
         className
       )}
     >

@@ -28,9 +28,9 @@ const icons = {
 } as const;
 
 const tones = {
-  success: "text-sigma-success",
-  error: "text-sigma-danger",
-  info: "text-sigma-accent"
+  success: "text-chart-1",
+  error: "text-destructive",
+  info: "text-primary"
 } as const;
 
 interface ToastProviderProps {
@@ -64,17 +64,17 @@ export function ToastProvider({ children }: ToastProviderProps) {
           const Icon = icons[item.type];
           return (
             <div
-              className="animate-toast-in rounded-2xl border border-sigma-line bg-sigma-elevated/95 p-4 shadow-apple backdrop-blur-xl"
+              className="animate-toast-in rounded-2xl border border-border bg-secondary p-4 shadow-sm"
               key={item.id}
             >
               <div className="flex items-start gap-3">
                 <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", tones[item.type])} aria-hidden />
-                <p className="min-w-0 flex-1 text-sm font-medium leading-5 text-sigma-text">
+                <p className="min-w-0 flex-1 text-sm leading-5 text-foreground">
                   {item.message}
                 </p>
                 <button
                   aria-label={t("close")}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-sigma-muted hover:bg-sigma-surface hover:text-sigma-text"
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl text-muted-foreground transition-all duration-200 hover:bg-card hover:text-foreground"
                   onClick={() => closeToast(item.id)}
                   type="button"
                 >

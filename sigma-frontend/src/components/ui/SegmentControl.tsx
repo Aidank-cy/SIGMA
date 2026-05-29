@@ -45,15 +45,15 @@ export function SegmentControl({ activeId, className, items, onChange }: Segment
     <div
       ref={containerRef}
       className={cn(
-        "relative inline-flex w-fit rounded-full border border-border bg-muted p-1",
+        "relative inline-flex w-fit rounded-2xl border border-border bg-muted p-1",
         className
       )}
     >
       {indicator.width > 0 && (
         <motion.div
-          className="absolute top-1 bottom-1 rounded-full bg-primary shadow-sm"
+          className="absolute top-1 bottom-1 rounded-xl bg-primary shadow-sm"
           animate={{ left: indicator.left, width: indicator.width }}
-          transition={{ damping: 30, stiffness: 400, type: "spring" }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
         />
       )}
       {items.map((item) => {
@@ -61,7 +61,7 @@ export function SegmentControl({ activeId, className, items, onChange }: Segment
         return (
           <button
             className={cn(
-              "relative z-10 h-11 min-w-20 rounded-full px-4 text-sm font-medium transition-colors duration-200",
+              "relative z-10 h-10 min-w-20 rounded-xl px-4 text-sm font-bold transition-colors duration-200",
               active
                 ? "text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground"
