@@ -43,20 +43,14 @@ const config: Config = {
         }
       },
       borderRadius: {
+        "2xl": "16px",
+        xl: "12px",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)"
       },
       fontFamily: {
-        sans: [
-          "var(--font-inter)",
-          "var(--font-noto-sans-sc)",
-          "Inter",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "sans-serif"
-        ]
+        sans: ["Geist", "system-ui", "sans-serif"]
       },
       boxShadow: {
         apple: "0 22px 70px rgba(0, 0, 0, 0.16)",

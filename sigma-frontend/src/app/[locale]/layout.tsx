@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, useMessages } from "next-intl";
+import { GeistSans } from "geist/font/sans";
 
 import { AuthProvider } from "@/components/AuthProvider";
 import { ClientProviders } from "@/components/ClientProviders";
@@ -23,7 +24,7 @@ export default function LocaleLayout({ children, params }: LocaleLayoutProps) {
 
   return (
     <html lang={params.locale} suppressHydrationWarning>
-      <body>
+      <body className={GeistSans.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange enableSystem>
           <NextIntlClientProvider locale={params.locale} messages={messages}>
             <ClientProviders>
