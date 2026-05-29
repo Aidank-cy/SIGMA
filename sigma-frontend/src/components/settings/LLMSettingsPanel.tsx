@@ -252,7 +252,7 @@ export function LLMSettingsPanel({
   }, [usageData]);
 
   const trendData = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
+    const formatter = new Intl.DateTimeFormat(locale, { day: "numeric", month: "numeric" });
     const days = Array.from({ length: 14 }, (_, index) => {
       const day = new Date();
       day.setDate(day.getDate() - (13 - index));

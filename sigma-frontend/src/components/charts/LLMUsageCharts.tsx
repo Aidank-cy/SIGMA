@@ -73,9 +73,9 @@ export function TokenTrendChart({
   const label = legendLabel ?? (locale?.startsWith("zh") ? "输入/输出" : "Input/Output");
   return (
     <ChartFrame>
-      <LineChart data={data} margin={{ bottom: 5, left: 0, right: 0, top: 8 }}>
+      <LineChart data={data} margin={{ bottom: 5, left: 5, right: 5, top: 8 }}>
         <CartesianGrid stroke="var(--border)" vertical={false} />
-        <XAxis dataKey="day" interval={0} tick={{ fill: "var(--muted-foreground)", fontSize: 9 }} padding={{ left: 10, right: 10 }} />
+        <XAxis dataKey="day" interval={0} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
         <YAxis
           domain={paddedDomain}
           tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
