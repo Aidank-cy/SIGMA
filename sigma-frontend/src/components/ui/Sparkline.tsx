@@ -34,10 +34,10 @@ export function Sparkline({
   const stroke =
     color ??
     (positive === true
-      ? "rgb(var(--sigma-success))"
+      ? "var(--chart-1)"
       : positive === false
-        ? "rgb(var(--sigma-danger))"
-        : "rgb(var(--sigma-accent))");
+        ? "var(--chart-2)"
+        : "var(--chart-4)");
 
   return (
     <div aria-hidden style={{ height, width }}>
@@ -50,7 +50,7 @@ export function Sparkline({
             isAnimationActive={false}
             stroke={stroke}
             strokeLinecap="round"
-            strokeWidth={1.5}
+            strokeWidth={2}
             type="linear"
           />
         </LineChart>

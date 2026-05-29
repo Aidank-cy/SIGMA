@@ -29,7 +29,7 @@ export function TrendLine({ data, height = 240, variant = "line" }: TrendLinePro
         {variant === "bar" ? (
           <BarChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
             <SharedAxes />
-            <Bar dataKey="value" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="value" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
           </BarChart>
         ) : (
           <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -38,8 +38,8 @@ export function TrendLine({ data, height = 240, variant = "line" }: TrendLinePro
               activeDot={{ r: 5 }}
               dataKey="value"
               dot={false}
-              stroke="rgb(var(--sigma-accent))"
-              strokeWidth={2.5}
+              stroke="var(--chart-4)"
+              strokeWidth={2}
               type="linear"
             />
           </LineChart>
@@ -55,23 +55,26 @@ function SharedAxes() {
       <XAxis
         axisLine={false}
         dataKey="label"
-        tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
+        tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
         tickLine={false}
         tickMargin={2}
       />
       <YAxis
         axisLine={false}
-        tick={{ fill: "rgb(var(--sigma-muted))", fontSize: 12 }}
+        tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
         tickLine={false}
         tickMargin={2}
         width={38}
       />
       <Tooltip
         contentStyle={{
-          background: "rgb(var(--sigma-elevated))",
-          border: "1px solid rgb(var(--sigma-line))",
-          borderRadius: 8,
-          color: "rgb(var(--sigma-text))"
+          backgroundColor: "var(--foreground)",
+          border: "none",
+          borderRadius: "16px",
+          color: "var(--background)",
+          fontSize: "13px",
+          fontWeight: 700,
+          padding: "10px 16px"
         }}
       />
     </>

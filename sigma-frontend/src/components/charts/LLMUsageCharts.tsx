@@ -45,6 +45,16 @@ const paddedDomain: [number, (dataMax: number) => number] = [
   (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.2))
 ];
 
+const darkTooltipContentStyle = {
+  backgroundColor: "var(--foreground)",
+  color: "var(--background)",
+  border: "none",
+  borderRadius: "16px",
+  padding: "10px 16px",
+  fontSize: "13px",
+  fontWeight: 700
+};
+
 function formatTokenTick(value: number): string {
   if (value === 0) return "0";
   const thousands = value / 1000;
@@ -72,14 +82,14 @@ export function TokenTrendChart({
           tickFormatter={formatTokenTick}
           width={58}
         />
-        <Tooltip />
-        <Line dataKey="input" dot={false} stroke="var(--chart-1)" />
-        <Line dataKey="output" dot={false} stroke="var(--chart-2)" />
+        <Tooltip contentStyle={darkTooltipContentStyle} />
+        <Line dataKey="input" dot={false} stroke="var(--chart-1)" strokeWidth={2} />
+        <Line dataKey="output" dot={false} stroke="var(--chart-2)" strokeWidth={2} />
       </LineChart>
-      <div className="mt-2 flex items-center justify-center gap-2 text-xs text-sigma-muted">
+      <div className="mt-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-chart-1" />
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-chart-2" />
-        <span className="font-medium">{label}</span>
+        <span className="font-bold">{label}</span>
       </div>
     </ChartFrame>
   );
@@ -89,17 +99,17 @@ export function ProviderUsageDistributionChart({ data }: { data: ProviderUsagePo
   return (
     <ChartFrame>
       <PieChart>
-        <Tooltip formatter={(value: number) => value.toLocaleString()} />
+        <Tooltip contentStyle={darkTooltipContentStyle} formatter={(value: number) => value.toLocaleString()} />
         <Legend layout="horizontal" verticalAlign="bottom" />
         <Pie
           cx="50%"
           cy="44%"
           data={data}
           dataKey="tokens"
-          innerRadius={58}
+          innerRadius={35}
           nameKey="name"
-          outerRadius={88}
-          paddingAngle={2}
+          outerRadius={50}
+          paddingAngle={3}
         >
           {data.map((entry) => (
             <Cell fill={entry.color} key={entry.name} />
@@ -117,8 +127,8 @@ export function FunctionUsageChart({ data }: { data: FunctionUsagePoint[] }) {
         <CartesianGrid stroke="var(--border)" vertical={false} />
         <XAxis axisLine={false} dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} tickLine={false} />
         <YAxis domain={paddedDomain} hide />
-        <Tooltip />
-        <Bar dataKey="tokens" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+        <Tooltip contentStyle={darkTooltipContentStyle} />
+        <Bar dataKey="tokens" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ChartFrame>
   );
@@ -130,7 +140,7 @@ export function DailyUsageSparkline({ data }: { data: DailyUsagePoint[] }) {
       <ResponsiveContainer height="100%" width="100%">
         <LineChart data={data}>
           <Line dataKey="tokens" dot={false} stroke="var(--chart-3)" strokeWidth={2} type="linear" />
-          <Tooltip formatter={(value: number) => value.toLocaleString()} />
+          <Tooltip contentStyle={darkTooltipContentStyle} formatter={(value: number) => value.toLocaleString()} />
         </LineChart>
       </ResponsiveContainer>
     </div>

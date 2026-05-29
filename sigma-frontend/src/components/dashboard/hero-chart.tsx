@@ -36,6 +36,16 @@ const INDEX_ICONS: Record<string, { letter: string; bg: string; text: string }> 
   TAIEX: { letter: "TW", bg: "bg-green-600", text: "text-white" }
 };
 
+const tooltipPanelStyle = {
+  backgroundColor: "var(--foreground)",
+  color: "var(--background)",
+  border: "none",
+  borderRadius: "16px",
+  padding: "10px 16px",
+  fontSize: "13px",
+  fontWeight: 700
+};
+
 interface MarketChartData {
   change: number;
   data: MarketChartPoint[];
@@ -135,11 +145,11 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 lg:p-8">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="space-y-4">
-            <div className="h-7 w-28 animate-pulse rounded-lg bg-muted" />
-            <div className="h-10 w-64 max-w-full animate-pulse rounded-lg bg-muted" />
+            <div className="h-7 w-28 animate-pulse rounded-xl bg-muted" />
+            <div className="h-10 w-64 max-w-full animate-pulse rounded-xl bg-muted" />
           </div>
           <div className="space-y-3">
-            <div className="h-10 w-36 animate-pulse rounded-lg bg-muted" />
+            <div className="h-10 w-36 animate-pulse rounded-xl bg-muted" />
             <div className="ml-auto h-5 w-20 animate-pulse rounded bg-muted" />
           </div>
         </div>
@@ -170,7 +180,7 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
       <div className="relative z-10 mb-6 flex items-start justify-between gap-4">
         <div>
           <div className="mb-2 flex items-center gap-3">
-            <span className="rounded-lg bg-muted px-2.5 py-1 text-sm font-medium text-muted-foreground">
+            <span className="rounded-xl bg-muted px-2.5 py-1 text-sm font-bold text-muted-foreground">
               {currentData?.symbol}
             </span>
             <span
@@ -185,7 +195,7 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
                   currentData?.isTrading ? "animate-pulse bg-chart-1" : "bg-black"
                 )}
               />
-              <span className={cn(!currentData?.isTrading && "font-semibold")}>
+              <span className={cn(!currentData?.isTrading && "font-bold")}>
                 {currentData?.isTrading ? t("live") : chartT("closed")}
               </span>
             </span>
@@ -218,7 +228,7 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
             initial={{ opacity: 0, scale: 0.95 }}
             key={`${selectedMarket}-price`}
           >
-            <span className="text-lg font-semibold text-muted-foreground lg:text-xl">
+            <span className="text-lg font-bold text-muted-foreground lg:text-xl">
               {currentData?.currency}
             </span>
             {currentData?.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -226,7 +236,7 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
           <motion.div
             animate={{ opacity: 1 }}
             className={cn(
-              "mt-1 flex items-center justify-end gap-1.5 text-base font-semibold",
+              "mt-1 flex items-center justify-end gap-1.5 text-base font-bold",
               isPositive ? "text-chart-1" : "text-chart-2"
             )}
             initial={{ opacity: 0 }}
@@ -259,12 +269,12 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
                 <AreaChart data={chartData} margin={{ bottom: 14, left: 50, right: 50, top: 10 }}>
                   <defs>
                     <linearGradient id="colorPositive" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorNegative" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="oklch(0.6 0.22 25)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="oklch(0.6 0.22 25)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -298,11 +308,11 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
                         const timestamp = String(payload[0].payload?.timestamp ?? "");
                         const value = Number(payload[0].payload?.value ?? 0);
                         return (
-                          <div className="rounded-xl bg-foreground px-4 py-3 text-background shadow-xl dark:border dark:border-border dark:bg-card dark:text-card-foreground">
+                          <div style={tooltipPanelStyle}>
                             <p className="text-base font-bold">
                               {value.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                             </p>
-                            <p className="mt-1 text-xs font-medium text-background/70 dark:text-muted-foreground">
+                            <p className="mt-1 text-xs text-background/70">
                               {formatTooltipTime(timestamp)}
                             </p>
                           </div>
@@ -315,8 +325,8 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
                     animationDuration={800}
                     dataKey="value"
                     fill={isPositive ? "url(#colorPositive)" : "url(#colorNegative)"}
-                    stroke={isPositive ? "oklch(0.65 0.22 145)" : "oklch(0.6 0.22 25)"}
-                    strokeWidth={2.5}
+                    stroke={isPositive ? "var(--chart-1)" : "var(--chart-2)"}
+                    strokeWidth={2}
                     type="linear"
                   />
                 </AreaChart>
@@ -349,7 +359,7 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
         {marketChartRanges.map((range) => (
           <button
             className={cn(
-              "relative rounded-lg px-5 py-2 text-sm font-medium transition-all duration-200",
+              "relative rounded-xl px-5 py-2 text-sm font-bold transition-all duration-200",
               activeRange === range ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
             key={range}
@@ -358,9 +368,9 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
           >
             {activeRange === range ? (
               <motion.div
-                className="absolute inset-0 rounded-lg border border-border bg-card shadow-md"
+                className="absolute inset-0 rounded-xl border border-border bg-card shadow-sm"
                 layoutId="heroTimeRange"
-                transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               />
             ) : null}
             <span className="relative z-10">{range}</span>
