@@ -537,7 +537,7 @@ export default function AnalyticsPage() {
 
         <MetricCard title={t("sourceDistribution")}>
           <div className="flex justify-center">
-            <div className="flex items-center gap-15">
+            <div className="flex items-center gap-[60px]">
               <div className="shrink-0">
                 <ResponsiveContainer height={120} width={120}>
                   <PieChart>

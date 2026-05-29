@@ -586,7 +586,7 @@ export function LLMSettingsPanel({
             </div>
           </Card>
         </section>
-        <section className="grid gap-6 xl:grid-cols-[3fr_1fr]">
+        <section className="grid gap-6 xl:grid-cols-[4fr_1fr]">
           <Card className="p-6">
             <h2 className="mb-4 text-[20px] font-bold text-foreground">{t("tokenTrend")}</h2>
             <TokenTrendChart data={trendData} locale={locale} />
