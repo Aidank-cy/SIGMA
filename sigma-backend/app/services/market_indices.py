@@ -50,7 +50,6 @@ class IndexConfig:
     timezone: str
     sessions: tuple[tuple[time, time], ...]
     finnhub_symbol: str
-    finnhub_proxy_symbol: str | None
     stooq_symbol: str | None
     fallback_value: float
     fallback_change_pct: float
@@ -80,16 +79,16 @@ class IndexQuote:
 
 
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
-    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "SPY", "^spx", 7500.00, 0.40, "USD"),
-    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "QQQ", "^ndq", 26500.00, 0.50, "USD"),
-    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "DIA", "^dji", 50500.00, 0.25, "USD"),
-    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", None, "^shc", 4150.00, 0.20, "CNY"),
-    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", None, "^hsi", 25600.00, 0.30, "HKD"),
-    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", None, "^nkx", 64900.00, 0.20, "JPY"),
-    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", "EWU", "^ukx", 10450.00, 0.20, "GBP"),
-    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", "EWG", "^dax", 25400.00, 0.35, "EUR"),
-    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", None, "^kospi", 8050.00, 0.45, "KRW"),
-    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", None, "^twse", 43500.00, 0.30, "TWD"),
+    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "^spx", 7500.00, 0.40, "USD"),
+    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "^ndq", 26500.00, 0.50, "USD"),
+    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "^dji", 50500.00, 0.25, "USD"),
+    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", "^shc", 4150.00, 0.20, "CNY"),
+    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", "^hsi", 25600.00, 0.30, "HKD"),
+    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", "^nkx", 64900.00, 0.20, "JPY"),
+    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", "^ukx", 10450.00, 0.20, "GBP"),
+    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", "^dax", 25400.00, 0.35, "EUR"),
+    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", "^kospi", 8050.00, 0.45, "KRW"),
+    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", "^twse", 43500.00, 0.30, "TWD"),
 )
 
 
@@ -228,31 +227,7 @@ async def _fetch_finnhub_quote(config: IndexConfig) -> IndexQuote | None:
     token = os.getenv("FINNHUB_KEY", "")
     if not token:
         return None
-    quote = await _fetch_finnhub_symbol_quote(config.finnhub_symbol, token)
-    if quote is not None:
-        return quote
-    if config.finnhub_proxy_symbol:
-        proxy_quote = await _fetch_finnhub_symbol_quote(config.finnhub_proxy_symbol, token)
-        if proxy_quote is not None:
-            change_pct = proxy_quote.change_pct
-            base_value = config.fallback_value
-            redis_quote = await _quote_from_redis_candle(config)
-            if redis_quote is not None and redis_quote.current > 0 and redis_quote.previous_close > 0:
-                base_value = redis_quote.previous_close
-            current = base_value * (1 + change_pct / 100)
-            LOGGER.warning(
-                "Using Finnhub proxy %s scaled from %.2f base value for %s because the direct index quote is unavailable.",
-                config.finnhub_proxy_symbol,
-                base_value,
-                config.symbol,
-            )
-            return IndexQuote(
-                current=current,
-                change_pct=change_pct,
-                previous_close=base_value,
-                timestamp=proxy_quote.timestamp,
-            )
-    return None
+    return await _fetch_finnhub_symbol_quote(config.finnhub_symbol, token)
 
 
 async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> IndexQuote | None:
@@ -688,51 +663,6 @@ def _sessions_to_beijing(config: IndexConfig) -> list[TradingSession]:
             )
         )
     return beijing_sessions
-
-
-def _align_intraday_points(
-    config: IndexConfig,
-    session_date: date,
-    points: list[IntradayPoint],
-) -> list[IntradayPoint] | None:
-    if not points:
-        return None
-
-    session_points = [point for point in points if _is_within_session(point.timestamp, config)]
-    if not session_points:
-        return None
-
-    values_by_minute = {
-        point.timestamp.astimezone(BEIJING_TZ).replace(second=0, microsecond=0): point.value
-        for point in session_points
-    }
-    first_value = next((point.value for point in sorted(session_points, key=lambda item: item.timestamp)), None)
-    if first_value is None:
-        return None
-
-    aligned: list[IntradayPoint] = []
-    last_value = first_value
-    latest_point_time = max(values_by_minute)
-    forward_filled_count = 0
-    for timestamp in _trading_minutes(config, session_date):
-        if timestamp > latest_point_time:
-            break
-        next_value = values_by_minute.get(timestamp)
-        if next_value is None:
-            forward_filled_count += 1
-        else:
-            last_value = next_value
-        aligned.append(IntradayPoint(timestamp=timestamp, value=last_value))
-    if aligned:
-        forward_fill_ratio = forward_filled_count / len(aligned)
-        if forward_fill_ratio > 0.3:
-            LOGGER.warning(
-                "%s intraday alignment forward-filled %.1f%% of %s chart points; upstream data may be too sparse.",
-                config.symbol,
-                forward_fill_ratio * 100,
-                len(aligned),
-            )
-    return aligned or None
 
 
 def _trading_minutes(config: IndexConfig, session_date: date) -> list[datetime]:

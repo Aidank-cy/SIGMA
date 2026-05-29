@@ -1,13 +1,11 @@
 import asyncio
 import json
 import logging
-import os
 import statistics
 import time as _time
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-import httpx
 from sqlalchemy import delete, func as sa_func, select
 
 from app.database import AsyncSessionLocal
@@ -40,9 +38,6 @@ COLD_START_NOT_OPEN_DELAY = 5
 PRE_MARKET_WINDOW_MINUTES = 60
 INTRADAY_GAP_MIN_EXPECTED_POINTS = 30
 INTRADAY_GAP_MIN_COVERAGE_RATIO = 0.8
-INTRADAY_TAIL_BACKFILL_MIN_COVERAGE_RATIO = 0.9
-INTRADAY_TAIL_BACKFILL_MAX_CLOSE_GAP_MINUTES = 5
-FINNHUB_CANDLE_MIN_INTERVAL_SECONDS = 60
 _MAX_COLD_START_ATTEMPTS_PER_STEP = 3
 _DATA_HEALTH_CHECK_INTERVAL = 300
 POST_CLOSE_RETRY_MINUTES = (1, 3)
@@ -52,7 +47,6 @@ POST_CLOSE_REFETCH_WINDOW_MINUTES = (15, 20)
 _last_fetch_time: dict[str, datetime] = {}
 _cold_start_done: dict[str, bool] = {}
 _cold_start_attempts: dict[str, int] = {}
-_finnhub_candle_last_fetch: dict[str, float] = {}
 _post_close_retry_slots: dict[str, tuple[date, set[int]]] = {}
 _post_close_refetch_done: dict[str, date] = {}
 _last_health_check = 0.0
@@ -111,12 +105,10 @@ async def candle_refresh_job() -> None:
                     await _fetch_and_store_1d_1min(config, backfill_intraday_gap=True)
                     _post_close_refetch_done[config.symbol] = _post_close_refetch_date(config, now_beijing)
                     _last_fetch_time[config.symbol] = _now_utc()
-                    return
-
-                has_fresh_1d = await _redis_has_fresh_1d(config)
-                if not has_fresh_1d or _post_close_retry_due(config, now_beijing):
+                elif not await _redis_has_fresh_1d(config) or _post_close_retry_due(config, now_beijing):
                     await _fetch_and_store_1d_1min(config)
                     _last_fetch_time[config.symbol] = _now_utc()
+                await _end_of_day_downsample_if_needed(config)
                 return
 
         sorted_configs = sorted(
@@ -345,11 +337,7 @@ def _cold_start_step_reset_all(symbol: str) -> None:
 
 
 async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: bool = True) -> int:
-    yahoo_points = await _yahoo_fetch(config, interval="1m", range_="1d")
-    points = yahoo_points
-    if not points:
-        reference_value = await _fetch_candle_reference_value(config)
-        points = await _fetch_finnhub_candles(config, reference_value=reference_value)
+    points = await _yahoo_fetch(config, interval="1m", range_="1d")
     if not points:
         return 0
 
@@ -370,9 +358,6 @@ async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: b
                     len(today_points),
                 )
 
-    if backfill_intraday_gap and yahoo_points:
-        stored_points = await _backfill_intraday_tail_from_finnhub(config, stored_points)
-
     stored_points = _dedupe_points_by_timestamp(stored_points)
     if not _candles_are_reasonable(config, stored_points):
         return 0
@@ -381,79 +366,11 @@ async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: b
     return len(stored_points)
 
 
-async def _backfill_intraday_tail_from_finnhub(
-    config: IndexConfig,
-    points: list[IntradayPoint],
-) -> list[IntradayPoint]:
-    if not (
-        _has_intraday_gap(config, points, coverage_ratio=INTRADAY_TAIL_BACKFILL_MIN_COVERAGE_RATIO)
-        or _has_intraday_tail_close_gap(config, points)
-    ):
-        return points
-
-    last_yahoo_timestamp = max(point.timestamp for point in points)
-    reference_value = await _fetch_candle_reference_value(config)
-    finnhub_points = await _fetch_finnhub_candles(config, reference_value=reference_value)
-    if not finnhub_points:
-        return points
-
-    tail_points = [point for point in finnhub_points if point.timestamp > last_yahoo_timestamp]
-    if not tail_points:
-        return points
-
-    merged_points = _dedupe_points_by_timestamp([*points, *tail_points])
-    LOGGER.info(
-        "Backfilled %s 1D candle tail from Finnhub after sparse Yahoo data: %d -> %d points",
-        config.symbol,
-        len(points),
-        len(merged_points),
-    )
-    return merged_points
-
-
 def _dedupe_points_by_timestamp(points: list[IntradayPoint]) -> list[IntradayPoint]:
     points_by_timestamp: dict[int, IntradayPoint] = {}
     for point in points:
         points_by_timestamp[int(point.timestamp.timestamp())] = point
     return sorted(points_by_timestamp.values(), key=lambda point: point.timestamp)
-
-
-def _has_intraday_tail_close_gap(config: IndexConfig, points: list[IntradayPoint]) -> bool:
-    if not points:
-        return False
-
-    last_point = max(points, key=lambda point: point.timestamp)
-    if not _is_within_session(last_point.timestamp, config):
-        return False
-
-    zone = ZoneInfo(config.timezone)
-    last_local = last_point.timestamp.astimezone(zone).replace(second=0, microsecond=0)
-    close_local = datetime.combine(last_local.date(), config.close_time, tzinfo=zone)
-    if config.close_time <= config.open_time and last_local.time().replace(tzinfo=None) >= config.open_time:
-        close_local += timedelta(days=1)
-
-    now_local = _now_utc().astimezone(zone)
-    if now_local < close_local:
-        return False
-
-    gap_minutes = (close_local - last_local).total_seconds() / 60
-    return gap_minutes > INTRADAY_TAIL_BACKFILL_MAX_CLOSE_GAP_MINUTES
-
-
-async def _fetch_candle_reference_value(config: IndexConfig) -> float | None:
-    try:
-        from app.services.market_indices import _fetch_index_quote
-
-        quote = await _fetch_index_quote(config)
-    except Exception as exc:
-        LOGGER.warning(
-            "Unable to fetch candle reference quote for %s: %s: %s",
-            config.symbol,
-            type(exc).__name__,
-            exc,
-        )
-        return None
-    return quote.current if quote is not None and quote.current > 0 else None
 
 
 def _candles_are_reasonable(config: IndexConfig, points: list[IntradayPoint]) -> bool:
@@ -557,142 +474,6 @@ async def _yahoo_fetch(config: IndexConfig, interval: str, range_: str) -> list[
         if interval != "1m" or _is_within_session(point.timestamp, config):
             points.append(point)
     return sorted(points, key=lambda point: point.timestamp) or None
-
-
-async def _fetch_finnhub_candles(
-    config: IndexConfig,
-    reference_value: float | None = None,
-) -> list[IntradayPoint] | None:
-    token = os.getenv("FINNHUB_KEY", "")
-    if not token:
-        LOGGER.warning("Finnhub candle fallback for %s skipped because FINNHUB_KEY is not configured.", config.symbol)
-        return None
-    candle_symbol = config.finnhub_proxy_symbol or config.finnhub_symbol
-
-    now = _time.monotonic()
-    last_fetch = _finnhub_candle_last_fetch.get(config.symbol)
-    if last_fetch is not None and now - last_fetch < FINNHUB_CANDLE_MIN_INTERVAL_SECONDS:
-        LOGGER.warning("Finnhub candle fallback for %s skipped by per-symbol rate limit.", config.symbol)
-        return None
-    _finnhub_candle_last_fetch[config.symbol] = now
-
-    now_utc = _now_utc()
-    for resolution in ("5", "15", "60", "D"):
-        try:
-            async with httpx.AsyncClient(timeout=8) as client:
-                response = await client.get(
-                    "https://finnhub.io/api/v1/stock/candle",
-                    params={
-                        "symbol": candle_symbol,
-                        "resolution": resolution,
-                        "from": str(int((now_utc - timedelta(days=1)).timestamp())),
-                        "to": str(int(now_utc.timestamp())),
-                        "token": token,
-                    },
-                )
-                response.raise_for_status()
-                payload = response.json()
-        except httpx.HTTPStatusError as exc:
-            LOGGER.warning(
-                "Finnhub candle fallback for %s res=%s failed with status %s.",
-                config.symbol,
-                resolution,
-                exc.response.status_code,
-            )
-            continue
-        except httpx.HTTPError as exc:
-            LOGGER.warning(
-                "Finnhub candle fallback for %s res=%s failed: %s.",
-                config.symbol,
-                resolution,
-                type(exc).__name__,
-            )
-            continue
-        except Exception as exc:
-            LOGGER.warning(
-                "Finnhub candle fallback for %s res=%s failed: %s: %s.",
-                config.symbol,
-                resolution,
-                type(exc).__name__,
-                exc,
-            )
-            continue
-
-        if payload.get("s") != "ok":
-            LOGGER.warning(
-                "Finnhub candle fallback for %s returned status %s for res=%s.",
-                config.symbol,
-                payload.get("s"),
-                resolution,
-            )
-            continue
-        closes = payload.get("c")
-        timestamps = payload.get("t")
-        if not isinstance(closes, list) or not isinstance(timestamps, list) or len(closes) != len(timestamps):
-            LOGGER.warning("Finnhub candle fallback for %s returned malformed candle arrays.", config.symbol)
-            continue
-
-        points: list[IntradayPoint] = []
-        for timestamp, close in zip(timestamps, closes, strict=False):
-            value = _as_float(close)
-            epoch = _as_float(timestamp)
-            if value is None or epoch is None or value <= 0:
-                continue
-            point = IntradayPoint(
-                timestamp=datetime.fromtimestamp(epoch, tz=UTC).astimezone(BEIJING_TZ),
-                value=value,
-            )
-            if resolution == "D" or _is_within_session(point.timestamp, config):
-                points.append(point)
-
-        sorted_points = sorted(points, key=lambda point: point.timestamp)
-        if not sorted_points:
-            LOGGER.warning(
-                "Finnhub candle fallback for %s returned no usable points for res=%s.",
-                config.symbol,
-                resolution,
-            )
-            continue
-        if config.finnhub_proxy_symbol:
-            if reference_value is None:
-                reference_value = await _fetch_candle_reference_value(config)
-            scaling_reference = reference_value if reference_value is not None else config.fallback_value
-            median_value = statistics.median(point.value for point in sorted_points)
-            scale = scaling_reference / median_value if median_value > 0 else 0
-            if abs(scale - 1.0) > 0.05:
-                sorted_points = [
-                    IntradayPoint(timestamp=point.timestamp, value=round(point.value * scale, 2))
-                    for point in sorted_points
-                ]
-                LOGGER.info(
-                    "Scaled Finnhub proxy %s candles by %.2fx for %s (ref=%.2f)",
-                    candle_symbol,
-                    scale,
-                    config.symbol,
-                    scaling_reference,
-                )
-            scaled_median = statistics.median(point.value for point in sorted_points)
-            if (
-                config.fallback_value > 0
-                and (scaled_median / config.fallback_value > 1.5 or scaled_median / config.fallback_value < 0.5)
-            ):
-                LOGGER.warning(
-                    "Discarding Finnhub proxy candles for %s: scaled median=%.2f vs expected ~%.2f",
-                    config.symbol,
-                    scaled_median,
-                    config.fallback_value,
-                )
-                continue
-        LOGGER.info(
-            "Finnhub candle fallback provided %d points for %s (res=%s)",
-            len(sorted_points),
-            config.symbol,
-            resolution,
-        )
-        return sorted_points
-
-    LOGGER.warning("Finnhub candle fallback exhausted all resolutions for %s", config.symbol)
-    return None
 
 
 def _downsample(points: list[IntradayPoint], minutes: int) -> list[IntradayPoint]:

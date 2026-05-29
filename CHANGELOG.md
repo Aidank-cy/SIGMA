@@ -9,7 +9,6 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ### Added
 - Add user ownership and source-ownership filtering for intelligence reports.
 - Add Yahoo Finance crumb/cookie authentication for chart API requests.
-- Add a rate-limited Finnhub intraday candle fallback when Yahoo one-day candles are unavailable.
 - Add SMTP delivery for verification emails when Resend is not configured.
 - Add Resend-backed verification emails for password resets and registration codes.
 - Add two-step registration verification endpoints and frontend code-entry flow.
@@ -69,6 +68,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ### Changed
 - Change closed-market intraday charts to use only real candle points while moving the forced post-close refetch window to 15-20 minutes after the final session close.
+- Change closed-market candle maintenance to merge 1D Redis candles into the 5D cache and PostgreSQL downsample tables after each final session close.
 - Change market candle refresh scheduling to fetch trading, missing pre-market, and missing closed-market 1D data in parallel while skipping already-warm closed markets.
 - Change market-index quote resolution to reuse Yahoo chart metadata before falling back to Finnhub and Stooq.
 - Increase Yahoo Finance candle fetch throughput to two concurrent requests with half-second global pacing.
@@ -192,6 +192,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Replace native frontend select menus with the custom dropdown across feed, settings, locale, LLM, and admin filters.
 
 ### Removed
+- Remove Finnhub ETF-proxy candle and quote fallbacks from market index data so unavailable Yahoo/index data stays empty instead of approximated.
 - Remove Alpha Vantage from market-index quote resolution.
 - Remove admin LLM config read/write endpoints while keeping admin LLM usage reporting.
 - Remove the Admin Sources tab, frontend panel, hook mutations, translations, and backend admin source routes.

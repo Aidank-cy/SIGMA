@@ -2069,3 +2069,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with touched-path Ruff, focused report/LLM/scheduler tests, full backend pytest, and `git diff --check`. Full hook remains blocked by pre-existing Ruff issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Report generation now resolves the requesting user's saved default LLM API key plus user/system provider and model config before creating the LLM client, while explicit empty user key lists skip report generation with a warning.
 - Timestamp: 2026-05-28T10:05:50Z
+
+### [Maintenance] Sub-feature: Real-only multi-day market candles
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market_candles.py, sigma-backend/app/services/market_indices.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PARTIAL PASS with touched-path Ruff, `tests/test_market_indices.py` (70 passed), and `git diff --check`. Full backend pytest is blocked by an unrelated `tests/test_llm.py::test_provider_urls` qwen URL expectation mismatch. `./hooks/post-file-edit.sh` remains blocked by pre-existing lint issues in `sigma-backend/scripts/test_report_pipeline.py`.
+- Notes: Candle refresh now runs end-of-day downsampling at the end of the closed-market scheduler path so 1D Redis candles merge into 5D Redis and PostgreSQL 15m/60m tables after any closed-market fetch path. Finnhub ETF-proxy candle backfill, tail backfill, proxy quote scaling, and the unused intraday alignment helper were removed so missing Yahoo/index data remains empty instead of approximated.
+- Timestamp: 2026-05-29T02:46:47Z
