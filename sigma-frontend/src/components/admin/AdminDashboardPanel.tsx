@@ -76,7 +76,7 @@ export function AdminDashboardPanel() {
         <StatCard icon="tokens" label={t("stats.tokens")} value={stats.data?.tokens_today} />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[4fr_1fr_1fr] [&>*]:h-[420px]">
+      <section className="grid gap-6 xl:grid-cols-3 [&>*]:h-[420px]">
         <Card className="flex flex-col p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold">{t("trend")}</h2>
