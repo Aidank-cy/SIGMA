@@ -350,13 +350,13 @@ export default function SyncPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatusCard icon={Database} label={t("activeSources")} value={String(activeSources)} detail={t("ofTotal", { total: sources.length })}>
-          <div className="relative h-16 w-16">
-            <svg className="h-16 w-16 -rotate-90">
-              <circle className="text-muted/30" cx="32" cy="32" fill="none" r="28" stroke="currentColor" strokeWidth="6" />
-              <circle className="text-chart-1" cx="32" cy="32" fill="none" r="28" stroke="currentColor" strokeDasharray={`${sources.length === 0 ? 0 : (activeSources / sources.length) * 176} 176`} strokeLinecap="round" strokeWidth="6" />
+          <div className="relative h-12 w-12 shrink-0">
+            <svg className="h-12 w-12 -rotate-90">
+              <circle className="text-muted/30" cx="24" cy="24" fill="none" r="20" stroke="currentColor" strokeWidth="5" />
+              <circle className="text-chart-1" cx="24" cy="24" fill="none" r="20" stroke="currentColor" strokeDasharray={`${sources.length === 0 ? 0 : (activeSources / sources.length) * 126} 126`} strokeLinecap="round" strokeWidth="5" />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Database className="h-5 w-5 text-muted-foreground" />
+              <Database className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
         </StatusCard>
@@ -547,20 +547,23 @@ export default function SyncPage() {
 
 function StatusCard({ children, detail, icon: Icon, label, value }: { children?: ReactNode; detail: string; icon: LucideIcon; label: string; value: string }) {
   return (
-    <motion.div className="rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md" whileHover={{ y: -4 }}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-[32px] font-bold text-foreground">{value}</span>
-            <span className="text-sm text-muted-foreground">{detail}</span>
-          </div>
-        </div>
+    <motion.div
+      className="rounded-2xl border border-border bg-card p-6 transition-all duration-200 hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-md"
+      whileHover={{ y: -2 }}
+    >
+      <div className="flex items-center gap-4">
         {children ?? (
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-chart-1/10">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-chart-1/10">
             <Icon className="h-6 w-6 text-chart-1" />
           </div>
         )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] text-muted-foreground">{label}</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[28px] font-bold leading-tight text-foreground">{value}</span>
+            <span className="text-[13px] text-muted-foreground">{detail}</span>
+          </div>
+        </div>
       </div>
     </motion.div>
   )

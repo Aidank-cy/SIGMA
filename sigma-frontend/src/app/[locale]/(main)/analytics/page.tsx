@@ -488,9 +488,9 @@ export default function AnalyticsPage() {
       <motion.section animate="visible" className="grid grid-cols-2 gap-4 lg:grid-cols-4" initial="hidden" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.09 } } }}>
         <MetricCard title={t("sentimentOverview")}>
           <div className="relative flex items-center justify-center">
-            <ResponsiveContainer height={120} width={120}>
+            <ResponsiveContainer height={160} width={160}>
               <PieChart>
-                <Pie data={sentimentData} dataKey="value" innerRadius={35} outerRadius={50} paddingAngle={3} stroke="none">
+                <Pie data={sentimentData} dataKey="value" innerRadius={50} outerRadius={70} paddingAngle={3} stroke="none">
                   {sentimentData.map((entry) => <Cell fill={entry.color} key={entry.name} />)}
                 </Pie>
               </PieChart>
@@ -536,21 +536,27 @@ export default function AnalyticsPage() {
         </MetricCard>
 
         <MetricCard title={t("sourceDistribution")}>
-          <ResponsiveContainer height={80} width="100%">
-            <PieChart>
-              <Pie data={sourceData} dataKey="value" innerRadius={35} outerRadius={50} paddingAngle={3} stroke="none">
-                {sourceData.map((entry) => <Cell fill={entry.color} key={entry.name} />)}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {sourceData.map((source) => (
-              <div className="flex items-center gap-1.5 text-xs" key={source.name}>
-                <div className="h-2 w-2 rounded-full" style={{ backgroundColor: source.color }} />
-                <span className="truncate text-muted-foreground">{source.name}</span>
-                <span className="font-bold text-foreground">{source.value}%</span>
+          <div className="flex justify-center">
+            <div className="flex items-center gap-15">
+              <div className="shrink-0">
+                <ResponsiveContainer height={120} width={120}>
+                  <PieChart>
+                    <Pie data={sourceData} dataKey="value" innerRadius={35} outerRadius={50} paddingAngle={2} stroke="none">
+                      {sourceData.map((entry) => <Cell fill={entry.color} key={entry.name} />)}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
+              <div className="min-w-0 flex-1 space-y-1.5">
+                {sourceData.map((source) => (
+                  <div className="flex items-center gap-1.5 text-xs" key={source.name}>
+                    <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: source.color }} />
+                    <span className="truncate text-muted-foreground">{source.name}</span>
+                    <span className="shrink-0 font-bold text-foreground">{source.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </MetricCard>
       </motion.section>
@@ -665,7 +671,7 @@ export default function AnalyticsPage() {
 function MetricCard({ children, title }: { children: ReactNode; title: string }) {
   return (
     <motion.div className="rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ y: -4 }}>
-      <h3 className="mb-4 text-sm font-bold text-muted-foreground">{title}</h3>
+      <h3 className="mb-4 text-[22px] font-bold text-foreground">{title}</h3>
       {children}
     </motion.div>
   )

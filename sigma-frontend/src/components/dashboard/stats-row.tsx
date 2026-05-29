@@ -103,23 +103,25 @@ export function StatsRow() {
             transition={{ delay: index * 0.08, duration: 0.35 }}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
           >
-            <div className="mb-4 flex items-start justify-between">
-              <div className={cn("rounded-xl p-2.5 transition-transform duration-300 group-hover:scale-110", style.bgColor)}>
-                <Icon className={cn("h-5 w-5", style.color)} />
+            <div className="flex items-center gap-4">
+              <div className={cn("shrink-0 rounded-2xl p-3 transition-transform duration-200 group-hover:scale-110", style.bgColor)}>
+                <Icon className={cn("h-6 w-6", style.color)} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] text-muted-foreground">{stat.label}</p>
+                <p className="text-[28px] font-bold leading-tight text-foreground transition-colors group-hover:text-primary">
+                  {stat.value}
+                </p>
               </div>
               <span
                 className={cn(
-                  "rounded-2xl px-2.5 py-1 text-xs font-bold",
+                  "shrink-0 rounded-2xl px-2.5 py-1 text-xs font-bold",
                   stat.change === t("new") ? "bg-primary/10 text-primary" : "bg-chart-1/10 text-chart-1"
                 )}
               >
                 {stat.change}
               </span>
             </div>
-            <p className="mb-1 text-[24px] font-bold text-foreground transition-colors group-hover:text-primary">
-              {stat.value}
-            </p>
-            <p className="text-[13px] font-bold text-foreground/60">{stat.label}</p>
           </motion.div>
         );
       })}
