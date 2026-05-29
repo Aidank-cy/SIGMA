@@ -67,10 +67,6 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(20px)" },
           to: { opacity: "1", transform: "translateY(0)" }
         },
-        "sigma-float": {
-          "0%, 100%": { transform: "translate3d(0, 0, 0)" },
-          "50%": { transform: "translate3d(0, -10px, 0)" }
-        },
         "toast-in": {
           "0%": { opacity: "0", transform: "translate3d(0, 12px, 0) scale(0.98)" },
           "100%": { opacity: "1", transform: "translate3d(0, 0, 0) scale(1)" }
@@ -82,7 +78,6 @@ const config: Config = {
       },
       animation: {
         "fade-in-up": "fade-in-up 0.5s ease-out forwards",
-        "sigma-float": "sigma-float 10s ease-in-out infinite",
         "toast-in": "toast-in 180ms ease-out",
         "modal-in": "modal-in 180ms ease-out"
       }
