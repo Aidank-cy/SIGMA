@@ -2076,3 +2076,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PARTIAL PASS with touched-path Ruff, `tests/test_market_indices.py` (70 passed), and `git diff --check`. Full backend pytest is blocked by an unrelated `tests/test_llm.py::test_provider_urls` qwen URL expectation mismatch. `./hooks/post-file-edit.sh` remains blocked by pre-existing lint issues in `sigma-backend/scripts/test_report_pipeline.py`.
 - Notes: Candle refresh now runs end-of-day downsampling at the end of the closed-market scheduler path so 1D Redis candles merge into 5D Redis and PostgreSQL 15m/60m tables after any closed-market fetch path. Finnhub ETF-proxy candle backfill, tail backfill, proxy quote scaling, and the unused intraday alignment helper were removed so missing Yahoo/index data remains empty instead of approximated.
 - Timestamp: 2026-05-29T02:46:47Z
+
+### [Maintenance] Sub-feature: Frontend style unification
+- Status: COMPLETE
+- Files modified: sigma-frontend package/config files and frontend TSX style surfaces across UI primitives, charts, dashboard, pages, admin panels, settings, feed, and markets.
+- Tests: PENDING
+- Notes: Applied Geist font setup, 16px outer radii, unified token replacements, dark chart tooltips, ease-out motion, and cleanup checks for removed `sigma-*`, Apple shadow, blur, `font-semibold`, `rounded-lg`, and TSX `oklch()` references.
+- Timestamp: 2026-05-29T11:40:58Z

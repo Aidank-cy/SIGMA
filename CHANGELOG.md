@@ -67,6 +67,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Add DeepSeek, MiniMax, Kimi, and Gemini as configurable LLM providers with OpenAI-compatible backend routing.
 
 ### Changed
+- Change SIGMA frontend styling to use Geist typography, 16px card/control radii, unified design tokens, dark chart tooltips, and ease-out control motion.
 - Change closed-market intraday charts to use only real candle points while moving the forced post-close refetch window to 15-20 minutes after the final session close.
 - Change closed-market candle maintenance to merge 1D Redis candles into the 5D cache and PostgreSQL downsample tables after each final session close.
 - Change market candle refresh scheduling to fetch trading, missing pre-market, and missing closed-market 1D data in parallel while skipping already-warm closed markets.
