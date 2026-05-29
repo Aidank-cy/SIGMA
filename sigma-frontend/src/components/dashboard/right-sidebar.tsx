@@ -17,13 +17,13 @@ export function RightSidebar() {
     <div className="space-y-6">
       <motion.div
         animate={{ opacity: 1, x: 0 }}
-        className="rounded-xl border border-border bg-card p-5"
+        className="rounded-2xl border border-border bg-card p-6"
         initial={{ opacity: 0, x: 20 }}
         transition={{ delay: 0.2 }}
       >
         <div className="mb-4 flex items-center gap-2">
           <Flame className="h-5 w-5 text-chart-2" />
-          <h3 className="font-semibold text-foreground">{t("trending")}</h3>
+          <h3 className="font-bold text-foreground">{t("trending")}</h3>
         </div>
 
         <div className="space-y-1">
@@ -40,11 +40,11 @@ export function RightSidebar() {
             >
               <div className="flex min-w-0 items-center gap-2">
                 <Hash className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">
+                <span className="truncate text-sm font-bold text-foreground transition-colors group-hover:text-primary">
                   {topic.keyword.charAt(0).toUpperCase() + topic.keyword.slice(1)}
                 </span>
               </div>
-              <span className="text-xs font-medium text-foreground/55">{topic.count}</span>
+              <span className="text-xs font-bold text-foreground/55">{topic.count}</span>
             </motion.button>
           ))}
           {(trending?.items ?? []).length === 0 ? (

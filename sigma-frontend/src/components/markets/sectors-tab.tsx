@@ -11,7 +11,7 @@ const containerVariants = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08
+      staggerChildren: 0.09
     }
   }
 }
@@ -36,22 +36,22 @@ export function SectorsTab() {
       >
         {regionIds.map((regionId) => (
           <motion.section
-            className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
+            className="rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/30"
             key={regionId}
             variants={itemVariants}
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-foreground">{t(`regionNames.${regionId}`)}</h3>
+                <h3 className="font-bold text-foreground">{t(`regionNames.${regionId}`)}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">{t("sectorEndpointPending")}</p>
               </div>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                 <BarChart3 className="h-4 w-4" />
               </span>
             </div>
 
-            <div className="rounded-lg border border-dashed border-border bg-background/50 px-4 py-6 text-center">
-              <p className="text-2xl font-semibold text-foreground">{t("notAvailable")}</p>
+            <div className="rounded-xl border border-dashed border-border bg-background/50 px-4 py-6 text-center">
+              <p className="text-2xl font-bold text-foreground">{t("notAvailable")}</p>
               <p className="mt-2 text-sm text-muted-foreground">{t("sectorLiveDataRequired")}</p>
             </div>
           </motion.section>

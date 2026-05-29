@@ -78,15 +78,15 @@ function formatUpdatedAt(timestamp: string | null | undefined): string | null {
 }
 
 function ChartSkeleton() {
-  return <div className="h-[408px] rounded-2xl border border-border bg-card/70 animate-pulse lg:h-[488px]" />;
+  return <div className="h-[408px] animate-pulse rounded-2xl border border-border bg-card lg:h-[488px]" />;
 }
 
 function TickerSkeleton() {
   return (
-    <div className="h-full rounded-xl border border-border bg-card/70 p-4">
+    <div className="h-full rounded-2xl border border-border bg-card p-6">
       <div className="mb-4 h-6 w-32 animate-pulse rounded bg-muted" />
       {Array.from({ length: 6 }).map((_, index) => (
-        <div className="mb-3 h-14 rounded-lg bg-muted/60 animate-pulse" key={index} />
+        <div className="mb-3 h-14 rounded-xl bg-muted/60 animate-pulse" key={index} />
       ))}
     </div>
   );
@@ -96,7 +96,7 @@ function StatsSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div className="h-[154px] rounded-xl border border-border bg-card/70 animate-pulse" key={index} />
+        <div className="h-[154px] animate-pulse rounded-2xl border border-border bg-card" key={index} />
       ))}
     </div>
   );
@@ -114,8 +114,8 @@ function DashboardNewsByCategory({ baseFilters }: { baseFilters: ItemFilters }) 
   return (
     <section className="space-y-5">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-bold text-foreground">{t("latestNews")}</h2>
-        <Link className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline" href={`/${locale}/news`}>
+        <h2 className="text-[20px] font-bold text-foreground">{t("latestNews")}</h2>
+        <Link className="flex items-center gap-1 text-sm font-bold text-primary hover:underline" href={`/${locale}/news`}>
           {t("viewAll")}
           <ArrowUpRight className="h-4 w-4" />
         </Link>
@@ -152,17 +152,17 @@ function DashboardNewsColumn({
   const feedT = useTranslations("feed");
 
   return (
-    <div className="flex min-h-[260px] flex-col rounded-xl border border-border bg-card p-4">
-      <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
+    <div className="flex min-h-[260px] flex-col rounded-2xl border border-border bg-card p-6">
+      <h3 className="mb-3 text-[15px] font-bold text-foreground">{title}</h3>
       <div className="flex flex-1 flex-col gap-2">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, index) => (
-            <div className="h-10 animate-pulse rounded-lg bg-muted" key={index} />
+            <div className="h-10 animate-pulse rounded-xl bg-muted" key={index} />
           ))
         ) : items.length > 0 ? (
           items.map((item) => (
             <Link
-              className="rounded-lg border border-border/70 bg-background/50 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+              className="rounded-xl border border-border/70 bg-background/50 px-3 py-2 text-[15px] text-foreground transition-colors hover:border-primary/40 hover:text-primary"
               href={`/${locale}/items/${item.id}`}
               key={item.id}
             >
@@ -170,11 +170,11 @@ function DashboardNewsColumn({
             </Link>
           ))
         ) : (
-          <p className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">{feedT("empty")}</p>
+          <p className="rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground">{feedT("empty")}</p>
         )}
       </div>
       <Link
-        className="mt-4 self-end text-sm font-semibold text-primary hover:underline"
+        className="mt-4 self-end text-sm font-bold text-primary hover:underline"
         href={`/${locale}/news?category=${category}`}
       >
         {t("viewDetails")}
@@ -225,7 +225,7 @@ export default function DashboardPage() {
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
           <div>
-            <h1 className="text-balance text-2xl font-bold text-foreground lg:text-3xl">
+            <h1 className="text-balance text-[32px] font-bold text-foreground">
               {t(greetingKey, { name: user?.display_name ?? "SIGMA" })}
             </h1>
             <p className="mt-1 text-foreground/60">{t("subtitle")}</p>
@@ -233,11 +233,11 @@ export default function DashboardPage() {
           {hasMarketData ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-foreground/55">
-                {t("lastUpdated")}: <span className="font-medium text-foreground">{updatedAt}</span>
+                {t("lastUpdated")}: <span className="font-bold text-foreground">{updatedAt}</span>
               </span>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-chart-1" />
-                <span className="text-xs font-medium text-chart-1">{t("live")}</span>
+                <span className="text-xs font-bold text-chart-1">{t("live")}</span>
               </div>
             </div>
           ) : (

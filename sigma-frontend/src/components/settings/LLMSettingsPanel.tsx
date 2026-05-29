@@ -461,12 +461,12 @@ export function LLMSettingsPanel({
   return (
     <div className="flex flex-1 flex-col gap-6">
       <section className="space-y-4">
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
-          <Card className="flex h-[16rem] flex-col gap-3 p-5">
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
+          <Card className="flex h-[20rem] flex-col gap-3 p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-sigma-text">{t("apiKeys")}</h3>
-                <p className="mt-1 text-xs leading-5 text-sigma-muted">{t("apiKeysCaption")}</p>
+                <h3 className="text-sm font-bold text-foreground">{t("apiKeys")}</h3>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("apiKeysCaption")}</p>
               </div>
               <Button onClick={addApiKey} size="sm" type="button" variant="secondary">
                 <Plus className="h-4 w-4" aria-hidden />
@@ -474,7 +474,7 @@ export function LLMSettingsPanel({
               </Button>
             </div>
             {form.api_keys.length === 0 ? (
-              <p className="rounded-lg bg-sigma-elevated px-3 py-2 text-sm text-sigma-muted">{t("emptyKeys")}</p>
+              <p className="rounded-xl bg-secondary px-3 py-2 text-sm text-muted-foreground">{t("emptyKeys")}</p>
             ) : (
               <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                 <div className="space-y-2">
@@ -483,8 +483,8 @@ export function LLMSettingsPanel({
                     return (
                       <div
                         className={cn(
-                          "grid items-end gap-2 rounded-lg p-2 lg:grid-cols-[auto_0.85fr_1fr_1fr_auto]",
-                          isDefault ? "bg-primary/5" : "bg-sigma-elevated"
+                          "grid items-end gap-2 rounded-xl p-2 lg:grid-cols-[auto_0.85fr_1fr_1fr_auto]",
+                          isDefault ? "bg-primary/5" : "bg-secondary"
                         )}
                         key={index}
                       >
@@ -538,14 +538,14 @@ export function LLMSettingsPanel({
               </Button>
             ) : null}
           </Card>
-          <Card className="flex h-[16rem] flex-col gap-4 p-4">
-            <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-sigma-text">
+          <Card className="flex h-[20rem] flex-col gap-6 p-6">
+            <label className="flex items-center gap-2 whitespace-nowrap text-sm font-bold text-foreground">
               <ToggleSwitch
                 checked={form.cost_guard_enabled}
                 label={t("costGuard")}
                 onChange={(checked) => setForm({ ...form, cost_guard_enabled: checked })}
               />
-              <ShieldCheck className="h-4 w-4 text-sigma-muted" aria-hidden />
+              <ShieldCheck className="h-4 w-4 text-muted-foreground" aria-hidden />
               {t("costGuard")}
             </label>
             <div className={cn(!form.cost_guard_enabled && "pointer-events-none select-none opacity-40")}>
@@ -574,48 +574,48 @@ export function LLMSettingsPanel({
                 ) : null}
               </div>
               {isDailyLimitCooldownActive ? (
-                <p className="mt-2 text-xs font-medium text-sigma-muted">
+                <p className="mt-2 text-xs font-bold text-muted-foreground">
                   {t("limitCooldown", { countdown: formatCooldownCountdown(cooldownRemainingSeconds) })}
                 </p>
               ) : null}
             </div>
-            <div className="mt-auto flex items-center gap-3 rounded-lg bg-sigma-elevated px-3 py-3">
-              <Gauge className="h-4 w-4 shrink-0 text-sigma-muted" aria-hidden />
-              <p className="min-w-0 flex-1 text-sm text-sigma-muted">{t("usageRemaining")}</p>
-              <p className="text-xl font-bold text-sigma-text">{usageRemainingPercent}%</p>
+            <div className="mt-auto flex items-center gap-3 rounded-xl bg-secondary px-3 py-3">
+              <Gauge className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+              <p className="min-w-0 flex-1 text-sm text-muted-foreground">{t("usageRemaining")}</p>
+              <p className="text-xl font-bold text-foreground">{usageRemainingPercent}%</p>
             </div>
           </Card>
         </section>
-        <section className="grid gap-4 xl:grid-cols-[3fr_1fr]">
-          <Card className="p-5">
-            <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("tokenTrend")}</h2>
+        <section className="grid gap-6 xl:grid-cols-[3fr_1fr]">
+          <Card className="p-6">
+            <h2 className="mb-4 text-[20px] font-bold text-foreground">{t("tokenTrend")}</h2>
             <TokenTrendChart data={trendData} locale={locale} />
           </Card>
-          <Card className="p-5">
-            <h2 className="mb-4 text-lg font-semibold text-sigma-text">{t("usageByFunction")}</h2>
+          <Card className="p-6">
+            <h2 className="mb-4 text-[20px] font-bold text-foreground">{t("usageByFunction")}</h2>
             <FunctionUsageChart data={functionData} />
           </Card>
         </section>
-        <section className="grid grid-cols-3 gap-4">
+        <section className="grid grid-cols-3 gap-6">
           <UsageCard label={t("today")} tokens={totals.today} />
           <UsageCard label={t("week")} tokens={totals.week} />
           <UsageCard label={t("month")} tokens={totals.month} />
         </section>
         {showCharts ? (
-          <section className="grid gap-4 xl:grid-cols-2">
-            <Card className="p-5">
-              <h3 className="text-lg font-semibold text-foreground">{t("providerUsageDistribution")}</h3>
+          <section className="grid gap-6 xl:grid-cols-2">
+            <Card className="p-6">
+              <h3 className="text-[20px] font-bold text-foreground">{t("providerUsageDistribution")}</h3>
               {providerDistributionData.length > 0 ? (
                 <ProviderUsageDistributionChart data={providerDistributionData} />
               ) : (
-                <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">
                   {t("noUsageData")}
                 </div>
               )}
             </Card>
-            <Card className={cn("space-y-4 p-5", !form.cost_guard_enabled && "pointer-events-none select-none opacity-40")}>
+            <Card className={cn("space-y-4 p-6", !form.cost_guard_enabled && "pointer-events-none select-none opacity-40")}>
               <div>
-                <h3 className="text-lg font-semibold text-foreground">{t("dailyTokenBudget")}</h3>
+                <h3 className="text-[20px] font-bold text-foreground">{t("dailyTokenBudget")}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {t("dailyTokenBudgetCaption", {
                     limit: form.daily_token_limit.toLocaleString(),
@@ -625,7 +625,7 @@ export function LLMSettingsPanel({
               </div>
               <div>
                 <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="font-medium text-foreground">{dailyBudgetPercent}%</span>
+                  <span className="font-bold text-foreground">{dailyBudgetPercent}%</span>
                   <span className="text-muted-foreground">
                     {totals.today.toLocaleString()} / {form.daily_token_limit.toLocaleString()}
                   </span>
@@ -704,10 +704,10 @@ function UsageCard({ label, tokens }: { label: string; tokens: number }) {
   const t = useTranslations("admin.llm");
 
   return (
-    <Card className="flex items-center justify-between gap-4 px-5 py-5">
-      <p className="text-sm font-medium text-sigma-muted">{label}</p>
-      <p className="text-xl font-semibold tabular-nums text-sigma-text">{tokens.toLocaleString()}</p>
-      <span className="text-xs font-medium text-sigma-muted">{t("tokens")}</span>
+    <Card className="flex items-center justify-between gap-6 px-5 py-5">
+      <p className="text-sm font-bold text-muted-foreground">{label}</p>
+      <p className="text-xl font-bold tabular-nums text-foreground">{tokens.toLocaleString()}</p>
+      <span className="text-xs font-bold text-muted-foreground">{t("tokens")}</span>
     </Card>
   );
 }

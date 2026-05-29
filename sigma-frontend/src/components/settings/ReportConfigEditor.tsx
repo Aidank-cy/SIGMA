@@ -116,20 +116,20 @@ export const ReportConfigEditor = memo(function ReportConfigEditor({
   );
 
   return (
-    <Card className={cn("p-5", className)}>
-      <div className={cn("flex flex-col", compact ? "gap-4" : "gap-5")}>
+    <Card className={cn("p-6", className)}>
+      <div className={cn("flex flex-col", compact ? "gap-6" : "gap-6")}>
         {compact ? (
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-foreground">{title ?? t("reports.title")}</h2>
+            <h2 className="text-base font-bold text-foreground">{title ?? t("reports.title")}</h2>
             <ActiveReportToggle payload={payload} setPayload={setPayload} />
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-base font-semibold text-foreground">{title ?? t("reports.title")}</h2>
+            <h2 className="text-base font-bold text-foreground">{title ?? t("reports.title")}</h2>
             <ActiveReportToggle payload={payload} setPayload={setPayload} />
           </div>
         )}
-        <div className={cn("flex flex-col", compact ? "gap-4" : "gap-5")}>
+        <div className={cn("flex flex-col", compact ? "gap-6" : "gap-6")}>
           {compact ? (
             <div className={cn(disabledControlClass)}>
               <FrequencyPills
@@ -315,7 +315,7 @@ function ReportAdvancedSettingsModal({
       title={t("reports.advancedSettingsTitle")}
     >
       <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2">
           {tokenLimitReportTypes.map((reportType) => {
             const label = t(`reports.${reportType}`);
             const isActive = reportTypeIsActive(reportType, activeReportFrequencies);
@@ -342,15 +342,15 @@ function ReportAdvancedSettingsModal({
             return (
               <div
                 className={cn(
-                  "space-y-3 rounded-lg bg-sigma-elevated p-3",
+                  "space-y-3 rounded-xl bg-secondary p-3",
                   !isActive && "pointer-events-none select-none opacity-60"
                 )}
                 key={reportType}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold text-sigma-text">{label}</h3>
+                  <h3 className="text-sm font-bold text-foreground">{label}</h3>
                   {!isActive ? (
-                    <span className="rounded-full bg-sigma-surface px-2.5 py-1 text-xs font-medium text-sigma-muted">
+                    <span className="rounded-full bg-card px-2.5 py-1 text-xs font-bold text-muted-foreground">
                       {t("reports.notActive")}
                     </span>
                   ) : null}
@@ -376,9 +376,9 @@ function ReportAdvancedSettingsModal({
           })}
         </div>
         {validationErrors.length > 0 ? (
-          <div className="space-y-1 rounded-lg bg-sigma-danger/10 p-3">
+          <div className="space-y-1 rounded-xl bg-destructive/10 p-3">
             {Array.from(new Set(validationErrors)).map((error) => (
-              <p className="text-xs font-medium text-sigma-danger" key={error}>
+              <p className="text-xs font-bold text-destructive" key={error}>
                 {error}
               </p>
             ))}
@@ -474,12 +474,12 @@ function TimeRangeFields({
           value={resolved.generation_time ?? "18:00"}
         />
         {maxTokensInput}
-        <p className="text-xs leading-5 text-sigma-muted sm:col-span-2">{t("reports.weeklyHelper")}</p>
+        <p className="text-xs leading-5 text-muted-foreground sm:col-span-2">{t("reports.weeklyHelper")}</p>
         <div className="sm:col-span-2">
           <PreviewBox value={weeklyPreview(resolved, t)} />
         </div>
         {weeklyRangeValidationError(resolved, t) ? (
-          <p className="text-xs font-medium text-sigma-danger sm:col-span-2">
+          <p className="text-xs font-bold text-destructive sm:col-span-2">
             {weeklyRangeValidationError(resolved, t)}
           </p>
         ) : null}
@@ -543,7 +543,7 @@ function TimeRangeFields({
         />
         {maxTokensInput}
         <div className="space-y-3 sm:col-span-2">
-          <p className="text-xs leading-5 text-sigma-muted">{t("reports.monthlyHelper")}</p>
+          <p className="text-xs leading-5 text-muted-foreground">{t("reports.monthlyHelper")}</p>
           <PreviewBox value={monthlyPreview(resolved, t)} />
         </div>
       </div>
@@ -655,18 +655,18 @@ function WeeklyRangeRow({
 function PreviewBox({ value }: { value: string }) {
   const t = useTranslations("settings");
   return (
-    <div className="rounded-lg border border-sigma-line bg-sigma-surface px-4 py-3">
-      <p className="text-xs font-medium text-sigma-muted">{t("reports.preview")}</p>
-      <p className="mt-1 text-sm font-medium text-sigma-text">{value}</p>
+    <div className="rounded-xl border border-border bg-card px-4 py-3">
+      <p className="text-xs font-bold text-muted-foreground">{t("reports.preview")}</p>
+      <p className="mt-1 text-sm font-bold text-foreground">{value}</p>
     </div>
   );
 }
 
 function ReadOnlyTimeRange({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-sigma-line bg-sigma-surface px-4 py-3">
-      <p className="text-xs font-medium text-sigma-muted">{label}</p>
-      <p className="mt-1 text-sm font-medium text-sigma-text">{value}</p>
+    <div className="rounded-xl border border-border bg-card px-4 py-3">
+      <p className="text-xs font-bold text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-bold text-foreground">{value}</p>
     </div>
   );
 }
@@ -681,7 +681,7 @@ function ActiveReportToggle({
   const t = useTranslations("settings");
 
   return (
-    <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+    <label className="flex items-center gap-2 text-sm font-bold text-foreground">
       <ToggleSwitch
         checked={payload.is_active}
         label={t("reports.active")}
@@ -709,7 +709,7 @@ function FrequencyPills<T extends string>({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className="text-sm font-bold text-foreground">{label}</p>
       <div className="flex flex-wrap items-center gap-2">
         {options.map((option) => (
           <button
@@ -744,7 +744,7 @@ function MultiSelectPills<T extends string>({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className="text-sm font-bold text-foreground">{label}</p>
       <div className="flex flex-wrap gap-2">
         <button
           className={values.length === 0 ? activePillClass(compact) : inactivePillClass(compact)}
@@ -770,14 +770,14 @@ function MultiSelectPills<T extends string>({
 
 function activePillClass(compact: boolean) {
   return cn(
-    "rounded-xl bg-primary text-sm font-medium text-primary-foreground transition-all duration-200",
+    "rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-all duration-200",
     compact ? "px-3 py-1.5" : "px-4 py-2"
   );
 }
 
 function inactivePillClass(compact: boolean) {
   return cn(
-    "rounded-xl bg-muted text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-muted/80 hover:text-foreground",
+    "rounded-xl bg-muted text-sm font-bold text-muted-foreground transition-all duration-200 hover:bg-muted/80 hover:text-foreground",
     compact ? "px-3 py-1.5" : "px-4 py-2"
   );
 }

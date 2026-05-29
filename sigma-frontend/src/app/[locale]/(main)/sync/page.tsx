@@ -323,7 +323,7 @@ export default function SyncPage() {
     <div className="space-y-8 p-6 lg:p-8">
       <motion.div animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" initial={{ opacity: 0, y: 20 }}>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+          <h1 className="text-[32px] font-bold text-foreground">{t("title")}</h1>
           <p className="text-sm text-foreground/60">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-4">
@@ -332,10 +332,10 @@ export default function SyncPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-chart-1 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-chart-1" />
             </span>
-            {t("lastSynced")}: <span className="font-medium text-foreground">{logs?.items[0] ? formatRelative(logs.items[0].executed_at, locale) : t("unknown")}</span>
+            {t("lastSynced")}: <span className="font-bold text-foreground">{logs?.items[0] ? formatRelative(logs.items[0].executed_at, locale) : t("unknown")}</span>
           </div>
           <motion.button
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             disabled={isSyncing || sources.length === 0}
             onClick={handleSyncAll}
             type="button"
@@ -366,12 +366,12 @@ export default function SyncPage() {
 
       <section className="space-y-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <h2 className="text-lg font-semibold text-foreground">{t("dataSources")}</h2>
+          <h2 className="text-lg font-bold text-foreground">{t("dataSources")}</h2>
           <div className="flex flex-wrap gap-2 lg:justify-end">
             {marketFilters.map((market) => (
               <motion.button
                 className={cn(
-                  "rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200",
+                  "rounded-2xl px-4 py-2 text-sm font-bold transition-all duration-200",
                   (market === "" && activeMarkets.length === 0) || (market !== "" && activeMarkets.includes(market))
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
@@ -392,7 +392,7 @@ export default function SyncPage() {
         </div>
         {isLoading ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 6 }).map((_, index) => <div className="h-72 animate-pulse rounded-xl border border-border bg-card" key={index} />)}
+            {Array.from({ length: 6 }).map((_, index) => <div className="h-72 animate-pulse rounded-2xl border border-border bg-card" key={index} />)}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -400,15 +400,15 @@ export default function SyncPage() {
               const marketSources = groupedSources[market]
               return (
                 <section
-                  className="flex h-[22rem] flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
+                  className="flex h-[26rem] flex-col rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/30"
                   key={market}
                 >
                   <div className="mb-4 flex shrink-0 items-start justify-between gap-4">
                     <div>
-                      <h3 className="font-semibold text-foreground">{marketT(`regionNames.${market}`)}</h3>
+                      <h3 className="font-bold text-foreground">{marketT(`regionNames.${market}`)}</h3>
                       <p className="mt-1 text-xs text-muted-foreground">{t("sources.sourceCount", { count: marketSources.length })}</p>
                     </div>
-                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    <span className="rounded-2xl bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground">
                       {market.toUpperCase()}
                     </span>
                   </div>
@@ -427,7 +427,7 @@ export default function SyncPage() {
                       />
                     ))}
                     {marketSources.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-border bg-background/50 px-4 py-6 text-center">
+                      <div className="rounded-xl border border-dashed border-border bg-background/50 px-4 py-6 text-center">
                         <p className="text-sm text-muted-foreground">{t("sources.emptyRegion")}</p>
                       </div>
                     ) : null}
@@ -490,10 +490,10 @@ export default function SyncPage() {
               {sourceTypes.map((type) => (
                 <button
                   className={cn(
-                    "rounded-lg border p-4 text-left text-sm font-medium",
+                    "rounded-2xl border p-6 text-left text-sm font-bold",
                     payload.source_type === type
-                      ? "border-sigma-accent bg-sigma-accent/10 text-sigma-text"
-                      : "border-sigma-line text-sigma-muted hover:bg-sigma-surface"
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border text-muted-foreground hover:bg-secondary"
                   )}
                   key={type}
                   onClick={() => {
@@ -518,7 +518,7 @@ export default function SyncPage() {
                 {t("sources.runTest")}
               </Button>
               {tested ? (
-                <p className="flex items-center gap-2 text-sm font-medium text-sigma-success">
+                <p className="flex items-center gap-2 text-sm font-bold text-chart-1">
                   <CheckCircle2 className="h-4 w-4" aria-hidden />
                   {t("sources.tested")}
                 </p>
@@ -547,12 +547,12 @@ export default function SyncPage() {
 
 function StatusCard({ children, detail, icon: Icon, label, value }: { children?: ReactNode; detail: string; icon: LucideIcon; label: string; value: string }) {
   return (
-    <motion.div className="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5" whileHover={{ y: -4 }}>
+    <motion.div className="rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md" whileHover={{ y: -4 }}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-foreground">{value}</span>
+            <span className="text-[32px] font-bold text-foreground">{value}</span>
             <span className="text-sm text-muted-foreground">{detail}</span>
           </div>
         </div>
@@ -587,11 +587,11 @@ function SourceRow({
   const Icon = sourceIcon(source.source_type)
 
   return (
-    <div className="flex h-14 items-center justify-between gap-3 rounded-lg border border-border bg-background/50 px-3 py-2">
+    <div className="flex h-14 items-center justify-between gap-3 rounded-xl border border-border bg-background/50 px-3 py-2">
       <button className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:text-primary" onClick={onEdit} type="button">
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <span className="min-w-0">
-          <span className="block truncate text-sm font-medium text-foreground">{source.name}</span>
+          <span className="block truncate text-sm font-bold text-foreground">{source.name}</span>
           <span className="block truncate text-xs text-muted-foreground">{t(`sources.types.${source.source_type}`)}</span>
         </span>
       </button>
@@ -657,11 +657,11 @@ function UserLogsPanel({
   return (
     <section className="space-y-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">{syncT("logsEyebrow")}</p>
-        <h2 className="mt-2 text-2xl font-semibold text-foreground">{syncT("logsTitle")}</h2>
+        <p className="text-sm font-bold uppercase tracking-normal text-muted-foreground">{syncT("logsEyebrow")}</p>
+        <h2 className="mt-2 text-[24px] font-bold text-foreground">{syncT("logsTitle")}</h2>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-4">
+      <div className="rounded-2xl border border-border bg-card p-6">
         <div className="grid items-end gap-3 md:grid-cols-4">
           <CustomSelect
             label={t("source")}
@@ -704,8 +704,8 @@ function UserLogsPanel({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-foreground">{log.source_name}</p>
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    <p className="font-bold text-foreground">{log.source_name}</p>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
                       {statusT(log.status)}
                     </span>
                   </div>
@@ -723,7 +723,7 @@ function UserLogsPanel({
                 </button>
               </div>
               {expanded ? (
-                <div className="mt-4 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                <div className="mt-4 rounded-xl bg-muted p-3 text-sm text-muted-foreground">
                   {log.error_message ?? t("successDetail", { duration: log.duration_ms })}
                 </div>
               ) : null}
@@ -871,7 +871,7 @@ function MetadataStep({
         type="number"
         value={payload.max_execution_seconds}
       />
-      <p className="text-sm text-sigma-muted">{t("sources.nextRun", { time: nextRun })}</p>
+      <p className="text-sm text-muted-foreground">{t("sources.nextRun", { time: nextRun })}</p>
     </div>
   )
 }
@@ -883,7 +883,7 @@ function StepIndicator({ step }: { step: number }) {
     <div className="grid grid-cols-4 gap-2">
       {[1, 2, 3, 4].map((item) => (
         <div
-          className={cn("h-1.5 rounded-full", item <= step ? "bg-sigma-accent" : "bg-sigma-line")}
+          className={cn("h-1.5 rounded-full", item <= step ? "bg-primary" : "bg-border")}
           key={item}
           title={t(`sources.steps.${item}`)}
         />
@@ -906,7 +906,7 @@ function IconButton({
   return (
     <button
       aria-label={label}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
       disabled={disabled}
       onClick={onClick}
       title={label}

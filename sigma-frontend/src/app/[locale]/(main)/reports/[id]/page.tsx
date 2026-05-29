@@ -90,7 +90,7 @@ export default function ReportDetailPage() {
         </div>
         <div className="rounded-2xl border border-border bg-card p-4 lg:hidden">
           <button
-            className="flex min-h-11 w-full items-center justify-between text-sm font-semibold text-foreground"
+            className="flex min-h-11 w-full items-center justify-between text-sm font-bold text-foreground"
             onClick={() => setIsTocOpen((current) => !current)}
             type="button"
           >
@@ -122,7 +122,7 @@ export default function ReportDetailPage() {
             {formatReportSubtitle(report, locale, t)}
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-5xl">
+            <h1 className="text-3xl font-bold leading-tight text-foreground sm:text-4xl">
               {typeLabel}
             </h1>
             <Button className="print:hidden" onClick={() => window.print()} variant="secondary">
@@ -164,9 +164,9 @@ function Toc({
           className={[
             "flex min-h-11 items-center border-l-2 py-1 transition",
             item.id === activeId
-              ? "border-primary pl-3 text-sm font-semibold text-foreground"
+              ? "border-primary pl-3 text-sm font-bold text-foreground"
               : "border-transparent pl-3 text-sm text-muted-foreground hover:text-foreground",
-            item.level === 3 && !compact ? "ml-3" : "font-medium"
+            item.level === 3 && !compact ? "ml-3" : "font-bold"
           ].join(" ")}
           href={`#${item.id}`}
           key={`${item.id}-${item.text}`}

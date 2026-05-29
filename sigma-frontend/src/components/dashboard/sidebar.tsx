@@ -113,7 +113,7 @@ export function Sidebar() {
               <Link
                 aria-label={item.label}
                 className={cn(
-                  "relative flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-300",
+                  "relative flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-300",
                   isActive
                     ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30"
                     : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -134,7 +134,7 @@ export function Sidebar() {
                 {isActive ? (
                   <motion.div
                     className="absolute -left-6 h-6 w-1 rounded-r-full bg-sidebar-primary"
-                    transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                   />
                 ) : null}
               </Link>
@@ -143,7 +143,7 @@ export function Sidebar() {
                 {isHovered && !isActive ? (
                   <motion.div
                     animate={{ opacity: 1, x: 0 }}
-                    className="absolute left-full top-1/2 z-50 ml-3 -translate-y-[60%] whitespace-nowrap rounded-lg border border-border bg-popover px-3 py-1.5 text-sm font-medium text-popover-foreground shadow-xl"
+                    className="absolute left-full top-1/2 z-50 ml-3 -translate-y-[60%] whitespace-nowrap rounded-xl border border-border bg-popover px-3 py-1.5 text-sm font-bold text-popover-foreground shadow-sm"
                     exit={{ opacity: 0, x: -10 }}
                     initial={{ opacity: 0, x: -10 }}
                     transition={{ duration: 0.15 }}
@@ -163,7 +163,7 @@ export function Sidebar() {
           aria-expanded={accountMenuOpen}
           aria-haspopup="menu"
           aria-label={t("accountMenu")}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sidebar-primary to-accent text-sm font-semibold text-white ring-2 ring-sidebar-border transition-all duration-200 hover:ring-sidebar-primary/50"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-sm font-bold text-background ring-2 ring-sidebar-border transition-all duration-200 hover:ring-sidebar-primary/50"
           onClick={() => setAccountMenuOpen((open) => !open)}
           type="button"
           whileHover={{ scale: 1.05 }}
@@ -176,14 +176,14 @@ export function Sidebar() {
           {accountMenuOpen ? (
             <motion.div
               animate={{ opacity: 1, x: 0, y: 0 }}
-              className="absolute bottom-0 left-full z-50 ml-3 w-44 rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl backdrop-blur-none"
+              className="absolute bottom-0 left-full z-50 ml-3 w-44 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-sm"
               exit={{ opacity: 0, x: -8, y: 6 }}
               initial={{ opacity: 0, x: -8, y: 6 }}
               role="menu"
               transition={{ duration: 0.16, ease: "easeOut" }}
             >
               <Link
-                className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-popover-foreground transition-colors hover:bg-muted"
+                className="flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-bold text-popover-foreground transition-colors hover:bg-muted"
                 href={settingsHref}
                 onClick={() => setAccountMenuOpen(false)}
                 prefetch
@@ -193,7 +193,7 @@ export function Sidebar() {
                 <span>{t("settings")}</span>
               </Link>
               <button
-                className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold text-popover-foreground transition-colors hover:bg-muted"
+                className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-bold text-popover-foreground transition-colors hover:bg-muted"
                 onClick={() => setTheme(nextTheme)}
                 role="menuitem"
                 type="button"
@@ -202,7 +202,7 @@ export function Sidebar() {
                 <span>{isDark ? t("themeDarkMode") : t("themeLightMode")}</span>
               </button>
               <button
-                className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold text-popover-foreground transition-colors hover:bg-muted"
+                className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-bold text-popover-foreground transition-colors hover:bg-muted"
                 onClick={logout}
                 role="menuitem"
                 type="button"
@@ -216,7 +216,7 @@ export function Sidebar() {
         </AnimatePresence>
       </div>
     </motion.aside>
-    <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 gap-1 rounded-2xl border border-border bg-card/95 p-1 shadow-apple backdrop-blur-xl md:hidden">
+    <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 gap-1 rounded-2xl border border-border bg-card p-1 shadow-sm md:hidden">
       {navItems.map((item) => {
         const isActive = activeId === item.id;
         const Icon = item.icon;
@@ -225,7 +225,7 @@ export function Sidebar() {
           <Link
             aria-label={item.label}
             className={cn(
-              "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-semibold transition-all",
+              "flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[10px] font-bold transition-all",
               isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
             href={item.href}

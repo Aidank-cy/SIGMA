@@ -65,8 +65,8 @@ export function AdminDashboardPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-normal text-sigma-muted">{t("eyebrow")}</p>
-        <h1 className="mt-2 text-3xl font-semibold text-sigma-text">{t("title")}</h1>
+        <p className="text-sm font-bold uppercase tracking-normal text-muted-foreground">{t("eyebrow")}</p>
+        <h1 className="mt-2 text-[32px] font-bold text-foreground">{t("title")}</h1>
       </div>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -76,25 +76,25 @@ export function AdminDashboardPanel() {
         <StatCard icon="tokens" label={t("stats.tokens")} value={stats.data?.tokens_today} />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-3 [&>*]:h-[420px]">
-        <Card className="flex flex-col p-5">
+      <section className="grid gap-6 xl:grid-cols-3 [&>*]:h-[420px]">
+        <Card className="flex flex-col p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">{t("trend")}</h2>
-            <span className="text-xs font-medium text-sigma-muted">{t("refresh")}</span>
+            <h2 className="text-lg font-bold">{t("trend")}</h2>
+            <span className="text-xs font-bold text-muted-foreground">{t("refresh")}</span>
           </div>
           {trend.isLoading ? <Skeleton className="h-[280px] w-full" /> : <TrendLine data={trendData} variant="bar" />}
         </Card>
 
         <Card className="overflow-hidden">
-          <div className="border-b border-sigma-line p-5">
-            <h2 className="text-lg font-semibold">{t("activity")}</h2>
+          <div className="border-b border-border p-6">
+            <h2 className="text-lg font-bold">{t("activity")}</h2>
           </div>
           <div className="max-h-80 overflow-auto">
             {(activity.data ?? []).map((item) => (
-              <div className="grid grid-cols-[1fr_auto] gap-1 border-b border-sigma-line px-3 py-2" key={item.id}>
+              <div className="grid grid-cols-[1fr_auto] gap-1 border-b border-border px-3 py-2" key={item.id}>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-sigma-text">{item.source_name}</p>
-                  <p className="text-xs text-sigma-muted">
+                  <p className="truncate text-sm font-bold text-foreground">{item.source_name}</p>
+                  <p className="text-xs text-muted-foreground">
                     {item.items_count} {t("items")} · {new Date(item.executed_at).toLocaleString()}
                   </p>
                 </div>
@@ -102,35 +102,35 @@ export function AdminDashboardPanel() {
               </div>
             ))}
             {!activity.isLoading && (activity.data ?? []).length === 0 ? (
-              <p className="p-5 text-sm text-sigma-muted">{t("emptyActivity")}</p>
+              <p className="p-6 text-sm text-muted-foreground">{t("emptyActivity")}</p>
             ) : null}
           </div>
         </Card>
 
         <Card className="overflow-hidden">
-          <div className="border-b border-sigma-line p-5">
-            <h2 className="text-lg font-semibold">{t("health")}</h2>
+          <div className="border-b border-border p-6">
+            <h2 className="text-lg font-bold">{t("health")}</h2>
           </div>
           <div className="max-h-80 overflow-auto">
             <table className="w-full min-w-0 text-left text-sm">
-              <thead className="bg-sigma-elevated text-xs uppercase tracking-normal text-sigma-muted">
+              <thead className="bg-secondary text-xs uppercase tracking-normal text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-3 font-medium">{t("source")}</th>
-                  <th className="px-3 py-3 font-medium">{t("type")}</th>
-                  <th className="px-3 py-3 font-medium">{t("lastSuccess")}</th>
-                  <th className="px-3 py-3 font-medium">{t("rate")}</th>
-                  <th className="px-3 py-3 font-medium">{t("state")}</th>
+                  <th className="px-3 py-3 font-bold">{t("source")}</th>
+                  <th className="px-3 py-3 font-bold">{t("type")}</th>
+                  <th className="px-3 py-3 font-bold">{t("lastSuccess")}</th>
+                  <th className="px-3 py-3 font-bold">{t("rate")}</th>
+                  <th className="px-3 py-3 font-bold">{t("state")}</th>
                 </tr>
               </thead>
               <tbody>
                 {(health.data ?? []).map((item) => (
-                  <tr className="border-t border-sigma-line" key={item.source_id}>
-                    <td className="px-3 py-2 font-medium">{item.name}</td>
-                    <td className="px-3 py-2 text-sigma-muted">{item.source_type}</td>
-                    <td className="px-3 py-2 text-sigma-muted">
+                  <tr className="border-t border-border" key={item.source_id}>
+                    <td className="px-3 py-2 font-bold">{item.name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{item.source_type}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
                       {item.last_success ? new Date(item.last_success).toLocaleString() : t("never")}
                     </td>
-                    <td className="px-3 py-2 text-sigma-muted">{Math.round(item.rate_24h * 100)}%</td>
+                    <td className="px-3 py-2 text-muted-foreground">{Math.round(item.rate_24h * 100)}%</td>
                     <td className="px-3 py-2">
                       <HealthDot label={statusT(item.status)} status={item.status} />
                     </td>
@@ -143,11 +143,11 @@ export function AdminDashboardPanel() {
       </section>
 
       <div>
-        <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">{logsT("eyebrow")}</p>
-        <h1 className="mt-2 text-3xl font-semibold text-foreground">{logsT("title")}</h1>
+        <p className="text-sm font-bold uppercase tracking-normal text-muted-foreground">{logsT("eyebrow")}</p>
+        <h1 className="mt-2 text-[32px] font-bold text-foreground">{logsT("title")}</h1>
       </div>
 
-      <Card className="p-4">
+      <Card className="p-6">
         <div className="grid items-end gap-3 md:grid-cols-4">
           <CustomSelect
             label={logsT("source")}
@@ -186,7 +186,7 @@ export function AdminDashboardPanel() {
           return (
             <Card
               className={cn(
-                "border-l-4 p-4",
+                "border-l-4 p-6",
                 log.status === "success" ? "border-l-chart-1" : "",
                 log.status === "fail" ? "border-l-chart-2" : "",
                 log.status === "timeout" ? "border-l-chart-4" : ""
@@ -195,7 +195,7 @@ export function AdminDashboardPanel() {
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <p className="font-medium">{log.source_name}</p>
+                  <p className="font-bold">{log.source_name}</p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {statusT(log.status)} · {log.items_count} {logsT("items")} ·{" "}
                     {new Date(log.executed_at).toLocaleString()}
@@ -211,7 +211,7 @@ export function AdminDashboardPanel() {
                 </button>
               </div>
               {isExpanded ? (
-                <div className="mt-4 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                <div className="mt-4 rounded-xl bg-muted p-3 text-sm text-muted-foreground">
                   {log.error_message ?? logsT("successDetail", { count: log.items_count, duration: log.duration_ms })}
                 </div>
               ) : null}
@@ -219,7 +219,7 @@ export function AdminDashboardPanel() {
           );
         })}
         {!logs.isLoading && (logs.data?.items ?? []).length === 0 ? (
-          <Card className="p-5 text-sm text-muted-foreground">{logsT("empty")}</Card>
+          <Card className="p-6 text-sm text-muted-foreground">{logsT("empty")}</Card>
         ) : null}
       </div>
 
@@ -279,13 +279,13 @@ interface StatCardProps {
 function StatCard({ icon, label, value }: StatCardProps) {
   const Icon = statIcons[icon];
   return (
-    <Card className="p-5">
-      <div className="flex items-center justify-between gap-4">
+    <Card className="p-6">
+      <div className="flex items-center justify-between gap-6">
         <div>
-          <p className="text-sm font-medium text-sigma-muted">{label}</p>
-          <p className="mt-2 text-3xl font-semibold">{value ?? "—"}</p>
+          <p className="text-sm font-bold text-muted-foreground">{label}</p>
+          <p className="mt-2 text-[32px] font-bold">{value ?? "—"}</p>
         </div>
-        <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-sigma-elevated text-sigma-muted">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
           <Icon className="h-5 w-5" aria-hidden />
         </span>
       </div>
@@ -297,10 +297,10 @@ function StatusPill({ label, status }: { label: string; status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex h-7 items-center rounded-full px-2.5 text-xs font-medium",
-        status === "success" ? "bg-sigma-success/10 text-sigma-success" : "",
-        status === "fail" ? "bg-sigma-danger/10 text-sigma-danger" : "",
-        status === "timeout" ? "bg-sigma-warning/10 text-sigma-warning" : ""
+        "inline-flex h-7 items-center rounded-full px-2.5 text-xs font-bold",
+        status === "success" ? "bg-chart-1/10 text-chart-1" : "",
+        status === "fail" ? "bg-destructive/10 text-destructive" : "",
+        status === "timeout" ? "bg-chart-4/10 text-chart-4" : ""
       )}
     >
       {label}
@@ -310,13 +310,13 @@ function StatusPill({ label, status }: { label: string; status: string }) {
 
 function HealthDot({ label, status }: { label: string; status: string }) {
   return (
-    <span className="inline-flex items-center gap-2 text-sm font-medium">
+    <span className="inline-flex items-center gap-2 text-sm font-bold">
       <span
         className={cn(
           "h-2.5 w-2.5 rounded-full",
-          status === "green" ? "bg-sigma-success" : "",
-          status === "yellow" ? "bg-sigma-warning" : "",
-          status === "red" ? "bg-sigma-danger" : ""
+          status === "green" ? "bg-chart-1" : "",
+          status === "yellow" ? "bg-chart-4" : "",
+          status === "red" ? "bg-destructive" : ""
         )}
       />
       {label}

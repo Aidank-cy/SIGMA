@@ -13,10 +13,10 @@ import { useSources } from "@/hooks/useSources";
 import { cn } from "@/lib/utils";
 
 const statStyles = [
-  { bgColor: "bg-chart-3/10", borderColor: "hover:border-chart-3/30", color: "text-chart-3", icon: Newspaper },
-  { bgColor: "bg-chart-1/10", borderColor: "hover:border-chart-1/30", color: "text-chart-1", icon: TrendingUp },
-  { bgColor: "bg-chart-5/10", borderColor: "hover:border-chart-5/30", color: "text-chart-5", icon: Database },
-  { bgColor: "bg-chart-4/10", borderColor: "hover:border-chart-4/30", color: "text-chart-4", icon: FileText }
+  { bgColor: "bg-chart-3/10", color: "text-chart-3", icon: Newspaper },
+  { bgColor: "bg-chart-1/10", color: "text-chart-1", icon: TrendingUp },
+  { bgColor: "bg-chart-5/10", color: "text-chart-5", icon: Database },
+  { bgColor: "bg-chart-4/10", color: "text-chart-4", icon: FileText }
 ];
 
 function relativeTime(value: string, locale: string): string {
@@ -88,10 +88,7 @@ export function StatsRow() {
         return (
           <motion.div
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className={cn(
-              "group cursor-pointer rounded-xl border border-border bg-card p-5 transition-all duration-300",
-              style.borderColor
-            )}
+            className="group cursor-pointer rounded-2xl border border-border bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             key={stat.label}
             onClick={() => router.push(stat.target)}
@@ -112,17 +109,17 @@ export function StatsRow() {
               </div>
               <span
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-xs font-semibold",
+                  "rounded-2xl px-2.5 py-1 text-xs font-bold",
                   stat.change === t("new") ? "bg-primary/10 text-primary" : "bg-chart-1/10 text-chart-1"
                 )}
               >
                 {stat.change}
               </span>
             </div>
-            <p className="mb-1 text-2xl font-bold text-foreground transition-colors group-hover:text-primary">
+            <p className="mb-1 text-[24px] font-bold text-foreground transition-colors group-hover:text-primary">
               {stat.value}
             </p>
-            <p className="text-sm text-foreground/60">{stat.label}</p>
+            <p className="text-[13px] font-bold text-foreground/60">{stat.label}</p>
           </motion.div>
         );
       })}

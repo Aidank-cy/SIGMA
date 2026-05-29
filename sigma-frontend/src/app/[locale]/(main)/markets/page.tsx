@@ -23,7 +23,7 @@ export default function MarketsPage() {
         initial={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+        <h1 className="text-[32px] font-bold text-foreground">{t("title")}</h1>
         <p className="mt-1 text-foreground/60">{t("subtitle")}</p>
       </motion.div>
 
@@ -31,21 +31,21 @@ export default function MarketsPage() {
 
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        className="flex w-fit items-center gap-1 rounded-xl bg-muted/50 p-1.5"
+        className="flex w-fit items-center gap-1 rounded-2xl bg-muted/50 p-1.5"
         initial={{ opacity: 0, y: 20 }}
         transition={{ delay: 0.1, duration: 0.4 }}
       >
         {tabIds.map((tab) => (
           <button
-            className="relative min-h-11 px-5 py-2.5 text-sm font-medium transition-colors duration-200"
+            className="relative min-h-11 px-5 py-2.5 text-sm font-bold transition-colors duration-200"
             key={tab}
             onClick={() => setActiveTab(tab)}
             type="button"
           >
             {activeTab === tab && (
               <motion.div
-                className="absolute inset-0 rounded-lg border border-border bg-card shadow-sm"
-                transition={{ damping: 30, stiffness: 400, type: "spring" }}
+                className="absolute inset-0 rounded-xl border border-border bg-card shadow-sm"
+                transition={{ duration: 0.2, ease: "easeOut" }}
               />
             )}
             <span className={activeTab === tab ? "relative z-10 text-foreground" : "relative z-10 text-muted-foreground hover:text-foreground"}>

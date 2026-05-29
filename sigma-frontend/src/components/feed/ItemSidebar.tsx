@@ -30,13 +30,13 @@ function SentimentCard({ item }: { item: ItemDetail }) {
   return (
     <section
       className={cn(
-        "rounded-2xl border p-4",
+        "rounded-2xl border p-6",
         item.sentiment === "bullish" && "border-chart-1/25 bg-chart-1/10",
         item.sentiment === "bearish" && "border-destructive/25 bg-destructive/10",
         item.sentiment === "neutral" && "border-border bg-card"
       )}
     >
-      <p className="text-xs font-medium text-muted-foreground">{t("sentiment")}</p>
+      <p className="text-[15px] font-bold text-muted-foreground">{t("sentiment")}</p>
       <div className="mt-3">
         <SentimentBadge sentiment={item.sentiment} />
       </div>
@@ -48,12 +48,12 @@ function KeywordsCard({ keywords }: { keywords: string[] }) {
   const t = useTranslations("itemDetail.sidebar");
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <h2 className="text-sm font-semibold text-foreground">{t("keywords")}</h2>
+    <section className="rounded-2xl border border-border bg-card p-6">
+      <h2 className="text-[15px] font-bold text-foreground">{t("keywords")}</h2>
       {keywords.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{t("empty")}</p> : null}
       <div className="mt-3 flex flex-wrap gap-2">
         {keywords.map((keyword) => (
-          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-foreground" key={keyword}>
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-foreground" key={keyword}>
             {keyword}
           </span>
         ))}
@@ -69,8 +69,8 @@ function MoreFromSource({ item }: { item: ItemDetail }) {
   const items = (data?.pages[0]?.items ?? []).filter((candidate) => candidate.id !== item.id).slice(0, 3);
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <h2 className="text-sm font-semibold text-foreground">{t("moreFromSource")}</h2>
+    <section className="rounded-2xl border border-border bg-card p-6">
+      <h2 className="text-[15px] font-bold text-foreground">{t("moreFromSource")}</h2>
       {isLoading ? <Skeleton className="mt-3 h-24 rounded-xl" /> : null}
       {!isLoading && items.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{t("empty")}</p> : null}
       <div className="mt-3 divide-y divide-border">
@@ -89,7 +89,7 @@ function SourceItemLink({ index, item, locale }: { index: number; item: ItemSumm
       href={`/${locale}/items/${item.id}`}
       style={{ transitionDelay: `${index * 20}ms` }}
     >
-      <span className="line-clamp-2 font-medium text-foreground">{item.title}</span>
+      <span className="line-clamp-2 font-bold text-foreground">{item.title}</span>
       <span className="mt-1 block text-xs text-muted-foreground">{item.source_name}</span>
     </Link>
   );

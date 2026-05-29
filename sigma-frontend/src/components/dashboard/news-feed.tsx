@@ -62,7 +62,7 @@ function NewsCard({
   return (
     <motion.article
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-      className="group overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
+      className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
       initial={{ opacity: 0, y: 40 }}
       ref={ref}
       transition={{ delay: index * 0.08, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -73,7 +73,7 @@ function NewsCard({
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
           <span
             className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur-sm",
+              "rounded-full px-2.5 py-1 text-xs font-bold",
               sentiment === "bullish"
                 ? "bg-chart-1/25 text-chart-1"
                 : sentiment === "bearish"
@@ -86,7 +86,7 @@ function NewsCard({
           <motion.button
             aria-label="Bookmark"
             className={cn(
-              "rounded-full p-2 backdrop-blur-sm transition-colors",
+              "rounded-full p-2 transition-colors",
               bookmarked ? "bg-primary/80 text-primary-foreground" : "bg-black/30 text-white hover:bg-white/30"
             )}
             onClick={(event) => {
@@ -103,9 +103,9 @@ function NewsCard({
         </div>
       </div>
 
-      <div className="p-5">
+      <div className="p-6">
         <Link href={`/${locale}/items/${item.id}`}>
-          <h3 className="mb-2 line-clamp-2 font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
+          <h3 className="mb-2 line-clamp-2 font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
             {item.title}
           </h3>
         </Link>
@@ -114,7 +114,7 @@ function NewsCard({
         </p>
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2 text-xs text-foreground/55">
-            <span className="truncate font-semibold text-foreground/80">{item.source_name || t("sourceFallback")}</span>
+            <span className="truncate font-bold text-foreground/80">{item.source_name || t("sourceFallback")}</span>
             <span className="text-foreground/35">|</span>
             <span className="flex shrink-0 items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -138,7 +138,7 @@ function LoadingGrid({ count = 6 }: { count?: number }) {
   return (
     <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: count }).map((_, index) => (
-        <div className="h-80 animate-pulse rounded-xl border border-border bg-card" key={index} />
+        <div className="h-80 animate-pulse rounded-2xl border border-border bg-card" key={index} />
       ))}
     </div>
   );
@@ -151,7 +151,7 @@ function FeedHeader() {
   return (
     <div className="mb-6 flex items-center justify-between">
       <h2 className="text-xl font-bold text-foreground">{t("latestNews")}</h2>
-      <Link className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline" href={`/${locale}/news`}>
+      <Link className="flex items-center gap-1 text-sm font-bold text-primary hover:underline" href={`/${locale}/news`}>
         {t("viewAll")}
         <ArrowUpRight className="h-4 w-4" />
       </Link>
@@ -163,7 +163,7 @@ function EmptyState() {
   const feedT = useTranslations("feed");
 
   return (
-    <div className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">
+    <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">
       {feedT("empty")}
     </div>
   );
@@ -217,11 +217,11 @@ function PaginationBar({
   const nextDisabled = !hasNext;
 
   return (
-    <div className="mt-8 flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card/70 p-3 sm:flex-row">
-      <p className="text-sm font-medium text-foreground/65">{t("pageOf", { current: currentPage, total: totalPages })}</p>
+    <div className="mt-8 flex flex-col items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row">
+      <p className="text-sm text-foreground/65">{t("pageOf", { current: currentPage, total: totalPages })}</p>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <button
-          className="inline-flex h-10 items-center gap-1 rounded-lg border border-border px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+          className="inline-flex h-10 items-center gap-1 rounded-xl border border-border px-3 text-sm font-bold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
           disabled={previousDisabled}
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           type="button"
@@ -234,7 +234,7 @@ function PaginationBar({
             <button
               aria-current={item === currentPage ? "page" : undefined}
               className={cn(
-                "h-10 min-w-10 rounded-lg border px-3 text-sm font-semibold transition-colors",
+                "h-10 min-w-10 rounded-xl border px-3 text-sm font-bold transition-colors",
                 item === currentPage
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-foreground hover:bg-muted"
@@ -246,13 +246,13 @@ function PaginationBar({
               {item}
             </button>
           ) : (
-            <span className="flex h-10 min-w-6 items-center justify-center text-sm font-semibold text-muted-foreground" key={item}>
+            <span className="flex h-10 min-w-6 items-center justify-center text-sm font-bold text-muted-foreground" key={item}>
               ...
             </span>
           )
         )}
         <button
-          className="inline-flex h-10 items-center gap-1 rounded-lg border border-border px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+          className="inline-flex h-10 items-center gap-1 rounded-xl border border-border px-3 text-sm font-bold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
           disabled={nextDisabled}
           onClick={() => onPageChange(currentPage + 1)}
           type="button"

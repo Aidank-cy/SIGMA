@@ -31,7 +31,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (isLoading || user === null || isLocaleMismatch) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-sigma-bg text-sigma-muted">
+      <main className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
       </main>
     );

@@ -34,7 +34,7 @@ export function ToggleSwitch({ checked, label, onChange }: ToggleSwitchProps) {
             "h-5 w-5 rounded-full bg-white shadow-md"
           )}
           animate={{ x: checked ? 20 : 2 }}
-          transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
         />
       </span>
     </button>

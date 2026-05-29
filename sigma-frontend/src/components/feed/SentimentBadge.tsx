@@ -15,10 +15,10 @@ export function SentimentBadge({ sentiment }: SentimentBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex h-7 items-center rounded-full px-3 text-xs font-semibold",
-        sentiment === "bullish" && "bg-sigma-success/12 text-sigma-success",
-        sentiment === "bearish" && "bg-sigma-danger/12 text-sigma-danger",
-        sentiment === "neutral" && "bg-sigma-neutral/14 text-sigma-muted"
+        "inline-flex h-7 items-center rounded-full px-3 text-xs font-bold",
+        sentiment === "bullish" && "bg-chart-1/12 text-chart-1",
+        sentiment === "bearish" && "bg-destructive/12 text-destructive",
+        sentiment === "neutral" && "bg-muted text-muted-foreground"
       )}
     >
       {t(sentiment)}

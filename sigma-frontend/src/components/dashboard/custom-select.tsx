@@ -123,7 +123,7 @@ export function CustomSelect({
   return (
     <div className={cn(isStacked ? "space-y-1" : "space-y-2", wrapperClassName)} ref={rootRef}>
       {isStacked ? (
-        <label className="block px-1 text-sm font-medium text-muted-foreground" htmlFor={generatedId}>
+        <label className="block px-1 text-sm font-bold text-muted-foreground" htmlFor={generatedId}>
           {label}
         </label>
       ) : null}
@@ -138,7 +138,7 @@ export function CustomSelect({
           aria-haspopup="listbox"
           aria-label={ariaLabel ?? label}
           className={cn(
-            "peer flex h-12 w-full appearance-none items-center rounded-2xl border border-border bg-card text-left text-sm font-medium text-foreground outline-none",
+            "peer flex h-12 w-full appearance-none items-center rounded-2xl border border-border bg-card text-left text-sm font-bold text-foreground outline-none",
             "focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60",
             showLabel && !isStacked ? "pb-1.5 pt-[18px]" : "py-0",
             hasLeadingIcon ? "pl-11" : "pl-4",
@@ -157,7 +157,7 @@ export function CustomSelect({
         {!isStacked ? (
           <label
             className={cn(
-              "pointer-events-none absolute left-4 top-[7px] text-xs font-medium text-muted-foreground transition-colors",
+              "pointer-events-none absolute left-4 top-[7px] text-xs text-muted-foreground transition-colors",
               hasLeadingIcon ? "left-11" : "",
               showLabel ? "" : "sr-only",
               error ? "text-destructive" : "peer-focus:text-primary"
@@ -180,12 +180,12 @@ export function CustomSelect({
                 {isOpen ? (
                   <motion.div
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className="rounded-2xl border border-border bg-popover p-2 shadow-apple"
+                    className="rounded-2xl border border-border bg-popover p-2 shadow-sm"
                     exit={{ opacity: 0, scale: 0.98, y: -6 }}
                     initial={{ opacity: 0, scale: 0.98, y: -6 }}
                     ref={dropdownRef}
                     style={dropdownStyle}
-                    transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                   >
                     <div aria-label={label} className="space-y-1" role="listbox">
                       {options.map((option) => {
@@ -194,7 +194,7 @@ export function CustomSelect({
                           <button
                             aria-selected={isSelected}
                             className={cn(
-                              "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-semibold",
+                              "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-bold",
                               isSelected
                                 ? "bg-foreground text-background"
                                 : "text-muted-foreground hover:bg-card hover:text-foreground"
@@ -217,7 +217,7 @@ export function CustomSelect({
             )
           : null}
       </div>
-      {error ? <p className="px-1 text-xs font-medium text-destructive">{error}</p> : null}
+      {error ? <p className="px-1 text-xs text-destructive">{error}</p> : null}
     </div>
   );
 }

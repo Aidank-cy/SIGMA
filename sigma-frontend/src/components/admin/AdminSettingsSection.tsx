@@ -28,14 +28,14 @@ export function AdminSettingsSection() {
   }, []);
 
   return (
-    <section className="space-y-5 border-t border-sigma-line pt-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <section className="space-y-5 border-t border-border pt-6">
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-sm font-medium uppercase tracking-normal text-sigma-accent">
+          <p className="text-sm font-bold uppercase tracking-normal text-primary">
             {settingsT("eyebrow")}
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-sigma-text">{settingsT("title")}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-sigma-muted">{settingsT("caption")}</p>
+          <h2 className="mt-2 text-[32px] font-bold text-foreground">{settingsT("title")}</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{settingsT("caption")}</p>
         </div>
         <div className="overflow-x-auto pb-1">
           <SegmentControl

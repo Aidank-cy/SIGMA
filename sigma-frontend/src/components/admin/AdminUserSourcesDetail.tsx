@@ -160,8 +160,8 @@ export const AdminUserSourcesDetail = forwardRef<
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-sigma-text">{t("dataSources")}</h2>
-          <p className="mt-1 text-sm text-sigma-muted">{t("subtitle")}</p>
+          <h2 className="text-lg font-bold text-foreground">{t("dataSources")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
         <Button onClick={openCreate} size="sm">
           <Plus className="h-4 w-4" aria-hidden />
@@ -170,11 +170,11 @@ export const AdminUserSourcesDetail = forwardRef<
       </div>
 
       {sources.isError ? (
-        <Card className="p-5 text-sm text-sigma-muted">{t("sourceUpdateError")}</Card>
+        <Card className="p-6 text-sm text-muted-foreground">{t("sourceUpdateError")}</Card>
       ) : sources.isLoading && draftSources.length === 0 ? (
         <div className="grid gap-3 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton className="h-48 rounded-lg" key={index} />
+            <Skeleton className="h-48 rounded-xl" key={index} />
           ))}
         </div>
       ) : (
@@ -185,10 +185,10 @@ export const AdminUserSourcesDetail = forwardRef<
               return null;
             }
             return (
-              <section className="rounded-lg border border-sigma-line bg-sigma-surface p-4" key={market}>
+              <section className="rounded-xl border border-border bg-card p-6" key={market}>
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold text-sigma-text">{t(`sources.markets.${market}`)}</h3>
-                  <span className="rounded-full bg-sigma-elevated px-2.5 py-1 text-xs font-medium text-sigma-muted">
+                  <h3 className="text-sm font-bold text-foreground">{t(`sources.markets.${market}`)}</h3>
+                  <span className="rounded-2xl bg-secondary px-2.5 py-1 text-xs font-bold text-muted-foreground">
                     {t("sources.sourceCount", { count: items.length })}
                   </span>
                 </div>
@@ -207,7 +207,7 @@ export const AdminUserSourcesDetail = forwardRef<
             );
           })}
           {draftSources.length === 0 ? (
-            <Card className="p-5 text-sm text-sigma-muted md:col-span-2">{t("sources.emptyRegion")}</Card>
+            <Card className="p-6 text-sm text-muted-foreground md:col-span-2">{t("sources.emptyRegion")}</Card>
           ) : null}
         </div>
       )}
@@ -244,21 +244,21 @@ function SourceCard({
   const Icon = source.source_type === "rss" ? Rss : source.source_type === "scraper" ? Code : Database;
 
   return (
-    <div className="rounded-lg border border-sigma-line bg-sigma-elevated p-3">
+    <div className="rounded-xl border border-border bg-secondary p-3">
       <div className="flex items-start gap-3">
-        <Icon className="mt-1 h-4 w-4 shrink-0 text-sigma-muted" aria-hidden />
+        <Icon className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-semibold text-sigma-text">{source.name}</p>
-            <span className="rounded-full bg-sigma-surface px-2 py-0.5 text-xs font-medium text-sigma-muted">
+            <p className="truncate text-sm font-bold text-foreground">{source.name}</p>
+            <span className="rounded-2xl bg-card px-2 py-0.5 text-xs font-bold text-muted-foreground">
               {t(`sources.types.${source.source_type}`)}
             </span>
           </div>
-          <p className="mt-2 text-xs leading-5 text-sigma-muted">
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
             {t(`sources.categories.${source.category}`)} · {t(`sources.markets.${source.market}`)} ·{" "}
             {source.schedule_cron ?? "0 * * * *"}
           </p>
-          <p className="mt-1 truncate text-xs text-sigma-muted">{sourceConfigSummary(source)}</p>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{sourceConfigSummary(source)}</p>
         </div>
         <ToggleSwitch checked={source.is_active} label={t("sources.toggleSource", { name: source.name })} onChange={onToggle} />
       </div>
@@ -323,7 +323,7 @@ function SourceForm({
         <Input label={t("sources.cron")} labelMode="stacked" onChange={(event) => setPayload({ schedule_cron: event.target.value })} value={payload.schedule_cron} />
         <Input label={t("sources.timeout")} labelMode="stacked" min={1} onChange={(event) => setPayload({ max_execution_seconds: Number(event.target.value) })} type="number" value={payload.max_execution_seconds} />
       </div>
-      <label className="flex items-center gap-2 text-sm font-medium text-sigma-text">
+      <label className="flex items-center gap-2 text-sm font-bold text-foreground">
         <ToggleSwitch checked={payload.is_active} label={t("sources.active")} onChange={(checked) => setPayload({ is_active: checked })} />
         {payload.is_active ? t("sources.active") : t("sources.inactive")}
       </label>
@@ -340,7 +340,7 @@ function IconButton({ children, label, onClick }: { children: ReactNode; label: 
   return (
     <button
       aria-label={label}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sigma-muted transition-colors hover:bg-sigma-surface hover:text-sigma-text"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
       onClick={onClick}
       title={label}
       type="button"

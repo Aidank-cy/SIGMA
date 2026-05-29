@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 
@@ -23,8 +22,7 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
   const t = useTranslations("dashboard");
   const { data } = useMarketIndices();
   const now = useMarketClock();
-  const { resolvedTheme } = useTheme();
-  const flatLineColor = resolvedTheme === "light" ? "oklch(0.62 0 0)" : "oklch(0.55 0 0)";
+  const flatLineColor = "var(--muted-foreground)";
   const tickers = useMemo(
     () =>
       (data?.indices ?? []).map((index) => {
@@ -51,8 +49,8 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
   );
 
   return (
-    <section className="flex h-full flex-col rounded-xl border border-border bg-card p-4">
-      <h2 className="mb-4 text-lg font-semibold text-foreground">{t("marketMovers")}</h2>
+    <section className="flex h-full flex-col rounded-2xl border border-border bg-card p-6">
+      <h2 className="mb-4 text-lg font-bold text-foreground">{t("marketMovers")}</h2>
 
       {tickers.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-foreground/60">
@@ -65,8 +63,8 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
             const lineColor = !ticker.hasMovementData
               ? flatLineColor
               : isPositive
-                ? "oklch(0.65 0.22 145)"
-                : "oklch(0.6 0.22 25)";
+                ? "var(--chart-1)"
+                : "var(--chart-2)";
             const isActive = activeMarket === ticker.symbol;
 
             return (
@@ -74,7 +72,7 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
                 aria-pressed={isActive}
                 animate={{ opacity: 1, x: 0 }}
                 className={cn(
-                  "grid w-full grid-cols-[minmax(120px,140px)_56px_minmax(70px,1fr)] items-center gap-3 rounded-lg border px-2 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "grid w-full grid-cols-[minmax(120px,140px)_56px_minmax(70px,1fr)] items-center gap-3 rounded-2xl border px-2 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   isActive ? "border-primary/40 bg-primary/10 shadow-sm" : "border-transparent"
                 )}
                 initial={{ opacity: 0, x: 12 }}
@@ -85,7 +83,7 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-foreground">{ticker.name}</p>
-                  <p className="truncate text-xs font-medium text-foreground/55">{ticker.symbol}</p>
+                  <p className="truncate text-xs text-foreground/55">{ticker.symbol}</p>
                 </div>
 
                 <div className="flex h-8 w-14 items-center justify-center">
@@ -99,7 +97,7 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
                       minimumFractionDigits: 2
                     })}
                   </p>
-                  <p className="text-xs font-medium text-foreground/55">
+                  <p className="text-xs text-foreground/55">
                     {ticker.currency}
                   </p>
                 </div>

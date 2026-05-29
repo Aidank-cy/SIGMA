@@ -22,12 +22,22 @@ const timeRangeDays: Record<string, number> = { "24h": 1, "7D": 7, "14D": 14, "3
 const categories: Category[] = ["politics", "finance", "technology", "macro"]
 const REPORTS_PER_PAGE = 4
 
-const categoryColors: Record<Category, string> = {
-  finance: "oklch(0.65 0.22 145)",
-  macro: "oklch(0.7 0.15 60)",
-  other: "oklch(0.4 0 0)",
-  politics: "oklch(0.6 0.22 25)",
-  technology: "oklch(0.6 0.18 250)"
+const categoryColors: Record<string, string> = {
+  finance: "var(--chart-1)",
+  macro: "var(--chart-5)",
+  other: "var(--muted-foreground)",
+  politics: "var(--chart-3)",
+  technology: "var(--chart-4)"
+}
+
+const darkTooltipContentStyle = {
+  backgroundColor: "var(--foreground)",
+  color: "var(--background)",
+  border: "none",
+  borderRadius: "16px",
+  padding: "10px 16px",
+  fontSize: "13px",
+  fontWeight: 700
 }
 
 const reportTypeColors: Record<string, string> = {
@@ -176,7 +186,7 @@ function buildSourceData(items: ItemSummary[]) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
     .map(([name, count], index) => ({
-      color: ["oklch(0.65 0.22 145)", "oklch(0.6 0.18 250)", "oklch(0.7 0.15 60)", "oklch(0.55 0.18 275)"][index],
+      color: ["var(--chart-1)", "var(--chart-4)", "var(--chart-5)", "var(--primary)"][index],
       name,
       value: Math.round((count / total) * 100)
     }))
@@ -220,7 +230,7 @@ function ReportListRow({
       animate={{ opacity: 1, y: 0 }}
       aria-pressed={isSelected}
       className={cn(
-        "group flex w-full items-stretch overflow-hidden rounded-xl border bg-card text-left transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5",
+        "group flex w-full items-stretch overflow-hidden rounded-2xl border bg-card text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md",
         isSelected ? "border-primary bg-primary/5" : "border-border"
       )}
       initial={{ opacity: 0, y: 12 }}
@@ -228,17 +238,17 @@ function ReportListRow({
       type="button"
       whileHover={{ y: -2 }}
     >
-      <div className={cn("w-1.5 shrink-0 rounded-l-xl", reportTypeColors[report.report_type] ?? "bg-muted-foreground")} />
-      <div className="grid min-w-0 flex-1 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+      <div className={cn("w-1.5 shrink-0 rounded-l-2xl", reportTypeColors[report.report_type] ?? "bg-muted-foreground")} />
+      <div className="grid min-w-0 flex-1 gap-3 p-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">{displayName}</h3>
+          <h3 className="truncate text-sm font-bold text-foreground sm:text-base">{displayName}</h3>
           <p className="mt-1 text-xs text-muted-foreground">
             {t("reportMeta", { count: report.item_count, minutes: readingTime(report.content) })}
           </p>
         </div>
         <div className="flex items-center justify-between gap-4 sm:justify-end">
           <div className="text-right">
-            <p className="text-sm font-medium text-foreground">{generatedDate}</p>
+            <p className="text-sm font-bold text-foreground">{generatedDate}</p>
             <p className="text-xs text-muted-foreground">{formatRelative(report.generated_at, locale)}</p>
           </div>
         </div>
@@ -253,9 +263,9 @@ function ReportPreview({ report }: { report: ReportSummary | null }) {
 
   if (!report) {
     return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-8 text-center">
+      <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card p-8 text-center">
         <FileText className="mb-3 h-8 w-8 text-muted-foreground" />
-        <h3 className="text-base font-semibold text-foreground">{t("selectReportPreview")}</h3>
+        <h3 className="text-base font-bold text-foreground">{t("selectReportPreview")}</h3>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">{t("selectReportPreviewDescription")}</p>
       </div>
     )
@@ -266,18 +276,18 @@ function ReportPreview({ report }: { report: ReportSummary | null }) {
   const summary = extractExecutiveSummary(report.content)
 
   return (
-    <div className="flex min-h-[320px] flex-col rounded-xl border border-border bg-card p-5">
+    <div className="flex min-h-[320px] flex-col rounded-2xl border border-border bg-card p-6">
       <div>
-        <h3 className="text-xl font-semibold leading-tight text-foreground">{displayName}</h3>
-        <p className="mt-2 text-sm font-medium text-muted-foreground">{subtitle}</p>
+        <h3 className="text-xl font-bold leading-tight text-foreground">{displayName}</h3>
+        <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
         <div className="mt-5">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">{t("reportSummary")}</p>
+          <p className="text-xs font-bold uppercase text-muted-foreground">{t("reportSummary")}</p>
           <p className="mt-2 text-sm leading-6 text-foreground/75">{summary || t("reportSummaryFallback")}</p>
         </div>
       </div>
       <div className="mt-auto flex justify-end pt-6">
         <Link
-          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
           href={`/${locale}/reports/${report.id}`}
         >
           {t("viewDetails")}
@@ -370,9 +380,9 @@ export default function AnalyticsPage() {
     const bearish = itemSentiments.length > 0 ? Math.round((itemSentiments.filter((value) => value === "bearish").length / itemSentiments.length) * 100) : 0
     const neutral = Math.max(0, 100 - bullish - bearish)
     return [
-      { color: "oklch(0.65 0.22 145)", name: feedT("sentiment.bullish"), value: bullish },
-      { color: "oklch(0.6 0.22 25)", name: feedT("sentiment.bearish"), value: bearish },
-      { color: "oklch(0.4 0 0)", name: feedT("sentiment.neutral"), value: neutral }
+      { color: "var(--chart-1)", name: feedT("sentiment.bullish"), value: bullish },
+      { color: "var(--chart-2)", name: feedT("sentiment.bearish"), value: bearish },
+      { color: "var(--muted-foreground)", name: feedT("sentiment.neutral"), value: neutral }
     ]
   }, [feedT, rangeItems, sentiment.data?.bullish_pct])
 
@@ -457,36 +467,36 @@ export default function AnalyticsPage() {
     <div className="space-y-8 p-6 lg:p-8">
       <motion.div animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" initial={{ opacity: 0, y: -10 }}>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+          <h1 className="text-[32px] font-bold text-foreground">{t("title")}</h1>
           <p className="text-sm text-foreground/60">{t("subtitle")}</p>
         </div>
-        <div className="flex items-center gap-1 rounded-xl bg-muted/50 p-1">
+        <div className="flex items-center gap-1 rounded-2xl bg-muted/50 p-1">
           {timeRanges.map((range) => (
             <button
-              className={cn("relative rounded-lg px-4 py-2 text-sm font-medium transition-colors", timeRange === range ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+              className={cn("relative rounded-xl px-4 py-2 text-sm font-bold transition-colors", timeRange === range ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
               key={range}
               onClick={() => setTimeRange(range)}
               type="button"
             >
-              {timeRange === range && <motion.div className="absolute inset-0 rounded-lg bg-primary" transition={{ damping: 35, mass: 0.8, stiffness: 500, type: "spring" }} />}
+              {timeRange === range && <motion.div className="absolute inset-0 rounded-xl bg-primary" transition={{ duration: 0.2, ease: "easeOut" }} />}
               <span className="relative z-10">{range}</span>
             </button>
           ))}
         </div>
       </motion.div>
 
-      <motion.section animate="visible" className="grid grid-cols-2 gap-4 lg:grid-cols-4" initial="hidden" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } }}>
+      <motion.section animate="visible" className="grid grid-cols-2 gap-4 lg:grid-cols-4" initial="hidden" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.09 } } }}>
         <MetricCard title={t("sentimentOverview")}>
           <div className="relative flex items-center justify-center">
             <ResponsiveContainer height={120} width={120}>
               <PieChart>
-                <Pie data={sentimentData} dataKey="value" innerRadius={40} outerRadius={55} paddingAngle={2} stroke="none">
+                <Pie data={sentimentData} dataKey="value" innerRadius={35} outerRadius={50} paddingAngle={3} stroke="none">
                   {sentimentData.map((entry) => <Cell fill={entry.color} key={entry.name} />)}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-bold text-chart-1">{bullishValue}%</span>
+              <span className="text-[32px] font-bold text-chart-1">{bullishValue}%</span>
               <span className="text-xs text-muted-foreground">{feedT("sentiment.bullish")}</span>
             </div>
           </div>
@@ -497,12 +507,12 @@ export default function AnalyticsPage() {
             <AreaChart data={trendData}>
               <defs>
                 <linearGradient id="sentimentGradient" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="oklch(0.65 0.22 145)" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <Area dataKey="sentiment" fill="url(#sentimentGradient)" stroke="oklch(0.65 0.22 145)" strokeWidth={2} type="linear" />
-              <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
+              <Area dataKey="sentiment" fill="url(#sentimentGradient)" stroke="var(--chart-1)" strokeWidth={2} type="linear" />
+              <Tooltip contentStyle={darkTooltipContentStyle} />
             </AreaChart>
           </ResponsiveContainer>
           {trendChange === null ? (
@@ -515,12 +525,12 @@ export default function AnalyticsPage() {
         <MetricCard title={t("articleVolume")}>
           <ResponsiveContainer height={100} width="100%">
             <BarChart data={volumeData}>
-              <Bar dataKey="articles" fill="oklch(0.55 0.18 275)" radius={[4, 4, 0, 0]} />
-              <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
+              <Bar dataKey="articles" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+              <Tooltip contentStyle={darkTooltipContentStyle} />
             </BarChart>
           </ResponsiveContainer>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-2xl font-bold text-foreground">{rangeItems.length}</span>
+            <span className="text-[24px] font-bold text-foreground">{rangeItems.length}</span>
             <span className="text-xs text-muted-foreground">{t("articlesInRange", { range: timeRange })}</span>
           </div>
         </MetricCard>
@@ -528,7 +538,7 @@ export default function AnalyticsPage() {
         <MetricCard title={t("sourceDistribution")}>
           <ResponsiveContainer height={80} width="100%">
             <PieChart>
-              <Pie data={sourceData} dataKey="value" innerRadius={25} outerRadius={40} paddingAngle={2} stroke="none">
+              <Pie data={sourceData} dataKey="value" innerRadius={35} outerRadius={50} paddingAngle={3} stroke="none">
                 {sourceData.map((entry) => <Cell fill={entry.color} key={entry.name} />)}
               </Pie>
             </PieChart>
@@ -538,7 +548,7 @@ export default function AnalyticsPage() {
               <div className="flex items-center gap-1.5 text-xs" key={source.name}>
                 <div className="h-2 w-2 rounded-full" style={{ backgroundColor: source.color }} />
                 <span className="truncate text-muted-foreground">{source.name}</span>
-                <span className="font-medium text-foreground">{source.value}%</span>
+                <span className="font-bold text-foreground">{source.value}%</span>
               </div>
             ))}
           </div>
@@ -546,19 +556,19 @@ export default function AnalyticsPage() {
       </motion.section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">{t("sentimentByCategory")}</h2>
+        <h2 className="text-lg font-bold text-foreground">{t("sentimentByCategory")}</h2>
         <div className="grid gap-3">
           {categoryData.map((category) => (
-            <motion.div className="rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5" key={category.raw} whileHover={{ y: -2 }}>
+            <motion.div className="rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md" key={category.raw} whileHover={{ y: -2 }}>
               <div className="flex items-center justify-between gap-4">
                 <div className="flex min-w-[140px] items-center gap-3">
                   <div className="h-3 w-3 rounded-full" style={{ backgroundColor: categoryColors[category.raw] }} />
-                  <span className="font-medium text-foreground">{category.name}</span>
+                  <span className="font-bold text-foreground">{category.name}</span>
                 </div>
                 <div className="flex h-3 flex-1 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full" style={{ backgroundColor: "oklch(0.65 0.22 145)", width: `${category.bullish}%` }} />
-                  <div className="h-full" style={{ backgroundColor: "oklch(0.6 0.22 25)", width: `${category.bearish}%` }} />
-                  <div className="h-full" style={{ backgroundColor: "oklch(0.4 0 0)", width: `${category.neutral}%` }} />
+                  <div className="h-full" style={{ backgroundColor: "var(--chart-1)", width: `${category.bullish}%` }} />
+                  <div className="h-full" style={{ backgroundColor: "var(--chart-2)", width: `${category.bearish}%` }} />
+                  <div className="h-full" style={{ backgroundColor: "var(--muted-foreground)", width: `${category.neutral}%` }} />
                 </div>
                 <div className="flex min-w-[180px] items-center justify-end gap-4">
                   <span className="text-sm text-muted-foreground">{t("articleCount", { count: category.articles })}</span>
@@ -572,9 +582,9 @@ export default function AnalyticsPage() {
 
       <section className="space-y-4" id="intelligence-reports">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">{t("reports")}</h2>
+          <h2 className="text-lg font-bold text-foreground">{t("reports")}</h2>
           <motion.button
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             disabled={isGenerating}
             onClick={handleGenerateReport}
             type="button"
@@ -600,7 +610,7 @@ export default function AnalyticsPage() {
               <div className="flex items-center justify-center gap-2 pt-2">
                 <button
                   aria-label={t("previousReportsPage")}
-                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
+                  className="rounded-xl px-3 py-1.5 text-sm font-bold text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
                   disabled={reportPage <= 1}
                   onClick={() => setReportPage((page) => page - 1)}
                   type="button"
@@ -612,7 +622,7 @@ export default function AnalyticsPage() {
                 </span>
                 <button
                   aria-label={t("nextReportsPage")}
-                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
+                  className="rounded-xl px-3 py-1.5 text-sm font-bold text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40"
                   disabled={reportPage >= totalReportPages}
                   onClick={() => setReportPage((page) => page + 1)}
                   type="button"
@@ -629,7 +639,7 @@ export default function AnalyticsPage() {
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">{t("topKeywords")}</h2>
+          <h2 className="text-lg font-bold text-foreground">{t("topKeywords")}</h2>
         </div>
         <div className="flex flex-wrap gap-3">
           {(keywords.data?.items ?? []).map((keyword, index) => (
@@ -643,7 +653,7 @@ export default function AnalyticsPage() {
             >
               <span className="text-muted-foreground">#</span>
               <span>{keyword.keyword}</span>
-              <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", index < 3 ? "bg-primary/20 text-primary" : "bg-background text-muted-foreground")}>{keyword.count}</span>
+              <span className={cn("rounded px-1.5 py-0.5 text-xs font-bold", index < 3 ? "bg-primary/20 text-primary" : "bg-background text-muted-foreground")}>{keyword.count}</span>
             </motion.div>
           ))}
         </div>
@@ -654,8 +664,8 @@ export default function AnalyticsPage() {
 
 function MetricCard({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <motion.div className="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ y: -4 }}>
-      <h3 className="mb-4 text-sm font-medium text-muted-foreground">{title}</h3>
+    <motion.div className="rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ y: -4 }}>
+      <h3 className="mb-4 text-sm font-bold text-muted-foreground">{title}</h3>
       {children}
     </motion.div>
   )
@@ -663,7 +673,7 @@ function MetricCard({ children, title }: { children: ReactNode; title: string })
 
 function TrendLabel({ positive, value }: { positive: boolean; value: string }) {
   return (
-    <div className={cn("flex items-center gap-1 text-sm font-medium", positive ? "text-chart-1" : "text-chart-2")}>
+    <div className={cn("flex items-center gap-1 text-sm font-bold", positive ? "text-chart-1" : "text-chart-2")}>
       {positive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
       <span>{value}</span>
     </div>

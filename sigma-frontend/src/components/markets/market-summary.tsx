@@ -31,7 +31,7 @@ const containerVariants = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08
+      staggerChildren: 0.09
     }
   }
 }
@@ -60,12 +60,12 @@ export function MarketSummary() {
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-border bg-card p-6"
+      className="rounded-2xl border border-border bg-card p-6"
       initial={{ opacity: 0, y: 20 }}
       transition={{ delay: 0.4, duration: 0.4 }}
     >
       <div className="mb-5 flex flex-col gap-1">
-        <h2 className="text-lg font-semibold text-foreground">{t("marketSummary")}</h2>
+        <h2 className="text-lg font-bold text-foreground">{t("marketSummary")}</h2>
         <p className="text-sm text-foreground/70">{t("marketSummaryCaption")}</p>
       </div>
 
@@ -79,7 +79,7 @@ export function MarketSummary() {
           const Icon = summaryIcons[key]
           return (
             <motion.div
-              className="rounded-lg bg-background/50 p-4 transition-all hover:bg-background/80"
+              className="rounded-xl bg-background/50 p-4 transition-all hover:bg-background/80"
               key={key}
               variants={itemVariants}
               whileHover={{ y: -2 }}

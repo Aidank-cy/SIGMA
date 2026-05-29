@@ -143,7 +143,7 @@ export const AdminUserLLMDetail = forwardRef<AdminDetailSaveHandle, AdminUserLLM
           retryLabel={userT("retry")}
         />
       ) : llm.config.isLoading ? (
-        <Skeleton className="h-[32rem] rounded-lg" />
+        <Skeleton className="h-[32rem] rounded-xl" />
       ) : (
         <LLMSettingsPanel
           configData={llm.config.data}
@@ -177,7 +177,7 @@ function ErrorCard({
   retryLabel: string;
 }) {
   return (
-    <Card className="flex items-center justify-between gap-3 p-5 text-sm text-sigma-muted">
+    <Card className="flex items-center justify-between gap-3 p-6 text-sm text-muted-foreground">
       <span>{message}</span>
       <Button isLoading={isRetrying} onClick={onRetry} size="sm" type="button" variant="secondary">
         <RotateCcw className="h-4 w-4" aria-hidden />

@@ -45,7 +45,7 @@ export default function ItemDetailPage() {
 
         <header className="mt-8 flex flex-col gap-4 border-b border-border pb-6">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-foreground">{item.source_name}</span>
+            <span className="text-sm font-bold text-foreground">{item.source_name}</span>
             <Badge category={item.category}>{t(`categories.${item.category}`)}</Badge>
             <Badge market={item.market}>{t(`markets.${item.market}`)}</Badge>
             <span className="text-sm text-muted-foreground">
@@ -54,16 +54,16 @@ export default function ItemDetailPage() {
               )}
             </span>
           </div>
-          <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-5xl">{item.title}</h1>
+          <h1 className="text-3xl font-bold leading-tight text-foreground sm:text-4xl">{item.title}</h1>
         </header>
 
         <div className="mt-8 flex flex-col gap-8">
           <Card className="p-6">
             <div className="mb-3 flex items-center justify-between gap-4">
-              <h2 className="text-base font-semibold text-foreground">{t("summaryTitle")}</h2>
+              <h2 className="text-base font-bold text-foreground">{t("summaryTitle")}</h2>
               {item.content_url ? (
                 <Link
-                  className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary"
+                  className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-primary"
                   href={item.content_url}
                   rel="noreferrer"
                   target="_blank"
@@ -82,17 +82,17 @@ export default function ItemDetailPage() {
               onClick={() => setIsRawOpen((current) => !current)}
               type="button"
             >
-              <span className="text-lg font-semibold text-foreground">{t("rawTitle")}</span>
+              <span className="text-lg font-bold text-foreground">{t("rawTitle")}</span>
               <ChevronDown className={isRawOpen ? "h-5 w-5 rotate-180 text-muted-foreground" : "h-5 w-5 text-muted-foreground"} />
             </button>
             {isRawOpen ? (
-              <div className="mt-5 rounded-2xl border border-border bg-card p-5">
+              <div className="mt-5 rounded-2xl border border-border bg-card p-6">
                 {isMetadataOnly ? (
                   <div className="flex flex-col gap-4">
                     <p className="text-sm leading-6 text-muted-foreground">{t("metadataOnly")}</p>
                     {item.content_url ? (
                       <Link
-                        className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-full bg-sigma-text px-4 text-sm font-medium text-sigma-bg shadow-apple-soft transition-transform hover:-translate-y-0.5"
+                        className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-2xl bg-foreground px-4 text-sm font-bold text-background shadow-sm transition-all duration-200 hover:brightness-110"
                         href={item.content_url}
                         rel="noreferrer"
                         target="_blank"
@@ -110,7 +110,7 @@ export default function ItemDetailPage() {
           </section>
 
           <section className="border-t border-border pt-5">
-            <h2 className="mb-3 text-lg font-semibold text-foreground">{t("relatedTitle")}</h2>
+            <h2 className="mb-3 text-lg font-bold text-foreground">{t("relatedTitle")}</h2>
             {item.related.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("relatedEmpty")}</p>
             ) : (
@@ -133,11 +133,11 @@ export default function ItemDetailPage() {
 function RelatedItemCard({ index, item, locale }: { index: number; item: MinimalItem; locale: string }) {
   return (
     <Link
-      className="block h-full rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
+      className="block h-full rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
       href={`/${locale}/items/${item.id}`}
       style={{ transitionDelay: `${index * 20}ms` }}
     >
-      <p className="line-clamp-3 text-sm font-semibold text-foreground">{item.title}</p>
+      <p className="line-clamp-3 text-sm font-bold text-foreground">{item.title}</p>
       <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">{item.summary}</p>
     </Link>
   );

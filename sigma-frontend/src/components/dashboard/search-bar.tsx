@@ -38,8 +38,8 @@ function CustomSelect({ onChange, options, placeholder, value }: CustomSelectPro
     <div className="relative" ref={ref}>
       <motion.button
         className={cn(
-          "flex min-w-[150px] items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm font-medium transition-all duration-200",
-          isOpen ? "border-primary shadow-lg ring-2 ring-primary/20" : "border-border hover:border-muted-foreground/40"
+          "flex min-w-[150px] items-center gap-2 rounded-2xl border bg-card px-4 py-3 text-sm font-bold transition-all duration-200",
+          isOpen ? "border-primary shadow-sm ring-2 ring-primary/20" : "border-border hover:border-muted-foreground/40"
         )}
         onClick={() => setIsOpen((current) => !current)}
         type="button"
@@ -57,7 +57,7 @@ function CustomSelect({ onChange, options, placeholder, value }: CustomSelectPro
         {isOpen ? (
           <motion.div
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="absolute left-0 top-full z-50 mt-2 w-full min-w-[180px] overflow-hidden rounded-xl border border-border bg-popover/95 shadow-xl backdrop-blur-xl"
+            className="absolute left-0 top-full z-50 mt-2 w-full min-w-[180px] overflow-hidden rounded-2xl border border-border bg-popover/95 shadow-sm"
             exit={{ opacity: 0, scale: 0.96, y: -8 }}
             initial={{ opacity: 0, scale: 0.96, y: -8 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
@@ -67,8 +67,8 @@ function CustomSelect({ onChange, options, placeholder, value }: CustomSelectPro
                 <motion.button
                   animate={{ opacity: 1, x: 0 }}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
-                    value === option.value ? "bg-primary/10 font-medium text-primary" : "text-foreground hover:bg-muted"
+                    "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+                    value === option.value ? "bg-primary/10 font-bold text-primary" : "text-foreground hover:bg-muted"
                   )}
                   initial={{ opacity: 0, x: -10 }}
                   key={option.value}
@@ -120,8 +120,8 @@ export function SearchBar({ category, market, query, setCategory, setMarket, set
         />
         <input
           className={cn(
-            "w-full rounded-xl border bg-card py-3.5 pl-12 pr-10 text-sm text-foreground placeholder:text-muted-foreground",
-            isFocused ? "border-primary shadow-lg ring-2 ring-primary/20" : "border-border hover:border-muted-foreground/40"
+            "w-full rounded-2xl border bg-card py-3.5 pl-12 pr-10 text-sm text-foreground placeholder:text-muted-foreground",
+            isFocused ? "border-primary shadow-sm ring-2 ring-primary/20" : "border-border hover:border-muted-foreground/40"
           )}
           onBlur={() => setIsFocused(false)}
           onChange={(event) => setQuery(event.target.value)}

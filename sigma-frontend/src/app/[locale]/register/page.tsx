@@ -100,17 +100,16 @@ export default function RegisterPage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
-      <div className="absolute inset-[-32px] opacity-[0.18] [background-image:linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] [background-size:48px_48px]" />
       <div className="absolute right-4 top-4 z-10">
         <LocaleSwitcher compact />
       </div>
 
-      <Card className="relative z-10 w-full max-w-md border-border/80 bg-card/90 p-6 shadow-apple backdrop-blur-xl sm:p-8">
+      <Card className="relative z-10 w-full max-w-md border-border/80 bg-card p-6 shadow-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background">
             <BarChart3 className="h-6 w-6" aria-hidden />
           </span>
-          <h1 className="text-2xl font-semibold text-foreground">{t("register.title")}</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("register.title")}</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{t("tagline")}</p>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("register.subtitle")}</p>
         </div>
@@ -191,7 +190,7 @@ export default function RegisterPage() {
 
         <div className="mt-6 text-center">
           <Link
-            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:text-foreground"
+            className="inline-flex min-h-11 items-center text-sm font-bold text-primary hover:text-foreground"
             href={`/${locale}/login`}
           >
             {t("register.loginLink")}

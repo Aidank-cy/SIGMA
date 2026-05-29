@@ -261,7 +261,7 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
             transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {chartData.length === 0 ? (
-              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 text-sm font-medium text-muted-foreground">
+              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 text-sm font-bold text-muted-foreground">
                 {chartT("chartDataLoading")}
               </div>
             ) : (

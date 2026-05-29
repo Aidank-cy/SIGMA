@@ -12,7 +12,7 @@ export function RawContent({ content }: RawContentProps) {
 
   return (
     <div
-      className="prose prose-sm max-w-none text-sigma-text prose-p:text-sigma-muted prose-a:text-sigma-accent"
+      className="prose prose-sm max-w-none text-foreground prose-p:text-muted-foreground prose-a:text-primary"
       dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );

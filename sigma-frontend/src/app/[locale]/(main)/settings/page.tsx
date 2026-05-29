@@ -163,8 +163,8 @@ export default function SettingsPage() {
   return (
     <section className="flex flex-col gap-6 p-6 lg:p-8">
       <header className="border-b border-border pb-6">
-        <p className="text-sm font-medium uppercase text-primary">{t("eyebrow")}</p>
-        <h1 className="mt-2 text-3xl font-semibold text-foreground sm:text-4xl">{t("title")}</h1>
+        <p className="text-[13px] font-bold uppercase text-primary">{t("eyebrow")}</p>
+        <h1 className="mt-2 text-[32px] font-bold text-foreground">{t("title")}</h1>
         <p className="mt-2 text-sm text-foreground/60">{t("subtitle")}</p>
       </header>
 
@@ -246,7 +246,7 @@ function LLMConfigSection({
   return (
     <div className="flex flex-1 flex-col gap-3">
       <div>
-        <h2 className="text-base font-semibold text-foreground">{t("title")}</h2>
+        <h2 className="text-[20px] font-bold text-foreground">{t("title")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t("caption")}</p>
       </div>
       <LLMSettingsPanel
@@ -275,9 +275,9 @@ function ProfileSection({
   const t = useTranslations("settings");
 
   return (
-    <Card className="p-5">
+    <Card className="p-6">
       <div className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-foreground">{t("profile.title")}</h2>
+        <h2 className="text-[20px] font-bold text-foreground">{t("profile.title")}</h2>
         <Input
           className="text-muted-foreground opacity-65 focus:text-foreground focus:opacity-100"
           labelMode="stacked"
@@ -304,9 +304,9 @@ function RetentionSection({ days, onChange }: { days: number; onChange: (days: n
   const t = useTranslations("settings");
 
   return (
-    <Card className="p-5">
+    <Card className="p-6">
       <div className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold text-foreground">{t("retention.title")}</h2>
+        <h2 className="text-[20px] font-bold text-foreground">{t("retention.title")}</h2>
         <div className="overflow-x-auto pb-1 pt-1">
           <SegmentControl
             activeId={String(days)}
@@ -329,10 +329,10 @@ function PasswordSection({
   const t = useTranslations("settings");
 
   return (
-    <Card className={cn("p-5", className)}>
+    <Card className={cn("p-6", className)}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-foreground">{t("password.title")}</h2>
+          <h2 className="text-[20px] font-bold text-foreground">{t("password.title")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t("password.caption")}</p>
         </div>
         <Button className="shrink-0" onClick={onOpen} variant="secondary">
@@ -420,7 +420,7 @@ function PasswordResetModal({ email, isOpen, onClose }: { email: string; isOpen:
         />
         <p className="rounded-2xl bg-card px-4 py-3 text-sm text-muted-foreground">{t("password.devHint")}</p>
         {feedback ? (
-          <p className={feedback.type === "success" ? "text-sm font-medium text-chart-1" : "text-sm font-medium text-destructive"}>
+          <p className={feedback.type === "success" ? "text-sm font-bold text-chart-1" : "text-sm font-bold text-destructive"}>
             {feedback.message}
           </p>
         ) : null}
