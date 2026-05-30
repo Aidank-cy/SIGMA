@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Enum, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, enum_values
@@ -20,6 +20,7 @@ class DataSource(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """Configured intelligence collection source."""
 
     __tablename__ = "data_sources"
+    __table_args__ = (Index("ix_data_sources_created_by", "created_by"),)
 
     name: Mapped[str] = mapped_column(String(160), unique=True, nullable=False)
     source_type: Mapped[SourceType] = mapped_column(

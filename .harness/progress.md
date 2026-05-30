@@ -2192,3 +2192,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with backend Ruff check, backend Ruff format check, focused admin API tests, and full backend pytest.
 - Notes: Confirmed no inner Pydantic `Config` classes remain, tightened response/update schema configs and numeric/string constraints, and switched admin user serialization away from raw SQLAlchemy `__dict__` payloads.
 - Timestamp: 2026-05-30T04:09:45Z
+
+### [Phase 4] Sub-feature 4.2: SQLAlchemy model audit
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/models/data_source.py, sigma-backend/app/models/llm_usage_log.py, sigma-backend/app/models/report.py, sigma-backend/app/models/user.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with backend Ruff check, backend Ruff format check, metadata audit script, and full backend pytest.
+- Notes: Added missing foreign-key indexes, mapped the LLM usage log user relationship with matching `back_populates`, verified model exports, and confirmed enum columns use `enum_values`.
+- Timestamp: 2026-05-30T04:11:51Z

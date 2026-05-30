@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Changed
+- Add missing SQLAlchemy foreign-key indexes and LLM usage log relationship mapping.
 - Standardize Pydantic schema config and field constraints for backend API payloads.
 - Add explicit frontend hook return types and hook JSDoc comments under strict TypeScript.
 - Add missing backend package and public-interface docstrings.
