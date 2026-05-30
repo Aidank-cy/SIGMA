@@ -2097,3 +2097,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with frontend production build and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
 - Notes: Failed and timed-out Sync collection logs now show inline error summaries, use destructive styling in expanded details, and fall back to localized unknown-error text when the backend has no message.
 - Timestamp: 2026-05-30T01:50:42Z
+
+### [Maintenance] Sub-feature: Sync collection log inline summaries
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
+- Notes: Collection logs now always show source/status, item count, timestamp, and duration inline, with failed and timed-out entries showing a one-line destructive error summary and no expand/collapse controls.
+- Timestamp: 2026-05-30T02:04:11Z
