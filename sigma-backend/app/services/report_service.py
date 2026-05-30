@@ -18,6 +18,7 @@ from app.schemas.report import (
     ReportListResponse,
     ReportSummary,
 )
+from app.services.pagination import paginate_scalars
 
 LOGGER = logging.getLogger(__name__)
 
@@ -34,20 +35,19 @@ async def list_reports(
 ) -> ReportListResponse:
     """Return generated reports with standard pagination metadata."""
     predicate = _report_predicate(report_type, market, date_from, date_to, user_id)
-    total = await db.scalar(select(func.count()).select_from(Report).where(*predicate))
-    rows = await db.scalars(
-        select(Report)
-        .where(*predicate)
-        .order_by(Report.generated_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+    page_result = await paginate_scalars(
+        db,
+        select(Report).where(*predicate).order_by(Report.generated_at.desc()),
+        page,
+        page_size,
+        select(func.count()).select_from(Report).where(*predicate),
     )
     return ReportListResponse(
         page=page,
         page_size=page_size,
-        total=total or 0,
-        has_next=(page * page_size) < (total or 0),
-        items=[ReportSummary.model_validate(report) for report in rows],
+        total=page_result.total,
+        has_next=page_result.has_next,
+        items=[ReportSummary.model_validate(report) for report in page_result.items],
     )
 
 

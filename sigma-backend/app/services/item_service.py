@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.collected_item import CollectedItem
 from app.models.data_source import DataSource
 from app.schemas.item import ItemDetail, ItemListResponse, ItemSummary, MinimalItem
+from app.services.pagination import paginate
 from app.utils.redis_lock import create_redis_client
 
 ITEM_LIST_CACHE_TTL_SECONDS = 60
@@ -37,25 +38,24 @@ async def list_items(
         return ItemListResponse.model_validate_json(cached)
 
     predicate = _item_predicate(since, category, market, source_id, date_from, date_to, keyword)
-    total = await db.scalar(select(func.count()).select_from(CollectedItem).where(*predicate))
-    rows = (
-        await db.execute(
-            select(CollectedItem, DataSource.name)
-            .join(DataSource, DataSource.id == CollectedItem.source_id)
-            .where(*predicate)
-            .order_by(CollectedItem.published_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
-    ).all()
-    items = [_minimal(row[0]) for row in rows]
+    page_result = await paginate(
+        db,
+        select(CollectedItem, DataSource.name)
+        .join(DataSource, DataSource.id == CollectedItem.source_id)
+        .where(*predicate)
+        .order_by(CollectedItem.published_at.desc()),
+        page,
+        page_size,
+        select(func.count()).select_from(CollectedItem).where(*predicate),
+    )
+    items = [_minimal(row[0]) for row in page_result.items]
     if format_ != "minimal":
-        items = [_summary(row[0], row[1]) for row in rows]
+        items = [_summary(row[0], row[1]) for row in page_result.items]
     response = ItemListResponse(
         page=page,
         page_size=page_size,
-        total=total or 0,
-        has_next=(page * page_size) < (total or 0),
+        total=page_result.total,
+        has_next=page_result.has_next,
         items=items,
     )
     await _cache_set(cache_key, response.model_dump_json())

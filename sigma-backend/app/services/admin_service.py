@@ -19,6 +19,7 @@ from app.schemas.admin import (
 from app.schemas.llm import LLMConfigRead, LLMConfigUpdate, LLMUsageResponse
 from app.schemas.user_settings import UserReportConfigRead
 from app.services.llm_settings import get_llm_config, get_llm_usage, update_llm_config
+from app.services.pagination import paginate_scalars
 from app.services.report_settings import get_report_max_tokens, update_report_max_tokens
 
 
@@ -30,23 +31,21 @@ async def list_admin_users(
     if q:
         pattern = f"%{q.strip()}%"
         predicate.append(or_(User.email.ilike(pattern), User.display_name.ilike(pattern)))
-    total = await db.scalar(select(func.count()).select_from(User).where(*predicate))
-    users = list(
-        await db.scalars(
-            select(User)
-            .where(*predicate)
-            .order_by(User.created_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
+    page_result = await paginate_scalars(
+        db,
+        select(User).where(*predicate).order_by(User.created_at.desc()),
+        page,
+        page_size,
+        select(func.count()).select_from(User).where(*predicate),
     )
+    users = list(page_result.items)
     source_counts = await _source_counts(db, [user.id for user in users])
     items = [await _admin_user_read(db, user, source_counts.get(user.id, 0)) for user in users]
     return AdminUserListResponse(
         page=page,
         page_size=page_size,
-        total=total or 0,
-        has_next=(page * page_size) < (total or 0),
+        total=page_result.total,
+        has_next=page_result.has_next,
         items=items,
     )
 

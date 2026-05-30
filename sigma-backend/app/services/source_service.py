@@ -25,6 +25,7 @@ from app.schemas.source import (
     SourcePreviewResponse,
     SourceStatusResponse,
 )
+from app.services.pagination import paginate, paginate_scalars
 
 
 async def list_sources(
@@ -32,20 +33,19 @@ async def list_sources(
 ) -> SourceListResponse:
     """List data sources visible to the current user."""
     predicate = _visible_source_predicate(current_user)
-    total = await db.scalar(select(func.count()).select_from(DataSource).where(predicate))
-    sources = await db.scalars(
-        select(DataSource)
-        .where(predicate)
-        .order_by(DataSource.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+    page_result = await paginate_scalars(
+        db,
+        select(DataSource).where(predicate).order_by(DataSource.created_at.desc()),
+        page,
+        page_size,
+        select(func.count()).select_from(DataSource).where(predicate),
     )
     return SourceListResponse(
         page=page,
         page_size=page_size,
-        total=total or 0,
-        has_next=(page * page_size) < (total or 0),
-        items=[DataSourceRead.model_validate(source) for source in sources],
+        total=page_result.total,
+        has_next=page_result.has_next,
+        items=[DataSourceRead.model_validate(source) for source in page_result.items],
     )
 
 
@@ -84,36 +84,37 @@ async def list_source_logs(
     if date_to:
         predicate.append(CollectorLog.executed_at <= date_to)
 
-    total = await db.scalar(
+    count_statement = (
         select(func.count())
         .select_from(CollectorLog)
         .join(DataSource, DataSource.id == CollectorLog.source_id)
         .where(*predicate)
     )
+    total = await db.scalar(count_statement)
     success_total = await db.scalar(
         select(func.count())
         .select_from(CollectorLog)
         .join(DataSource, DataSource.id == CollectorLog.source_id)
         .where(*predicate, CollectorLog.status == CollectorStatus.SUCCESS)
     )
-    rows = (
-        await db.execute(
-            select(CollectorLog, DataSource.name)
-            .join(DataSource, DataSource.id == CollectorLog.source_id)
-            .where(*predicate)
-            .order_by(CollectorLog.executed_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
-    ).all()
+    page_result = await paginate(
+        db,
+        select(CollectorLog, DataSource.name)
+        .join(DataSource, DataSource.id == CollectorLog.source_id)
+        .where(*predicate)
+        .order_by(CollectorLog.executed_at.desc()),
+        page,
+        page_size,
+        count_statement,
+    )
     total_value = total or 0
     return AdminLogListResponse(
         page=page,
         page_size=page_size,
         total=total_value,
-        has_next=(page * page_size) < total_value,
+        has_next=page_result.has_next,
         success_rate=(success_total or 0) / total_value if total_value else 0.0,
-        items=[_activity_item(log, source_name) for log, source_name in rows],
+        items=[_activity_item(log, source_name) for log, source_name in page_result.items],
     )
 
 

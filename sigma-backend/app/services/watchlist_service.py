@@ -21,6 +21,7 @@ from app.schemas.watchlist import (
     WatchlistUpdate,
 )
 from app.services.item_service import _sentiment_for_item, _summary
+from app.services.pagination import paginate
 
 
 async def list_watchlists(db: AsyncSession, current_user: User) -> WatchlistListResponse:
@@ -77,23 +78,22 @@ async def list_watchlist_items(
     """Return collected items matching a watchlist's filters."""
     watchlist = await _owned_watchlist(db, current_user, watchlist_id)
     predicate = _item_predicate(watchlist)
-    total = await db.scalar(select(func.count()).select_from(CollectedItem).where(*predicate))
-    rows = (
-        await db.execute(
-            select(CollectedItem, DataSource.name)
-            .join(DataSource, DataSource.id == CollectedItem.source_id)
-            .where(*predicate)
-            .order_by(CollectedItem.published_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
-    ).all()
+    page_result = await paginate(
+        db,
+        select(CollectedItem, DataSource.name)
+        .join(DataSource, DataSource.id == CollectedItem.source_id)
+        .where(*predicate)
+        .order_by(CollectedItem.published_at.desc()),
+        page,
+        page_size,
+        select(func.count()).select_from(CollectedItem).where(*predicate),
+    )
     return ItemListResponse(
         page=page,
         page_size=page_size,
-        total=total or 0,
-        has_next=(page * page_size) < (total or 0),
-        items=[_summary(row[0], row[1]) for row in rows],
+        total=page_result.total,
+        has_next=page_result.has_next,
+        items=[_summary(row[0], row[1]) for row in page_result.items],
     )
 
 

@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Changed
+- Extract shared backend pagination helpers for list-style service endpoints.
 - Replace inline component prop object types with named frontend interfaces.
 - Extract dashboard page skeletons, news columns, and display helpers into reusable frontend modules.
 - Extract repeated timeout, cache TTL, retry, and auth header literals into named constants.
