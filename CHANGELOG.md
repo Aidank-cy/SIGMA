@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Changed
+- Move collector HTTP client lifecycle into the shared collector base class.
 - Add a reusable backend admin dependency for admin-only route handlers.
 - Extract shared backend pagination helpers for list-style service endpoints.
 - Replace inline component prop object types with named frontend interfaces.

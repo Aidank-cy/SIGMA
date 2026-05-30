@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup
 
-from app.collectors.base import DEFAULT_HTTP_TIMEOUT_SECONDS, BaseCollector, RawCollectedItem
+from app.collectors.base import BaseCollector, RawCollectedItem
 from app.collectors.utils import parse_datetime
 
 USER_AGENTS = (
@@ -28,23 +28,14 @@ class ScraperCollector(BaseCollector):
         has_selector = bool(selectors.get("item_container") or self.config.get("item_selector"))
         return has_url and has_selector
 
-    async def collect(self) -> list[RawCollectedItem]:
-        """Fetch HTML and extract selected items."""
-        if not await self.validate_config():
-            return []
+    async def _before_collect(self) -> None:
+        """Respect the configured scraper request delay before collection."""
         delay = float(self.config.get("request_interval_sec", 0))
         if delay > 0:
             await asyncio.sleep(delay)
 
-        if self._client is not None:
-            return await self._collect_with_client(self._client)
-
-        async with httpx.AsyncClient(
-            timeout=DEFAULT_HTTP_TIMEOUT_SECONDS, follow_redirects=True
-        ) as client:
-            return await self._collect_with_client(client)
-
-    async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
+    async def _do_collect(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
+        """Fetch HTML and extract selected items."""
         headers = {"User-Agent": self._user_agent()}
         target_url = str(self.config.get("target_url") or self.config.get("url", ""))
         selectors = dict(self.config.get("selectors") or {})

@@ -6,7 +6,6 @@ from urllib.parse import urljoin
 import httpx
 
 from app.collectors.base import (
-    DEFAULT_HTTP_TIMEOUT_SECONDS,
     DEFAULT_USER_AGENT,
     BaseCollector,
     RawCollectedItem,
@@ -25,20 +24,8 @@ class APICollector(BaseCollector):
         has_endpoint = bool(self.config.get("endpoint") or self.config.get("base_url"))
         return has_endpoint
 
-    async def collect(self) -> list[RawCollectedItem]:
+    async def _do_collect(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
         """Fetch and map API response items."""
-        if not await self.validate_config():
-            return []
-
-        if self._client is not None:
-            return await self._collect_with_client(self._client)
-
-        async with httpx.AsyncClient(
-            timeout=DEFAULT_HTTP_TIMEOUT_SECONDS, follow_redirects=True
-        ) as client:
-            return await self._collect_with_client(client)
-
-    async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
         endpoint = str(self.config.get("endpoint", ""))
         base_url = self.config.get("base_url")
         url = (

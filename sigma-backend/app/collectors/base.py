@@ -30,15 +30,27 @@ class BaseCollector(ABC):
         self.config = source.config or {}
         self._client = client
 
-    @abstractmethod
     async def collect(self) -> list[RawCollectedItem]:
         """Collect raw items from the configured source."""
+        if not await self.validate_config():
+            return []
+        await self._before_collect()
+        if self._client is not None:
+            return await self._do_collect(self._client)
+        async with httpx.AsyncClient(
+            timeout=DEFAULT_HTTP_TIMEOUT_SECONDS,
+            follow_redirects=True,
+        ) as client:
+            return await self._do_collect(client)
 
     @abstractmethod
     async def validate_config(self) -> bool:
         """Return whether the source configuration is usable."""
 
-    async def _get_client(self) -> httpx.AsyncClient:
-        if self._client is not None:
-            return self._client
-        return httpx.AsyncClient(timeout=DEFAULT_HTTP_TIMEOUT_SECONDS)
+    async def _before_collect(self) -> None:
+        """Run optional setup before the HTTP client is used."""
+        return None
+
+    @abstractmethod
+    async def _do_collect(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
+        """Collect raw items using the provided HTTP client."""

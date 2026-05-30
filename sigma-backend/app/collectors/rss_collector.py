@@ -4,7 +4,6 @@ import feedparser
 import httpx
 
 from app.collectors.base import (
-    DEFAULT_HTTP_TIMEOUT_SECONDS,
     DEFAULT_USER_AGENT,
     BaseCollector,
     RawCollectedItem,
@@ -19,20 +18,8 @@ class RSSCollector(BaseCollector):
         """Validate required RSS collector configuration."""
         return bool(self.config.get("feed_url"))
 
-    async def collect(self) -> list[RawCollectedItem]:
+    async def _do_collect(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
         """Fetch and parse feed entries."""
-        if not await self.validate_config():
-            return []
-
-        if self._client is not None:
-            return await self._collect_with_client(self._client)
-
-        async with httpx.AsyncClient(
-            timeout=DEFAULT_HTTP_TIMEOUT_SECONDS, follow_redirects=True
-        ) as client:
-            return await self._collect_with_client(client)
-
-    async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
         headers = {"User-Agent": str(self.config.get("user_agent") or DEFAULT_USER_AGENT)}
         response = await client.get(str(self.config["feed_url"]), headers=headers)
         response.raise_for_status()

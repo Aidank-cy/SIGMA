@@ -2247,3 +2247,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused admin/report API tests, backend Ruff check, and full backend pytest.
 - Notes: Added `get_current_admin` as the single admin-only dependency and replaced repeated inline `require_role(UserRole.ADMIN)` route dependencies.
 - Timestamp: 2026-05-30T04:34:45Z
+
+### [Phase 7] Sub-feature 7.3: Collector template method
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend collector base/API/RSS/scraper modules plus CHANGELOG.md and .harness/progress.md
+- Tests: PASS with focused collector tests, full backend pytest, backend Ruff check, and backend Ruff format check.
+- Notes: Centralized collector config validation and HTTP client management in `BaseCollector.collect`, with subclass-specific fetch logic isolated in `_do_collect`.
+- Timestamp: 2026-05-30T04:36:47Z
