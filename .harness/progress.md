@@ -2271,3 +2271,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with `npx tsc --noEmit e2e/*.ts --skipLibCheck`.
 - Notes: Switched the Playwright global setup path import to namespace import syntax so it compiles under the current TypeScript settings.
 - Timestamp: 2026-05-30T04:42:10Z
+
+### [Phase 6] Sub-feature 6.3: Remaining frontend page extraction
+- Status: COMPLETE
+- Files created: co-located `*PageContent.tsx` components for analytics, news, settings, sync, item detail, and report detail routes
+- Files modified: frontend route page wrappers, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build, frontend lint, backend Ruff check, and full backend pytest.
+- Notes: Reduced every `src/app/[locale]/(main)/**/page.tsx` file below 150 lines by keeping route files as thin wrappers around co-located client content components.
+- Timestamp: 2026-05-30T06:13:57Z
