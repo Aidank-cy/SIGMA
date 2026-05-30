@@ -715,6 +715,9 @@ function UserLogsPanel({
                   <p className="mt-1 text-sm text-muted-foreground">
                     {log.items_count} {t("items")} · {new Date(log.executed_at).toLocaleString()}
                   </p>
+                  {log.status !== "success" && log.error_message ? (
+                    <p className="mt-1 truncate text-sm text-destructive">{log.error_message}</p>
+                  ) : null}
                 </div>
                 <button
                   aria-label={expanded ? t("collapse") : t("expand")}
@@ -726,8 +729,17 @@ function UserLogsPanel({
                 </button>
               </div>
               {expanded ? (
-                <div className="mt-4 rounded-xl bg-muted p-3 text-sm text-muted-foreground">
-                  {log.error_message ?? t("successDetail", { duration: log.duration_ms })}
+                <div
+                  className={cn(
+                    "mt-4 rounded-xl p-3 text-sm",
+                    log.status === "success"
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-destructive/10 text-destructive"
+                  )}
+                >
+                  {log.status === "success"
+                    ? t("successDetail", { duration: log.duration_ms })
+                    : log.error_message || t("unknownError")}
                 </div>
               ) : null}
             </div>
