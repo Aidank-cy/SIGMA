@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from uuid import UUID
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import ReportType
 from app.models.system_config import SystemConfig
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 REPORT_MAX_TOKEN_TYPES = (
     ReportType.DAILY_MORNING,
@@ -64,14 +68,14 @@ def report_type_label(report_type: ReportType) -> str:
     return REPORT_TYPE_LABELS[report_type]
 
 
-async def _config_value(db: AsyncSession, key: str, default: object) -> object:
+async def _config_value(db: AsyncSession, key: str, default: Any) -> Any:
     config = await db.scalar(select(SystemConfig).where(SystemConfig.key == key))
     if config is None:
         return default
     return config.value.get("value", default)
 
 
-async def _upsert_config(db: AsyncSession, key: str, value: object) -> None:
+async def _upsert_config(db: AsyncSession, key: str, value: Any) -> None:
     config = await db.scalar(select(SystemConfig).where(SystemConfig.key == key))
     if config is None:
         db.add(SystemConfig(key=key, value={"value": value}))

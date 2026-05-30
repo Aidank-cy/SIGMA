@@ -1,10 +1,11 @@
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 from redis.asyncio import Redis
 
 from app.core.config import settings
 
-RedisCommand = Callable[..., Awaitable[object]]
+RedisCommand = Callable[..., Awaitable[Any]]
 
 
 def create_redis_client() -> Redis:

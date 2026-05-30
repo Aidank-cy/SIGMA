@@ -53,8 +53,14 @@ def require_role(role: UserRole) -> Callable[[User], User]:
     """Create a dependency that requires a specific role."""
 
     async def dependency(current_user: User = Depends(get_current_user)) -> User:
+        """Return the current user when the required role matches."""
         if current_user.role != role:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
         return current_user
 
     return dependency
+
+
+async def get_current_admin(current_user: User = Depends(require_role(UserRole.ADMIN))) -> User:
+    """Return the current active admin user."""
+    return current_user

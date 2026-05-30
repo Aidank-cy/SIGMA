@@ -1,9 +1,9 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.routes.watchlists import get_watchlist_stats, get_watchlist_trend
@@ -32,7 +32,12 @@ def test_watchlist_crud_and_items(client: TestClient) -> None:
     update_response = client.put(
         f"/api/v1/watchlists/{watchlist['id']}",
         headers=headers,
-        json={"name": "Global macro", "keywords": ["inflation"], "sources": [], "markets": ["global"]},
+        json={
+            "name": "Global macro",
+            "keywords": ["inflation"],
+            "sources": [],
+            "markets": ["global"],
+        },
     )
     delete_response = client.delete(f"/api/v1/watchlists/{watchlist['id']}", headers=headers)
 
@@ -83,13 +88,20 @@ def test_watchlist_http_contract_with_items_stats_trend_and_auth_edges(client: T
     list_response = client.get("/api/v1/watchlists", headers=headers)
     assert list_response.status_code == 200
     assert {item["name"] for item in list_response.json()["items"]} == {"Simple", "Chip Watch"}
-    chip_listed = next(item for item in list_response.json()["items"] if item["name"] == "Chip Watch")
+    chip_listed = next(
+        item for item in list_response.json()["items"] if item["name"] == "Chip Watch"
+    )
     assert chip_listed["item_count"] == 2
 
     rename_response = client.put(
         f"/api/v1/watchlists/{watchlist['id']}",
         headers=headers,
-        json={"name": "Renamed Chip Watch", "keywords": ["chip"], "sources": [seeded["source_id"]], "markets": ["us"]},
+        json={
+            "name": "Renamed Chip Watch",
+            "keywords": ["chip"],
+            "sources": [seeded["source_id"]],
+            "markets": ["us"],
+        },
     )
     assert rename_response.status_code == 200
     assert rename_response.json()["name"] == "Renamed Chip Watch"
@@ -97,13 +109,20 @@ def test_watchlist_http_contract_with_items_stats_trend_and_auth_edges(client: T
     filter_update = client.put(
         f"/api/v1/watchlists/{watchlist['id']}",
         headers=headers,
-        json={"name": "Filtered Chip Watch", "keywords": ["chip", "risk"], "sources": [], "markets": ["us"]},
+        json={
+            "name": "Filtered Chip Watch",
+            "keywords": ["chip", "risk"],
+            "sources": [],
+            "markets": ["us"],
+        },
     )
     assert filter_update.status_code == 200
     assert filter_update.json()["keywords"] == ["chip", "risk"]
     assert filter_update.json()["markets"] == ["us"]
 
-    items_response = client.get(f"/api/v1/watchlists/{watchlist['id']}/items?page=1&page_size=5", headers=headers)
+    items_response = client.get(
+        f"/api/v1/watchlists/{watchlist['id']}/items?page=1&page_size=5", headers=headers
+    )
     assert items_response.status_code == 200
     items_payload = items_response.json()
     assert items_payload["total"] == 2
@@ -158,14 +177,14 @@ async def test_watchlist_stats_and_trend(db_session: AsyncSession) -> None:
     db_session.add_all([user, source, watchlist])
     db_session.add_all(
         [
-            _item(source, "Chip rally", "Strong chip growth", datetime.now(timezone.utc)),
+            _item(source, "Chip rally", "Strong chip growth", datetime.now(UTC)),
             _item(
                 source,
                 "Chip risk",
                 "Bearish chip risk",
-                datetime.now(timezone.utc) - timedelta(days=2),
+                datetime.now(UTC) - timedelta(days=2),
             ),
-            _item(source, "Oil rally", "Strong energy growth", datetime.now(timezone.utc)),
+            _item(source, "Oil rally", "Strong energy growth", datetime.now(UTC)),
         ]
     )
     await db_session.commit()
@@ -204,7 +223,7 @@ def _seed_watchlist_items(client: TestClient) -> dict[str, str]:
 async def _seed_watchlist_items_async(client: TestClient) -> dict[str, str]:
     session_factory = client.app.state.session_factory
     source = _source()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with session_factory() as db:
         db.add(source)
         db.add_all(

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -30,10 +30,10 @@ from app.scheduler.engine import (
 from app.scheduler.jobs import (
     _config_frequencies_for,
     _config_matches_report_type,
-    generate_scheduled_reports,
     _insert_new_items,
     _period_for,
     collect_from_source,
+    generate_scheduled_reports,
 )
 
 
@@ -181,7 +181,7 @@ async def test_insert_new_items_skips_duplicate_content_url() -> None:
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
     source = _source(11)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with session_factory() as db:
         db.add(source)
         db.add(
@@ -252,14 +252,16 @@ def test_scheduler_registers_report_jobs() -> None:
     add_report_jobs()
 
     jobs = {job.id: job for job in scheduler.get_jobs()}
-    assert "cron[day_of_week='mon-fri', hour='1', minute='21']" == str(
-        jobs["reports:daily_morning"].trigger
+    assert (
+        str(jobs["reports:daily_morning"].trigger)
+        == "cron[day_of_week='mon-fri', hour='1', minute='21']"
     )
-    assert "cron[day_of_week='mon-fri', hour='9', minute='31']" == str(
-        jobs["reports:daily_afternoon"].trigger
+    assert (
+        str(jobs["reports:daily_afternoon"].trigger)
+        == "cron[day_of_week='mon-fri', hour='9', minute='31']"
     )
-    assert "cron[day_of_week='fri', hour='9', minute='45']" == str(jobs["reports:weekly"].trigger)
-    assert "cron[day='1', hour='4', minute='0']" == str(jobs["reports:monthly"].trigger)
+    assert str(jobs["reports:weekly"].trigger) == "cron[day_of_week='fri', hour='9', minute='45']"
+    assert str(jobs["reports:monthly"].trigger) == "cron[day='1', hour='4', minute='0']"
     assert all(job.max_instances == 1 for job in jobs.values())
     assert all(job.coalesce is True for job in jobs.values())
     scheduler.remove_all_jobs()
@@ -306,7 +308,7 @@ def test_scheduler_registers_market_indices_job() -> None:
 def test_report_periods_match_report_type() -> None:
     """Scheduled report periods use exact Beijing-time filter windows."""
     beijing = ZoneInfo("Asia/Shanghai")
-    now = datetime(2026, 5, 22, 9, 45, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 22, 9, 45, tzinfo=UTC)
     morning_start, morning_end = _period_for(ReportType.DAILY_MORNING, now)
     afternoon_start, afternoon_end = _period_for(ReportType.DAILY_AFTERNOON, now)
     weekly_start, weekly_end = _period_for(ReportType.WEEKLY, now)
@@ -325,7 +327,7 @@ def test_report_periods_match_report_type() -> None:
 def test_report_periods_use_configured_time_ranges() -> None:
     """Weekly and monthly report periods use per-user configured ranges."""
     beijing = ZoneInfo("Asia/Shanghai")
-    now = datetime(2026, 5, 22, 9, 45, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 22, 9, 45, tzinfo=UTC)
 
     weekly_start, weekly_end = _period_for(
         ReportType.WEEKLY,
@@ -346,7 +348,7 @@ def test_report_periods_use_configured_time_ranges() -> None:
     )
     short_month_start, short_month_end = _period_for(
         ReportType.MONTHLY,
-        datetime(2026, 3, 5, 9, 45, tzinfo=timezone.utc),
+        datetime(2026, 3, 5, 9, 45, tzinfo=UTC),
         {"monthly": {"start_day_of_month": 1, "end_day_of_month": 31}},
     )
 
@@ -413,7 +415,7 @@ async def test_generate_scheduled_reports_skips_existing_overlapping_report(
     )
     period_start, period_end = _period_for(
         ReportType.DAILY_MORNING,
-        datetime(2026, 5, 27, 2, 0, tzinfo=timezone.utc),
+        datetime(2026, 5, 27, 2, 0, tzinfo=UTC),
     )
     async with session_factory() as db:
         db.add(user)
@@ -488,7 +490,7 @@ async def test_generate_scheduled_reports_allows_other_users_overlapping_report(
     )
     period_start, period_end = _period_for(
         ReportType.DAILY_MORNING,
-        datetime(2026, 5, 27, 2, 0, tzinfo=timezone.utc),
+        datetime(2026, 5, 27, 2, 0, tzinfo=UTC),
     )
     async with session_factory() as db:
         db.add_all([existing_user, target_user])
@@ -662,7 +664,7 @@ async def asyncio_sleep() -> None:
 class _FixedDateTime(datetime):
     @classmethod
     def now(cls, tz: timezone | None = None) -> datetime:
-        current = datetime(2026, 5, 27, 2, 0, tzinfo=timezone.utc)
+        current = datetime(2026, 5, 27, 2, 0, tzinfo=UTC)
         return current if tz is None else current.astimezone(tz)
 
 

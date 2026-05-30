@@ -1,7 +1,8 @@
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
-import logging
+from datetime import UTC, date, datetime, time
+from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -25,6 +26,8 @@ LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class ReportLLMRuntime:
+    """Carry the resolved LLM provider, model, and optional API key."""
+
     provider: str
     model: str
     api_key: str | None
@@ -186,14 +189,16 @@ async def _resolve_report_llm_runtime(
             api_keys = api_keys_config.value if isinstance(api_keys_config.value, list) else []
             if not api_keys:
                 LOGGER.warning(
-                    "Skipping report generation for user %s because no LLM API keys are configured.",
+                    "Skipping report generation for user %s because no LLM API keys "
+                    "are configured.",
                     user_id,
                 )
                 return None
             selected_key = _select_report_api_key(api_keys)
             if selected_key is None:
                 LOGGER.warning(
-                    "Skipping report generation for user %s because no valid LLM API keys are configured.",
+                    "Skipping report generation for user %s because no valid LLM API keys "
+                    "are configured.",
                     user_id,
                 )
                 return None
@@ -208,7 +213,8 @@ async def _resolve_report_llm_runtime(
             )
             if not has_system_key:
                 LOGGER.warning(
-                    "Skipping report generation for user %s: no user API keys and no system API keys configured.",
+                    "Skipping report generation for user %s: no user API keys and no "
+                    "system API keys configured.",
                     user_id,
                 )
                 return None
@@ -240,7 +246,7 @@ async def _resolve_report_llm_runtime(
 @dataclass(frozen=True)
 class _ConfigValue:
     found: bool
-    value: object = None
+    value: Any = None
 
 
 async def _raw_config_value(db: AsyncSession, key: str) -> _ConfigValue:
@@ -251,11 +257,11 @@ async def _raw_config_value(db: AsyncSession, key: str) -> _ConfigValue:
     return _ConfigValue(found=True, value=value)
 
 
-async def _config_value(db: AsyncSession, key: str) -> object | None:
+async def _config_value(db: AsyncSession, key: str) -> Any | None:
     return (await _raw_config_value(db, key)).value
 
 
-def _select_report_api_key(api_keys: list[object]) -> dict[str, str] | None:
+def _select_report_api_key(api_keys: list[Any]) -> dict[str, str] | None:
     valid_keys = [
         {
             "key": str(item["key"]),
@@ -273,7 +279,7 @@ def _select_report_api_key(api_keys: list[object]) -> dict[str, str] | None:
     return valid_keys[0]
 
 
-def _normalize_provider(provider: object) -> str | None:
+def _normalize_provider(provider: Any) -> str | None:
     if not isinstance(provider, str) or not provider.strip():
         return None
     return provider.strip().lower()
@@ -281,14 +287,14 @@ def _normalize_provider(provider: object) -> str | None:
 
 def _period_start_datetime(value: date | datetime) -> datetime:
     if isinstance(value, datetime):
-        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-    return datetime.combine(value, time.min, tzinfo=timezone.utc)
+        return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return datetime.combine(value, time.min, tzinfo=UTC)
 
 
 def _period_end_datetime(value: date | datetime) -> datetime:
     if isinstance(value, datetime):
-        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-    return datetime.combine(value, time.max, tzinfo=timezone.utc)
+        return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return datetime.combine(value, time.max, tzinfo=UTC)
 
 
 def _report_title(report_type: ReportType, period_end: datetime) -> str:

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDPrimaryKeyMixin, enum_values
@@ -19,6 +19,7 @@ class Report(UUIDPrimaryKeyMixin, Base):
     """Generated intelligence report."""
 
     __tablename__ = "reports"
+    __table_args__ = (Index("ix_reports_user_id", "user_id"),)
 
     report_type: Mapped[ReportType] = mapped_column(
         Enum(ReportType, name="report_type", values_callable=enum_values),

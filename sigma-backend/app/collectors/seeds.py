@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +23,7 @@ async def seed_data_sources(db: AsyncSession) -> int:
     return len(sources)
 
 
-def _source(**payload: object) -> DataSource:
+def _source(**payload: Any) -> DataSource:
     return DataSource(**payload)
 
 
@@ -35,19 +37,22 @@ async def _sync_existing_seed_sources(db: AsyncSession) -> None:
             await db.delete(source)
             continue
         seed_name = OBSOLETE_SEED_SOURCE_NAMES.get(source.name, source.name)
-        if source.name not in OBSOLETE_SEED_SOURCE_NAMES and seed_name not in SYNC_SEED_SOURCE_NAMES:
+        if (
+            source.name not in OBSOLETE_SEED_SOURCE_NAMES
+            and seed_name not in SYNC_SEED_SOURCE_NAMES
+        ):
             continue
         replacement = seed_sources.get(seed_name)
         if replacement is None:
             continue
         source.name = str(replacement["name"])
-        source.source_type = replacement["source_type"]  # type: ignore[assignment]
-        source.category = replacement["category"]  # type: ignore[assignment]
-        source.market = replacement["market"]  # type: ignore[assignment]
+        source.source_type = cast("SourceType", replacement["source_type"])
+        source.category = cast("IntelligenceCategory", replacement["category"])
+        source.market = cast("Market", replacement["market"])
         source.schedule_cron = str(replacement["schedule_cron"])
         source.max_execution_seconds = int(replacement["max_execution_seconds"])
         source.is_system = bool(replacement["is_system"])
-        source.config = dict(replacement["config"])  # type: ignore[arg-type]
+        source.config = dict(cast("dict[str, Any]", replacement["config"]))
     await db.commit()
 
 
@@ -66,7 +71,7 @@ SYNC_SEED_SOURCE_NAMES = {
 LAYER_6_SEED_SOURCE_NAMES = {"Alpha Vantage News"}
 
 
-SEED_SOURCES: list[dict[str, object]] = [
+SEED_SOURCES: list[dict[str, Any]] = [
     {
         "name": "Yahoo Finance News",
         "source_type": SourceType.API,

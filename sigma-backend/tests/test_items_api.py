@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -24,7 +24,9 @@ async def test_items_list_with_pagination_and_category_filter(db_session: AsyncS
     )
     await db_session.commit()
 
-    response = await list_items(page=1, page_size=1, category="finance", format="minimal", db=db_session)
+    response = await list_items(
+        page=1, page_size=1, category="finance", format="minimal", db=db_session
+    )
 
     assert response.total == 2
     assert response.has_next is True
@@ -108,6 +110,6 @@ def _item(source: DataSource, title: str, category: IntelligenceCategory) -> Col
         summary=f"{title} summary",
         category=category,
         market=Market.US,
-        published_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        published_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )

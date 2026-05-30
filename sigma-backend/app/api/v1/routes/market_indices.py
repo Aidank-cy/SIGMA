@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.schemas.market import MarketIndicesResponse
-from app.services.market_indices import get_market_indices
+from app.services.market.indices import get_market_indices
 
 router = APIRouter()
 

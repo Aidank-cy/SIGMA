@@ -15,7 +15,9 @@ from app.api.v1.routes.user_settings import router as user_settings_router
 from app.api.v1.routes.watchlists import router as watchlists_router
 
 api_router = APIRouter()
-api_router.include_router(admin_dashboard_router, prefix="/admin/dashboard", tags=["Admin/Dashboard"])
+api_router.include_router(
+    admin_dashboard_router, prefix="/admin/dashboard", tags=["Admin/Dashboard"]
+)
 api_router.include_router(admin_llm_router, prefix="/admin/llm", tags=["Admin/LLM"])
 api_router.include_router(admin_logs_router, prefix="/admin/logs", tags=["Admin/Logs"])
 api_router.include_router(admin_users_router, prefix="/admin/users", tags=["Admin/Users"])

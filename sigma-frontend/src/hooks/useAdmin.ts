@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { UseMutationResult, UseQueryResult } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 import type { PaginatedResponse } from "@/lib/types";
@@ -67,7 +68,26 @@ export interface AdminLogFilters {
   page?: number;
 }
 
-export function useAdminDashboard() {
+interface AdminDashboardHookResult {
+  activity: UseQueryResult<AdminActivity[], Error>;
+  health: UseQueryResult<SourceHealth[], Error>;
+  stats: UseQueryResult<AdminStats, Error>;
+  trend: UseQueryResult<CollectionTrendPoint[], Error>;
+}
+
+interface AdminUserMutationVariables {
+  id: string;
+  payload: AdminUserUpdate;
+}
+
+interface AdminUsersHookResult {
+  list: UseQueryResult<PaginatedResponse<AdminUser>, Error>;
+  remove: UseMutationResult<void, Error, string>;
+  update: UseMutationResult<AdminUser, Error, AdminUserMutationVariables>;
+}
+
+/** Return admin dashboard aggregate query results. */
+export function useAdminDashboard(): AdminDashboardHookResult {
   const stats = useQuery({
     queryKey: ["admin", "stats"],
     queryFn: () => apiFetch<AdminStats>("/admin/dashboard/stats"),
@@ -92,7 +112,8 @@ export function useAdminDashboard() {
   return { activity, health, stats, trend };
 }
 
-export function useAdminUsers(q: string) {
+/** Return admin user list and mutation handles. */
+export function useAdminUsers(q: string): AdminUsersHookResult {
   const queryClient = useQueryClient();
   const list = useQuery({
     queryKey: ["admin", "users", q],
@@ -115,7 +136,8 @@ export function useAdminUsers(q: string) {
   return { list, remove, update };
 }
 
-export function useAdminLogs(filters: AdminLogFilters) {
+/** Return paginated admin collection logs for the selected filters. */
+export function useAdminLogs(filters: AdminLogFilters): UseQueryResult<AdminLogResponse, Error> {
   const params = new URLSearchParams({
     page: String(filters.page ?? 1),
     page_size: "50"

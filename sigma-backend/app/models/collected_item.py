@@ -4,7 +4,17 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, LargeBinary, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDPrimaryKeyMixin, enum_values
@@ -20,7 +30,9 @@ class CollectedItem(UUIDPrimaryKeyMixin, Base):
 
     __tablename__ = "collected_items"
     __table_args__ = (
-        Index("ix_collected_items_category_market_collected_at", "category", "market", "collected_at"),
+        Index(
+            "ix_collected_items_category_market_collected_at", "category", "market", "collected_at"
+        ),
         Index("ix_collected_items_source_id_collected_at", "source_id", "collected_at"),
         Index("ix_collected_items_published_at", "published_at"),
         Index("ix_collected_items_expires_at", "expires_at"),

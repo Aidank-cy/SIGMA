@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 import { marketIndicesRefetchInterval } from "@/lib/marketSessions";
@@ -23,7 +24,15 @@ export async function fetchMarketIndices(): Promise<MarketIndicesResponse> {
   return normalizeMarketIndices(response);
 }
 
-export function useMarketIndices() {
+interface MarketIndicesHookResult {
+  data: MarketIndicesResponse | undefined;
+  error: Error | null;
+  isLoading: boolean;
+  mutate: UseQueryResult<MarketIndicesResponse, Error>["refetch"];
+}
+
+/** Return live market indices with market-aware polling. */
+export function useMarketIndices(): MarketIndicesHookResult {
   const query = useQuery({
     queryKey: marketIndicesQueryKey,
     queryFn: fetchMarketIndices,

@@ -70,7 +70,7 @@ export function IndicesTab() {
   const now = useMarketClock()
   const [activeRange, setActiveRange] = useState("1D")
   const [activeRegion, setActiveRegion] = useState<RegionFilter>("all")
-  const indices = data?.indices ?? []
+  const indices = useMemo(() => data?.indices ?? [], [data?.indices])
   const groupedIndices = useMemo(() => groupIndicesByRegion(indices, activeRegion), [activeRegion, indices])
 
   if (isLoading) {

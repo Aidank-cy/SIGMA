@@ -19,8 +19,12 @@ logger = logging.getLogger(__name__)
 async def summarize_item(item: CollectedItem, db: AsyncSession, locale: str = "zh") -> str:
     """Summarize one collected item."""
     client = LLMClient(db, function_type=LLMFunctionType.SUMMARY)
-    payload = await client.complete_json(summary_system_prompt(locale), summary_user_prompt(item), max_tokens=300)
-    return json.dumps(_normalize_summary_payload(payload), ensure_ascii=False, separators=(",", ":"))
+    payload = await client.complete_json(
+        summary_system_prompt(locale), summary_user_prompt(item), max_tokens=300
+    )
+    return json.dumps(
+        _normalize_summary_payload(payload), ensure_ascii=False, separators=(",", ":")
+    )
 
 
 def _normalize_summary_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -63,6 +67,7 @@ async def _batch_summarize_in_session(
     semaphore = asyncio.Semaphore(concurrency)
 
     async def run(item: CollectedItem) -> None:
+        """Summarize one collected item when it is eligible for retry."""
         if item.summary:
             return
         retry_count = int((item.metadata_extra or {}).get("summary_retry_count", 0))

@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -289,7 +289,7 @@ async def _seed_llm_usage(client: TestClient, user_id: str) -> None:
                     function_type=LLMFunctionType.SUMMARY,
                     input_tokens=100,
                     output_tokens=25,
-                    created_at=datetime.now(timezone.utc),
+                    created_at=datetime.now(UTC),
                 ),
                 LLMUsageLog(
                     provider="openai",
@@ -298,7 +298,7 @@ async def _seed_llm_usage(client: TestClient, user_id: str) -> None:
                     function_type=LLMFunctionType.REPORT,
                     input_tokens=999,
                     output_tokens=1,
-                    created_at=datetime.now(timezone.utc),
+                    created_at=datetime.now(UTC),
                 ),
             ]
         )

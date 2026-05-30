@@ -4,19 +4,22 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, time, timezone
-from typing import Any
-from uuid import UUID
+from datetime import UTC, datetime, time
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.enums import LLMFunctionType
 from app.models.llm_usage_log import LLMUsageLog
 from app.models.system_config import SystemConfig
 from app.services.llm_settings import get_default_api_key
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +52,9 @@ DEFAULT_PROVIDER_MODELS = {
 }
 
 LLM_API_MAX_TOKENS = 16_384
+LLM_HTTP_TIMEOUT_SECONDS = 300
+LLM_RETRY_DELAYS_SECONDS = (1, 2, 4)
+LLM_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 class LLMClient:
@@ -131,7 +137,8 @@ class LLMClient:
         if self.provider is not None:
             return LLMRuntimeConfig(
                 provider=self.provider,
-                model=self.model or DEFAULT_PROVIDER_MODELS.get(self.provider, str(settings.default_llm_model)),
+                model=self.model
+                or DEFAULT_PROVIDER_MODELS.get(self.provider, str(settings.default_llm_model)),
                 daily_token_limit=int(daily_limit),
                 api_key=self.api_key,
             )
@@ -153,7 +160,7 @@ class LLMClient:
             api_key=self.api_key,
         )
 
-    async def _config_value(self, key: str, default: object) -> object:
+    async def _config_value(self, key: str, default: Any) -> Any:
         config = await self.db.scalar(select(SystemConfig).where(SystemConfig.key == key))
         if config is None:
             return default
@@ -162,7 +169,7 @@ class LLMClient:
         return default
 
     async def _check_budget(self, daily_token_limit: int, max_tokens: int) -> None:
-        start = datetime.combine(datetime.now(timezone.utc).date(), time.min, tzinfo=timezone.utc)
+        start = datetime.combine(datetime.now(UTC).date(), time.min, tzinfo=UTC)
         predicate = [LLMUsageLog.created_at >= start]
         if self.user_id is not None:
             predicate.append(LLMUsageLog.user_id == self.user_id)
@@ -243,22 +250,26 @@ class LLMClient:
         headers: dict[str, str],
         payload: dict[str, Any],
     ) -> dict[str, Any]:
-        delays = (1, 2, 4)
         owns_client = self.http_client is None
-        client = self.http_client or httpx.AsyncClient(timeout=300)
+        client = self.http_client or httpx.AsyncClient(timeout=LLM_HTTP_TIMEOUT_SECONDS)
         try:
-            for attempt in range(3):
+            for attempt in range(len(LLM_RETRY_DELAYS_SECONDS)):
                 try:
-                    response = await client.post(url, headers=headers, json=payload, timeout=300)
-                    if response.status_code not in {429, 500, 502, 503, 504}:
+                    response = await client.post(
+                        url,
+                        headers=headers,
+                        json=payload,
+                        timeout=LLM_HTTP_TIMEOUT_SECONDS,
+                    )
+                    if response.status_code not in LLM_RETRYABLE_STATUS_CODES:
                         response.raise_for_status()
                         return response.json()
                 except httpx.HTTPError as exc:
-                    if attempt == 2:
+                    if attempt == len(LLM_RETRY_DELAYS_SECONDS) - 1:
                         logger.warning("LLM request failed after retries: %s", exc)
                         raise
-                if attempt < 2:
-                    await asyncio.sleep(delays[attempt])
+                if attempt < len(LLM_RETRY_DELAYS_SECONDS) - 1:
+                    await asyncio.sleep(LLM_RETRY_DELAYS_SECONDS[attempt])
             logger.warning("LLM request failed after retries with status %s", response.status_code)
             response.raise_for_status()
             return response.json()

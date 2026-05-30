@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SentimentStatsResponse(BaseModel):
@@ -6,7 +6,7 @@ class SentimentStatsResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    bullish_pct: int
+    bullish_pct: int = Field(ge=0, le=100)
 
 
 class TrendingKeyword(BaseModel):
@@ -14,8 +14,8 @@ class TrendingKeyword(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    keyword: str
-    count: int
+    keyword: str = Field(min_length=1, max_length=120)
+    count: int = Field(ge=0)
 
 
 class TrendingKeywordsResponse(BaseModel):

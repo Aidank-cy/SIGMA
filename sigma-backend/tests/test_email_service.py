@@ -22,7 +22,9 @@ async def test_send_verification_email_uses_resend_when_configured(
     monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")
     monkeypatch.setattr(email_service.resend.Emails, "send_async", fake_send_async)
 
-    result = await email_service.send_verification_email("user@example.com", "123456", "registration")
+    result = await email_service.send_verification_email(
+        "user@example.com", "123456", "registration"
+    )
 
     assert result is None
     assert sent["to"] == ["user@example.com"]
@@ -68,7 +70,9 @@ async def test_send_verification_email_uses_smtp_when_resend_is_not_configured(
     monkeypatch.setattr(settings, "smtp_use_tls", True)
     monkeypatch.setattr(email_service.smtplib, "SMTP", FakeSMTP)
 
-    result = await email_service.send_verification_email("user@example.com", "654321", "password_reset")
+    result = await email_service.send_verification_email(
+        "user@example.com", "654321", "password_reset"
+    )
 
     assert result is None
     message = smtp_calls["message"]
@@ -93,7 +97,9 @@ async def test_send_verification_email_returns_code_when_no_delivery_is_configur
     monkeypatch.setattr(settings, "smtp_host", "")
 
     with caplog.at_level(logging.WARNING):
-        result = await email_service.send_verification_email("user@example.com", "111222", "registration")
+        result = await email_service.send_verification_email(
+            "user@example.com", "111222", "registration"
+        )
 
     assert result == "111222"
     assert "No email service configured" in caplog.text

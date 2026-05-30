@@ -40,6 +40,36 @@ interface DailyUsagePoint {
   tokens: number;
 }
 
+interface TrendXAxisTickProps {
+  index?: number;
+  payload?: { value: string };
+  visibleTicksCount?: number;
+  x?: number;
+  y?: number;
+}
+
+interface TokenTrendChartProps {
+  data: TokenTrendPoint[];
+  legendLabel?: string;
+  locale?: string;
+}
+
+interface ProviderUsageDistributionChartProps {
+  data: ProviderUsagePoint[];
+}
+
+interface FunctionUsageChartProps {
+  data: FunctionUsagePoint[];
+}
+
+interface DailyUsageSparklineProps {
+  data: DailyUsagePoint[];
+}
+
+interface ChartFrameProps {
+  children: ReactNode;
+}
+
 const paddedDomain: [number, (dataMax: number) => number] = [
   0,
   (dataMax: number) => Math.max(1, Math.ceil(dataMax * 1.2))
@@ -61,13 +91,7 @@ function formatTokenTick(value: number): string {
   return `${Number.isInteger(thousands) ? thousands.toFixed(0) : thousands.toFixed(1)}k`;
 }
 
-function TrendXAxisTick({ x = 0, y = 0, payload = { value: "" }, index = 0, visibleTicksCount = 0 }: {
-  x?: number;
-  y?: number;
-  payload?: { value: string };
-  index?: number;
-  visibleTicksCount?: number;
-}) {
+function TrendXAxisTick({ index = 0, payload = { value: "" }, visibleTicksCount = 0, x = 0, y = 0 }: TrendXAxisTickProps) {
   let anchor: "start" | "middle" | "end" = "middle";
   if (index === 0) anchor = "start";
   if (index === visibleTicksCount - 1) anchor = "end";
@@ -82,11 +106,7 @@ export function TokenTrendChart({
   data,
   legendLabel,
   locale
-}: {
-  data: TokenTrendPoint[];
-  legendLabel?: string;
-  locale?: string;
-}) {
+}: TokenTrendChartProps) {
   const label = legendLabel ?? (locale?.startsWith("zh") ? "输入/输出" : "Input/Output");
   return (
     <ChartFrame>
@@ -112,7 +132,7 @@ export function TokenTrendChart({
   );
 }
 
-export function ProviderUsageDistributionChart({ data }: { data: ProviderUsagePoint[] }) {
+export function ProviderUsageDistributionChart({ data }: ProviderUsageDistributionChartProps) {
   return (
     <ChartFrame>
       <PieChart>
@@ -137,7 +157,7 @@ export function ProviderUsageDistributionChart({ data }: { data: ProviderUsagePo
   );
 }
 
-export function FunctionUsageChart({ data }: { data: FunctionUsagePoint[] }) {
+export function FunctionUsageChart({ data }: FunctionUsageChartProps) {
   return (
     <ChartFrame>
       <BarChart data={data} margin={{ bottom: 5, left: 0, right: 5, top: 8 }}>
@@ -151,7 +171,7 @@ export function FunctionUsageChart({ data }: { data: FunctionUsagePoint[] }) {
   );
 }
 
-export function DailyUsageSparkline({ data }: { data: DailyUsagePoint[] }) {
+export function DailyUsageSparkline({ data }: DailyUsageSparklineProps) {
   return (
     <div className="h-16">
       <ResponsiveContainer height="100%" width="100%">
@@ -164,7 +184,7 @@ export function DailyUsageSparkline({ data }: { data: DailyUsagePoint[] }) {
   );
 }
 
-function ChartFrame({ children }: { children: ReactNode }) {
+function ChartFrame({ children }: ChartFrameProps) {
   const [chart, ...extra] = Children.toArray(children);
   if (!isValidElement(chart)) {
     return <div className="h-72">{children}</div>;

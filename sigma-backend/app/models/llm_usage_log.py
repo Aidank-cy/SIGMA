@@ -1,17 +1,24 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDPrimaryKeyMixin, enum_values
 from app.models.enums import LLMFunctionType
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class LLMUsageLog(UUIDPrimaryKeyMixin, Base):
     """LLM provider token usage audit record."""
 
     __tablename__ = "llm_usage_logs"
+    __table_args__ = (Index("ix_llm_usage_logs_user_id", "user_id"),)
 
     provider: Mapped[str] = mapped_column(String(80), nullable=False)
     model: Mapped[str] = mapped_column(String(160), nullable=False)
@@ -27,3 +34,5 @@ class LLMUsageLog(UUIDPrimaryKeyMixin, Base):
         server_default=func.now(),
         nullable=False,
     )
+
+    user: Mapped[User | None] = relationship(back_populates="llm_usage_logs")

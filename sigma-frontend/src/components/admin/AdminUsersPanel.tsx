@@ -2,7 +2,7 @@
 
 import { Database, KeyRound, Save, Shield, Trash2, UserCheck, UserX } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AdminUserLLMDetail } from "@/components/admin/AdminUserLLMDetail";
 import type { AdminDetailSaveHandle, AdminDetailSaveState } from "@/components/admin/AdminUserLLMDetail";
@@ -20,6 +20,17 @@ import { cn } from "@/lib/cn";
 type DetailTab = "llm" | "sources";
 const initialSaveState: AdminDetailSaveState = { isDirty: false, isSaving: false, isValid: true };
 
+interface CountBadgeProps {
+  icon: "llm" | "sources";
+  label: string;
+  onClick: () => void;
+}
+
+interface HeaderProps {
+  eyebrow: string;
+  title: string;
+}
+
 export function AdminUsersPanel() {
   const [query, setQuery] = useState("");
   const [pendingDelete, setPendingDelete] = useState<AdminUser | null>(null);
@@ -34,7 +45,7 @@ export function AdminUsersPanel() {
   const syncT = useTranslations("sync");
   const toast = useToast();
   const { list, remove, update } = useAdminUsers(query);
-  const users = list.data?.items ?? [];
+  const users = useMemo(() => list.data?.items ?? [], [list.data?.items]);
   const selectedUser = users.find((user) => user.id === selectedUserId) ?? null;
 
   useEffect(() => {
@@ -310,11 +321,7 @@ function CountBadge({
   icon,
   label,
   onClick
-}: {
-  icon: "llm" | "sources";
-  label: string;
-  onClick: () => void;
-}) {
+}: CountBadgeProps) {
   const Icon = icon === "llm" ? KeyRound : Database;
   return (
     <button
@@ -331,7 +338,7 @@ function CountBadge({
   );
 }
 
-function Header({ eyebrow, title }: { eyebrow: string; title: string }) {
+function Header({ eyebrow, title }: HeaderProps) {
   return (
     <div>
       <p className="text-sm font-bold uppercase tracking-normal text-muted-foreground">{eyebrow}</p>

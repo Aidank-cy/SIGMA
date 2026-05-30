@@ -2,7 +2,7 @@
 
 import html
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
 
@@ -25,13 +25,13 @@ def parse_datetime(value: Any) -> datetime:
         return _from_timestamp(float(value))
     if isinstance(value, str) and value.strip():
         return _parse_string(value.strip())
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _ensure_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
 def _from_timestamp(ts: float) -> datetime:
@@ -39,7 +39,7 @@ def _from_timestamp(ts: float) -> datetime:
         ts /= 1e9
     elif ts > 1e10:
         ts /= 1e3
-    return datetime.fromtimestamp(ts, tz=timezone.utc)
+    return datetime.fromtimestamp(ts, tz=UTC)
 
 
 def _parse_string(value: str) -> datetime:
@@ -64,4 +64,4 @@ def _parse_string(value: str) -> datetime:
             return _ensure_utc(parser(value))
         except (TypeError, ValueError):
             continue
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import httpx
@@ -124,7 +124,9 @@ async def test_api_collector_preserves_endpoint_query_without_params() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal seen_url
         seen_url = str(request.url)
-        return httpx.Response(200, json={"results": [{"title": "Query item", "description": "Body"}]})
+        return httpx.Response(
+            200, json={"results": [{"title": "Query item", "description": "Body"}]}
+        )
 
     source = _source(
         SourceType.API,
@@ -150,7 +152,9 @@ async def test_api_collector_retries_rate_limited_requests() -> None:
         attempts += 1
         if attempts == 1:
             return httpx.Response(429, headers={"Retry-After": "0"})
-        return httpx.Response(200, json={"items": [{"title": "Recovered item", "description": "Recovered body"}]})
+        return httpx.Response(
+            200, json={"items": [{"title": "Recovered item", "description": "Recovered body"}]}
+        )
 
     source = _source(
         SourceType.API,
@@ -433,7 +437,8 @@ async def test_scraper_collector_extracts_html_items() -> None:
             200,
             text="""<html><article class="item">
             <a class="title" href="/news/1">Fed Update</a>
-            <p class="body">Policy signal for market supervision conditions</p><time>2026-05-16T03:00:00Z</time>
+            <p class="body">Policy signal for market supervision conditions</p>
+            <time>2026-05-16T03:00:00Z</time>
             </article></html>""",
         )
 
@@ -464,11 +469,15 @@ async def test_scraper_collector_filters_short_items_and_caps_entries() -> None:
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            text="""<html>
-            <div class="entry"><a href="/noise">Fed</a><p>One</p><time>5/22/2026</time></div>
-            <div class="entry"><a href="/news/1">Federal Reserve Board announces supervisory policy update</a><p>Other Announcements</p><time>5/22/2026</time></div>
-            <div class="entry"><a href="/news/2">Federal Reserve Board releases banking application order</a><p>Orders on Banking Applications</p><time>5/21/2026</time></div>
-            </html>""",
+            text=(
+                """<html>
+            <div class="entry"><a href="/noise">Fed</a><p>One</p><time>5/22/2026</time></div>"""
+                """<div class="entry"><a href="/news/1">Federal Reserve Board announces """
+                """supervisory policy update</a><p>Other Announcements</p>"""
+                """<time>5/22/2026</time></div><div class="entry"><a href="/news/2">"""
+                """Federal Reserve Board releases banking application order</a>"""
+                """<p>Orders on Banking Applications</p><time>5/21/2026</time></div></html>"""
+            ),
         )
 
     source = _source(
@@ -617,8 +626,8 @@ async def test_dedup_filters_existing_url(db_session: AsyncSession) -> None:
         content_url="https://dup.test/item",
         category=IntelligenceCategory.FINANCE,
         market=Market.US,
-        published_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        published_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )
     db_session.add(existing)
     await db_session.commit()
@@ -659,7 +668,17 @@ def test_normalizer_parses_layer_five_datetime_formats() -> None:
 
     normalized = normalize_items(source, raw_items)
 
-    assert [item.title for item in normalized] == ["ISO", "Unix", "Human", "Alpha", "DateOnly", "Slash", "DayMonth", "Millis", "Nanos"]
+    assert [item.title for item in normalized] == [
+        "ISO",
+        "Unix",
+        "Human",
+        "Alpha",
+        "DateOnly",
+        "Slash",
+        "DayMonth",
+        "Millis",
+        "Nanos",
+    ]
     assert normalized[0].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
     assert normalized[1].published_at.isoformat() == "2026-05-19T10:30:00+00:00"
     assert normalized[2].published_at.isoformat() == "2026-05-19T00:00:00+00:00"
@@ -693,7 +712,7 @@ def test_normalizer_cleans_title_and_content_text() -> None:
 def test_normalizer_skips_articles_older_than_thirty_days() -> None:
     """Normalizer excludes stale source content before persistence."""
     source = _source(SourceType.RSS, {"feed_url": "https://rss.test/feed.xml"})
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     normalized = normalize_items(
         source,
@@ -727,8 +746,8 @@ async def test_dedup_filters_existing_title_for_source(db_session: AsyncSession)
         content_url="https://existing.test/item",
         category=IntelligenceCategory.FINANCE,
         market=Market.US,
-        published_at=datetime(2026, 5, 18, tzinfo=timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        published_at=datetime(2026, 5, 18, tzinfo=UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )
     db_session.add(existing)
     await db_session.commit()
@@ -742,7 +761,11 @@ async def test_dedup_filters_existing_title_for_source(db_session: AsyncSession)
                 "content_url": "https://new-url.test/item",
                 "published_at": "2026-05-19T10:30:00Z",
             },
-            {"title": "Fresh headline", "content": "Fresh content", "content_url": "https://fresh.test/item"},
+            {
+                "title": "Fresh headline",
+                "content": "Fresh content",
+                "content_url": "https://fresh.test/item",
+            },
         ],
     )
 

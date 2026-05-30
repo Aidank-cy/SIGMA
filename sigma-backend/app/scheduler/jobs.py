@@ -1,6 +1,6 @@
 import asyncio
-from datetime import datetime, time, timedelta, timezone
 import logging
+from datetime import UTC, datetime, time, timedelta
 from time import perf_counter
 from typing import Any
 from uuid import UUID
@@ -24,8 +24,8 @@ from app.models.enums import CollectorStatus, IntelligenceCategory, Market, Repo
 from app.models.report import Report
 from app.models.user_report_config import UserReportConfig
 from app.schemas.item import CollectedItemCreate
-from app.services.market_candles import candle_refresh_job
-from app.services.market_indices import any_market_trading_now, refresh_market_indices
+from app.services.market import candle_refresh_job
+from app.services.market.indices import any_market_trading_now, refresh_market_indices
 from app.utils.event_hooks import notify_new_items
 from app.utils.redis_lock import acquire_lock, release_lock
 
@@ -33,6 +33,7 @@ __all__ = ["candle_refresh_job"]
 
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
 LOGGER = logging.getLogger(__name__)
+BACKGROUND_TASKS: set[asyncio.Task[None]] = set()
 
 
 async def collect_from_source(
@@ -87,7 +88,10 @@ async def collect_from_source(
                 await release_lock(lock_key)
             await _write_log(db, source_id, status, items_count, error_message, started)
     if status == CollectorStatus.SUCCESS and item_ids:
-        asyncio.create_task(batch_summarize(item_ids, session_factory=session_factory))
+        task = asyncio.create_task(batch_summarize(item_ids, session_factory=session_factory))
+        if hasattr(task, "add_done_callback"):
+            BACKGROUND_TASKS.add(task)
+            task.add_done_callback(BACKGROUND_TASKS.discard)
 
 
 async def cleanup_expired_items(
@@ -95,9 +99,7 @@ async def cleanup_expired_items(
 ) -> None:
     """Delete collected items past their retention time."""
     async with session_factory() as db:
-        await db.execute(
-            delete(CollectedItem).where(CollectedItem.expires_at < datetime.now(timezone.utc))
-        )
+        await db.execute(delete(CollectedItem).where(CollectedItem.expires_at < datetime.now(UTC)))
         await db.commit()
 
 
@@ -201,7 +203,7 @@ def _period_for(
     now: datetime | None = None,
     time_ranges: dict[str, Any] | None = None,
 ) -> tuple[datetime, datetime]:
-    local_now = (now or datetime.now(timezone.utc)).astimezone(BEIJING_TZ)
+    local_now = (now or datetime.now(UTC)).astimezone(BEIJING_TZ)
     today = local_now.date()
     if report_type == ReportType.DAILY_MORNING:
         return (
@@ -233,8 +235,12 @@ def _period_for(
                 and end_time is not None
             ):
                 return (
-                    datetime.combine(friday - timedelta(days=start_offset), start_time, tzinfo=BEIJING_TZ),
-                    datetime.combine(friday - timedelta(days=end_offset), end_time, tzinfo=BEIJING_TZ),
+                    datetime.combine(
+                        friday - timedelta(days=start_offset), start_time, tzinfo=BEIJING_TZ
+                    ),
+                    datetime.combine(
+                        friday - timedelta(days=end_offset), end_time, tzinfo=BEIJING_TZ
+                    ),
                 )
         return (
             datetime.combine(friday - timedelta(days=7), time(17, 45, 1), tzinfo=BEIJING_TZ),
@@ -251,8 +257,16 @@ def _period_for(
             resolved_start_day = min(start_day, last_day_previous_month.day)
             resolved_end_day = min(end_day, last_day_previous_month.day)
             return (
-                datetime.combine(first_day_previous_month.replace(day=resolved_start_day), time.min, tzinfo=BEIJING_TZ),
-                datetime.combine(first_day_previous_month.replace(day=resolved_end_day), time(23, 59, 59), tzinfo=BEIJING_TZ),
+                datetime.combine(
+                    first_day_previous_month.replace(day=resolved_start_day),
+                    time.min,
+                    tzinfo=BEIJING_TZ,
+                ),
+                datetime.combine(
+                    first_day_previous_month.replace(day=resolved_end_day),
+                    time(23, 59, 59),
+                    tzinfo=BEIJING_TZ,
+                ),
             )
     return (
         datetime.combine(first_day_previous_month, time.min, tzinfo=BEIJING_TZ),
@@ -260,7 +274,7 @@ def _period_for(
     )
 
 
-def _int_or_none(value: object) -> int | None:
+def _int_or_none(value: Any) -> int | None:
     if isinstance(value, int):
         return value
     if isinstance(value, str) and value.isdigit():
@@ -268,7 +282,7 @@ def _int_or_none(value: object) -> int | None:
     return None
 
 
-def _parse_hhmm(value: object) -> time | None:
+def _parse_hhmm(value: Any) -> time | None:
     if not isinstance(value, str):
         return None
     parts = value.split(":")

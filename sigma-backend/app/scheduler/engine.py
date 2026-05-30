@@ -1,5 +1,6 @@
-from collections.abc import Callable
 import random
+from collections.abc import Callable
+from typing import Any
 from uuid import UUID
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -17,7 +18,7 @@ from app.scheduler.jobs import (
     generate_scheduled_reports,
     refresh_market_indices_job,
 )
-from app.services.market_candles import candle_refresh_job
+from app.services.market import candle_refresh_job
 
 scheduler = AsyncIOScheduler(timezone="UTC")
 
@@ -77,7 +78,7 @@ def remove_source_job(source_id: UUID) -> None:
 
 def add_cleanup_job(
     session_factory: async_sessionmaker[AsyncSession] = AsyncSessionLocal,
-    job_func: Callable[..., object] = cleanup_expired_items,
+    job_func: Callable[..., Any] = cleanup_expired_items,
 ) -> None:
     """Register the daily expired item cleanup job."""
     scheduler.add_job(
@@ -93,7 +94,7 @@ def add_cleanup_job(
 
 def add_report_jobs(
     session_factory: async_sessionmaker[AsyncSession] = AsyncSessionLocal,
-    job_func: Callable[..., object] = generate_scheduled_reports,
+    job_func: Callable[..., Any] = generate_scheduled_reports,
 ) -> None:
     """Register periodic report generation jobs."""
     scheduler.add_job(
@@ -134,7 +135,7 @@ def add_report_jobs(
     )
 
 
-def add_market_indices_job(job_func: Callable[..., object] = refresh_market_indices_job) -> None:
+def add_market_indices_job(job_func: Callable[..., Any] = refresh_market_indices_job) -> None:
     """Register the near-real-time market indices cache refresh job."""
     scheduler.add_job(
         job_func,

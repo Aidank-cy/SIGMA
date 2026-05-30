@@ -1,3 +1,5 @@
+"""SQLAlchemy model exports for application metadata and Alembic discovery."""
+
 from app.models.base import Base
 from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog

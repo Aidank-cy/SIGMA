@@ -1,11 +1,24 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
-import type { LastCollectionResponse, SentimentStatsResponse, TrendingKeywordsResponse } from "@/lib/types";
+import type {
+  LastCollectionResponse,
+  SentimentStatsResponse,
+  TrendingKeywordsResponse
+} from "@/lib/types";
 
-export function useSentimentStats(days?: number) {
+interface StatsHookResult<TData> {
+  data: TData | undefined;
+  error: Error | null;
+  isLoading: boolean;
+  mutate: UseQueryResult<TData, Error>["refetch"];
+}
+
+/** Return sentiment percentage statistics for the requested lookback window. */
+export function useSentimentStats(days?: number): StatsHookResult<SentimentStatsResponse> {
   const params = days ? `?days=${days}` : "";
   const query = useQuery({
     queryKey: ["stats", "sentiment", days],
@@ -21,7 +34,8 @@ export function useSentimentStats(days?: number) {
   };
 }
 
-export function useTrendingKeywords(days?: number) {
+/** Return trending keyword counts for the requested lookback window. */
+export function useTrendingKeywords(days?: number): StatsHookResult<TrendingKeywordsResponse> {
   const params = days ? `?days=${days}` : "";
   const query = useQuery({
     queryKey: ["stats", "trending-keywords", days],
@@ -37,7 +51,8 @@ export function useTrendingKeywords(days?: number) {
   };
 }
 
-export function useLastCollectionStats() {
+/** Return the most recent successful collection timestamp. */
+export function useLastCollectionStats(): StatsHookResult<LastCollectionResponse> {
   const query = useQuery({
     queryKey: ["stats", "last-collection"],
     queryFn: () => apiFetch<LastCollectionResponse>("/stats/last-collection"),

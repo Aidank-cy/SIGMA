@@ -1,8 +1,7 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-
 
 LLMProvider = Literal["anthropic", "openai", "deepseek", "qwen"]
 
@@ -20,7 +19,7 @@ class LLMApiKey(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def default_legacy_fields(cls, data: object) -> object:
+    def default_legacy_fields(cls, data: Any) -> Any:
         """Accept pre-provider key records saved before per-key limits existed."""
         if not isinstance(data, dict):
             return data
@@ -37,10 +36,10 @@ class LLMConfigRead(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    daily_token_limit: int
+    daily_token_limit: int = Field(gt=0)
     cost_guard_enabled: bool = True
     daily_token_limit_changed_at: datetime | None = None
-    daily_token_limit_cooldown_remaining_seconds: int = 0
+    daily_token_limit_cooldown_remaining_seconds: int = Field(default=0, ge=0)
     api_keys: list[LLMApiKey] = Field(default_factory=list)
 
 
@@ -63,9 +62,9 @@ class LLMUsageDay(BaseModel):
     function_type: str
     provider: str
     model: str
-    input_tokens: int
-    output_tokens: int
-    total_tokens: int
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
 
 
 class LLMUsageResponse(BaseModel):

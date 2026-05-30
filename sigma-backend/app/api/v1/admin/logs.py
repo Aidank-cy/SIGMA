@@ -2,16 +2,14 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.middleware.auth import require_role
-from app.models.collector_log import CollectorLog
-from app.models.data_source import DataSource
-from app.models.enums import CollectorStatus, UserRole
+from app.middleware.auth import get_current_admin
+from app.models.enums import CollectorStatus
 from app.models.user import User
-from app.schemas.admin import AdminLogListResponse, RecentActivityItem
+from app.schemas.admin import AdminLogListResponse
+from app.services import admin_log_service
 
 router = APIRouter()
 
@@ -25,55 +23,9 @@ async def list_admin_logs(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(get_current_admin),
 ) -> AdminLogListResponse:
     """List collector logs with admin filters."""
-    predicate = []
-    if source_id:
-        predicate.append(CollectorLog.source_id == source_id)
-    if status:
-        predicate.append(CollectorLog.status == status)
-    if date_from:
-        predicate.append(CollectorLog.executed_at >= date_from)
-    if date_to:
-        predicate.append(CollectorLog.executed_at <= date_to)
-
-    total = await db.scalar(select(func.count()).select_from(CollectorLog).where(*predicate))
-    success_total = await db.scalar(
-        select(func.count()).select_from(CollectorLog).where(
-            *predicate,
-            CollectorLog.status == CollectorStatus.SUCCESS,
-        )
-    )
-    rows = (
-        await db.execute(
-            select(CollectorLog, DataSource.name)
-            .join(DataSource, DataSource.id == CollectorLog.source_id)
-            .where(*predicate)
-            .order_by(CollectorLog.executed_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
-    ).all()
-    items = [
-        RecentActivityItem(
-            id=log.id,
-            source_id=log.source_id,
-            source_name=source_name,
-            status=log.status,
-            items_count=log.items_count,
-            error_message=log.error_message,
-            duration_ms=log.duration_ms,
-            executed_at=log.executed_at,
-        )
-        for log, source_name in rows
-    ]
-    total_value = total or 0
-    return AdminLogListResponse(
-        page=page,
-        page_size=page_size,
-        total=total_value,
-        has_next=(page * page_size) < total_value,
-        success_rate=(success_total or 0) / total_value if total_value else 0.0,
-        items=items,
+    return await admin_log_service.list_admin_logs(
+        db, page, page_size, source_id, status, date_from, date_to
     )

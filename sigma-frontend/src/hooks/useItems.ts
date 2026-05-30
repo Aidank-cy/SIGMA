@@ -1,6 +1,14 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import type {
+  FetchNextPageOptions,
+  InfiniteData,
+  InfiniteQueryObserverResult,
+  QueryObserverResult,
+  RefetchOptions,
+  UseQueryResult
+} from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 import type { ItemDetail, ItemFilters, ItemSummary, PaginatedResponse } from "@/lib/types";
@@ -31,8 +39,43 @@ function buildItemQuery(filters: ItemFilters, page: number): string {
   return params.toString();
 }
 
-export function useItems(filters: ItemFilters = {}) {
-  const query = useInfiniteQuery({
+type ItemPages = InfiniteData<PaginatedResponse<ItemSummary>, number>;
+
+interface InfiniteItemsHookResult {
+  data: ItemPages | undefined;
+  error: Error | null;
+  fetchNextPage: (
+    options?: FetchNextPageOptions
+  ) => Promise<InfiniteQueryObserverResult<ItemPages, Error>>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  isLoading: boolean;
+  mutate: (options?: RefetchOptions) => Promise<QueryObserverResult<ItemPages, Error>>;
+}
+
+interface ItemsPaginatedHookResult {
+  data: PaginatedResponse<ItemSummary> | undefined;
+  error: Error | null;
+  isLoading: boolean;
+  mutate: UseQueryResult<PaginatedResponse<ItemSummary>, Error>["refetch"];
+}
+
+interface ItemHookResult {
+  data: ItemDetail | undefined;
+  error: Error | null;
+  isLoading: boolean;
+  mutate: UseQueryResult<ItemDetail, Error>["refetch"];
+}
+
+/** Return an infinite list of collected items for the given filters. */
+export function useItems(filters: ItemFilters = {}): InfiniteItemsHookResult {
+  const query = useInfiniteQuery<
+    PaginatedResponse<ItemSummary>,
+    Error,
+    ItemPages,
+    readonly ["items", ItemFilters],
+    number
+  >({
     initialPageParam: 1,
     queryKey: ["items", filters],
     queryFn: ({ pageParam }) =>
@@ -52,7 +95,11 @@ export function useItems(filters: ItemFilters = {}) {
   };
 }
 
-export function useItemsPaginated(filters: ItemFilters = {}, page: number) {
+/** Return one paginated page of collected items for the given filters. */
+export function useItemsPaginated(
+  filters: ItemFilters = {},
+  page: number
+): ItemsPaginatedHookResult {
   const query = useQuery({
     queryKey: ["items", "paginated", filters, page],
     queryFn: () => apiFetch<PaginatedResponse<ItemSummary>>(`/items?${buildItemQuery(filters, page)}`),
@@ -67,7 +114,8 @@ export function useItemsPaginated(filters: ItemFilters = {}, page: number) {
   };
 }
 
-export function useItem(id: string) {
+/** Return one collected item detail record. */
+export function useItem(id: string): ItemHookResult {
   const query = useQuery({
     enabled: id.length > 0,
     queryKey: ["item", id],

@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from app.collectors.base import RawCollectedItem
 from app.collectors.utils import clean_text, parse_datetime
@@ -7,16 +8,22 @@ from app.models.data_source import DataSource
 from app.schemas.item import CollectedItemCreate
 
 
-def normalize_items(source: DataSource, raw_items: list[RawCollectedItem]) -> list[CollectedItemCreate]:
+def normalize_items(
+    source: DataSource, raw_items: list[RawCollectedItem]
+) -> list[CollectedItemCreate]:
     """Normalize collector output for database insertion."""
     normalized: list[CollectedItemCreate] = []
     creator = source.__dict__.get("creator")
-    retention_days = getattr(creator, "data_retention_days", None) or settings.default_retention_days
-    expires_at = datetime.now(timezone.utc) + timedelta(days=retention_days)
-    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    retention_days = (
+        getattr(creator, "data_retention_days", None) or settings.default_retention_days
+    )
+    expires_at = datetime.now(UTC) + timedelta(days=retention_days)
+    cutoff = datetime.now(UTC) - timedelta(days=30)
     for raw in raw_items:
         title = clean_text(raw.get("title") or "")
-        content_raw = clean_text(raw.get("content_raw") or raw.get("content") or raw.get("summary") or "")
+        content_raw = clean_text(
+            raw.get("content_raw") or raw.get("content") or raw.get("summary") or ""
+        )
         if not title or not content_raw:
             continue
         published_at = parse_datetime(raw.get("published_at"))
@@ -39,7 +46,7 @@ def normalize_items(source: DataSource, raw_items: list[RawCollectedItem]) -> li
     return normalized
 
 
-def _metadata(raw: RawCollectedItem) -> dict[str, object] | None:
+def _metadata(raw: RawCollectedItem) -> dict[str, Any] | None:
     metadata = raw.get("metadata")
     if isinstance(metadata, dict):
         return metadata

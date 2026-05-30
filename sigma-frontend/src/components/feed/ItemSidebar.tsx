@@ -14,6 +14,24 @@ interface ItemSidebarProps {
   item: ItemDetail;
 }
 
+interface SentimentCardProps {
+  item: ItemDetail;
+}
+
+interface KeywordsCardProps {
+  keywords: string[];
+}
+
+interface MoreFromSourceProps {
+  item: ItemDetail;
+}
+
+interface SourceItemLinkProps {
+  index: number;
+  item: ItemSummary;
+  locale: string;
+}
+
 export function ItemSidebar({ item }: ItemSidebarProps) {
   return (
     <aside className="flex flex-col gap-4 lg:sticky lg:top-28 lg:self-start">
@@ -24,7 +42,7 @@ export function ItemSidebar({ item }: ItemSidebarProps) {
   );
 }
 
-function SentimentCard({ item }: { item: ItemDetail }) {
+function SentimentCard({ item }: SentimentCardProps) {
   const t = useTranslations("itemDetail.sidebar");
 
   return (
@@ -44,7 +62,7 @@ function SentimentCard({ item }: { item: ItemDetail }) {
   );
 }
 
-function KeywordsCard({ keywords }: { keywords: string[] }) {
+function KeywordsCard({ keywords }: KeywordsCardProps) {
   const t = useTranslations("itemDetail.sidebar");
 
   return (
@@ -62,7 +80,7 @@ function KeywordsCard({ keywords }: { keywords: string[] }) {
   );
 }
 
-function MoreFromSource({ item }: { item: ItemDetail }) {
+function MoreFromSource({ item }: MoreFromSourceProps) {
   const t = useTranslations("itemDetail.sidebar");
   const locale = useLocale();
   const { data, isLoading } = useItems({ page_size: 3, source_id: item.source_id });
@@ -82,7 +100,7 @@ function MoreFromSource({ item }: { item: ItemDetail }) {
   );
 }
 
-function SourceItemLink({ index, item, locale }: { index: number; item: ItemSummary; locale: string }) {
+function SourceItemLink({ index, item, locale }: SourceItemLinkProps) {
   return (
     <Link
       className="block min-h-11 py-3 text-sm transition-colors hover:text-primary"

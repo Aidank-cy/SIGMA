@@ -5,8 +5,15 @@ from urllib.parse import urljoin
 
 import httpx
 
-from app.collectors.base import DEFAULT_USER_AGENT, BaseCollector, RawCollectedItem
+from app.collectors.base import (
+    DEFAULT_USER_AGENT,
+    BaseCollector,
+    RawCollectedItem,
+)
 from app.collectors.utils import clean_text, parse_datetime
+
+DEFAULT_RETRY_AFTER_SECONDS = 60
+RATE_LIMIT_MAX_BACKOFF_SECONDS = 120
 
 
 class APICollector(BaseCollector):
@@ -17,24 +24,12 @@ class APICollector(BaseCollector):
         has_endpoint = bool(self.config.get("endpoint") or self.config.get("base_url"))
         return has_endpoint
 
-    async def collect(self) -> list[RawCollectedItem]:
+    async def _do_collect(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
         """Fetch and map API response items."""
-        if not await self.validate_config():
-            return []
-
-        if self._client is not None:
-            return await self._collect_with_client(self._client)
-
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-            return await self._collect_with_client(client)
-
-    async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
         endpoint = str(self.config.get("endpoint", ""))
         base_url = self.config.get("base_url")
         url = (
-            urljoin(str(base_url).rstrip("/") + "/", endpoint.lstrip("/"))
-            if base_url
-            else endpoint
+            urljoin(str(base_url).rstrip("/") + "/", endpoint.lstrip("/")) if base_url else endpoint
         )
         method = str(self.config.get("method", "GET")).upper()
         base_params = self._resolve_env_values(dict(self.config.get("params") or {}))
@@ -54,7 +49,9 @@ class APICollector(BaseCollector):
             request_kwargs: dict[str, Any] = {"headers": headers}
             if params:
                 request_kwargs["params"] = params
-            response = await self._request_with_rate_limit_backoff(client, method, url, request_kwargs)
+            response = await self._request_with_rate_limit_backoff(
+                client, method, url, request_kwargs
+            )
             response.raise_for_status()
             payload = response.json()
             response_path = self.config.get("response_path") or self.config.get("items_path")
@@ -99,7 +96,9 @@ class APICollector(BaseCollector):
             link = self._extract_path(entry, "link")
             press_release = self._extract_path(entry, "press_release")
             release_id = self._extract_path(entry, "release_id")
-            realtime_start = self._extract_path(entry, "realtime_start") or self._extract_path(entry, "date")
+            realtime_start = self._extract_path(entry, "realtime_start") or self._extract_path(
+                entry, "date"
+            )
             realtime_end = self._extract_path(entry, "realtime_end")
             parts = [title]
             if realtime_start:
@@ -140,10 +139,17 @@ class APICollector(BaseCollector):
     def _default_field_mapping(entry: dict[str, Any]) -> dict[str, Any]:
         return {
             "title": "title",
-            "content": next((key for key in ("description", "content", "summary", "body") if key in entry), "title"),
+            "content": next(
+                (key for key in ("description", "content", "summary", "body") if key in entry),
+                "title",
+            ),
             "content_url": next((key for key in ("link", "url", "source_url") if key in entry), ""),
             "published_at": next(
-                (key for key in ("pubDate", "published_at", "publishedAt", "date", "created_at") if key in entry),
+                (
+                    key
+                    for key in ("pubDate", "published_at", "publishedAt", "date", "created_at")
+                    if key in entry
+                ),
                 "",
             ),
         }
@@ -205,18 +211,18 @@ class APICollector(BaseCollector):
             if response.status_code != 429:
                 return response
             retry_after = APICollector._retry_after_seconds(response.headers.get("Retry-After"))
-            await asyncio.sleep(min(retry_after * (2**attempt), 120))
+            await asyncio.sleep(min(retry_after * (2**attempt), RATE_LIMIT_MAX_BACKOFF_SECONDS))
             response = await client.request(method, url, **request_kwargs)
         return response
 
     @staticmethod
     def _retry_after_seconds(value: str | None) -> int:
         if value is None:
-            return 60
+            return DEFAULT_RETRY_AFTER_SECONDS
         try:
             return max(0, int(value))
         except ValueError:
-            return 60
+            return DEFAULT_RETRY_AFTER_SECONDS
 
     @staticmethod
     def _resolve_env_values(values: dict[str, Any]) -> dict[str, Any]:

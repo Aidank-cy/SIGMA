@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -14,7 +14,7 @@ from app.models.enums import CollectorStatus, IntelligenceCategory, Market, Sour
 
 
 def test_stats_http_endpoints_return_machine_consumable_payloads(client: TestClient) -> None:
-    """Stats endpoints return HTTP payloads for sentiment, trending keywords, and collection freshness."""
+    """Stats endpoints return HTTP payloads for sentiment, keywords, and freshness."""
     latest = asyncio.run(_seed_stats_http_data(client))
 
     sentiment_response = client.get("/api/v1/stats/sentiment")
@@ -67,7 +67,7 @@ async def test_sentiment_stats_filters_by_days(db_session: AsyncSession) -> None
                 "Old",
                 "Bearish risk and losses",
                 {"sentiment": "bearish"},
-                published_at=datetime.now(timezone.utc) - timedelta(days=10),
+                published_at=datetime.now(UTC) - timedelta(days=10),
             ),
         ]
     )
@@ -85,7 +85,12 @@ async def test_trending_keywords_prefers_metadata_keywords(db_session: AsyncSess
     db_session.add(source)
     db_session.add_all(
         [
-            _item(source, "Semiconductor market rally", "chip demand growth", {"keywords": ["chips", "AI"]}),
+            _item(
+                source,
+                "Semiconductor market rally",
+                "chip demand growth",
+                {"keywords": ["chips", "AI"]},
+            ),
             _item(source, "AI demand expands", "strong chips cycle", {"keywords": ["chips", "AI"]}),
         ]
     )
@@ -110,7 +115,7 @@ async def test_trending_keywords_filters_by_days(db_session: AsyncSession) -> No
                 "Old chips demand",
                 "growth",
                 {"keywords": ["chips"]},
-                published_at=datetime.now(timezone.utc) - timedelta(days=10),
+                published_at=datetime.now(UTC) - timedelta(days=10),
             ),
         ]
     )
@@ -125,13 +130,13 @@ async def test_trending_keywords_filters_by_days(db_session: AsyncSession) -> No
 async def test_last_collection_returns_latest_success(db_session: AsyncSession) -> None:
     """Last collection stats return the latest successful collector timestamp."""
     source = _source()
-    older = datetime.now(timezone.utc) - timedelta(hours=2)
-    latest = datetime.now(timezone.utc) - timedelta(minutes=5)
+    older = datetime.now(UTC) - timedelta(hours=2)
+    latest = datetime.now(UTC) - timedelta(minutes=5)
     db_session.add(source)
     db_session.add_all(
         [
             _log(source, CollectorStatus.SUCCESS, older),
-            _log(source, CollectorStatus.FAIL, datetime.now(timezone.utc)),
+            _log(source, CollectorStatus.FAIL, datetime.now(UTC)),
             _log(source, CollectorStatus.SUCCESS, latest),
         ]
     )
@@ -163,7 +168,7 @@ def _item(
     published_at: datetime | None = None,
     collected_at: datetime | None = None,
 ) -> CollectedItem:
-    collected = collected_at or datetime.now(timezone.utc)
+    collected = collected_at or datetime.now(UTC)
     published = published_at or collected
     return CollectedItem(
         source_id=source.id,
@@ -176,7 +181,7 @@ def _item(
         metadata_extra=metadata,
         published_at=published,
         collected_at=collected,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )
 
 
@@ -194,14 +199,24 @@ def _log(source: DataSource, status: CollectorStatus, executed_at: datetime) -> 
 async def _seed_stats_http_data(client: TestClient) -> datetime:
     session_factory = client.app.state.session_factory
     source = _source()
-    latest = datetime.now(timezone.utc) - timedelta(minutes=3)
+    latest = datetime.now(UTC) - timedelta(minutes=3)
     async with session_factory() as db:
         db.add(source)
         db.add_all(
             [
-                _item(source, "AI chip demand", "Strong growth", {"sentiment": "bullish", "keywords": ["AI"]}),
-                _item(source, "AI risk review", "Bearish risk", {"sentiment": "bearish", "keywords": ["AI"]}),
-                _log(source, CollectorStatus.FAIL, datetime.now(timezone.utc)),
+                _item(
+                    source,
+                    "AI chip demand",
+                    "Strong growth",
+                    {"sentiment": "bullish", "keywords": ["AI"]},
+                ),
+                _item(
+                    source,
+                    "AI risk review",
+                    "Bearish risk",
+                    {"sentiment": "bearish", "keywords": ["AI"]},
+                ),
+                _log(source, CollectorStatus.FAIL, datetime.now(UTC)),
                 _log(source, CollectorStatus.SUCCESS, latest),
             ]
         )

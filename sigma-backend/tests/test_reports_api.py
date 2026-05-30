@@ -24,7 +24,7 @@ def test_reports_list_and_latest_empty(client: TestClient) -> None:
 
 
 def test_reports_http_filters_latest_detail_and_generation(client: TestClient, monkeypatch) -> None:
-    """Report HTTP endpoints expose pagination, filters, latest reports, details, and admin generation."""
+    """Report HTTP endpoints expose pagination, filters, details, and generation."""
     token = _token(client, "report-owner@example.com")
     other_token = _token(client, "other-report-owner@example.com")
     user_id = _user_id(client, token)
@@ -72,8 +72,12 @@ def test_reports_http_filters_latest_detail_and_generation(client: TestClient, m
 
     other_list_response = client.get("/api/v1/reports", headers=_auth(other_token))
     detail_response = client.get(f"/api/v1/reports/{seeded['daily_id']}", headers=_auth(token))
-    legacy_detail_response = client.get(f"/api/v1/reports/{seeded['legacy_id']}", headers=_auth(token))
-    other_detail_response = client.get(f"/api/v1/reports/{seeded['other_id']}", headers=_auth(token))
+    legacy_detail_response = client.get(
+        f"/api/v1/reports/{seeded['legacy_id']}", headers=_auth(token)
+    )
+    other_detail_response = client.get(
+        f"/api/v1/reports/{seeded['other_id']}", headers=_auth(token)
+    )
     missing_response = client.get(f"/api/v1/reports/{uuid4()}", headers=_auth(token))
     assert other_list_response.status_code == 200
     assert other_list_response.json()["total"] == 1
@@ -338,7 +342,9 @@ def _seed_reports(client: TestClient, user_id: str, other_user_id: str) -> dict[
     return asyncio.run(_seed_reports_async(client, user_id, other_user_id))
 
 
-async def _seed_reports_async(client: TestClient, user_id: str, other_user_id: str) -> dict[str, str]:
+async def _seed_reports_async(
+    client: TestClient, user_id: str, other_user_id: str
+) -> dict[str, str]:
     session_factory = client.app.state.session_factory
     generated_base = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
     reports = [

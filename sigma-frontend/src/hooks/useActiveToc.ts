@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-export function useActiveToc(ids: string[]) {
+/** Return the id of the visible table-of-contents section. */
+export function useActiveToc(ids: string[]): string {
   const [activeId, setActiveId] = useState(ids[0] ?? "");
 
   useEffect(() => {

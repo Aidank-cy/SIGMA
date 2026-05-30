@@ -54,7 +54,9 @@ def test_full_intelligence_flow(monkeypatch, tmp_path) -> None:
                 return "## Overview\n\nChip demand is improving.\n\n## Outlook\n\nMonitor rates."
             return "Chip stocks rose on stable rates and AI infrastructure demand."
 
-        async def complete_json(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> dict[str, object]:
+        async def complete_json(
+            self, _system_prompt: str, user_prompt: str, **_kwargs: object
+        ) -> dict[str, object]:
             return {
                 "sentiment": "bullish",
                 "summary": "Chip stocks rose on stable rates and AI infrastructure demand.",
@@ -70,7 +72,9 @@ def test_full_intelligence_flow(monkeypatch, tmp_path) -> None:
     async def ignored_auto_summary(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr("app.api.v1.routes.sources.create_collector", lambda _source: FakeCollector())
+    monkeypatch.setattr(
+        "app.api.v1.routes.sources.create_collector", lambda _source: FakeCollector()
+    )
     monkeypatch.setattr("app.scheduler.jobs.create_collector", lambda _source: FakeCollector())
     monkeypatch.setattr("app.scheduler.jobs.acquire_lock", fake_acquire)
     monkeypatch.setattr("app.scheduler.jobs.release_lock", fake_release)
@@ -100,7 +104,9 @@ def test_full_intelligence_flow(monkeypatch, tmp_path) -> None:
             assert source_response.status_code == 201
             source_id = UUID(source_response.json()["id"])
 
-            preview_response = client.post(f"/api/v1/sources/{source_id}/test", headers=admin_headers)
+            preview_response = client.post(
+                f"/api/v1/sources/{source_id}/test", headers=admin_headers
+            )
             assert preview_response.status_code == 200
             assert preview_response.json()["items"][0]["title"] == "Fed guidance lifts chip stocks"
 

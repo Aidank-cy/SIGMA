@@ -6,6 +6,31 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ## [Unreleased]
 
+### Changed
+- Split market index and candle helper logic into smaller service modules under the file-size cap.
+- Add focused coverage for extracted market cache, quote, and candle storage helpers.
+- Add final missing public helper docstrings found by the backend interface audit.
+- Move remaining oversized frontend route content into co-located page content components.
+- Align E2E TypeScript setup imports with the current compiler configuration.
+- Add service-level coverage for admin and source management branches.
+- Move collector HTTP client lifecycle into the shared collector base class.
+- Add a reusable backend admin dependency for admin-only route handlers.
+- Extract shared backend pagination helpers for list-style service endpoints.
+- Replace inline component prop object types with named frontend interfaces.
+- Extract dashboard page skeletons, news columns, and display helpers into reusable frontend modules.
+- Extract repeated timeout, cache TTL, retry, and auth header literals into named constants.
+- Add missing SQLAlchemy foreign-key indexes and LLM usage log relationship mapping.
+- Standardize Pydantic schema config and field constraints for backend API payloads.
+- Add explicit frontend hook return types and hook JSDoc comments under strict TypeScript.
+- Add missing backend package and public-interface docstrings.
+- Complete backend type annotations and replace vague dynamic hints with explicit types.
+- Move remaining report, stats, settings, watchlist, and admin dashboard route logic into services.
+- Thin auth, item, and source API routes by moving query and mutation logic into services.
+- Extract admin user management database and mutation logic into backend service modules.
+- Move market candle refresh and cache helpers into the market service package.
+- Extract market index configuration, shared types, and Yahoo Finance client logic into the market service package.
+- Standardize backend Ruff configuration, formatting, and frontend lint setup for non-interactive clean checks.
+
 ## [2.0.0] - 2026-05-30
 
 ### Added

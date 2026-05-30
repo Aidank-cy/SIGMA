@@ -19,7 +19,7 @@ class ReportSummary(BaseModel):
     period_start: datetime
     period_end: datetime
     generated_at: datetime
-    item_count: int
+    item_count: int = Field(ge=0)
     content: str
     sentiment_score: float = 0.5
 
@@ -33,9 +33,9 @@ class ReportListResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    page: int
-    page_size: int
-    total: int
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1, le=100)
+    total: int = Field(ge=0)
     has_next: bool
     items: list[ReportSummary]
 

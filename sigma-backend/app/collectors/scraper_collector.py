@@ -1,6 +1,7 @@
 import asyncio
-from itertools import cycle
 import re
+from itertools import cycle
+from typing import Any
 from urllib.parse import urljoin
 
 import httpx
@@ -27,21 +28,14 @@ class ScraperCollector(BaseCollector):
         has_selector = bool(selectors.get("item_container") or self.config.get("item_selector"))
         return has_url and has_selector
 
-    async def collect(self) -> list[RawCollectedItem]:
-        """Fetch HTML and extract selected items."""
-        if not await self.validate_config():
-            return []
+    async def _before_collect(self) -> None:
+        """Respect the configured scraper request delay before collection."""
         delay = float(self.config.get("request_interval_sec", 0))
         if delay > 0:
             await asyncio.sleep(delay)
 
-        if self._client is not None:
-            return await self._collect_with_client(self._client)
-
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-            return await self._collect_with_client(client)
-
-    async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
+    async def _do_collect(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
+        """Fetch HTML and extract selected items."""
         headers = {"User-Agent": self._user_agent()}
         target_url = str(self.config.get("target_url") or self.config.get("url", ""))
         selectors = dict(self.config.get("selectors") or {})
@@ -62,24 +56,32 @@ class ScraperCollector(BaseCollector):
         request_interval = float(self.config.get("request_interval_sec", 0))
         follow_link = bool(self.config.get("follow_link", False))
         article_selector = str(
-            self.config.get("article_content_selector") or "article p, .article-body p, .story-body p"
+            self.config.get("article_content_selector")
+            or "article p, .article-body p, .story-body p"
         )
         for container in soup.select(str(selectors["item_container"])):
-            title = self._clean_title(self._text(container, selectors.get("title")) or self._container_text(container))
+            title = self._clean_title(
+                self._text(container, selectors.get("title")) or self._container_text(container)
+            )
             content = self._text(container, selectors.get("content")) or title
             href = self._href(container, selectors.get("link"))
             content_url = urljoin(target_url, href) if href else None
             if self._content_matches_title(content, title):
-                content = self._richer_content(container, selectors.get("content"), title) or content
+                content = (
+                    self._richer_content(container, selectors.get("content"), title) or content
+                )
             if follow_link and content_url and self._content_matches_title(content, title):
                 if request_interval > 0:
                     await asyncio.sleep(request_interval)
-                content = await self._linked_article_content(
-                    client,
-                    content_url,
-                    headers,
-                    article_selector,
-                ) or content
+                content = (
+                    await self._linked_article_content(
+                        client,
+                        content_url,
+                        headers,
+                        article_selector,
+                    )
+                    or content
+                )
             published = parse_datetime(self._text(container, selectors.get("date")))
             combined_length = len(f"{title} {content}".strip())
             if title and content and combined_length >= min_content_length:
@@ -107,14 +109,14 @@ class ScraperCollector(BaseCollector):
         return re.sub(r"\s+\d+\s*$", "", text).strip()
 
     @staticmethod
-    def _text(container: BeautifulSoup, selector: object) -> str:
+    def _text(container: BeautifulSoup, selector: Any) -> str:
         if not selector:
             return ""
         element = container.select_one(str(selector))
         return element.get_text(" ", strip=True) if element else ""
 
     @staticmethod
-    def _richer_content(container: BeautifulSoup, selector: object, title: str) -> str:
+    def _richer_content(container: BeautifulSoup, selector: Any, title: str) -> str:
         content_parts: list[str] = []
         for element in container.select(str(selector or "p")):
             part = element.get_text(" ", strip=True)
@@ -125,7 +127,7 @@ class ScraperCollector(BaseCollector):
 
         container_text = ScraperCollector._container_text(container)
         if container_text.startswith(title):
-            return re.sub(r"^\s*\d+\s*", "", container_text[len(title):]).strip()
+            return re.sub(r"^\s*\d+\s*", "", container_text[len(title) :]).strip()
         return re.sub(r"^\s*\d+\s*", "", container_text.replace(title, "", 1)).strip()
 
     @staticmethod
@@ -133,7 +135,7 @@ class ScraperCollector(BaseCollector):
         return container.get_text(" ", strip=True)
 
     @staticmethod
-    def _href(container: BeautifulSoup, selector: object) -> str | None:
+    def _href(container: BeautifulSoup, selector: Any) -> str | None:
         if not selector:
             return None
         element = container.select_one(str(selector))
@@ -146,7 +148,11 @@ class ScraperCollector(BaseCollector):
     def _content_matches_title(content: str, title: str) -> bool:
         content_text = content.strip()
         title_text = title.strip()
-        return bool(content_text and title_text and (content_text == title_text or content_text in title_text))
+        return bool(
+            content_text
+            and title_text
+            and (content_text == title_text or content_text in title_text)
+        )
 
     @staticmethod
     async def _linked_article_content(

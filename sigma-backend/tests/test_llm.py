@@ -28,7 +28,7 @@ def test_build_prompt_without_context_returns_prompt() -> None:
 
 def test_extract_json_object_from_fenced_model_output() -> None:
     """JSON completions tolerate common markdown-fenced model output."""
-    text = "```json\n{\"summary\":\"ok\"}\n```"
+    text = '```json\n{"summary":"ok"}\n```'
 
     assert _extract_json_object(text) == '{"summary":"ok"}'
 
@@ -298,7 +298,9 @@ async def test_complete_retries_rate_limits_then_succeeds(
     monkeypatch.setattr(settings, "default_llm_provider", "anthropic")
     monkeypatch.setattr(settings, "default_llm_model", "claude-test")
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
-        result = await LLMClient(db_session, http_client=http_client).complete("system", "user", max_tokens=20)
+        result = await LLMClient(db_session, http_client=http_client).complete(
+            "system", "user", max_tokens=20
+        )
 
     assert result == "Recovered"
     assert calls == 3
@@ -324,7 +326,9 @@ async def test_complete_raises_after_retry_exhaustion(
     monkeypatch.setattr("app.analyzers.llm_client.asyncio.sleep", no_sleep)
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
         with pytest.raises(httpx.HTTPStatusError):
-            await LLMClient(db_session, http_client=http_client).complete("system", "user", max_tokens=20)
+            await LLMClient(db_session, http_client=http_client).complete(
+                "system", "user", max_tokens=20
+            )
 
     assert calls == 3
     assert "LLM request failed after retries" in caplog.text

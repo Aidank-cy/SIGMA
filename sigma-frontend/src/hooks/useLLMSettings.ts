@@ -1,11 +1,24 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { UseMutationResult, UseQueryResult } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 import type { LLMConfig, LLMUsageResponse } from "@/lib/types";
 
-function llmConfigUpdateBody(payload: LLMConfig) {
+interface LLMConfigUpdateBody {
+  api_keys: LLMConfig["api_keys"];
+  cost_guard_enabled: boolean;
+  daily_token_limit: number;
+}
+
+interface LLMSettingsHookResult {
+  config: UseQueryResult<LLMConfig, Error>;
+  update: UseMutationResult<LLMConfig, Error, LLMConfig>;
+  usage: UseQueryResult<LLMUsageResponse, Error>;
+}
+
+function llmConfigUpdateBody(payload: LLMConfig): LLMConfigUpdateBody {
   return {
     api_keys: payload.api_keys,
     cost_guard_enabled: payload.cost_guard_enabled,
@@ -13,7 +26,8 @@ function llmConfigUpdateBody(payload: LLMConfig) {
   };
 }
 
-export function useLLMSettings() {
+/** Return current-user LLM settings, usage, and update mutation. */
+export function useLLMSettings(): LLMSettingsHookResult {
   const queryClient = useQueryClient();
   const config = useQuery({
     queryKey: ["llm", "config"],

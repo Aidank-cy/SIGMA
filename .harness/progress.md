@@ -2118,3 +2118,172 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with full backend pytest, touched backend Ruff, frontend production build, and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
 - Notes: Cut the accumulated Unreleased work as v2.0.0 because the release includes Added, Changed, Removed, and Fixed entries; aligned package/app versions and corrected the stale Qwen provider URL test expectation before tagging.
 - Timestamp: 2026-05-30T02:24:52Z
+
+### [Maintenance] Sub-feature: Lint and format baseline
+- Status: COMPLETE
+- Files modified: backend Ruff config, backend formatted Python files, frontend lint config, Next config, and hook dependency cleanup in Analytics, Admin Users, Hero Chart, and Markets indices views.
+- Tests: PASS with backend Ruff check/format check, full backend pytest, frontend lint, frontend production build, and Docker Compose config validation for local and prod files.
+- Notes: Enabled the requested Ruff rule families with a FastAPI-specific B008 ignore and SQLAlchemy-model TC003 per-file ignore, removed hardcoded defaults from the report-pipeline smoke script, added non-interactive Next ESLint config, and resolved frontend hook dependency warnings.
+- Timestamp: 2026-05-30T02:50:51Z
+
+### [Maintenance] Sub-feature: Market index service extraction
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market/ package, sigma-backend/app/api/v1/routes/market_indices.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/app/services/market_candles.py, sigma-backend/scripts/seed_e2e_data.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with full backend pytest, backend Ruff check, backend Ruff format check, and focused market-index tests.
+- Notes: Extracted index configuration, shared market dataclasses, and Yahoo Finance crumb/rate-limit/chart fetching into `app.services.market` while preserving the market-index API and cache behavior.
+- Timestamp: 2026-05-30T03:21:36Z
+
+### [Maintenance] Sub-feature: Market candle service move
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market/candles.py, sigma-backend/app/services/market/__init__.py, sigma-backend/app/services/market/indices.py, sigma-backend/app/scheduler/engine.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with full backend pytest, backend Ruff check, backend Ruff format check, focused market-index tests, and stale candle import search.
+- Notes: Moved the candle refresh job and candle cache/database helpers under `app.services.market.candles`, re-exported the scheduler entry point from the market package, and removed the old `app.services.market_candles` path.
+- Timestamp: 2026-05-30T03:24:09Z
+
+### [Maintenance] Sub-feature: Admin user service extraction
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/admin/users.py, sigma-backend/app/services/admin_service.py, sigma-backend/app/services/admin_source_service.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused admin API tests, full backend pytest, backend Ruff check, and backend Ruff format check.
+- Notes: Moved admin user listing, mutation, report/LLM detail reads, user deletion cleanup, and managed custom-source lifecycle logic out of the route layer into service modules while preserving endpoint contracts.
+- Timestamp: 2026-05-30T03:30:13Z
+
+### [Maintenance] Sub-feature: Auth items sources route thinning
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/routes/auth.py, sigma-backend/app/api/v1/routes/items.py, sigma-backend/app/api/v1/routes/sources.py, sigma-backend/app/api/v1/routes/watchlists.py, sigma-backend/app/services/auth_flow_service.py, sigma-backend/app/services/item_service.py, sigma-backend/app/services/source_service.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused auth/items/sources/e2e/watchlist tests, full backend pytest, backend Ruff check, backend Ruff format check, and API route line-count scan.
+- Notes: Moved auth flow, item query/detail, and source lifecycle/log/status logic into service modules while preserving route-level dependency seams used by tests.
+- Timestamp: 2026-05-30T03:37:27Z
+
+### [Maintenance] Sub-feature: Remaining backend route thinning
+- Status: COMPLETE
+- Files modified: report, stats, user settings, watchlist, admin dashboard, and admin log routes plus corresponding backend service modules, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused admin/security/watchlist/report/stats/settings tests, full backend pytest, backend Ruff check, backend Ruff format check, and route handler length scan.
+- Notes: Moved query-heavy route logic into service modules so every backend API route handler is a thin controller and every `app/api` file stays below 250 lines.
+- Timestamp: 2026-05-30T03:44:54Z
+
+### [Phase 3] Sub-feature 3.1: Backend type annotations
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/**/*.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with backend Ruff check and full backend pytest.
+- Notes: Completed backend function annotation sweep, replaced vague `object` hints with explicit dynamic or domain types, removed seed `type: ignore` comments with casts, and verified 248 backend tests.
+- Timestamp: 2026-05-30T03:59:05Z
+
+### [Phase 3] Sub-feature 3.2: Backend public docstrings
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend package exports, report generator, security middleware, user settings schemas, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with backend Ruff check, backend Ruff format check, and full backend pytest.
+- Notes: Added missing one-line package docstrings and public-interface docstrings while leaving self-explanatory private helpers untouched.
+- Timestamp: 2026-05-30T04:02:10Z
+
+### [Phase 3] Sub-feature 3.3: Frontend strict hook typing
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/src/hooks/*, sigma-frontend/src/lib/cn.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build, frontend lint, requested `any` grep, and `git diff --check`.
+- Notes: Verified strict TypeScript was already enabled, added explicit hook return types and hook JSDoc comments, and confirmed `src/lib` plus `src/hooks` remain free of `any` annotations.
+- Timestamp: 2026-05-30T04:05:59Z
+
+### [Phase 4] Sub-feature 4.1: Pydantic schema audit
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend schemas, sigma-backend/app/services/admin_service.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with backend Ruff check, backend Ruff format check, focused admin API tests, and full backend pytest.
+- Notes: Confirmed no inner Pydantic `Config` classes remain, tightened response/update schema configs and numeric/string constraints, and switched admin user serialization away from raw SQLAlchemy `__dict__` payloads.
+- Timestamp: 2026-05-30T04:09:45Z
+
+### [Phase 4] Sub-feature 4.2: SQLAlchemy model audit
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/models/data_source.py, sigma-backend/app/models/llm_usage_log.py, sigma-backend/app/models/report.py, sigma-backend/app/models/user.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with backend Ruff check, backend Ruff format check, metadata audit script, and full backend pytest.
+- Notes: Added missing foreign-key indexes, mapped the LLM usage log user relationship with matching `back_populates`, verified model exports, and confirmed enum columns use `enum_values`.
+- Timestamp: 2026-05-30T04:11:51Z
+
+### [Phase 4] Sub-feature 4.3: Backend constants extraction
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend LLM client, collectors, middleware, auth flow, email, cache, and market Yahoo/quote modules, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with backend Ruff check, backend Ruff format check, full backend pytest, and `git diff --check`.
+- Notes: Extracted repeated timeout, cache TTL, retry backoff, token lifetime, and auth header literals into named module constants while preserving behavior.
+- Timestamp: 2026-05-30T04:14:55Z
+
+### [Phase 5] Test suite alignment audit
+- Status: COMPLETE
+- Files modified: none
+- Tests: PASS with full backend pytest, per-file backend pytest sweep, and stale `market_indices`/`market_candles` import checks.
+- Notes: Test imports already target the current Phase 2 market package paths, and no misaligned constructors, mocks, or stale test modules were found.
+- Timestamp: 2026-05-30T04:25:16Z
+
+### [Phase 6] Sub-feature 6.1: Dashboard component extraction
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/dashboard/skeletons.tsx, sigma-frontend/src/components/dashboard/dashboard-news.tsx
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/lib/utils.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build and frontend lint.
+- Notes: Moved dashboard skeletons and category news columns out of the main page and shared the date/news sorting display helpers through `src/lib/utils.ts`.
+- Timestamp: 2026-05-30T04:25:16Z
+
+### [Phase 6] Sub-feature 6.2: Component prop interfaces
+- Status: COMPLETE
+- Files created: none
+- Files modified: frontend component files under `src/components`, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build and frontend lint.
+- Notes: Replaced remaining inline object prop annotations in component signatures with named props interfaces while preserving existing component exports.
+- Timestamp: 2026-05-30T04:28:22Z
+
+### [Phase 7] Sub-feature 7.1: Shared backend pagination helper
+- Status: COMPLETE
+- Files created: sigma-backend/app/services/pagination.py
+- Files modified: backend item, source, report, watchlist, and admin services plus CHANGELOG.md and .harness/progress.md
+- Tests: PASS with focused pagination endpoint tests, full backend pytest, backend Ruff check, and backend Ruff format check.
+- Notes: Centralized count/offset/limit pagination into service helpers while preserving endpoint response metadata and explicit count statements.
+- Timestamp: 2026-05-30T04:32:39Z
+
+### [Phase 7] Sub-feature 7.2: Admin dependency consolidation
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend auth dependency and admin/report route modules plus CHANGELOG.md and .harness/progress.md
+- Tests: PASS with focused admin/report API tests, backend Ruff check, and full backend pytest.
+- Notes: Added `get_current_admin` as the single admin-only dependency and replaced repeated inline `require_role(UserRole.ADMIN)` route dependencies.
+- Timestamp: 2026-05-30T04:34:45Z
+
+### [Phase 7] Sub-feature 7.3: Collector template method
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend collector base/API/RSS/scraper modules plus CHANGELOG.md and .harness/progress.md
+- Tests: PASS with focused collector tests, full backend pytest, backend Ruff check, and backend Ruff format check.
+- Notes: Centralized collector config validation and HTTP client management in `BaseCollector.collect`, with subclass-specific fetch logic isolated in `_do_collect`.
+- Timestamp: 2026-05-30T04:36:47Z
+
+### [Phase 8] Sub-feature 8.1: Service coverage tests
+- Status: COMPLETE
+- Files created: sigma-backend/tests/test_service_coverage.py
+- Files modified: CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused service coverage tests, backend Ruff check, and backend coverage run.
+- Notes: Added direct service tests for admin user/report management, admin source CRUD, and source lifecycle/error branches; backend coverage is now 87% overall with all service files at or above 60%.
+- Timestamp: 2026-05-30T04:41:07Z
+
+### [Phase 8] Sub-feature 8.2: E2E TypeScript compile alignment
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/e2e/global-setup.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with `npx tsc --noEmit e2e/*.ts --skipLibCheck`.
+- Notes: Switched the Playwright global setup path import to namespace import syntax so it compiles under the current TypeScript settings.
+- Timestamp: 2026-05-30T04:42:10Z
+
+### [Phase 6] Sub-feature 6.3: Remaining frontend page extraction
+- Status: COMPLETE
+- Files created: co-located `*PageContent.tsx` components for analytics, news, settings, sync, item detail, and report detail routes
+- Files modified: frontend route page wrappers, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build, frontend lint, backend Ruff check, and full backend pytest.
+- Notes: Reduced every `src/app/[locale]/(main)/**/page.tsx` file below 150 lines by keeping route files as thin wrappers around co-located client content components.
+- Timestamp: 2026-05-30T06:13:57Z
+
+### [Phase 8] Sub-feature 8.3: Final market service size and coverage audit
+- Status: COMPLETE
+- Files created: market clock/cache/quote/series and candle cache/store/fetch/bootstrap helper modules, plus focused market helper tests
+- Files modified: market index/candle service facades, final public helper docstrings, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused market/scheduler/collector tests, backend Ruff check, and backend coverage run.
+- Notes: Preserved the existing market service facade imports while reducing every `app/services/` file below 300 lines and lifting all service coverage above 60%.
+- Timestamp: 2026-05-30T06:35:53Z

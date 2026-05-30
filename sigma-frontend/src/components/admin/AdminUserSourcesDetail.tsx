@@ -36,6 +36,26 @@ interface AdminUserSourcesDetailProps {
   userId: string;
 }
 
+interface SourceCardProps {
+  onDelete: () => void;
+  onEdit: () => void;
+  onToggle: (checked: boolean) => void;
+  source: DataSource;
+}
+
+interface SourceFormProps {
+  isSaving: boolean;
+  onSave: () => void;
+  payload: SourcePayload;
+  setPayload: (payload: Partial<SourcePayload>) => void;
+}
+
+interface IconButtonProps {
+  children: ReactNode;
+  label: string;
+  onClick: () => void;
+}
+
 export const AdminUserSourcesDetail = forwardRef<
   { save: () => Promise<void> },
   AdminUserSourcesDetailProps
@@ -234,12 +254,7 @@ function SourceCard({
   onEdit,
   onToggle,
   source
-}: {
-  onDelete: () => void;
-  onEdit: () => void;
-  onToggle: (checked: boolean) => void;
-  source: DataSource;
-}) {
+}: SourceCardProps) {
   const t = useTranslations("sync");
   const Icon = source.source_type === "rss" ? Rss : source.source_type === "scraper" ? Code : Database;
 
@@ -279,12 +294,7 @@ function SourceForm({
   onSave,
   payload,
   setPayload
-}: {
-  isSaving: boolean;
-  onSave: () => void;
-  payload: SourcePayload;
-  setPayload: (payload: Partial<SourcePayload>) => void;
-}) {
+}: SourceFormProps) {
   const t = useTranslations("sync");
   const setConfig = (key: string, value: string) => setPayload({ config: { ...payload.config, [key]: value } });
 
@@ -336,7 +346,7 @@ function SourceForm({
   );
 }
 
-function IconButton({ children, label, onClick }: { children: ReactNode; label: string; onClick: () => void }) {
+function IconButton({ children, label, onClick }: IconButtonProps) {
   return (
     <button
       aria-label={label}

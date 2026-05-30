@@ -53,36 +53,39 @@ import asyncio
 import os
 import time
 import traceback
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 
 import httpx
 
 # ── Config ─────────────────────────────────────────────────────────────
-BASE_URL   = os.getenv("TEST_BASE_URL", "http://localhost:8000/api/v1")
-EMAIL      = os.getenv("TEST_EMAIL", "hezhengdong95@gmail.com")
-PASSWORD   = os.getenv("TEST_PASSWORD", "he111999")
-API_KEY    = os.getenv("TEST_API_KEY", "sk-ce19dcc8880d40faa0a17c47ecc569ac")
+BASE_URL = os.getenv("TEST_BASE_URL", "http://localhost:8000/api/v1")
+EMAIL = os.getenv("TEST_EMAIL", "")
+PASSWORD = os.getenv("TEST_PASSWORD", "")
+API_KEY = os.getenv("TEST_API_KEY", "")
 LLM_PROVIDER = os.getenv("TEST_LLM_PROVIDER", "deepseek")
 
 # Optional: a second account for cross-user isolation tests (Test K)
-OTHER_EMAIL    = os.getenv("TEST_OTHER_EMAIL", "")
+OTHER_EMAIL = os.getenv("TEST_OTHER_EMAIL", "")
 OTHER_PASSWORD = os.getenv("TEST_OTHER_PASSWORD", "")
 
 POLL_INTERVAL = 5
-POLL_TIMEOUT  = 120
+POLL_TIMEOUT = 120
 
-P = "✅"; F = "❌"; W = "⚠️"; I = "ℹ️"
+PASS_MARK = "PASS"
+FAIL_MARK = "FAIL"
+WARN_MARK = "WARN"
+INFO_MARK = "INFO"
 
 results: list[tuple[str, bool, str]] = []
 
 
 def record(name: str, passed: bool, detail: str = ""):
     results.append((name, passed, detail))
-    print(f"  {P if passed else F} {name}" + (f" — {detail}" if detail else ""))
+    print(f"  {PASS_MARK if passed else FAIL_MARK} {name}" + (f" — {detail}" if detail else ""))
 
 
 def section(title: str):
-    print(f"\n{'='*64}\n  {title}\n{'='*64}")
+    print(f"\n{'=' * 64}\n  {title}\n{'=' * 64}")
 
 
 # ── API Client ─────────────────────────────────────────────────────────
@@ -179,13 +182,17 @@ async def test_a_multi_frequency(api: API):
 
     config = await api.get("/me/report-config")
 
-    updated = await api.put("/me/report-config", {
-        **config,
-        "is_active": True,
-        "report_frequencies": ["daily_morning", "daily_afternoon", "weekly", "monthly"],
-        "markets": config.get("markets") or ["us", "cn"],
-        "categories": config.get("categories") or ["finance", "technology", "politics", "macro"],
-    })
+    updated = await api.put(
+        "/me/report-config",
+        {
+            **config,
+            "is_active": True,
+            "report_frequencies": ["daily_morning", "daily_afternoon", "weekly", "monthly"],
+            "markets": config.get("markets") or ["us", "cn"],
+            "categories": config.get("categories")
+            or ["finance", "technology", "politics", "macro"],
+        },
+    )
 
     saved = set(updated.get("report_frequencies", []))
     expected = {"daily_morning", "daily_afternoon", "weekly", "monthly"}
@@ -195,17 +202,23 @@ async def test_a_multi_frequency(api: API):
     rb_freqs = set(rb.get("report_frequencies", []))
     record("Readback 4 frequencies", rb_freqs == expected, f"readback={sorted(rb_freqs)}")
 
-    updated2 = await api.put("/me/report-config", {
-        **rb,
-        "report_frequencies": ["daily_morning", "weekly"],
-    })
+    updated2 = await api.put(
+        "/me/report-config",
+        {
+            **rb,
+            "report_frequencies": ["daily_morning", "weekly"],
+        },
+    )
     saved2 = set(updated2.get("report_frequencies", []))
     record("Save 2 frequencies", saved2 == {"daily_morning", "weekly"}, f"saved={sorted(saved2)}")
 
-    await api.put("/me/report-config", {
-        **rb,
-        "report_frequencies": ["daily_morning", "daily_afternoon", "weekly", "monthly"],
-    })
+    await api.put(
+        "/me/report-config",
+        {
+            **rb,
+            "report_frequencies": ["daily_morning", "daily_afternoon", "weekly", "monthly"],
+        },
+    )
 
 
 # ── Test B: Generate All Types + Time Range ────────────────────────────
@@ -216,10 +229,10 @@ async def test_b_generate_all(api: API):
     today = date.today()
 
     types_config = {
-        "daily_morning":   (today.isoformat(), today.isoformat(), True, 0),
+        "daily_morning": (today.isoformat(), today.isoformat(), True, 0),
         "daily_afternoon": (today.isoformat(), today.isoformat(), True, 0),
-        "weekly":          ((today - timedelta(days=6)).isoformat(), today.isoformat(), False, 6),
-        "monthly":         (today.replace(day=1).isoformat(), today.isoformat(), False, 25),
+        "weekly": ((today - timedelta(days=6)).isoformat(), today.isoformat(), False, 6),
+        "monthly": (today.replace(day=1).isoformat(), today.isoformat(), False, 25),
     }
 
     before_counts = {}
@@ -227,16 +240,22 @@ async def test_b_generate_all(api: API):
         before_counts[rt] = await count_reports(api, rt)
 
     for rt, (ps, pe, _, _) in types_config.items():
-        resp = await api.post(endpoint, {
-            "report_type": rt,
-            "market_scope": ["us", "cn"],
-            "category_scope": ["finance", "technology", "politics", "macro"],
-            "period_start": ps,
-            "period_end": pe,
-            "locale": "en",
-        })
+        resp = await api.post(
+            endpoint,
+            {
+                "report_type": rt,
+                "market_scope": ["us", "cn"],
+                "category_scope": ["finance", "technology", "politics", "macro"],
+                "period_start": ps,
+                "period_end": pe,
+                "locale": "en",
+            },
+        )
         if resp.status_code in (404, 405) and not api.is_admin:
-            print(f"\n  {W} {endpoint} 返回 {resp.status_code} — 需要先应用 BACKEND FIX（见脚本底部说明）")
+            print(
+                f"\n  {WARN_MARK} {endpoint} returned {resp.status_code}; "
+                "apply the BACKEND FIX notes at the bottom of this script first"
+            )
             record(f"Submit {rt}", False, f"status={resp.status_code} — apply BACKEND FIX")
             return {}
         status_text = "accepted" if resp.status_code == 202 else f"status={resp.status_code}"
@@ -245,10 +264,10 @@ async def test_b_generate_all(api: API):
     # Skip polling entirely if no submission succeeded
     any_accepted = any(r[1] for r in results if r[0].startswith("Submit "))
     if not any_accepted:
-        print(f"\n  {W} All submissions failed — skipping poll")
+        print(f"\n  {WARN_MARK} All submissions failed — skipping poll")
         return {}
 
-    print(f"\n  ⏳ Waiting for all reports to generate...")
+    print("\n  Waiting for all reports to generate...")
     generated = {}
     timed_out = False
     for rt in types_config:
@@ -260,12 +279,17 @@ async def test_b_generate_all(api: API):
             generated[rt] = report
             wc = len(report.get("content", "").split())
             has_md = "##" in report.get("content", "")
-            record(f"Generated {rt}", True,
-                   f"words={wc}, markdown={'yes' if has_md else 'no'}, items={report.get('item_count', 0)}")
+            record(
+                f"Generated {rt}",
+                True,
+                "words="
+                f"{wc}, markdown={'yes' if has_md else 'no'}, "
+                f"items={report.get('item_count', 0)}",
+            )
         else:
             record(f"Generated {rt}", False, "timeout")
             timed_out = True
-            print(f"  {W} Timeout — skipping remaining report types")
+            print(f"  {WARN_MARK} Timeout — skipping remaining report types")
 
     print()
     for rt, (_, _, expect_same, min_span) in types_config.items():
@@ -279,8 +303,9 @@ async def test_b_generate_all(api: API):
         else:
             try:
                 span = (date.fromisoformat(pe) - date.fromisoformat(ps)).days
-                record(f"Range {rt} span≥{min_span}", span >= min_span,
-                       f"span={span}d ({ps} to {pe})")
+                record(
+                    f"Range {rt} span≥{min_span}", span >= min_span, f"span={span}d ({ps} to {pe})"
+                )
             except ValueError:
                 record(f"Range {rt}", False, f"parse error: {ps} to {pe}")
 
@@ -295,13 +320,19 @@ async def test_c_advanced_settings(api: API):
     original_tokens = config.get("max_tokens", {})
 
     # C1: Set very low max_tokens for daily_morning
-    await api.put("/me/report-config", {
-        **config,
-        "max_tokens": {**original_tokens, "daily_morning": 300},
-    })
+    await api.put(
+        "/me/report-config",
+        {
+            **config,
+            "max_tokens": {**original_tokens, "daily_morning": 300},
+        },
+    )
     rb = await api.get("/me/report-config")
-    record("Set max_tokens=300", rb.get("max_tokens", {}).get("daily_morning") == 300,
-           f"saved={rb.get('max_tokens', {}).get('daily_morning')}")
+    record(
+        "Set max_tokens=300",
+        rb.get("max_tokens", {}).get("daily_morning") == 300,
+        f"saved={rb.get('max_tokens', {}).get('daily_morning')}",
+    )
 
     # C2: Set different max_tokens for each type
     multi_tokens = {
@@ -318,19 +349,24 @@ async def test_c_advanced_settings(api: API):
 
     # C3: Generate short report with low limit
     endpoint = _generate_endpoint(api)
-    await api.put("/me/report-config", {**config, "max_tokens": {**original_tokens, "daily_morning": 300}})
+    await api.put(
+        "/me/report-config", {**config, "max_tokens": {**original_tokens, "daily_morning": 300}}
+    )
     before_count = await count_reports(api, "daily_morning")
     today = date.today()
-    resp = await api.post(endpoint, {
-        "report_type": "daily_morning",
-        "market_scope": ["us"],
-        "category_scope": ["finance"],
-        "period_start": today.isoformat(),
-        "period_end": today.isoformat(),
-        "locale": "en",
-    })
+    resp = await api.post(
+        endpoint,
+        {
+            "report_type": "daily_morning",
+            "market_scope": ["us"],
+            "category_scope": ["finance"],
+            "period_start": today.isoformat(),
+            "period_end": today.isoformat(),
+            "locale": "en",
+        },
+    )
     if resp.status_code in (404, 405) and not api.is_admin:
-        print(f"  {W} Skipping generate test — need BACKEND FIX")
+        print(f"  {WARN_MARK} Skipping generate test — need BACKEND FIX")
     elif resp.status_code == 202:
         report = await poll_for_new_report(api, "daily_morning", before_count, timeout=90)
         if report:
@@ -343,7 +379,7 @@ async def test_c_advanced_settings(api: API):
 
     # Restore
     await api.put("/me/report-config", {**config, "max_tokens": original_tokens})
-    print(f"  {I} Restored original max_tokens")
+    print(f"  {INFO_MARK} Restored original max_tokens")
 
 
 # ── Test D: Invalid API Key ────────────────────────────────────────────
@@ -353,48 +389,62 @@ async def test_d_invalid_key(api: API):
     original = await api.get("/me/llm/config")
     original_keys = original.get("api_keys", [])
 
-    await api.put("/me/llm/config", {
-        "daily_token_limit": original.get("daily_token_limit", 1_000_000),
-        "cost_guard_enabled": True,
-        "api_keys": [{
-            "name": "Bad Key",
-            "key": "sk-invalid-00000000",
-            "provider": LLM_PROVIDER,
-            "token_limit": 1_000_000,
-            "is_default": True,
-        }],
-    })
+    await api.put(
+        "/me/llm/config",
+        {
+            "daily_token_limit": original.get("daily_token_limit", 1_000_000),
+            "cost_guard_enabled": True,
+            "api_keys": [
+                {
+                    "name": "Bad Key",
+                    "key": "sk-invalid-00000000",
+                    "provider": LLM_PROVIDER,
+                    "token_limit": 1_000_000,
+                    "is_default": True,
+                }
+            ],
+        },
+    )
 
     endpoint = _generate_endpoint(api)
     before_count = await count_reports(api, "daily_morning")
     today = date.today()
-    resp = await api.post(endpoint, {
-        "report_type": "daily_morning",
-        "market_scope": ["us"],
-        "category_scope": ["finance"],
-        "period_start": today.isoformat(),
-        "period_end": today.isoformat(),
-        "locale": "en",
-    })
+    resp = await api.post(
+        endpoint,
+        {
+            "report_type": "daily_morning",
+            "market_scope": ["us"],
+            "category_scope": ["finance"],
+            "period_start": today.isoformat(),
+            "period_end": today.isoformat(),
+            "locale": "en",
+        },
+    )
 
     if resp.status_code in (404, 405) and not api.is_admin:
-        print(f"  {W} Skipping — need BACKEND FIX")
+        print(f"  {WARN_MARK} Skipping — need BACKEND FIX")
     elif resp.status_code == 202:
         record("Invalid key: request accepted", True, "async task will fail in background")
         await asyncio.sleep(15)
         after_count = await count_reports(api, "daily_morning")
-        record("Invalid key: no report created", after_count == before_count,
-               f"before={before_count} after={after_count}")
+        record(
+            "Invalid key: no report created",
+            after_count == before_count,
+            f"before={before_count} after={after_count}",
+        )
     else:
         record("Invalid key: request handled", True, f"status={resp.status_code}")
 
     # Restore
-    await api.put("/me/llm/config", {
-        "daily_token_limit": original.get("daily_token_limit", 1_000_000),
-        "cost_guard_enabled": True,
-        "api_keys": original_keys,
-    })
-    print(f"  {I} Restored original keys")
+    await api.put(
+        "/me/llm/config",
+        {
+            "daily_token_limit": original.get("daily_token_limit", 1_000_000),
+            "cost_guard_enabled": True,
+            "api_keys": original_keys,
+        },
+    )
+    print(f"  {INFO_MARK} Restored original keys")
 
 
 # ── Test E: Empty API Keys ─────────────────────────────────────────────
@@ -404,11 +454,14 @@ async def test_e_empty_keys(api: API):
     original = await api.get("/me/llm/config")
     original_keys = original.get("api_keys", [])
 
-    await api.put("/me/llm/config", {
-        "daily_token_limit": original.get("daily_token_limit", 1_000_000),
-        "cost_guard_enabled": True,
-        "api_keys": [],
-    })
+    await api.put(
+        "/me/llm/config",
+        {
+            "daily_token_limit": original.get("daily_token_limit", 1_000_000),
+            "cost_guard_enabled": True,
+            "api_keys": [],
+        },
+    )
 
     verified = await api.get("/me/llm/config")
     record("Keys cleared", len(verified.get("api_keys", [])) == 0, "0 keys")
@@ -416,36 +469,44 @@ async def test_e_empty_keys(api: API):
     endpoint = _generate_endpoint(api)
     before_count = await count_reports(api, "daily_morning")
     today = date.today()
-    resp = await api.post(endpoint, {
-        "report_type": "daily_morning",
-        "market_scope": ["us"],
-        "category_scope": ["finance"],
-        "period_start": today.isoformat(),
-        "period_end": today.isoformat(),
-        "locale": "en",
-    })
+    resp = await api.post(
+        endpoint,
+        {
+            "report_type": "daily_morning",
+            "market_scope": ["us"],
+            "category_scope": ["finance"],
+            "period_start": today.isoformat(),
+            "period_end": today.isoformat(),
+            "locale": "en",
+        },
+    )
 
     if resp.status_code in (404, 405) and not api.is_admin:
-        print(f"  {W} Skipping — need BACKEND FIX")
+        print(f"  {WARN_MARK} Skipping — need BACKEND FIX")
     elif resp.status_code == 202:
         record("Empty keys: request accepted", True, "falls back to system key or fails")
         await asyncio.sleep(20)
         after_count = await count_reports(api, "daily_morning")
         if after_count > before_count:
-            print(f"  {I} Report generated using system-level API key (fallback worked)")
+            print(f"  {INFO_MARK} Report generated using system-level API key (fallback worked)")
         else:
-            print(f"  {I} No report generated (no system key or user key required — expected)")
+            print(
+                f"  {INFO_MARK} No report generated (no system key or user key required — expected)"
+            )
         record("Empty keys: no crash", True, "system didn't crash")
     else:
         record("Empty keys: handled", True, f"status={resp.status_code}")
 
     # Restore
-    await api.put("/me/llm/config", {
-        "daily_token_limit": original.get("daily_token_limit", 1_000_000),
-        "cost_guard_enabled": True,
-        "api_keys": original_keys,
-    })
-    print(f"  {I} Restored {len(original_keys)} keys")
+    await api.put(
+        "/me/llm/config",
+        {
+            "daily_token_limit": original.get("daily_token_limit", 1_000_000),
+            "cost_guard_enabled": True,
+            "api_keys": original_keys,
+        },
+    )
+    print(f"  {INFO_MARK} Restored {len(original_keys)} keys")
 
 
 # ── Test F: Usage Tracking ─────────────────────────────────────────────
@@ -465,16 +526,15 @@ async def test_f_usage(api: API):
     functions = {i.get("function_type") for i in items}
     record("function_type=report", "report" in functions, f"types={functions}")
 
-    total_in  = sum(i.get("input_tokens", 0) for i in items)
+    total_in = sum(i.get("input_tokens", 0) for i in items)
     total_out = sum(i.get("output_tokens", 0) for i in items)
-    record("Input/output > 0", total_in > 0 and total_out > 0,
-           f"in={total_in:,} out={total_out:,}")
+    record("Input/output > 0", total_in > 0 and total_out > 0, f"in={total_in:,} out={total_out:,}")
 
     by_p: dict[str, int] = {}
     for i in items:
         p = i.get("provider", "?")
         by_p[p] = by_p.get(p, 0) + i.get("total_tokens", 0)
-    print(f"\n  📊 Provider breakdown:")
+    print("\n  Provider breakdown:")
     for p, t in sorted(by_p.items()):
         print(f"     {p}: {t:,}")
 
@@ -484,24 +544,30 @@ async def test_g_admin(api: API):
     section("Test G: Admin ↔ User Consistency")
 
     if not api.is_admin:
-        print(f"  {I} 当前是普通用户，跳过 admin 一致性测试")
+        print(f"  {INFO_MARK} Current user is not an admin; skipping admin consistency checks")
         return
 
     uid = api.user_id
     a_cfg = await api.get(f"/admin/users/{uid}/llm/config")
     u_cfg = await api.get("/me/llm/config")
-    record("Config keys match",
-           len(a_cfg.get("api_keys", [])) == len(u_cfg.get("api_keys", [])),
-           f"admin={len(a_cfg.get('api_keys', []))} user={len(u_cfg.get('api_keys', []))}")
-    record("Token limit match",
-           a_cfg.get("daily_token_limit") == u_cfg.get("daily_token_limit"),
-           f"{a_cfg.get('daily_token_limit')} == {u_cfg.get('daily_token_limit')}")
+    record(
+        "Config keys match",
+        len(a_cfg.get("api_keys", [])) == len(u_cfg.get("api_keys", [])),
+        f"admin={len(a_cfg.get('api_keys', []))} user={len(u_cfg.get('api_keys', []))}",
+    )
+    record(
+        "Token limit match",
+        a_cfg.get("daily_token_limit") == u_cfg.get("daily_token_limit"),
+        f"{a_cfg.get('daily_token_limit')} == {u_cfg.get('daily_token_limit')}",
+    )
 
     a_usg = await api.get(f"/admin/users/{uid}/llm/usage")
     u_usg = await api.get("/me/llm/usage")
-    record("Usage count match",
-           len(a_usg.get("items", [])) == len(u_usg.get("items", [])),
-           f"admin={len(a_usg.get('items', []))} user={len(u_usg.get('items', []))}")
+    record(
+        "Usage count match",
+        len(a_usg.get("items", [])) == len(u_usg.get("items", [])),
+        f"admin={len(a_usg.get('items', []))} user={len(u_usg.get('items', []))}",
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -514,41 +580,59 @@ async def test_h_advanced_llm(api: API):
     original = await api.get("/me/llm/config")
     original_limit = original.get("daily_token_limit", 1_000_000)
     original_guard = original.get("cost_guard_enabled", True)
-    original_keys  = original.get("api_keys", [])
+    original_keys = original.get("api_keys", [])
 
     # H1: daily_token_limit — read and update
-    print(f"  {I} Current daily_token_limit = {original_limit:,}")
+    print(f"  {INFO_MARK} Current daily_token_limit = {original_limit:,}")
     new_limit = 500_000 if original_limit != 500_000 else 800_000
     try:
-        updated = await api.put("/me/llm/config", {
-            "daily_token_limit": new_limit,
-            "cost_guard_enabled": original_guard,
-            "api_keys": original_keys,
-        })
-        record("Set daily_token_limit", updated.get("daily_token_limit") == new_limit,
-               f"set={new_limit:,}, got={updated.get('daily_token_limit'):,}")
+        updated = await api.put(
+            "/me/llm/config",
+            {
+                "daily_token_limit": new_limit,
+                "cost_guard_enabled": original_guard,
+                "api_keys": original_keys,
+            },
+        )
+        record(
+            "Set daily_token_limit",
+            updated.get("daily_token_limit") == new_limit,
+            f"set={new_limit:,}, got={updated.get('daily_token_limit'):,}",
+        )
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 429:
-            record("daily_token_limit cooldown active", True,
-                   "24h cooldown — cannot change yet (expected if recently changed)")
+            record(
+                "daily_token_limit cooldown active",
+                True,
+                "24h cooldown — cannot change yet (expected if recently changed)",
+            )
         else:
             raise
 
     # H2: Verify readback
     rb = await api.get("/me/llm/config")
-    record("daily_token_limit readback", rb.get("daily_token_limit") in (new_limit, original_limit),
-           f"got={rb.get('daily_token_limit'):,}")
+    record(
+        "daily_token_limit readback",
+        rb.get("daily_token_limit") in (new_limit, original_limit),
+        f"got={rb.get('daily_token_limit'):,}",
+    )
 
     # H3: cost_guard_enabled toggle
     toggled_guard = not original_guard
     try:
-        updated2 = await api.put("/me/llm/config", {
-            "daily_token_limit": rb.get("daily_token_limit"),
-            "cost_guard_enabled": toggled_guard,
-            "api_keys": original_keys,
-        })
-        record("Toggle cost_guard_enabled", updated2.get("cost_guard_enabled") == toggled_guard,
-               f"set={toggled_guard}, got={updated2.get('cost_guard_enabled')}")
+        updated2 = await api.put(
+            "/me/llm/config",
+            {
+                "daily_token_limit": rb.get("daily_token_limit"),
+                "cost_guard_enabled": toggled_guard,
+                "api_keys": original_keys,
+            },
+        )
+        record(
+            "Toggle cost_guard_enabled",
+            updated2.get("cost_guard_enabled") == toggled_guard,
+            f"set={toggled_guard}, got={updated2.get('cost_guard_enabled')}",
+        )
     except httpx.HTTPStatusError:
         record("Toggle cost_guard_enabled", False, "HTTP error")
 
@@ -556,7 +640,10 @@ async def test_h_advanced_llm(api: API):
     cooldown = rb.get("daily_token_limit_cooldown_remaining_seconds", -1)
     record("Cooldown field present", cooldown >= 0, f"remaining={cooldown}s")
     if cooldown > 0:
-        print(f"  {I} 24h cooldown active — {cooldown // 3600}h {(cooldown % 3600) // 60}m remaining")
+        print(
+            f"  {INFO_MARK} 24h cooldown active - "
+            f"{cooldown // 3600}h {(cooldown % 3600) // 60}m remaining"
+        )
 
     # H5: Multi-key management (save 2 keys, verify both)
     two_keys = [
@@ -576,20 +663,24 @@ async def test_h_advanced_llm(api: API):
         },
     ]
     try:
-        updated3 = await api.put("/me/llm/config", {
-            "daily_token_limit": rb.get("daily_token_limit"),
-            "cost_guard_enabled": original_guard,
-            "api_keys": two_keys,
-        })
+        updated3 = await api.put(
+            "/me/llm/config",
+            {
+                "daily_token_limit": rb.get("daily_token_limit"),
+                "cost_guard_enabled": original_guard,
+                "api_keys": two_keys,
+            },
+        )
         saved_keys = updated3.get("api_keys", [])
         record("Save 2 API keys", len(saved_keys) == 2, f"count={len(saved_keys)}")
         if len(saved_keys) >= 2:
             default_keys = [k for k in saved_keys if k.get("is_default")]
-            record("Exactly 1 default key", len(default_keys) == 1,
-                   f"defaults={len(default_keys)}")
-            record("Per-key token_limit saved",
-                   saved_keys[0].get("token_limit") == 800_000,
-                   f"primary={saved_keys[0].get('token_limit'):,}")
+            record("Exactly 1 default key", len(default_keys) == 1, f"defaults={len(default_keys)}")
+            record(
+                "Per-key token_limit saved",
+                saved_keys[0].get("token_limit") == 800_000,
+                f"primary={saved_keys[0].get('token_limit'):,}",
+            )
     except httpx.HTTPStatusError as e:
         record("Save 2 API keys", False, f"status={e.response.status_code}")
 
@@ -597,24 +688,29 @@ async def test_h_advanced_llm(api: API):
     rb3 = await api.get("/me/llm/config")
     rb_keys = rb3.get("api_keys", [])
     providers = {k.get("provider") for k in rb_keys}
-    record("Per-key providers saved", len(providers) >= 1,
-           f"providers={providers}")
+    record("Per-key providers saved", len(providers) >= 1, f"providers={providers}")
 
     # Restore original config
     try:
-        await api.put("/me/llm/config", {
-            "daily_token_limit": original_limit,
-            "cost_guard_enabled": original_guard,
-            "api_keys": original_keys,
-        })
+        await api.put(
+            "/me/llm/config",
+            {
+                "daily_token_limit": original_limit,
+                "cost_guard_enabled": original_guard,
+                "api_keys": original_keys,
+            },
+        )
     except httpx.HTTPStatusError:
         # cooldown might block limit change, that's fine
-        await api.put("/me/llm/config", {
-            "daily_token_limit": rb.get("daily_token_limit"),
-            "cost_guard_enabled": original_guard,
-            "api_keys": original_keys,
-        })
-    print(f"  {I} Restored original LLM config")
+        await api.put(
+            "/me/llm/config",
+            {
+                "daily_token_limit": rb.get("daily_token_limit"),
+                "cost_guard_enabled": original_guard,
+                "api_keys": original_keys,
+            },
+        )
+    print(f"  {INFO_MARK} Restored original LLM config")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -633,15 +729,20 @@ async def test_i_time_ranges(api: API):
             "generation_time": "08:30",
         },
     }
-    updated = await api.put("/me/report-config", {
-        **config,
-        "time_ranges": daily_range,
-    })
+    updated = await api.put(
+        "/me/report-config",
+        {
+            **config,
+            "time_ranges": daily_range,
+        },
+    )
     saved = updated.get("time_ranges", {})
     dm_range = saved.get("daily_morning", {})
-    record("Daily morning generation_time",
-           dm_range.get("generation_time") == "08:30",
-           f"saved={dm_range.get('generation_time')}")
+    record(
+        "Daily morning generation_time",
+        dm_range.get("generation_time") == "08:30",
+        f"saved={dm_range.get('generation_time')}",
+    )
 
     # I2: Set weekly time range with offsets
     weekly_range = {
@@ -654,17 +755,25 @@ async def test_i_time_ranges(api: API):
             "end_time": "23:59",
         },
     }
-    updated2 = await api.put("/me/report-config", {
-        **config,
-        "time_ranges": {**daily_range, **weekly_range},
-    })
+    updated2 = await api.put(
+        "/me/report-config",
+        {
+            **config,
+            "time_ranges": {**daily_range, **weekly_range},
+        },
+    )
     saved2 = updated2.get("time_ranges", {})
     wk = saved2.get("weekly", {})
-    record("Weekly day_of_week=Monday", wk.get("generation_day_of_week") == 0,
-           f"dow={wk.get('generation_day_of_week')}")
-    record("Weekly offset span=7d",
-           wk.get("start_day_offset") == 7 and wk.get("end_day_offset") == 0,
-           f"start_offset={wk.get('start_day_offset')}, end_offset={wk.get('end_day_offset')}")
+    record(
+        "Weekly day_of_week=Monday",
+        wk.get("generation_day_of_week") == 0,
+        f"dow={wk.get('generation_day_of_week')}",
+    )
+    record(
+        "Weekly offset span=7d",
+        wk.get("start_day_offset") == 7 and wk.get("end_day_offset") == 0,
+        f"start_offset={wk.get('start_day_offset')}, end_offset={wk.get('end_day_offset')}",
+    )
 
     # I3: Set monthly time range
     monthly_range = {
@@ -675,39 +784,52 @@ async def test_i_time_ranges(api: API):
             "end_day_of_month": 31,
         },
     }
-    updated3 = await api.put("/me/report-config", {
-        **config,
-        "time_ranges": {**daily_range, **weekly_range, **monthly_range},
-    })
+    updated3 = await api.put(
+        "/me/report-config",
+        {
+            **config,
+            "time_ranges": {**daily_range, **weekly_range, **monthly_range},
+        },
+    )
     saved3 = updated3.get("time_ranges", {})
     mo = saved3.get("monthly", {})
-    record("Monthly day_of_month=1", mo.get("generation_day_of_month") == 1,
-           f"dom={mo.get('generation_day_of_month')}")
-    record("Monthly range 1-31",
-           mo.get("start_day_of_month") == 1 and mo.get("end_day_of_month") == 31,
-           f"start={mo.get('start_day_of_month')}, end={mo.get('end_day_of_month')}")
+    record(
+        "Monthly day_of_month=1",
+        mo.get("generation_day_of_month") == 1,
+        f"dom={mo.get('generation_day_of_month')}",
+    )
+    record(
+        "Monthly range 1-31",
+        mo.get("start_day_of_month") == 1 and mo.get("end_day_of_month") == 31,
+        f"start={mo.get('start_day_of_month')}, end={mo.get('end_day_of_month')}",
+    )
 
     # I4: Readback all ranges together
     rb = await api.get("/me/report-config")
     rb_ranges = rb.get("time_ranges", {})
-    record("All 3 time ranges readback", len(rb_ranges) >= 3,
-           f"keys={sorted(rb_ranges.keys())}")
+    record("All 3 time ranges readback", len(rb_ranges) >= 3, f"keys={sorted(rb_ranges.keys())}")
 
     # I5: Invalid time range → rejected
     try:
         resp = await api.c.put(
             f"{BASE_URL}/me/report-config",
-            json={**config, "time_ranges": {"weekly": {
-                "generation_time": "25:00",  # invalid
-                "start_day_offset": 7,
-                "end_day_offset": 0,
-                "start_time": "00:00",
-                "end_time": "23:59",
-            }}},
+            json={
+                **config,
+                "time_ranges": {
+                    "weekly": {
+                        "generation_time": "25:00",  # invalid
+                        "start_day_offset": 7,
+                        "end_day_offset": 0,
+                        "start_time": "00:00",
+                        "end_time": "23:59",
+                    }
+                },
+            },
             headers=api._h(),
         )
-        record("Invalid time format rejected", resp.status_code == 422,
-               f"status={resp.status_code}")
+        record(
+            "Invalid time format rejected", resp.status_code == 422, f"status={resp.status_code}"
+        )
     except Exception:
         record("Invalid time format rejected", True, "exception raised")
 
@@ -715,22 +837,28 @@ async def test_i_time_ranges(api: API):
     try:
         resp = await api.c.put(
             f"{BASE_URL}/me/report-config",
-            json={**config, "time_ranges": {"weekly": {
-                "start_day_offset": 0,
-                "end_day_offset": 7,  # start > end = invalid
-                "start_time": "00:00",
-                "end_time": "23:59",
-            }}},
+            json={
+                **config,
+                "time_ranges": {
+                    "weekly": {
+                        "start_day_offset": 0,
+                        "end_day_offset": 7,  # start > end = invalid
+                        "start_time": "00:00",
+                        "end_time": "23:59",
+                    }
+                },
+            },
             headers=api._h(),
         )
-        record("Invalid weekly range rejected", resp.status_code == 422,
-               f"status={resp.status_code}")
+        record(
+            "Invalid weekly range rejected", resp.status_code == 422, f"status={resp.status_code}"
+        )
     except Exception:
         record("Invalid weekly range rejected", True, "exception raised")
 
     # Restore
     await api.put("/me/report-config", {**config, "time_ranges": original_ranges})
-    print(f"  {I} Restored original time ranges")
+    print(f"  {INFO_MARK} Restored original time ranges")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -743,7 +871,7 @@ async def test_j_data_isolation(api: API):
     sources_resp = await api.get("/sources?page=1&page_size=100")
     all_sources = sources_resp.get("items", [])
     total = sources_resp.get("total", 0)
-    print(f"  {I} User can see {total} data source(s)")
+    print(f"  {INFO_MARK} User can see {total} data source(s)")
 
     system_count = 0
     own_count = 0
@@ -758,14 +886,21 @@ async def test_j_data_isolation(api: API):
         elif created_by is not None:
             violations.append(f"{src.get('name')} (created_by={created_by})")
         # created_by=None + not system → treat as system-like
-    record("All sources are system or own",
-           len(violations) == 0,
-           f"violations={violations}" if violations else f"system={system_count}, own={own_count}")
+    record(
+        "All sources are system or own",
+        len(violations) == 0,
+        f"violations={violations}" if violations else f"system={system_count}, own={own_count}",
+    )
 
     if api.is_admin:
-        print(f"  {W} Admin sees ALL sources — isolation is only enforced for regular users")
+        print(
+            f"  {WARN_MARK} Admin sees ALL sources — isolation is only enforced for regular users"
+        )
     else:
-        print(f"  {P} Regular user — isolation enforced: system={system_count}, own={own_count}")
+        print(
+            f"  {PASS_MARK} Regular user - isolation enforced: "
+            f"system={system_count}, own={own_count}"
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -778,49 +913,58 @@ async def test_k_report_scoping(api: API, other_api: API | None):
     user_reports = await api.get("/reports?page=1&page_size=100")
     user_total = user_reports.get("total", 0)
     user_items = user_reports.get("items", [])
-    print(f"  {I} User can see {user_total} report(s)")
+    print(f"  {INFO_MARK} User can see {user_total} report(s)")
 
     # K1: All reports belong to current user
-    wrong_owner = [r for r in user_items
-                   if r.get("user_id") and str(r.get("user_id")) != str(api.user_id)]
-    record("All listed reports belong to user",
-           len(wrong_owner) == 0,
-           f"foreign reports={len(wrong_owner)}" if wrong_owner else f"all {len(user_items)} OK")
+    wrong_owner = [
+        r for r in user_items if r.get("user_id") and str(r.get("user_id")) != str(api.user_id)
+    ]
+    record(
+        "All listed reports belong to user",
+        len(wrong_owner) == 0,
+        f"foreign reports={len(wrong_owner)}" if wrong_owner else f"all {len(user_items)} OK",
+    )
 
     # K2: Cross-user isolation (requires a second account)
     if other_api is None:
-        print(f"  {I} 未提供第二个账号，跳过跨用户隔离测试")
-        print(f"  {I} 设置 TEST_OTHER_EMAIL / TEST_OTHER_PASSWORD 可启用此测试")
+        print(f"  {INFO_MARK} No second account provided; skipping cross-user isolation")
+        print(f"  {INFO_MARK} Set TEST_OTHER_EMAIL and TEST_OTHER_PASSWORD to enable this test")
         return
 
     other_reports = await other_api.get("/reports?page=1&page_size=100")
     other_items = other_reports.get("items", [])
     other_total = other_reports.get("total", 0)
-    print(f"  {I} Other user can see {other_total} report(s)")
+    print(f"  {INFO_MARK} Other user can see {other_total} report(s)")
 
     # Try to access other user's report from current user
-    other_only = [r for r in other_items
-                  if r.get("user_id") and str(r.get("user_id")) != str(api.user_id)]
+    other_only = [
+        r for r in other_items if r.get("user_id") and str(r.get("user_id")) != str(api.user_id)
+    ]
     if other_only:
         target_id = other_only[0]["id"]
         resp = await api.raw_get(f"/reports/{target_id}")
-        record("Cannot read other user's report",
-               resp.status_code == 404,
-               f"status={resp.status_code} (should be 404)")
+        record(
+            "Cannot read other user's report",
+            resp.status_code == 404,
+            f"status={resp.status_code} (should be 404)",
+        )
     else:
-        print(f"  {I} No foreign reports to test cross-access")
+        print(f"  {INFO_MARK} No foreign reports to test cross-access")
 
     # Try the reverse: other user reads current user's report
-    my_only = [r for r in user_items
-               if r.get("user_id") and str(r.get("user_id")) == str(api.user_id)]
+    my_only = [
+        r for r in user_items if r.get("user_id") and str(r.get("user_id")) == str(api.user_id)
+    ]
     if my_only:
         target_id = my_only[0]["id"]
         resp = await other_api.raw_get(f"/reports/{target_id}")
-        record("Other user cannot read my report",
-               resp.status_code == 404,
-               f"status={resp.status_code} (should be 404)")
+        record(
+            "Other user cannot read my report",
+            resp.status_code == 404,
+            f"status={resp.status_code} (should be 404)",
+        )
     else:
-        print(f"  {I} No own reports to test reverse isolation")
+        print(f"  {INFO_MARK} No own reports to test reverse isolation")
 
 
 # ── Main ───────────────────────────────────────────────────────────────
@@ -839,45 +983,54 @@ async def main():
 
     try:
         section("Login + Setup")
+        if not EMAIL or not PASSWORD:
+            raise ValueError("Set TEST_EMAIL and TEST_PASSWORD before running this script")
+        if not API_KEY:
+            raise ValueError("Set TEST_API_KEY before running this script")
         await api.login(EMAIL, PASSWORD)
-        print(f"  {P} Logged in as {EMAIL} (role={api.role})")
+        print(f"  {PASS_MARK} Logged in as {EMAIL} (role={api.role})")
         if not api.is_admin:
-            print(f"  {I} 普通用户模式 — report 生成需要 /reports/generate-mine 端点")
-            print(f"  {I} 如果该端点不存在，生成类测试会跳过（见 BACKEND FIX 说明）")
+            print(f"  {INFO_MARK} Regular-user mode requires the /reports/generate-mine endpoint")
+            print(f"  {INFO_MARK} Generation tests skip when that endpoint is unavailable")
 
         # Ensure API key is configured
         cfg = await api.get("/me/llm/config")
         has_provider_key = any(k.get("provider") == LLM_PROVIDER for k in cfg.get("api_keys", []))
         if not has_provider_key:
             try:
-                await api.put("/me/llm/config", {
-                    "daily_token_limit": cfg.get("daily_token_limit", 1_000_000),
-                    "cost_guard_enabled": True,
-                    "api_keys": [
-                        *[{**k, "is_default": False} for k in cfg.get("api_keys", [])],
-                        {
-                            "name": f"{LLM_PROVIDER.title()} Test",
-                            "key": API_KEY,
-                            "provider": LLM_PROVIDER,
-                            "token_limit": 1_000_000,
-                            "is_default": True,
-                        },
-                    ],
-                })
-                print(f"  {P} {LLM_PROVIDER} key added")
+                await api.put(
+                    "/me/llm/config",
+                    {
+                        "daily_token_limit": cfg.get("daily_token_limit", 1_000_000),
+                        "cost_guard_enabled": True,
+                        "api_keys": [
+                            *[{**k, "is_default": False} for k in cfg.get("api_keys", [])],
+                            {
+                                "name": f"{LLM_PROVIDER.title()} Test",
+                                "key": API_KEY,
+                                "provider": LLM_PROVIDER,
+                                "token_limit": 1_000_000,
+                                "is_default": True,
+                            },
+                        ],
+                    },
+                )
+                print(f"  {PASS_MARK} {LLM_PROVIDER} key added")
             except httpx.HTTPStatusError as e:
-                print(f"  {W} Failed to add key: {e.response.status_code}")
+                print(f"  {WARN_MARK} Failed to add key: {e.response.status_code}")
         else:
-            print(f"  {I} {LLM_PROVIDER} key exists")
+            print(f"  {INFO_MARK} {LLM_PROVIDER} key exists")
 
         # Optional: login other account for isolation
         if OTHER_EMAIL and OTHER_PASSWORD:
             other_api = API()
             try:
                 await other_api.login(OTHER_EMAIL, OTHER_PASSWORD)
-                print(f"  {P} Other account logged in: {OTHER_EMAIL} (role={other_api.role})")
+                print(
+                    f"  {PASS_MARK} Other account logged in: {OTHER_EMAIL} (role={other_api.role})"
+                )
             except Exception as e:
-                print(f"  {W} Other account login failed: {e}")
+                print(f"  {WARN_MARK} Other account login failed: {e}")
                 await other_api.close()
                 other_api = None
 
@@ -900,33 +1053,33 @@ async def main():
         failed = sum(1 for _, p, _ in results if not p)
 
         if failed:
-            print(f"\n  Failed tests:")
+            print("\n  Failed tests:")
             for name, p, detail in results:
                 if not p:
-                    print(f"    {F} {name}: {detail}")
+                    print(f"    {FAIL_MARK} {name}: {detail}")
 
         print(f"\n  Total: {len(results)}  Passed: {passed}  Failed: {failed}")
-        print(f"  {'🎉 All passed!' if failed == 0 else f'{W} {failed} failed'}")
+        print(f"  {'🎉 All passed!' if failed == 0 else f'{WARN_MARK} {failed} failed'}")
 
         # Warn about backend fix if needed
         needs_fix = any("BACKEND FIX" in detail for _, _, detail in results)
         if needs_fix and not api.is_admin:
-            print(f"\n{'='*64}")
-            print(f"  📋 BACKEND FIX NEEDED FOR USER-LEVEL REPORT GENERATION")
-            print(f"{'='*64}")
-            print(f"  修改 sigma-backend/app/api/v1/routes/reports.py")
-            print(f"  在 generate_report_endpoint 后面添加:\n")
-            print(f'    @router.post("/generate-mine", status_code=202)')
-            print(f"    async def generate_user_report(")
-            print(f"        payload: ManualReportGenerateRequest,")
-            print(f"        current_user: User = Depends(get_current_user),")
-            print(f'    ) -> dict[str, str]:')
-            print(f'        asyncio.create_task(_generate_report_task(payload, current_user.id))')
-            print(f'        return {{"status": "accepted"}}')
+            print(f"\n{'=' * 64}")
+            print("  BACKEND FIX NEEDED FOR USER-LEVEL REPORT GENERATION")
+            print(f"{'=' * 64}")
+            print("  Modify sigma-backend/app/api/v1/routes/reports.py")
+            print("  Add this after generate_report_endpoint:\n")
+            print('    @router.post("/generate-mine", status_code=202)')
+            print("    async def generate_user_report(")
+            print("        payload: ManualReportGenerateRequest,")
+            print("        current_user: User = Depends(get_current_user),")
+            print("    ) -> dict[str, str]:")
+            print("        asyncio.create_task(_generate_report_task(payload, current_user.id))")
+            print('        return {"status": "accepted"}')
             print()
 
     except Exception as e:
-        print(f"\n  {F} Fatal: {e}")
+        print(f"\n  {FAIL_MARK} Fatal: {e}")
         traceback.print_exc()
     finally:
         await api.close()
@@ -948,23 +1101,30 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    if args.email:         EMAIL = args.email
-    if args.password:      PASSWORD = args.password
-    if args.api_key:       API_KEY = args.api_key
-    if args.provider:      LLM_PROVIDER = args.provider
-    if args.other_email:   OTHER_EMAIL = args.other_email
-    if args.other_password: OTHER_PASSWORD = args.other_password
-    if args.base_url:      BASE_URL = args.base_url
+    if args.email:
+        EMAIL = args.email
+    if args.password:
+        PASSWORD = args.password
+    if args.api_key:
+        API_KEY = args.api_key
+    if args.provider:
+        LLM_PROVIDER = args.provider
+    if args.other_email:
+        OTHER_EMAIL = args.other_email
+    if args.other_password:
+        OTHER_PASSWORD = args.other_password
+    if args.base_url:
+        BASE_URL = args.base_url
     asyncio.run(main())
 
 
 # ══════════════════════════════════════════════════════════════════════
-# BACKEND FIX — 让普通用户能调用 report 生成
+# BACKEND FIX - Allow regular users to generate reports
 # ══════════════════════════════════════════════════════════════════════
 #
 # 文件: sigma-backend/app/api/v1/routes/reports.py
 #
-# 在现有 generate_report_endpoint 函数后面添加:
+# Add this after the existing generate_report_endpoint function:
 #
 #   @router.post("/generate-mine", status_code=status.HTTP_202_ACCEPTED)
 #   async def generate_user_report(
@@ -975,8 +1135,8 @@ if __name__ == "__main__":
 #       asyncio.create_task(_generate_report_task(payload, current_user.id))
 #       return {"status": "accepted"}
 #
-# 为什么只需要加这一个端点就够了:
-#   - report_generator._load_items() 已经按 user_id 过滤 data source
-#   - report_generator._resolve_report_llm_runtime() 已经读用户自己的 API key
-#   - reports.py._report_predicate() 已经按 user_id 过滤 report 列表
-#   - Report model 已有 user_id 字段，生成时自动关联
+# Why this endpoint is enough:
+#   - report_generator._load_items() already filters data sources by user_id
+#   - report_generator._resolve_report_llm_runtime() already reads the user's API key
+#   - reports.py._report_predicate() already filters report lists by user_id
+#   - Report already has a user_id field that is populated during generation
