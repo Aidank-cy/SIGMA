@@ -2208,3 +2208,18 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with backend Ruff check, backend Ruff format check, full backend pytest, and `git diff --check`.
 - Notes: Extracted repeated timeout, cache TTL, retry backoff, token lifetime, and auth header literals into named module constants while preserving behavior.
 - Timestamp: 2026-05-30T04:14:55Z
+
+### [Phase 5] Test suite alignment audit
+- Status: COMPLETE
+- Files modified: none
+- Tests: PASS with full backend pytest, per-file backend pytest sweep, and stale `market_indices`/`market_candles` import checks.
+- Notes: Test imports already target the current Phase 2 market package paths, and no misaligned constructors, mocks, or stale test modules were found.
+- Timestamp: 2026-05-30T04:25:16Z
+
+### [Phase 6] Sub-feature 6.1: Dashboard component extraction
+- Status: COMPLETE
+- Files created: sigma-frontend/src/components/dashboard/skeletons.tsx, sigma-frontend/src/components/dashboard/dashboard-news.tsx
+- Files modified: sigma-frontend/src/app/[locale]/(main)/page.tsx, sigma-frontend/src/lib/utils.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build and frontend lint.
+- Notes: Moved dashboard skeletons and category news columns out of the main page and shared the date/news sorting display helpers through `src/lib/utils.ts`.
+- Timestamp: 2026-05-30T04:25:16Z
