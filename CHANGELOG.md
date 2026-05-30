@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Changed
+- Replace inline component prop object types with named frontend interfaces.
 - Extract dashboard page skeletons, news columns, and display helpers into reusable frontend modules.
 - Extract repeated timeout, cache TTL, retry, and auth header literals into named constants.
 - Add missing SQLAlchemy foreign-key indexes and LLM usage log relationship mapping.

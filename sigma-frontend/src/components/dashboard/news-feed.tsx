@@ -18,6 +18,32 @@ const categoryGradients: Record<Category, string> = {
   technology: "from-purple-600/80 via-purple-500/60 to-purple-400/40"
 };
 
+interface NewsCardProps {
+  bookmarked: boolean;
+  index: number;
+  item: ItemSummary;
+  onToggleBookmark: (itemId: string) => void;
+}
+
+interface LoadingGridProps {
+  count?: number;
+}
+
+interface PaginationBarProps {
+  currentPage: number;
+  hasNext: boolean;
+  onPageChange: (page: number) => void;
+  totalPages: number;
+}
+
+interface FeedProps {
+  filters: ItemFilters;
+}
+
+interface NewsFeedProps extends FeedProps {
+  paginated?: boolean;
+}
+
 function inferSentiment(item: ItemSummary): Sentiment {
   const text = `${item.title} ${item.summary ?? ""}`.toLowerCase();
   if (/\b(drop|fall|risk|warning|slump|cut|loss|bear)\b/.test(text)) return "bearish";
@@ -47,12 +73,7 @@ function NewsCard({
   index,
   item,
   onToggleBookmark
-}: {
-  bookmarked: boolean;
-  index: number;
-  item: ItemSummary;
-  onToggleBookmark: (itemId: string) => void;
-}) {
+}: NewsCardProps) {
   const locale = useLocale();
   const t = useTranslations("feed");
   const ref = useRef(null);
@@ -134,7 +155,7 @@ function NewsCard({
   );
 }
 
-function LoadingGrid({ count = 6 }: { count?: number }) {
+function LoadingGrid({ count = 6 }: LoadingGridProps) {
   return (
     <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: count }).map((_, index) => (
@@ -205,12 +226,7 @@ function PaginationBar({
   hasNext,
   onPageChange,
   totalPages
-}: {
-  currentPage: number;
-  hasNext: boolean;
-  onPageChange: (page: number) => void;
-  totalPages: number;
-}) {
+}: PaginationBarProps) {
   const t = useTranslations("pagination");
   const items = getPaginationItems(currentPage, totalPages);
   const previousDisabled = currentPage === 1;
@@ -265,7 +281,7 @@ function PaginationBar({
   );
 }
 
-function InfiniteNewsFeed({ filters }: { filters: ItemFilters }) {
+function InfiniteNewsFeed({ filters }: FeedProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useItems(filters);
@@ -326,7 +342,7 @@ function InfiniteNewsFeed({ filters }: { filters: ItemFilters }) {
   );
 }
 
-function PaginatedNewsFeed({ filters }: { filters: ItemFilters }) {
+function PaginatedNewsFeed({ filters }: FeedProps) {
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const { data, isLoading } = useItemsPaginated(filters, currentPage);
@@ -378,7 +394,7 @@ function PaginatedNewsFeed({ filters }: { filters: ItemFilters }) {
   );
 }
 
-export function NewsFeed({ filters, paginated = false }: { filters: ItemFilters; paginated?: boolean }) {
+export function NewsFeed({ filters, paginated = false }: NewsFeedProps) {
   if (paginated) {
     return <PaginatedNewsFeed filters={filters} />;
   }

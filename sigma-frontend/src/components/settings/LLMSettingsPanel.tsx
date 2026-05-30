@@ -147,6 +147,18 @@ interface LLMSettingsPanelProps {
   usageData?: LLMUsageResponse;
 }
 
+interface TokenLimitInputProps {
+  disabled?: boolean;
+  label: string;
+  onChange: (value: number) => void;
+  value: number;
+}
+
+interface UsageCardProps {
+  label: string;
+  tokens: number;
+}
+
 export function LLMSettingsPanel({
   configData,
   hideSaveButton = false,
@@ -648,12 +660,7 @@ function TokenLimitInput({
   label,
   onChange,
   value
-}: {
-  disabled?: boolean;
-  label: string;
-  onChange: (value: number) => void;
-  value: number;
-}) {
+}: TokenLimitInputProps) {
   const [rawValue, setRawValue] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -700,7 +707,7 @@ function parseTokenAmount(rawValue: string): number | null {
   return Math.round(amount * multiplier);
 }
 
-function UsageCard({ label, tokens }: { label: string; tokens: number }) {
+function UsageCard({ label, tokens }: UsageCardProps) {
   const t = useTranslations("admin.llm");
 
   return (

@@ -87,6 +87,79 @@ interface ReportConfigEditorProps {
   title?: string;
 }
 
+interface ReportAdvancedSettingsModalProps {
+  activeReportFrequencies: ReportType[];
+  isOpen: boolean;
+  onClose: () => void;
+  payload: UserReportConfig;
+  setPayload: (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => void;
+}
+
+interface TimeRangeFieldsProps {
+  generationTimeError?: string;
+  maxTokensInput: ReactNode;
+  range?: ReportTimeRange;
+  reportType: ReportType;
+  setRange: (range: Partial<ReportTimeRange>) => void;
+}
+
+interface GenerationTimeInputProps {
+  error?: string;
+  onChange: (value: string) => void;
+  value: string;
+}
+
+interface GenerationDayTimeRowProps {
+  dayLabel: string;
+  dayOptions: Array<{ label: string; value: string }>;
+  dayValue: string;
+  error?: string;
+  onChange: (value: string) => void;
+  onDayChange: (value: string) => void;
+  value: string;
+}
+
+interface WeeklyRangeRowProps {
+  label: string;
+  offset: number;
+  onOffsetChange: (value: number) => void;
+  onTimeChange: (value: string) => void;
+  time: string;
+  timeLabel: string;
+}
+
+interface PreviewBoxProps {
+  value: string;
+}
+
+interface ReadOnlyTimeRangeProps {
+  label: string;
+  value: string;
+}
+
+interface ActiveReportToggleProps {
+  payload: UserReportConfig;
+  setPayload: (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => void;
+}
+
+interface FrequencyPillsProps<T extends string> {
+  compact?: boolean;
+  extraContent?: ReactNode;
+  label: string;
+  onChange: (value: T) => void;
+  options: Array<Option<T>>;
+  values: T[];
+}
+
+interface MultiSelectPillsProps<T extends string> {
+  allLabel: string;
+  compact?: boolean;
+  label: string;
+  onChange: (values: T[]) => void;
+  options: Array<Option<T>>;
+  values: T[];
+}
+
 export const ReportConfigEditor = memo(function ReportConfigEditor({
   className,
   compact = false,
@@ -229,13 +302,7 @@ function ReportAdvancedSettingsModal({
   onClose,
   payload,
   setPayload
-}: {
-  activeReportFrequencies: ReportType[];
-  isOpen: boolean;
-  onClose: () => void;
-  payload: UserReportConfig;
-  setPayload: (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => void;
-}) {
+}: ReportAdvancedSettingsModalProps) {
   const t = useTranslations("settings");
   const [draftMaxTokens, setDraftMaxTokens] = useState<Partial<Record<ReportType, string>>>({});
   const [draftTimeRanges, setDraftTimeRanges] = useState<Partial<Record<ReportType, ReportTimeRange>>>({});
@@ -400,13 +467,7 @@ function TimeRangeFields({
   range,
   reportType,
   setRange
-}: {
-  generationTimeError?: string;
-  maxTokensInput: ReactNode;
-  range?: ReportTimeRange;
-  reportType: ReportType;
-  setRange: (range: Partial<ReportTimeRange>) => void;
-}) {
+}: TimeRangeFieldsProps) {
   const t = useTranslations("settings");
 
   if (reportType === "daily_morning") {
@@ -556,11 +617,7 @@ function GenerationTimeInput({
   error,
   onChange,
   value
-}: {
-  error?: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
+}: GenerationTimeInputProps) {
   const t = useTranslations("settings");
   return (
     <Input
@@ -582,15 +639,7 @@ function GenerationDayTimeRow({
   onChange,
   onDayChange,
   value
-}: {
-  dayLabel: string;
-  dayOptions: Array<{ label: string; value: string }>;
-  dayValue: string;
-  error?: string;
-  onChange: (value: string) => void;
-  onDayChange: (value: string) => void;
-  value: string;
-}) {
+}: GenerationDayTimeRowProps) {
   const t = useTranslations("settings");
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(8rem,1fr)]">
@@ -620,14 +669,7 @@ function WeeklyRangeRow({
   onTimeChange,
   time,
   timeLabel
-}: {
-  label: string;
-  offset: number;
-  onOffsetChange: (value: number) => void;
-  onTimeChange: (value: string) => void;
-  time: string;
-  timeLabel: string;
-}) {
+}: WeeklyRangeRowProps) {
   const t = useTranslations("settings");
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
@@ -652,7 +694,7 @@ function WeeklyRangeRow({
   );
 }
 
-function PreviewBox({ value }: { value: string }) {
+function PreviewBox({ value }: PreviewBoxProps) {
   const t = useTranslations("settings");
   return (
     <div className="rounded-xl border border-border bg-card px-4 py-3">
@@ -662,7 +704,7 @@ function PreviewBox({ value }: { value: string }) {
   );
 }
 
-function ReadOnlyTimeRange({ label, value }: { label: string; value: string }) {
+function ReadOnlyTimeRange({ label, value }: ReadOnlyTimeRangeProps) {
   return (
     <div className="rounded-xl border border-border bg-card px-4 py-3">
       <p className="text-xs font-bold text-muted-foreground">{label}</p>
@@ -674,10 +716,7 @@ function ReadOnlyTimeRange({ label, value }: { label: string; value: string }) {
 function ActiveReportToggle({
   payload,
   setPayload
-}: {
-  payload: UserReportConfig;
-  setPayload: (value: UserReportConfig | ((current: UserReportConfig) => UserReportConfig)) => void;
-}) {
+}: ActiveReportToggleProps) {
   const t = useTranslations("settings");
 
   return (
@@ -699,14 +738,7 @@ function FrequencyPills<T extends string>({
   onChange,
   options,
   values
-}: {
-  compact?: boolean;
-  extraContent?: ReactNode;
-  label: string;
-  onChange: (value: T) => void;
-  options: Array<Option<T>>;
-  values: T[];
-}) {
+}: FrequencyPillsProps<T>) {
   return (
     <div className="space-y-3">
       <p className="text-sm font-bold text-foreground">{label}</p>
@@ -734,14 +766,7 @@ function MultiSelectPills<T extends string>({
   onChange,
   options,
   values
-}: {
-  allLabel: string;
-  compact?: boolean;
-  label: string;
-  onChange: (values: T[]) => void;
-  options: Array<Option<T>>;
-  values: T[];
-}) {
+}: MultiSelectPillsProps<T>) {
   return (
     <div className="space-y-3">
       <p className="text-sm font-bold text-foreground">{label}</p>

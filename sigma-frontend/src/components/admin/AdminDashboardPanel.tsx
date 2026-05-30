@@ -29,6 +29,24 @@ const TrendLine = dynamic(() => import("@/components/charts/TrendLine").then((mo
   ssr: false
 });
 
+interface DateFieldProps {
+  label: string;
+  max: string;
+  min: string;
+  onChange: (value: string) => void;
+  value: string;
+}
+
+interface StatusPillProps {
+  label: string;
+  status: string;
+}
+
+interface HealthDotProps {
+  label: string;
+  status: string;
+}
+
 export function AdminDashboardPanel() {
   const t = useTranslations("admin.dashboard");
   const logsT = useTranslations("admin.logs");
@@ -249,13 +267,7 @@ function DateField({
   min,
   onChange,
   value
-}: {
-  label: string;
-  max: string;
-  min: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
+}: DateFieldProps) {
   return (
     <Input
       className="cursor-pointer rounded-xl bg-card"
@@ -293,7 +305,7 @@ function StatCard({ icon, label, value }: StatCardProps) {
   );
 }
 
-function StatusPill({ label, status }: { label: string; status: string }) {
+function StatusPill({ label, status }: StatusPillProps) {
   return (
     <span
       className={cn(
@@ -308,7 +320,7 @@ function StatusPill({ label, status }: { label: string; status: string }) {
   );
 }
 
-function HealthDot({ label, status }: { label: string; status: string }) {
+function HealthDot({ label, status }: HealthDotProps) {
   return (
     <span className="inline-flex items-center gap-2 text-sm font-bold">
       <span

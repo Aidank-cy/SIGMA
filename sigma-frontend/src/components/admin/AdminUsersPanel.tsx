@@ -20,6 +20,17 @@ import { cn } from "@/lib/cn";
 type DetailTab = "llm" | "sources";
 const initialSaveState: AdminDetailSaveState = { isDirty: false, isSaving: false, isValid: true };
 
+interface CountBadgeProps {
+  icon: "llm" | "sources";
+  label: string;
+  onClick: () => void;
+}
+
+interface HeaderProps {
+  eyebrow: string;
+  title: string;
+}
+
 export function AdminUsersPanel() {
   const [query, setQuery] = useState("");
   const [pendingDelete, setPendingDelete] = useState<AdminUser | null>(null);
@@ -310,11 +321,7 @@ function CountBadge({
   icon,
   label,
   onClick
-}: {
-  icon: "llm" | "sources";
-  label: string;
-  onClick: () => void;
-}) {
+}: CountBadgeProps) {
   const Icon = icon === "llm" ? KeyRound : Database;
   return (
     <button
@@ -331,7 +338,7 @@ function CountBadge({
   );
 }
 
-function Header({ eyebrow, title }: { eyebrow: string; title: string }) {
+function Header({ eyebrow, title }: HeaderProps) {
   return (
     <div>
       <p className="text-sm font-bold uppercase tracking-normal text-muted-foreground">{eyebrow}</p>

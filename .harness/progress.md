@@ -2223,3 +2223,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with frontend production build and frontend lint.
 - Notes: Moved dashboard skeletons and category news columns out of the main page and shared the date/news sorting display helpers through `src/lib/utils.ts`.
 - Timestamp: 2026-05-30T04:25:16Z
+
+### [Phase 6] Sub-feature 6.2: Component prop interfaces
+- Status: COMPLETE
+- Files created: none
+- Files modified: frontend component files under `src/components`, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build and frontend lint.
+- Notes: Replaced remaining inline object prop annotations in component signatures with named props interfaces while preserving existing component exports.
+- Timestamp: 2026-05-30T04:28:22Z
