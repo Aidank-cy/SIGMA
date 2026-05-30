@@ -16,74 +16,86 @@ from app.services.report_settings import REPORT_MAX_TOKEN_TYPES
 class AdminStatsResponse(BaseModel):
     """Admin dashboard aggregate counters."""
 
-    users: int
-    sources: int
-    active_sources: int
-    items: int
-    tokens_today: int
+    model_config = ConfigDict(extra="forbid")
+
+    users: int = Field(ge=0)
+    sources: int = Field(ge=0)
+    active_sources: int = Field(ge=0)
+    items: int = Field(ge=0)
+    tokens_today: int = Field(ge=0)
 
 
 class CollectionTrendPoint(BaseModel):
     """Collection volume for a single day."""
 
+    model_config = ConfigDict(extra="forbid")
+
     day: date
-    items: int
+    items: int = Field(ge=0)
 
 
 class RecentActivityItem(BaseModel):
     """Recent collector activity row."""
 
+    model_config = ConfigDict(extra="forbid")
+
     id: UUID
     source_id: UUID
     source_name: str
     status: CollectorStatus
-    items_count: int
+    items_count: int = Field(ge=0)
     error_message: str | None
-    duration_ms: int
+    duration_ms: int = Field(ge=0)
     executed_at: datetime
 
 
 class SourceHealthItem(BaseModel):
     """Admin source health response row."""
 
+    model_config = ConfigDict(extra="forbid")
+
     source_id: UUID
-    name: str
-    source_type: str
+    name: str = Field(min_length=1, max_length=160)
+    source_type: str = Field(min_length=1, max_length=32)
     last_success: datetime | None
     rate_24h: float
-    status: str
+    status: str = Field(min_length=1, max_length=16)
 
 
 class AdminUserRead(BaseModel):
     """Admin-facing user payload."""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
 
     id: UUID
     email: EmailStr
     display_name: str
     role: UserRole
     locale: UserLocale
-    data_retention_days: int
+    data_retention_days: int = Field(ge=1)
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    llm_key_count: int = 0
-    source_count: int = 0
+    llm_key_count: int = Field(default=0, ge=0)
+    source_count: int = Field(default=0, ge=0)
 
 
 class AdminUserListResponse(BaseModel):
     """Paginated admin user list."""
 
-    page: int
-    page_size: int
-    total: int
+    model_config = ConfigDict(extra="forbid")
+
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1, le=100)
+    total: int = Field(ge=0)
     has_next: bool
     items: list[AdminUserRead]
 
 
 class AdminUserUpdate(BaseModel):
     """Admin user mutation payload."""
+
+    model_config = ConfigDict(extra="forbid")
 
     role: UserRole | None = None
     is_active: bool | None = None
@@ -125,9 +137,11 @@ class AdminUserReportConfigUpdate(BaseModel):
 class AdminLogListResponse(BaseModel):
     """Paginated collector log list."""
 
-    page: int
-    page_size: int
-    total: int
+    model_config = ConfigDict(extra="forbid")
+
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1, le=100)
+    total: int = Field(ge=0)
     has_next: bool
     success_rate: float
     items: list[RecentActivityItem]

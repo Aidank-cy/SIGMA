@@ -147,9 +147,8 @@ async def delete_admin_user(db: AsyncSession, user_id: UUID, current_admin_id: U
 
 async def _admin_user_read(db: AsyncSession, user: User, source_count: int = 0) -> AdminUserRead:
     llm_config = await get_llm_config(db, user.id)
-    return AdminUserRead.model_validate(
-        {
-            **user.__dict__,
+    return AdminUserRead.model_validate(user).model_copy(
+        update={
             "llm_key_count": len(llm_config.api_keys),
             "source_count": source_count,
         }

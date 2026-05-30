@@ -34,7 +34,7 @@ class WatchlistRead(WatchlistBase):
     user_id: UUID
     created_at: datetime
     updated_at: datetime
-    item_count: int = 0
+    item_count: int = Field(default=0, ge=0)
 
 
 class WatchlistListResponse(BaseModel):
@@ -54,8 +54,8 @@ class WatchlistStatsResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    matches_today: int
-    bullish_pct: int
+    matches_today: int = Field(ge=0)
+    bullish_pct: int = Field(ge=0, le=100)
 
 
 class WatchlistTrendDay(BaseModel):
@@ -64,7 +64,7 @@ class WatchlistTrendDay(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     date: date
-    count: int
+    count: int = Field(ge=0)
 
 
 class WatchlistTrendResponse(BaseModel):

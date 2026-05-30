@@ -11,6 +11,8 @@ from app.models.enums import IntelligenceCategory, Market, SourceType
 class DataSourceBase(BaseModel):
     """Common data source fields."""
 
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(min_length=1, max_length=160)
     source_type: SourceType
     category: IntelligenceCategory
@@ -52,7 +54,7 @@ class DataSourceUpdate(BaseModel):
 class DataSourceRead(DataSourceBase):
     """Data source response payload."""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
 
     id: UUID
     is_system: bool
@@ -64,9 +66,11 @@ class DataSourceRead(DataSourceBase):
 class SourceListResponse(BaseModel):
     """Paginated source list response."""
 
-    page: int
-    page_size: int
-    total: int
+    model_config = ConfigDict(extra="forbid")
+
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1, le=100)
+    total: int = Field(ge=0)
     has_next: bool
     items: list[DataSourceRead]
 
@@ -74,11 +78,15 @@ class SourceListResponse(BaseModel):
 class SourcePreviewResponse(BaseModel):
     """Source test collection preview response."""
 
+    model_config = ConfigDict(extra="forbid")
+
     items: list[dict[str, Any]]
 
 
 class SourceStatusResponse(BaseModel):
     """Source operational status response."""
+
+    model_config = ConfigDict(extra="forbid")
 
     last_status: str | None = None
     last_error: str | None = None

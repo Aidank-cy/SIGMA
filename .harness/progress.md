@@ -2184,3 +2184,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with frontend production build, frontend lint, requested `any` grep, and `git diff --check`.
 - Notes: Verified strict TypeScript was already enabled, added explicit hook return types and hook JSDoc comments, and confirmed `src/lib` plus `src/hooks` remain free of `any` annotations.
 - Timestamp: 2026-05-30T04:05:59Z
+
+### [Phase 4] Sub-feature 4.1: Pydantic schema audit
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend schemas, sigma-backend/app/services/admin_service.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with backend Ruff check, backend Ruff format check, focused admin API tests, and full backend pytest.
+- Notes: Confirmed no inner Pydantic `Config` classes remain, tightened response/update schema configs and numeric/string constraints, and switched admin user serialization away from raw SQLAlchemy `__dict__` payloads.
+- Timestamp: 2026-05-30T04:09:45Z

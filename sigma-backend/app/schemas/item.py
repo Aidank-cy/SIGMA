@@ -60,8 +60,8 @@ class ItemListResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    page: int
-    page_size: int
-    total: int
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1, le=100)
+    total: int = Field(ge=0)
     has_next: bool
     items: list[MinimalItem] | list[ItemSummary]
