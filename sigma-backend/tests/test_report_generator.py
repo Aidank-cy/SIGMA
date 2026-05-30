@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
@@ -111,12 +111,12 @@ async def test_report_generator_uses_map_reduce_for_large_sets(
         ),
         (
             ReportType.WEEKLY,
-            datetime(2026, 5, 27, 9, 0, tzinfo=timezone.utc),
+            datetime(2026, 5, 27, 9, 0, tzinfo=UTC),
             "27/05/2026 Weekly Report",
         ),
         (
             ReportType.MONTHLY,
-            datetime(2026, 5, 27, 9, 0, tzinfo=timezone.utc),
+            datetime(2026, 5, 27, 9, 0, tzinfo=UTC),
             "05/2026 Monthly Report",
         ),
     ],
@@ -423,6 +423,6 @@ def _item(source: DataSource, title: str) -> CollectedItem:
         summary=f"{title} summary",
         category=IntelligenceCategory.FINANCE,
         market=Market.US,
-        published_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        published_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )

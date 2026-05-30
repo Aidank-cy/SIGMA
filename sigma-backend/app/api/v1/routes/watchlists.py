@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -33,13 +33,19 @@ async def list_watchlists(
 ) -> WatchlistListResponse:
     """Return the current user's watchlists."""
     rows = await db.scalars(
-        select(Watchlist).where(Watchlist.user_id == current_user.id).order_by(Watchlist.created_at.asc())
+        select(Watchlist)
+        .where(Watchlist.user_id == current_user.id)
+        .order_by(Watchlist.created_at.asc())
     )
     watchlists = list(rows)
     items: list[WatchlistRead] = []
     for watchlist in watchlists:
-        total = await db.scalar(select(func.count()).select_from(CollectedItem).where(*_item_predicate(watchlist)))
-        items.append(WatchlistRead.model_validate(watchlist).model_copy(update={"item_count": total or 0}))
+        total = await db.scalar(
+            select(func.count()).select_from(CollectedItem).where(*_item_predicate(watchlist))
+        )
+        items.append(
+            WatchlistRead.model_validate(watchlist).model_copy(update={"item_count": total or 0})
+        )
     return WatchlistListResponse(items=items)
 
 
@@ -128,12 +134,17 @@ async def get_watchlist_stats(
     """Return dashboard stats for one watchlist."""
     watchlist = await _owned_watchlist(db, current_user, watchlist_id)
     predicate = _item_predicate(watchlist)
-    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    since = datetime.now(UTC) - timedelta(hours=24)
     matches_today = await db.scalar(
-        select(func.count()).select_from(CollectedItem).where(*predicate, CollectedItem.published_at >= since)
+        select(func.count())
+        .select_from(CollectedItem)
+        .where(*predicate, CollectedItem.published_at >= since)
     )
     rows = await db.scalars(
-        select(CollectedItem).where(*predicate).order_by(CollectedItem.published_at.desc()).limit(100)
+        select(CollectedItem)
+        .where(*predicate)
+        .order_by(CollectedItem.published_at.desc())
+        .limit(100)
     )
     sentiments = [_sentiment_for_item(item) for item in rows]
     bullish_pct = round((sentiments.count("bullish") / len(sentiments)) * 100) if sentiments else 50
@@ -148,9 +159,9 @@ async def get_watchlist_trend(
 ) -> WatchlistTrendResponse:
     """Return seven days of watchlist match counts."""
     watchlist = await _owned_watchlist(db, current_user, watchlist_id)
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     start = today - timedelta(days=6)
-    start_at = datetime.combine(start, datetime.min.time(), timezone.utc)
+    start_at = datetime.combine(start, datetime.min.time(), UTC)
     rows = await db.execute(
         select(func.date(CollectedItem.published_at).label("day"), func.count().label("count"))
         .where(*_item_predicate(watchlist), CollectedItem.published_at >= start_at)
@@ -160,7 +171,10 @@ async def get_watchlist_trend(
     counts = {datetime.fromisoformat(str(row.day)).date(): int(row.count) for row in rows}
     return WatchlistTrendResponse(
         days=[
-            WatchlistTrendDay(date=start + timedelta(days=offset), count=counts.get(start + timedelta(days=offset), 0))
+            WatchlistTrendDay(
+                date=start + timedelta(days=offset),
+                count=counts.get(start + timedelta(days=offset), 0),
+            )
             for offset in range(7)
         ]
     )
@@ -186,7 +200,9 @@ def _payload(payload: WatchlistCreate | WatchlistUpdate) -> dict[str, object]:
 def _item_predicate(watchlist: Watchlist) -> list[object]:
     predicate: list[object] = []
     if watchlist.sources:
-        predicate.append(CollectedItem.source_id.in_([UUID(str(source)) for source in watchlist.sources]))
+        predicate.append(
+            CollectedItem.source_id.in_([UUID(str(source)) for source in watchlist.sources])
+        )
     if watchlist.markets:
         predicate.append(CollectedItem.market.in_(watchlist.markets))
     if watchlist.keywords:
@@ -194,7 +210,9 @@ def _item_predicate(watchlist: Watchlist) -> list[object]:
         predicate.append(
             or_(
                 *[
-                    or_(CollectedItem.title.ilike(pattern), CollectedItem.content_raw.ilike(pattern))
+                    or_(
+                        CollectedItem.title.ilike(pattern), CollectedItem.content_raw.ilike(pattern)
+                    )
                     for pattern in patterns
                 ]
             )

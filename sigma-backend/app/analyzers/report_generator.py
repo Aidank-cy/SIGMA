@@ -1,7 +1,7 @@
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
-import logging
+from datetime import UTC, date, datetime, time
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -186,14 +186,16 @@ async def _resolve_report_llm_runtime(
             api_keys = api_keys_config.value if isinstance(api_keys_config.value, list) else []
             if not api_keys:
                 LOGGER.warning(
-                    "Skipping report generation for user %s because no LLM API keys are configured.",
+                    "Skipping report generation for user %s because no LLM API keys "
+                    "are configured.",
                     user_id,
                 )
                 return None
             selected_key = _select_report_api_key(api_keys)
             if selected_key is None:
                 LOGGER.warning(
-                    "Skipping report generation for user %s because no valid LLM API keys are configured.",
+                    "Skipping report generation for user %s because no valid LLM API keys "
+                    "are configured.",
                     user_id,
                 )
                 return None
@@ -208,7 +210,8 @@ async def _resolve_report_llm_runtime(
             )
             if not has_system_key:
                 LOGGER.warning(
-                    "Skipping report generation for user %s: no user API keys and no system API keys configured.",
+                    "Skipping report generation for user %s: no user API keys and no "
+                    "system API keys configured.",
                     user_id,
                 )
                 return None
@@ -281,14 +284,14 @@ def _normalize_provider(provider: object) -> str | None:
 
 def _period_start_datetime(value: date | datetime) -> datetime:
     if isinstance(value, datetime):
-        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-    return datetime.combine(value, time.min, tzinfo=timezone.utc)
+        return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return datetime.combine(value, time.min, tzinfo=UTC)
 
 
 def _period_end_datetime(value: date | datetime) -> datetime:
     if isinstance(value, datetime):
-        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-    return datetime.combine(value, time.max, tzinfo=timezone.utc)
+        return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return datetime.combine(value, time.max, tzinfo=UTC)
 
 
 def _report_title(report_type: ReportType, period_end: datetime) -> str:

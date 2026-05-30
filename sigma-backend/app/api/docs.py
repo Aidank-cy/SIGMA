@@ -11,12 +11,24 @@ OPENAPI_TAGS = [
     {"name": "Items", "description": "Collected intelligence item feeds and details."},
     {"name": "Sources", "description": "User-visible data source management and source testing."},
     {"name": "Watchlists", "description": "Per-user watchlists and filtered intelligence feeds."},
-    {"name": "Reports", "description": "Generated intelligence reports and manual report generation."},
-    {"name": "UserSettings", "description": "Profile, retention, password, and report preferences."},
+    {
+        "name": "Reports",
+        "description": "Generated intelligence reports and manual report generation.",
+    },
+    {
+        "name": "UserSettings",
+        "description": "Profile, retention, password, and report preferences.",
+    },
     {"name": "Admin/Dashboard", "description": "Admin dashboard statistics and health telemetry."},
     {"name": "Admin/Users", "description": "Admin user search, role management, and deactivation."},
-    {"name": "Admin/Sources", "description": "Admin source creation, preview, logs, and lifecycle controls."},
-    {"name": "Admin/LLM", "description": "Admin LLM provider, model, cost guard, and usage controls."},
+    {
+        "name": "Admin/Sources",
+        "description": "Admin source creation, preview, logs, and lifecycle controls.",
+    },
+    {
+        "name": "Admin/LLM",
+        "description": "Admin LLM provider, model, cost guard, and usage controls.",
+    },
     {"name": "Admin/Logs", "description": "Admin collector log search and success-rate reporting."},
     {"name": "Health", "description": "Service health checks."},
 ]
@@ -36,7 +48,9 @@ def install_openapi_schema(app: FastAPI) -> None:
         schema = get_openapi(
             title=settings.app_name,
             version=settings.app_version,
-            description="SIGMA stock intelligence API for frontend and external system consumption.",
+            description=(
+                "SIGMA stock intelligence API for frontend and external system consumption."
+            ),
             routes=app.routes,
             tags=OPENAPI_TAGS,
         )

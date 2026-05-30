@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
@@ -423,7 +423,7 @@ async def _seed_admin_dashboard_data(client: TestClient) -> str:
         max_execution_seconds=60,
         is_active=True,
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with session_factory() as db:
         db.add(source)
         db.add_all(
@@ -472,7 +472,7 @@ async def _seed_admin_llm_usage(client: TestClient) -> None:
                 function_type=LLMFunctionType.REPORT,
                 input_tokens=150,
                 output_tokens=25,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
         )
         await db.commit()
@@ -503,18 +503,18 @@ async def _seed_admin_logs_data(client: TestClient) -> str:
         is_active=True,
     )
     timestamps = [
-        datetime(2026, 1, 5, 12, tzinfo=timezone.utc),
-        datetime(2026, 1, 4, 12, tzinfo=timezone.utc),
-        datetime(2026, 1, 3, 12, tzinfo=timezone.utc),
-        datetime(2026, 1, 2, 12, tzinfo=timezone.utc),
-        datetime(2026, 1, 1, 12, tzinfo=timezone.utc),
-        datetime(2025, 12, 31, 12, tzinfo=timezone.utc),
-        datetime(2025, 12, 30, 12, tzinfo=timezone.utc),
-        datetime(2025, 12, 29, 12, tzinfo=timezone.utc),
-        datetime(2025, 12, 28, 12, tzinfo=timezone.utc),
-        datetime(2025, 12, 27, 12, tzinfo=timezone.utc),
-        datetime(2025, 12, 26, 12, tzinfo=timezone.utc),
-        datetime(2025, 12, 25, 12, tzinfo=timezone.utc),
+        datetime(2026, 1, 5, 12, tzinfo=UTC),
+        datetime(2026, 1, 4, 12, tzinfo=UTC),
+        datetime(2026, 1, 3, 12, tzinfo=UTC),
+        datetime(2026, 1, 2, 12, tzinfo=UTC),
+        datetime(2026, 1, 1, 12, tzinfo=UTC),
+        datetime(2025, 12, 31, 12, tzinfo=UTC),
+        datetime(2025, 12, 30, 12, tzinfo=UTC),
+        datetime(2025, 12, 29, 12, tzinfo=UTC),
+        datetime(2025, 12, 28, 12, tzinfo=UTC),
+        datetime(2025, 12, 27, 12, tzinfo=UTC),
+        datetime(2025, 12, 26, 12, tzinfo=UTC),
+        datetime(2025, 12, 25, 12, tzinfo=UTC),
     ]
     logs = [
         _collector_log(source_a.id, CollectorStatus.SUCCESS, timestamps[0]),
@@ -537,7 +537,7 @@ async def _seed_admin_logs_data(client: TestClient) -> str:
 async def _seed_user_source_dependents(client: TestClient, source_id: str) -> None:
     session_factory = client.app.state.session_factory
     source_uuid = UUID(source_id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with session_factory() as db:
         db.add(
             CollectorLog(

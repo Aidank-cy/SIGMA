@@ -32,7 +32,9 @@ def test_weak_password_is_rejected(client: TestClient) -> None:
 
 def test_invalid_bearer_token_is_rejected_on_public_api(client: TestClient) -> None:
     """Public routes reject malformed bearer credentials when supplied."""
-    response = client.get("/api/v1/items", headers={"Authorization": "Bearer invalid-garbage-token"})
+    response = client.get(
+        "/api/v1/items", headers={"Authorization": "Bearer invalid-garbage-token"}
+    )
 
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid token"}
@@ -44,11 +46,19 @@ def test_non_admin_cannot_access_admin_dashboard(client: TestClient) -> None:
     """The Layer 4 admin dashboard route rejects non-admin users."""
     client.post(
         "/api/v1/auth/register",
-        json={"email": "admin-owner@example.com", "password": "StrongPass1", "display_name": "Admin"},
+        json={
+            "email": "admin-owner@example.com",
+            "password": "StrongPass1",
+            "display_name": "Admin",
+        },
     )
     client.post(
         "/api/v1/auth/register",
-        json={"email": "regular-user@example.com", "password": "StrongPass1", "display_name": "User"},
+        json={
+            "email": "regular-user@example.com",
+            "password": "StrongPass1",
+            "display_name": "User",
+        },
     )
     login_response = client.post(
         "/api/v1/auth/login",
@@ -131,7 +141,11 @@ def test_source_config_strips_script_tags(client: TestClient) -> None:
 def _token(client: TestClient) -> str:
     register_response = client.post(
         "/api/v1/auth/register",
-        json={"email": "security-admin@example.com", "password": "StrongPass1", "display_name": "Admin"},
+        json={
+            "email": "security-admin@example.com",
+            "password": "StrongPass1",
+            "display_name": "Admin",
+        },
     )
     assert register_response.status_code == 201
     login_response = client.post(

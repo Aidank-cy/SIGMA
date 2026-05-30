@@ -327,15 +327,21 @@ def test_request_password_reset_returns_200(client: TestClient, monkeypatch) -> 
     monkeypatch.setattr(auth_routes, "send_verification_email", fake_send)
     register_user(client, "reset@example.com")
 
-    response = client.post("/api/v1/auth/request-password-reset", json={"email": "reset@example.com"})
-    missing_response = client.post("/api/v1/auth/request-password-reset", json={"email": "missing@example.com"})
+    response = client.post(
+        "/api/v1/auth/request-password-reset", json={"email": "reset@example.com"}
+    )
+    missing_response = client.post(
+        "/api/v1/auth/request-password-reset", json={"email": "missing@example.com"}
+    )
 
     assert response.status_code == 200
     assert response.json() == {"message": "verification code sent"}
     assert missing_response.status_code == 200
     assert "pwd_reset:reset@example.com" in redis.values
     assert "pwd_reset:missing@example.com" not in redis.values
-    assert sent == [("reset@example.com", redis.values["pwd_reset:reset@example.com"], "password_reset")]
+    assert sent == [
+        ("reset@example.com", redis.values["pwd_reset:reset@example.com"], "password_reset")
+    ]
 
 
 def test_request_password_reset_returns_dev_code_when_email_is_not_delivered(
@@ -351,7 +357,9 @@ def test_request_password_reset_returns_dev_code_when_email_is_not_delivered(
     monkeypatch.setattr(auth_routes, "send_verification_email", fake_send)
     register_user(client, "reset-dev@example.com")
 
-    response = client.post("/api/v1/auth/request-password-reset", json={"email": "reset-dev@example.com"})
+    response = client.post(
+        "/api/v1/auth/request-password-reset", json={"email": "reset-dev@example.com"}
+    )
 
     assert response.status_code == 200
     assert response.json() == {
@@ -491,7 +499,9 @@ def test_verify_correct_code_returns_token(client: TestClient, monkeypatch) -> N
     client.post("/api/v1/auth/request-password-reset", json={"email": "verify@example.com"})
     code = redis.values["pwd_reset:verify@example.com"]
 
-    response = client.post("/api/v1/auth/verify-reset-code", json={"email": "verify@example.com", "code": code})
+    response = client.post(
+        "/api/v1/auth/verify-reset-code", json={"email": "verify@example.com", "code": code}
+    )
 
     assert response.status_code == 200
     payload = response.json()

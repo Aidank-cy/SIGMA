@@ -9,8 +9,8 @@ from app.models.enums import (
     UserLocale,
     UserRole,
 )
-from app.services.report_settings import REPORT_MAX_TOKEN_TYPES
 from app.schemas.user_settings import ReportTimeRange, validate_report_time_ranges
+from app.services.report_settings import REPORT_MAX_TOKEN_TYPES
 
 
 class AdminStatsResponse(BaseModel):

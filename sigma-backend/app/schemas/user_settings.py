@@ -186,7 +186,10 @@ def validate_report_time_ranges(value: dict[str, ReportTimeRange]) -> None:
     for key, time_range in value.items():
         if key not in allowed:
             raise ValueError(f"Unsupported report time range key: {key}")
-        if time_range.generation_time is not None and _parse_hhmm(time_range.generation_time) is None:
+        if (
+            time_range.generation_time is not None
+            and _parse_hhmm(time_range.generation_time) is None
+        ):
             raise ValueError("Report generation time must use HH:mm format")
         if key == ReportType.WEEKLY.value:
             _validate_weekly_time_range(time_range)

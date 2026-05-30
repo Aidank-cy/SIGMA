@@ -46,7 +46,9 @@ PASSWORD_RESET_TOKEN_SECONDS = 5 * 60
 REGISTRATION_TTL_SECONDS = 10 * 60
 
 
-@router.post("/register", response_model=UserRegistrationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserRegistrationResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(
     payload: UserCreate,
     response: Response,
@@ -55,7 +57,9 @@ async def register(
     """Register a user, promoting the first account to admin, and issue JWT credentials."""
     user = await _create_user(payload, db)
     token = _issue_tokens(user, response)
-    return UserRegistrationResponse(**UserResponse.model_validate(user).model_dump(), **token.model_dump())
+    return UserRegistrationResponse(
+        **UserResponse.model_validate(user).model_dump(), **token.model_dump()
+    )
 
 
 @router.post(
@@ -95,7 +99,11 @@ async def request_registration_code(
     return MessageResponse(message="verification code sent", dev_code=dev_code)
 
 
-@router.post("/verify-registration", response_model=UserRegistrationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/verify-registration",
+    response_model=UserRegistrationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def verify_registration(
     payload: RegistrationCodeVerify,
     response: Response,
@@ -115,7 +123,9 @@ async def verify_registration(
         or stored_payload is None
         or not hmac.compare_digest(str(stored_code), payload.code)
     ):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code"
+        )
 
     registration_payload = RegistrationCodeRequest.model_validate(json.loads(str(stored_payload)))
     user = await _create_user(registration_payload, db)
@@ -125,7 +135,9 @@ async def verify_registration(
     finally:
         await client.aclose()
     token = _issue_tokens(user, response)
-    return UserRegistrationResponse(**UserResponse.model_validate(user).model_dump(), **token.model_dump())
+    return UserRegistrationResponse(
+        **UserResponse.model_validate(user).model_dump(), **token.model_dump()
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -137,7 +149,11 @@ async def login(
     """Authenticate a user and return JWT credentials."""
     email = str(payload.email).lower()
     user = await db.scalar(select(User).where(User.email == email))
-    if user is None or not user.is_active or not verify_password(payload.password, user.hashed_password):
+    if (
+        user is None
+        or not user.is_active
+        or not verify_password(payload.password, user.hashed_password)
+    ):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     return _issue_tokens(user, response)
@@ -150,7 +166,9 @@ async def refresh_token(
 ) -> TokenResponse:
     """Refresh an access token from the httpOnly cookie."""
     if refresh_token_cookie is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token"
+        )
 
     try:
         payload = decode_token(refresh_token_cookie)
@@ -158,11 +176,15 @@ async def refresh_token(
             raise JWTError("Unexpected token type")
         user_id = UUID(str(payload["sub"]))
     except (KeyError, ValueError, JWTError) as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token") from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        ) from exc
 
     user = await db.scalar(select(User).where(User.id == user_id))
     if user is None or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive or missing user")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive or missing user"
+        )
 
     return TokenResponse(
         access_token=create_access_token(user.id, user.role, user.email),
@@ -211,11 +233,15 @@ async def verify_reset_code(
     finally:
         await client.aclose()
     if stored_code is None or not hmac.compare_digest(str(stored_code), payload.code):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code"
+        )
 
     user = await db.scalar(select(User).where(User.email == email))
     if user is None or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid verification code"
+        )
 
     return PasswordResetTokenResponse(
         reset_token=create_password_reset_token(user.id, user.email),
@@ -236,7 +262,9 @@ async def reset_password(
         user_id = UUID(str(token_payload["sub"]))
         email = str(token_payload["email"]).lower()
     except (KeyError, ValueError, JWTError) as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid reset token") from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid reset token"
+        ) from exc
 
     user = await db.scalar(select(User).where(User.id == user_id, User.email == email))
     if user is None or not user.is_active:
@@ -276,7 +304,9 @@ async def _create_user(payload: UserCreate, db: AsyncSession) -> User:
     if existing_user is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    admin_count = await db.scalar(select(func.count()).select_from(User).where(User.role == UserRole.ADMIN))
+    admin_count = await db.scalar(
+        select(func.count()).select_from(User).where(User.role == UserRole.ADMIN)
+    )
     role = UserRole.ADMIN if admin_count == 0 else UserRole.USER
     user = User(
         email=email,

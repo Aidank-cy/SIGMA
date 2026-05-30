@@ -32,9 +32,7 @@ class APICollector(BaseCollector):
         endpoint = str(self.config.get("endpoint", ""))
         base_url = self.config.get("base_url")
         url = (
-            urljoin(str(base_url).rstrip("/") + "/", endpoint.lstrip("/"))
-            if base_url
-            else endpoint
+            urljoin(str(base_url).rstrip("/") + "/", endpoint.lstrip("/")) if base_url else endpoint
         )
         method = str(self.config.get("method", "GET")).upper()
         base_params = self._resolve_env_values(dict(self.config.get("params") or {}))
@@ -54,7 +52,9 @@ class APICollector(BaseCollector):
             request_kwargs: dict[str, Any] = {"headers": headers}
             if params:
                 request_kwargs["params"] = params
-            response = await self._request_with_rate_limit_backoff(client, method, url, request_kwargs)
+            response = await self._request_with_rate_limit_backoff(
+                client, method, url, request_kwargs
+            )
             response.raise_for_status()
             payload = response.json()
             response_path = self.config.get("response_path") or self.config.get("items_path")
@@ -99,7 +99,9 @@ class APICollector(BaseCollector):
             link = self._extract_path(entry, "link")
             press_release = self._extract_path(entry, "press_release")
             release_id = self._extract_path(entry, "release_id")
-            realtime_start = self._extract_path(entry, "realtime_start") or self._extract_path(entry, "date")
+            realtime_start = self._extract_path(entry, "realtime_start") or self._extract_path(
+                entry, "date"
+            )
             realtime_end = self._extract_path(entry, "realtime_end")
             parts = [title]
             if realtime_start:
@@ -140,10 +142,17 @@ class APICollector(BaseCollector):
     def _default_field_mapping(entry: dict[str, Any]) -> dict[str, Any]:
         return {
             "title": "title",
-            "content": next((key for key in ("description", "content", "summary", "body") if key in entry), "title"),
+            "content": next(
+                (key for key in ("description", "content", "summary", "body") if key in entry),
+                "title",
+            ),
             "content_url": next((key for key in ("link", "url", "source_url") if key in entry), ""),
             "published_at": next(
-                (key for key in ("pubDate", "published_at", "publishedAt", "date", "created_at") if key in entry),
+                (
+                    key
+                    for key in ("pubDate", "published_at", "publishedAt", "date", "created_at")
+                    if key in entry
+                ),
                 "",
             ),
         }

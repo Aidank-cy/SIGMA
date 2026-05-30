@@ -1,6 +1,6 @@
-from collections import Counter
-from datetime import datetime, timedelta, timezone
 import re
+from collections import Counter
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -10,7 +10,12 @@ from app.database import get_db
 from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
 from app.models.enums import CollectorStatus
-from app.schemas.stats import LastCollectionResponse, SentimentStatsResponse, TrendingKeyword, TrendingKeywordsResponse
+from app.schemas.stats import (
+    LastCollectionResponse,
+    SentimentStatsResponse,
+    TrendingKeyword,
+    TrendingKeywordsResponse,
+)
 
 router = APIRouter()
 
@@ -121,11 +126,13 @@ STOP_WORDS = {
 
 
 @router.get("/sentiment", response_model=SentimentStatsResponse)
-async def get_sentiment_stats(days: int = 0, db: AsyncSession = Depends(get_db)) -> SentimentStatsResponse:
+async def get_sentiment_stats(
+    days: int = 0, db: AsyncSession = Depends(get_db)
+) -> SentimentStatsResponse:
     """Return bullish percentage across recent summarized items."""
     query = select(CollectedItem).where(CollectedItem.summary.is_not(None))
     if days > 0:
-        since = datetime.now(timezone.utc) - timedelta(days=days)
+        since = datetime.now(UTC) - timedelta(days=days)
         query = query.where(CollectedItem.published_at >= since)
     rows = await db.scalars(query.order_by(CollectedItem.published_at.desc()).limit(200))
     sentiments = [_sentiment_for_item(item) for item in rows]
@@ -136,9 +143,11 @@ async def get_sentiment_stats(days: int = 0, db: AsyncSession = Depends(get_db))
 
 
 @router.get("/trending-keywords", response_model=TrendingKeywordsResponse)
-async def get_trending_keywords(days: int = 1, db: AsyncSession = Depends(get_db)) -> TrendingKeywordsResponse:
+async def get_trending_keywords(
+    days: int = 1, db: AsyncSession = Depends(get_db)
+) -> TrendingKeywordsResponse:
     """Return top keyword mentions from the selected recent window."""
-    since = datetime.now(timezone.utc) - timedelta(days=max(days, 1))
+    since = datetime.now(UTC) - timedelta(days=max(days, 1))
     rows = await db.scalars(
         select(CollectedItem)
         .where(CollectedItem.published_at >= since)
@@ -149,7 +158,10 @@ async def get_trending_keywords(days: int = 1, db: AsyncSession = Depends(get_db
     for item in rows:
         counts.update(_keywords_for_item(item))
     return TrendingKeywordsResponse(
-        items=[TrendingKeyword(keyword=keyword, count=count) for keyword, count in counts.most_common(5)]
+        items=[
+            TrendingKeyword(keyword=keyword, count=count)
+            for keyword, count in counts.most_common(5)
+        ]
     )
 
 
@@ -163,7 +175,7 @@ async def get_last_collection(db: AsyncSession = Depends(get_db)) -> LastCollect
         .limit(1)
     )
     if last_success and last_success.tzinfo is None:
-        last_success = last_success.replace(tzinfo=timezone.utc)
+        last_success = last_success.replace(tzinfo=UTC)
     return LastCollectionResponse(last_success=last_success.isoformat() if last_success else None)
 
 
@@ -202,7 +214,11 @@ def _keywords_for_item(item: CollectedItem) -> list[str]:
         if token[:1].isupper() and len(token) >= 3:
             phrase_tokens = [token]
             cursor = index + 1
-            while cursor < len(raw_tokens) and raw_tokens[cursor][:1].isupper() and len(raw_tokens[cursor]) >= 3:
+            while (
+                cursor < len(raw_tokens)
+                and raw_tokens[cursor][:1].isupper()
+                and len(raw_tokens[cursor]) >= 3
+            ):
                 phrase_tokens.append(raw_tokens[cursor])
                 cursor += 1
             if len(phrase_tokens) >= 2:

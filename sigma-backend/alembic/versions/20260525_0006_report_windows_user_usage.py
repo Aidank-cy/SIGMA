@@ -7,10 +7,10 @@ Create Date: 2026-05-25
 
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
 
 revision: str = "20260525_0006"
 down_revision: str | None = "20260524_0005"
@@ -72,7 +72,9 @@ def upgrade() -> None:
                 ["user_id"],
                 ["id"],
             )
-    op.create_index("ix_llm_usage_logs_user_id_created_at", "llm_usage_logs", ["user_id", "created_at"])
+    op.create_index(
+        "ix_llm_usage_logs_user_id_created_at", "llm_usage_logs", ["user_id", "created_at"]
+    )
 
 
 def downgrade() -> None:

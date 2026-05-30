@@ -28,7 +28,9 @@ def test_items_http_list_pagination_filters_formats_and_detail(client: TestClien
     assert page_one["total"] == 8
     assert page_one["has_next"] is True
     assert page_two["page"] == 2
-    assert {item["id"] for item in page_one["items"]}.isdisjoint({item["id"] for item in page_two["items"]})
+    assert {item["id"] for item in page_one["items"]}.isdisjoint(
+        {item["id"] for item in page_two["items"]}
+    )
 
     finance = client.get("/api/v1/items?category=finance").json()
     assert finance["total"] == 5
@@ -47,13 +49,23 @@ def test_items_http_list_pagination_filters_formats_and_detail(client: TestClien
 
     date_to = (seeded["base"] - timedelta(days=2)).isoformat()
     to_filtered = client.get("/api/v1/items", params={"date_to": date_to}).json()
-    assert all(_parse_dt(item["published_at"]) <= seeded["base"] - timedelta(days=2) for item in to_filtered["items"])
+    assert all(
+        _parse_dt(item["published_at"]) <= seeded["base"] - timedelta(days=2)
+        for item in to_filtered["items"]
+    )
 
     range_to = (seeded["base"] - timedelta(days=1)).isoformat()
-    range_filtered = client.get("/api/v1/items", params={"date_from": date_to, "date_to": range_to}).json()
-    assert {item["title"] for item in range_filtered["items"]} == {"China AI policy", "Bank stock earnings"}
+    range_filtered = client.get(
+        "/api/v1/items", params={"date_from": date_to, "date_to": range_to}
+    ).json()
+    assert {item["title"] for item in range_filtered["items"]} == {
+        "China AI policy",
+        "Bank stock earnings",
+    }
 
-    since_filtered = client.get("/api/v1/items", params={"since": (seeded["base"] - timedelta(days=3)).isoformat()}).json()
+    since_filtered = client.get(
+        "/api/v1/items", params={"since": (seeded["base"] - timedelta(days=3)).isoformat()}
+    ).json()
     assert {item["title"] for item in since_filtered["items"]} == {
         "AI stock rally",
         "China AI policy",
@@ -66,7 +78,10 @@ def test_items_http_list_pagination_filters_formats_and_detail(client: TestClien
     assert {item["title"] for item in keyword["items"]} == {"AI stock rally", "China AI policy"}
 
     combined = client.get("/api/v1/items?category=finance&market=us&keyword=stock").json()
-    assert {item["title"] for item in combined["items"]} == {"AI stock rally", "Bank stock earnings"}
+    assert {item["title"] for item in combined["items"]} == {
+        "AI stock rally",
+        "Bank stock earnings",
+    }
 
     multi_category = client.get("/api/v1/items?category=finance,technology").json()
     assert multi_category["total"] == 7
@@ -89,7 +104,9 @@ def test_items_http_list_pagination_filters_formats_and_detail(client: TestClien
     assert detail["sentiment"] == "bullish"
     assert detail["keywords"] == ["ai", "stocks"]
     assert detail["related"]
-    assert all(item["category"] == "finance" and item["market"] == "us" for item in detail["related"])
+    assert all(
+        item["category"] == "finance" and item["market"] == "us" for item in detail["related"]
+    )
 
     missing = client.get(f"/api/v1/items/{uuid4()}")
     assert missing.status_code == 404
@@ -116,16 +133,84 @@ async def _seed_items_async(client: TestClient) -> dict[str, object]:
     source_cn = _source("Items CN Source", IntelligenceCategory.TECHNOLOGY, Market.CN)
 
     items = [
-        _item(source_us, "AI stock rally", IntelligenceCategory.FINANCE, Market.US, base, 8, "AI stock rally content"),
-        _item(source_cn, "China AI policy", IntelligenceCategory.TECHNOLOGY, Market.CN, base - timedelta(days=1), 7, "AI policy content"),
-        _item(source_us, "Bank stock earnings", IntelligenceCategory.FINANCE, Market.US, base - timedelta(days=2), 6, "Bank stock content"),
-        _item(source_us, "Macro inflation risk", IntelligenceCategory.MACRO, Market.US, base - timedelta(days=3), 5, "Inflation content"),
-        _item(source_cn, "Consumer finance update", IntelligenceCategory.FINANCE, Market.CN, base - timedelta(days=4), 4, "Consumer finance"),
-        _item(source_us, "Energy credit outlook", IntelligenceCategory.FINANCE, Market.US, base - timedelta(days=5), 3, "Energy credit"),
-        _item(source_cn, "Chip export rules", IntelligenceCategory.TECHNOLOGY, Market.CN, base - timedelta(days=6), 2, "Chip exports"),
-        _item(source_us, "Dividend desk note", IntelligenceCategory.FINANCE, Market.US, base - timedelta(days=7), 1, "Dividend note"),
+        _item(
+            source_us,
+            "AI stock rally",
+            IntelligenceCategory.FINANCE,
+            Market.US,
+            base,
+            8,
+            "AI stock rally content",
+        ),
+        _item(
+            source_cn,
+            "China AI policy",
+            IntelligenceCategory.TECHNOLOGY,
+            Market.CN,
+            base - timedelta(days=1),
+            7,
+            "AI policy content",
+        ),
+        _item(
+            source_us,
+            "Bank stock earnings",
+            IntelligenceCategory.FINANCE,
+            Market.US,
+            base - timedelta(days=2),
+            6,
+            "Bank stock content",
+        ),
+        _item(
+            source_us,
+            "Macro inflation risk",
+            IntelligenceCategory.MACRO,
+            Market.US,
+            base - timedelta(days=3),
+            5,
+            "Inflation content",
+        ),
+        _item(
+            source_cn,
+            "Consumer finance update",
+            IntelligenceCategory.FINANCE,
+            Market.CN,
+            base - timedelta(days=4),
+            4,
+            "Consumer finance",
+        ),
+        _item(
+            source_us,
+            "Energy credit outlook",
+            IntelligenceCategory.FINANCE,
+            Market.US,
+            base - timedelta(days=5),
+            3,
+            "Energy credit",
+        ),
+        _item(
+            source_cn,
+            "Chip export rules",
+            IntelligenceCategory.TECHNOLOGY,
+            Market.CN,
+            base - timedelta(days=6),
+            2,
+            "Chip exports",
+        ),
+        _item(
+            source_us,
+            "Dividend desk note",
+            IntelligenceCategory.FINANCE,
+            Market.US,
+            base - timedelta(days=7),
+            1,
+            "Dividend note",
+        ),
     ]
-    items[0].summary = '{"summary":"AI stock rally summary","sentiment":"bullish","keywords":["ai","stocks"]}'
+    items[
+        0
+    ].summary = (
+        '{"summary":"AI stock rally summary","sentiment":"bullish","keywords":["ai","stocks"]}'
+    )
     items[-1].collected_at = base + timedelta(hours=1)
 
     async with session_factory() as db:
@@ -134,7 +219,12 @@ async def _seed_items_async(client: TestClient) -> dict[str, object]:
         for item in items:
             await db.refresh(item)
 
-    return {"base": base, "source_us": str(source_us.id), "source_cn": str(source_cn.id), "target_item": str(items[0].id)}
+    return {
+        "base": base,
+        "source_us": str(source_us.id),
+        "source_cn": str(source_cn.id),
+        "target_item": str(items[0].id),
+    }
 
 
 def _source(name: str, category: IntelligenceCategory, market: Market) -> DataSource:

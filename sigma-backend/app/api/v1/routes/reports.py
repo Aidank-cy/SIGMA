@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -21,6 +21,7 @@ from app.schemas.report import (
 )
 
 router = APIRouter()
+BACKGROUND_TASKS: set[asyncio.Task[None]] = set()
 
 
 @router.get("", response_model=ReportListResponse)
@@ -92,7 +93,10 @@ async def generate_report_endpoint(
     admin: User = Depends(require_role(UserRole.ADMIN)),
 ) -> dict[str, str]:
     """Queue manual report generation."""
-    asyncio.create_task(_generate_report_task(payload, admin.id))
+    task = asyncio.create_task(_generate_report_task(payload, admin.id))
+    if hasattr(task, "add_done_callback"):
+        BACKGROUND_TASKS.add(task)
+        task.add_done_callback(BACKGROUND_TASKS.discard)
     return {"status": "accepted"}
 
 
@@ -106,7 +110,10 @@ async def generate_user_report(
     Uses the caller's own API key and only their visible data sources
     (system sources + sources they created).
     """
-    asyncio.create_task(_generate_report_task(payload, current_user.id))
+    task = asyncio.create_task(_generate_report_task(payload, current_user.id))
+    if hasattr(task, "add_done_callback"):
+        BACKGROUND_TASKS.add(task)
+        task.add_done_callback(BACKGROUND_TASKS.discard)
     return {"status": "accepted"}
 
 
@@ -148,7 +155,7 @@ def _report_predicate(
     if market:
         predicate.append(Report.market_scope.contains([market]))
     if date_from:
-        predicate.append(Report.period_end >= datetime.combine(date_from, time.min, tzinfo=timezone.utc))
+        predicate.append(Report.period_end >= datetime.combine(date_from, time.min, tzinfo=UTC))
     if date_to:
-        predicate.append(Report.period_start <= datetime.combine(date_to, time.max, tzinfo=timezone.utc))
+        predicate.append(Report.period_start <= datetime.combine(date_to, time.max, tzinfo=UTC))
     return predicate

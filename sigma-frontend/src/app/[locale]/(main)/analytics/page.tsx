@@ -307,39 +307,46 @@ export default function AnalyticsPage() {
   const [selectedReport, setSelectedReport] = useState<ReportSummary | null>(null)
   const [reportPage, setReportPage] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [liveTick, setLiveTick] = useState(0)
+  const [currentTime, setCurrentTime] = useState(() => Date.now())
   const rangeDays = useMemo(() => timeRangeDays[timeRange] ?? 7, [timeRange])
   const dateFrom = useMemo(() => {
-    const date = new Date()
+    const date = new Date(currentTime)
     if (rangeDays <= 1) {
       date.setHours(date.getHours() - 24)
     } else {
       date.setDate(date.getDate() - rangeDays)
     }
     return date.toISOString()
-  }, [liveTick, rangeDays])
+  }, [currentTime, rangeDays])
   const dataFetchFrom = useMemo(() => {
-    const date = new Date()
+    const date = new Date(currentTime)
     if (rangeDays <= 1) {
       date.setHours(date.getHours() - 48)
     } else {
       date.setDate(date.getDate() - rangeDays * 2)
     }
     return date.toISOString()
-  }, [liveTick, rangeDays])
+  }, [currentTime, rangeDays])
   const sentiment = useSentimentStats(rangeDays)
   const keywords = useTrendingKeywords(rangeDays)
   const itemQuery = useItems({ date_from: dataFetchFrom, page_size: 500 })
   const reportsQuery = useReports(undefined, 50)
-  const items = useMemo(() => itemQuery.data?.pages.flatMap((page) => page.items) ?? [], [itemQuery.data])
+  const {
+    data: itemData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    mutate: mutateItems
+  } = itemQuery
+  const { mutate: mutateSentiment } = sentiment
+  const items = useMemo(() => itemData?.pages.flatMap((page) => page.items) ?? [], [itemData])
   const rangeItems = useMemo(() => {
     const startTime = new Date(dateFrom).getTime()
-    const now = Date.now()
     return items.filter((item) => {
       const publishedAt = new Date(item.published_at).getTime()
-      return publishedAt >= startTime && publishedAt <= now
+      return publishedAt >= startTime && publishedAt <= currentTime
     })
-  }, [dateFrom, items, liveTick])
+  }, [currentTime, dateFrom, items])
   const reports = useMemo(() => {
     const all = reportsQuery.data?.pages.flatMap((page) => page.items) ?? []
     return all.sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
@@ -358,19 +365,19 @@ export default function AnalyticsPage() {
   }, [reports.length])
 
   useEffect(() => {
-    if (itemQuery.hasNextPage && !itemQuery.isFetchingNextPage) {
-      void itemQuery.fetchNextPage()
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage()
     }
-  }, [itemQuery.data?.pages.length, itemQuery.fetchNextPage, itemQuery.hasNextPage, itemQuery.isFetchingNextPage])
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, itemData?.pages.length])
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setLiveTick((current) => current + 1)
-      itemQuery.mutate()
-      sentiment.mutate()
+      setCurrentTime(Date.now())
+      mutateItems()
+      mutateSentiment()
     }, 60_000)
     return () => window.clearInterval(interval)
-  }, [itemQuery.mutate, sentiment.mutate])
+  }, [mutateItems, mutateSentiment])
 
   const sentimentData = useMemo(() => {
     const itemSentiments = rangeItems.map(inferSentiment)
@@ -393,7 +400,7 @@ export default function AnalyticsPage() {
   }, [rangeItems])
   const bullishValue = currentWindowSentiment.sentiment
   const trendData = useMemo(() => {
-    const now = new Date()
+    const now = new Date(currentTime)
     const windowMs = rangeDays <= 1 ? 24 * 60 * 60 * 1000 : rangeDays * 24 * 60 * 60 * 1000
     const numPoints = rangeDays <= 1 ? 24 : rangeDays <= 7 ? 28 : rangeDays <= 14 ? 28 : 30
     const labelFormatter =
@@ -421,7 +428,7 @@ export default function AnalyticsPage() {
         total
       }
     })
-  }, [items, liveTick, locale, rangeDays])
+  }, [currentTime, items, locale, rangeDays])
   const trendChange = useMemo(() => {
     const withData = trendData.filter((point) => point.total > 0)
     if (withData.length < 2) {

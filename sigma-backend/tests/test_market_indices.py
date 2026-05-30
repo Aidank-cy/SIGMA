@@ -9,8 +9,7 @@ from app.api.v1.routes.market_indices import list_market_indices
 from app.scheduler.engine import add_market_indices_job, scheduler
 from app.scheduler.jobs import refresh_market_indices_job
 from app.schemas.market import MarketIndex, MarketIndicesResponse, TradingHours, TradingSession
-from app.services import market_candles
-from app.services import market_indices
+from app.services import market_candles, market_indices
 
 
 @pytest.fixture(autouse=True)
@@ -20,7 +19,9 @@ def skip_pg_integrity_check(monkeypatch: pytest.MonkeyPatch) -> None:
     market_indices._yahoo_meta_cache.clear()
 
 
-def test_market_indices_http_response_shape(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_market_indices_http_response_shape(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Market-indices endpoint returns timestamped index quotes with sparkline data."""
 
     async def fake_market_indices() -> MarketIndicesResponse:
@@ -78,7 +79,9 @@ def test_market_indices_http_response_shape(client: TestClient, monkeypatch: pyt
 
 
 @pytest.mark.asyncio
-async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_market_indices_endpoint_returns_supported_indices(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Market indices endpoint returns all configured global indices."""
     cache: dict[str, str] = {}
 
@@ -116,7 +119,9 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
     monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
     monkeypatch.setattr(market_indices.asyncio, "sleep", fake_sleep)
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC)
+    )
 
     response = await list_market_indices()
 
@@ -149,8 +154,13 @@ async def test_market_indices_endpoint_returns_supported_indices(monkeypatch: py
     assert spx.trading_hours.beijing_sessions[0].close == "04:00"
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["symbol"] == "SPX"
     assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["currency"] == "USD"
-    assert market_indices.decode_cached_payload(cache["payload"])["indices"][0]["is_fallback_data"] is True
-    assert "sparkline_ranges" in market_indices.decode_cached_payload(cache["payload"])["indices"][0]
+    assert (
+        market_indices.decode_cached_payload(cache["payload"])["indices"][0]["is_fallback_data"]
+        is True
+    )
+    assert (
+        "sparkline_ranges" in market_indices.decode_cached_payload(cache["payload"])["indices"][0]
+    )
 
 
 def test_market_trading_hours_are_timezone_aware() -> None:
@@ -195,7 +205,9 @@ async def test_finnhub_index_quote_does_not_use_proxy_when_direct_index_misses(
 
 
 @pytest.mark.asyncio
-async def test_index_quote_uses_fallback_provider_after_configured_providers_miss(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_index_quote_uses_fallback_provider_after_configured_providers_miss(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Global indices can refresh from Stooq when Yahoo cache and Finnhub miss."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
 
@@ -217,7 +229,9 @@ async def test_index_quote_uses_fallback_provider_after_configured_providers_mis
 
 
 @pytest.mark.asyncio
-async def test_index_quote_uses_yahoo_meta_cache_before_network_providers(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_index_quote_uses_yahoo_meta_cache_before_network_providers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Quote resolution is Yahoo-first when the chart fetch cached meta data."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     calls: list[str] = []
@@ -333,7 +347,9 @@ async def test_build_index_discards_us_etf_level_quote(
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
     monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
     monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
+    )
     caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
 
     index = await market_indices._build_index(spx)
@@ -371,7 +387,9 @@ async def test_build_index_sanitizes_etf_level_previous_close(
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
     monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
     monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
+    )
     caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
 
     index = await market_indices._build_index(spx)
@@ -388,9 +406,17 @@ async def test_build_index_sanitizes_etf_level_previous_close(
 def test_market_cache_ttl_shortens_during_trading() -> None:
     """Market-index cache freshness uses a shorter TTL during live sessions."""
     assert market_indices._market_cache_ttl_seconds(datetime(2026, 5, 18, 14, 0, tzinfo=UTC)) == 15
-    assert market_indices._market_cache_ttl_seconds(datetime(2026, 5, 18, 22, 30, tzinfo=UTC)) == 120
-    assert market_indices._market_cache_expiration_seconds(datetime(2026, 5, 18, 14, 0, tzinfo=UTC)) == 300
-    assert market_indices._market_cache_expiration_seconds(datetime(2026, 5, 18, 22, 30, tzinfo=UTC)) == 300
+    assert (
+        market_indices._market_cache_ttl_seconds(datetime(2026, 5, 18, 22, 30, tzinfo=UTC)) == 120
+    )
+    assert (
+        market_indices._market_cache_expiration_seconds(datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+        == 300
+    )
+    assert (
+        market_indices._market_cache_expiration_seconds(datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
+        == 300
+    )
 
 
 @pytest.mark.asyncio
@@ -432,7 +458,9 @@ async def test_get_market_indices_returns_stale_cache_without_blocking_refresh(
 
     monkeypatch.setattr(market_indices, "_cache_get", fake_cache_get)
     monkeypatch.setattr(market_indices, "refresh_market_indices", fail_refresh)
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
+    )
 
     response = await market_indices.get_market_indices()
 
@@ -441,13 +469,16 @@ async def test_get_market_indices_returns_stale_cache_without_blocking_refresh(
 
 
 @pytest.mark.asyncio
-async def test_read_intraday_from_redis_requires_enough_points(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_read_intraday_from_redis_requires_enough_points(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Market-index refresh reads intraday points from Redis instead of providers."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 2, 0, tzinfo=UTC))
     redis_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3200.0 + offset,
         )
         for offset in range(10)
@@ -462,20 +493,24 @@ async def test_read_intraday_from_redis_requires_enough_points(monkeypatch: pyte
 
 
 @pytest.mark.asyncio
-async def test_read_intraday_from_redis_filters_previous_session(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_read_intraday_from_redis_filters_previous_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Redis candles from a previous trading day are not served as today's intraday chart."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 2, 0, tzinfo=UTC))
     redis_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3200.0 + offset,
         )
         for offset in range(30)
     ]
     redis_points.extend(
         market_indices.IntradayPoint(
-            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3300.0 + offset,
         )
         for offset in range(9)
@@ -498,7 +533,8 @@ async def test_read_intraday_from_redis_falls_back_to_pg_latest_session(
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 8, 0, tzinfo=UTC))
     pg_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=15 * offset),
+            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=15 * offset),
             3200.0 + offset,
         )
         for offset in range(10)
@@ -507,7 +543,9 @@ async def test_read_intraday_from_redis_falls_back_to_pg_latest_session(
     async def fake_get_1d(_symbol: str) -> None:
         return None
 
-    async def fake_pg_get(_symbol: str, interval: str, limit: int) -> list[market_indices.IntradayPoint]:
+    async def fake_pg_get(
+        _symbol: str, interval: str, limit: int
+    ) -> list[market_indices.IntradayPoint]:
         assert interval == "15m"
         assert limit == 100
         return pg_points
@@ -531,7 +569,8 @@ async def test_read_intraday_from_redis_falls_back_to_pg_most_recent_day(
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 25, 8, 0, tzinfo=UTC))
     pg_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 22, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=15 * offset),
+            datetime(2026, 5, 22, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=15 * offset),
             3200.0 + offset,
         )
         for offset in range(5)
@@ -539,7 +578,8 @@ async def test_read_intraday_from_redis_falls_back_to_pg_most_recent_day(
     pg_points = [
         *[
             market_indices.IntradayPoint(
-                datetime(2026, 5, 21, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=15 * offset),
+                datetime(2026, 5, 21, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+                + timedelta(minutes=15 * offset),
                 3100.0 + offset,
             )
             for offset in range(5)
@@ -569,13 +609,16 @@ async def test_read_intraday_from_redis_falls_back_to_pg_most_recent_day(
 
 
 @pytest.mark.asyncio
-async def test_read_intraday_from_redis_keeps_last_session_when_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_read_intraday_from_redis_keeps_last_session_when_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Closed markets can still serve the latest full Redis session."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 17, 4, 0, tzinfo=UTC))
     redis_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3200.0 + offset,
         )
         for offset in range(30)
@@ -594,13 +637,16 @@ async def test_read_intraday_from_redis_keeps_last_session_when_closed(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_read_intraday_from_redis_rejects_sparse_closed_session(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_read_intraday_from_redis_rejects_sparse_closed_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Closed markets still reject Redis sessions below the minimum chart point threshold."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 17, 4, 0, tzinfo=UTC))
     redis_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3200.0 + offset,
         )
         for offset in range(8)
@@ -623,14 +669,16 @@ async def test_read_intraday_from_redis_recovers_sparse_closed_session_from_5d(
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 27, 7, 0, tzinfo=UTC))
     sparse_1d = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 27, 8, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 27, 8, 0, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3000.0 + offset,
         )
         for offset in range(25)
     ]
     full_5d = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 27, 8, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 27, 8, 0, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3100.0 + offset,
         )
         for offset in range(361)
@@ -642,7 +690,9 @@ async def test_read_intraday_from_redis_recovers_sparse_closed_session_from_5d(
     async def fake_get_5d(_symbol: str) -> list[market_indices.IntradayPoint]:
         return full_5d
 
-    async def fake_pg_get(_symbol: str, _interval: str, _limit: int) -> list[market_indices.IntradayPoint]:
+    async def fake_pg_get(
+        _symbol: str, _interval: str, _limit: int
+    ) -> list[market_indices.IntradayPoint]:
         raise AssertionError("5D Redis should satisfy the closed-market fallback")
 
     monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
@@ -656,13 +706,18 @@ async def test_read_intraday_from_redis_recovers_sparse_closed_session_from_5d(
 
 
 @pytest.mark.asyncio
-async def test_read_intraday_from_redis_keeps_last_session_before_open(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_read_intraday_from_redis_keeps_last_session_before_open(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Weekday pre-open reads can still serve the latest full Redis session."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 0, 30, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 0, 30, tzinfo=UTC)
+    )
     redis_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 15, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3200.0 + offset,
         )
         for offset in range(30)
@@ -688,7 +743,8 @@ async def test_read_intraday_from_redis_keeps_closed_session_points_unfilled(
     n225 = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "N225")
     morning_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 26, 8, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 26, 8, 0, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             39000.0 + offset,
         )
         for offset in range(150)
@@ -710,8 +766,12 @@ async def test_quote_falls_back_to_redis_candle(monkeypatch: pytest.MonkeyPatch)
     """Market-index refresh can derive a last-resort quote from Redis candles."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     redis_points = [
-        market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3000.0),
-        market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 31, tzinfo=market_indices.BEIJING_TZ), 3030.0),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3000.0
+        ),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 9, 31, tzinfo=market_indices.BEIJING_TZ), 3030.0
+        ),
     ]
 
     async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
@@ -734,7 +794,8 @@ async def test_build_index_is_yahoo_free(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 2, 0, tzinfo=UTC))
     redis_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3000.0 + offset,
         )
         for offset in range(10)
@@ -778,18 +839,24 @@ async def test_build_index_is_yahoo_free(monkeypatch: pytest.MonkeyPatch) -> Non
 async def test_build_index_syncs_value_to_real_intraday_when_quote_is_stale(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Displayed values follow real Redis intraday candles when the quote has no fresher timestamp."""
+    """Displayed values follow Redis candles when the quote has no fresher timestamp."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     redis_points = [
-        market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3000.0),
-        market_indices.IntradayPoint(datetime(2026, 5, 18, 10, 30, tzinfo=market_indices.BEIJING_TZ), 3030.0),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3000.0
+        ),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 10, 30, tzinfo=market_indices.BEIJING_TZ), 3030.0
+        ),
     ]
     range_inputs: list[tuple[float, float]] = []
 
     async def fake_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
         return market_indices.IndexQuote(current=3010.0, change_pct=0.33, previous_close=3000.0)
 
-    async def fake_intraday(_config: market_indices.IndexConfig) -> list[market_indices.IntradayPoint]:
+    async def fake_intraday(
+        _config: market_indices.IndexConfig,
+    ) -> list[market_indices.IntradayPoint]:
         return redis_points
 
     async def fake_historical(
@@ -828,8 +895,12 @@ async def test_build_index_keeps_fresher_quote_over_stale_intraday(
     """Displayed values stay on timestamped live quotes when Redis intraday is older."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     redis_points = [
-        market_indices.IntradayPoint(datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3000.0),
-        market_indices.IntradayPoint(datetime(2026, 5, 18, 10, 30, tzinfo=market_indices.BEIJING_TZ), 3030.0),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 9, 30, tzinfo=market_indices.BEIJING_TZ), 3000.0
+        ),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 10, 30, tzinfo=market_indices.BEIJING_TZ), 3030.0
+        ),
     ]
     range_inputs: list[tuple[float, float]] = []
 
@@ -841,7 +912,9 @@ async def test_build_index_keeps_fresher_quote_over_stale_intraday(
             timestamp=datetime(2026, 5, 18, 10, 31, tzinfo=market_indices.BEIJING_TZ),
         )
 
-    async def fake_intraday(_config: market_indices.IndexConfig) -> list[market_indices.IntradayPoint]:
+    async def fake_intraday(
+        _config: market_indices.IndexConfig,
+    ) -> list[market_indices.IntradayPoint]:
         return redis_points
 
     async def fake_historical(
@@ -868,7 +941,9 @@ async def test_build_index_keeps_fresher_quote_over_stale_intraday(
 
 
 @pytest.mark.asyncio
-async def test_yahoo_chart_result_uses_user_agent_and_query2_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_yahoo_chart_result_uses_user_agent_and_query2_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Yahoo chart requests use the configured User-Agent and retry query2 after query1 failures."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
@@ -898,8 +973,13 @@ async def test_yahoo_chart_result_uses_user_agent_and_query2_retry(monkeypatch: 
     assert result["meta"]["regularMarketPrice"] == pytest.approx(6000.0)
     assert market_indices._yahoo_meta_cache[spx.symbol].current == pytest.approx(6000.0)
     assert market_indices._yahoo_meta_cache[spx.symbol].previous_close == pytest.approx(5900.0)
-    assert market_indices._yahoo_meta_cache[spx.symbol].change_pct == pytest.approx(100 / 5900 * 100)
-    assert [url.split("/")[2] for url in calls] == ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]
+    assert market_indices._yahoo_meta_cache[spx.symbol].change_pct == pytest.approx(
+        100 / 5900 * 100
+    )
+    assert [url.split("/")[2] for url in calls] == [
+        "query1.finance.yahoo.com",
+        "query2.finance.yahoo.com",
+    ]
     assert market_indices.YAHOO_HEADERS["User-Agent"] == "Mozilla/5.0"
 
 
@@ -935,7 +1015,9 @@ async def test_yahoo_chart_result_backs_off_on_429(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.asyncio
-async def test_yahoo_backoff_logs_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_yahoo_backoff_logs_warning(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     """Yahoo backoff skips are visible in warning logs."""
     monkeypatch.setattr(market_indices._time, "monotonic", lambda: 10.0)
     monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 70.0)
@@ -993,7 +1075,9 @@ async def test_yahoo_crumb_cancelled_error_is_suppressed(
     assert "Yahoo crumb fetch was cancelled; continuing without crumb." in caplog.text
 
 
-def test_yahoo_crumb_sync_fetches_cookie_and_crumb(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_yahoo_crumb_sync_fetches_cookie_and_crumb(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     """Yahoo crumb initialization stores the cookie jar and logs success."""
     import urllib.request
 
@@ -1030,7 +1114,10 @@ def test_yahoo_crumb_sync_fetches_cookie_and_crumb(monkeypatch: pytest.MonkeyPat
 
     market_indices._ensure_yahoo_crumb_sync()
 
-    assert opened_urls == ["https://fc.yahoo.com/", "https://query2.finance.yahoo.com/v1/test/getcrumb"]
+    assert opened_urls == [
+        "https://fc.yahoo.com/",
+        "https://query2.finance.yahoo.com/v1/test/getcrumb",
+    ]
     assert timeouts == [5, 5]
     assert market_indices._yahoo_crumb == "crumb-value"
     assert market_indices._yahoo_cookie_jar is not None
@@ -1069,7 +1156,10 @@ def test_yahoo_crumb_sync_ignores_fc_errors(monkeypatch: pytest.MonkeyPatch) -> 
 
     market_indices._ensure_yahoo_crumb_sync()
 
-    assert opened_urls == ["https://fc.yahoo.com/", "https://query2.finance.yahoo.com/v1/test/getcrumb"]
+    assert opened_urls == [
+        "https://fc.yahoo.com/",
+        "https://query2.finance.yahoo.com/v1/test/getcrumb",
+    ]
     assert market_indices._yahoo_crumb == "crumb-after-fc-error"
 
 
@@ -1131,7 +1221,9 @@ def test_yahoo_urllib_fetch_uses_cookie_jar_and_crumb(monkeypatch: pytest.Monkey
 
 
 @pytest.mark.asyncio
-async def test_refresh_market_indices_throttles_between_index_builds(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_refresh_market_indices_throttles_between_index_builds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Refresh cycles still space index builds to avoid provider bursts."""
     configs = market_indices.INDEX_CONFIGS[:3]
     sleeps: list[float] = []
@@ -1203,8 +1295,12 @@ async def test_candle_cache_round_trips_redis_points(monkeypatch: pytest.MonkeyP
 
     monkeypatch.setattr(market_candles, "create_redis_client", FakeRedis)
     points = [
-        market_indices.IntradayPoint(datetime(2026, 5, 18, 16, 0, tzinfo=market_indices.BEIJING_TZ), 6000.0),
-        market_indices.IntradayPoint(datetime(2026, 5, 19, 16, 0, tzinfo=market_indices.BEIJING_TZ), 6010.5),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 16, 0, tzinfo=market_indices.BEIJING_TZ), 6000.0
+        ),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 19, 16, 0, tzinfo=market_indices.BEIJING_TZ), 6010.5
+        ),
     ]
 
     await market_candles._redis_set_1d("SPX", points)
@@ -1219,12 +1315,18 @@ async def test_candle_cache_round_trips_redis_points(monkeypatch: pytest.MonkeyP
 
 
 @pytest.mark.asyncio
-async def test_candle_ranges_read_storage_without_yahoo_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_candle_ranges_read_storage_without_yahoo_fetch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Historical ranges only read candle storage and return empty ranges when unavailable."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     redis_points = [
-        market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 5990.0),
-        market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 31, tzinfo=market_indices.BEIJING_TZ), 6000.0),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 5990.0
+        ),
+        market_indices.IntradayPoint(
+            datetime(2026, 5, 18, 21, 31, tzinfo=market_indices.BEIJING_TZ), 6000.0
+        ),
     ]
 
     async def fake_redis_get_5d(_symbol: str) -> list[market_indices.IntradayPoint]:
@@ -1232,12 +1334,16 @@ async def test_candle_ranges_read_storage_without_yahoo_fetch(monkeypatch: pytes
 
     pg_calls: list[tuple[str, int]] = []
 
-    async def fake_pg_get(_symbol: str, interval: str, limit: int) -> list[market_indices.IntradayPoint]:
+    async def fake_pg_get(
+        _symbol: str, interval: str, limit: int
+    ) -> list[market_indices.IntradayPoint]:
         assert limit > 0
         pg_calls.append((interval, limit))
         return []
 
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 22, 30, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles, "_redis_get_5d", fake_redis_get_5d)
     monkeypatch.setattr(market_candles, "_pg_get_candles", fake_pg_get)
 
@@ -1249,12 +1355,15 @@ async def test_candle_ranges_read_storage_without_yahoo_fetch(monkeypatch: pytes
 
 
 @pytest.mark.asyncio
-async def test_candle_ranges_use_pg_15m_when_redis_5d_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_candle_ranges_use_pg_15m_when_redis_5d_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A missing Redis 5D cache can be reconstructed from PostgreSQL 15-minute candles."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     pg_15m = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=15 * offset),
+            datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=15 * offset),
             5900.0 + offset,
         )
         for offset in range(20)
@@ -1281,7 +1390,9 @@ async def test_candle_ranges_use_pg_15m_when_redis_5d_empty(monkeypatch: pytest.
 
 
 @pytest.mark.asyncio
-async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_candle_job_runs_cold_start_piece_when_history_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The independent candle job fetches one Redis 1D cold-start piece during trading."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
@@ -1289,9 +1400,15 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
     async def fake_redis_has_fresh_1d(_config: market_indices.IndexConfig) -> bool:
         return False
 
-    async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> list[market_indices.IntradayPoint]:
+    async def fake_yahoo(
+        _config: market_indices.IndexConfig, interval: str, range_: str
+    ) -> list[market_indices.IntradayPoint]:
         calls.append(f"{interval}:{range_}")
-        return [market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 6000.0)]
+        return [
+            market_indices.IntradayPoint(
+                datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 6000.0
+            )
+        ]
 
     async def fake_set_1d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
         calls.append(f"set1d:{len(points)}")
@@ -1301,8 +1418,12 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
     market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 13, 31, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 13, 31, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 13, 31, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 13, 31, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_redis_has_fresh_1d)
     monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
     monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
@@ -1317,7 +1438,7 @@ async def test_candle_job_runs_cold_start_piece_when_history_missing(monkeypatch
 async def test_candle_job_processes_pending_cold_start_symbols_in_batches(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Cold start dispatches all pending symbols and leaves Yahoo throttling to the shared semaphore."""
+    """Cold start dispatches pending symbols and leaves Yahoo throttling to the semaphore."""
     configs = tuple(market_indices.INDEX_CONFIGS[:3])
     calls: list[str] = []
 
@@ -1329,8 +1450,12 @@ async def test_candle_job_processes_pending_cold_start_symbols_in_batches(
     market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", configs)
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", configs)
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles, "_cold_start_fetch", fake_cold_start_fetch)
 
     await market_candles.candle_refresh_job()
@@ -1339,7 +1464,9 @@ async def test_candle_job_processes_pending_cold_start_symbols_in_batches(
 
 
 @pytest.mark.asyncio
-async def test_candle_job_runs_cold_start_batch_concurrently(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_candle_job_runs_cold_start_batch_concurrently(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Cold-start candle refresh can process two symbols at the same time."""
     configs = tuple(market_indices.INDEX_CONFIGS[:2])
     active = 0
@@ -1357,8 +1484,12 @@ async def test_candle_job_runs_cold_start_batch_concurrently(monkeypatch: pytest
     market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", configs)
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", configs)
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles, "_cold_start_fetch", fake_cold_start_fetch)
 
     await market_candles.candle_refresh_job()
@@ -1396,8 +1527,12 @@ async def test_candle_job_force_refetches_closed_market_once_after_yahoo_delay(
     market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 15, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 15, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 15, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 15, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_redis_has_fresh_1d)
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch)
     monkeypatch.setattr(market_candles, "_end_of_day_downsample_if_needed", fake_downsample)
@@ -1439,8 +1574,12 @@ async def test_candle_job_waits_before_closed_market_post_close_refetch(
     market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 14, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 14, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 20, 14, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 20, 14, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_redis_has_fresh_1d)
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch)
     monkeypatch.setattr(market_candles, "_end_of_day_downsample_if_needed", fake_downsample)
@@ -1483,14 +1622,16 @@ async def test_trading_fetch_backfills_sparse_1d_from_5d(monkeypatch: pytest.Mon
     calls: list[str] = []
     sparse_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 26, 10, 25, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 26, 10, 25, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3100.0 + offset,
         )
         for offset in range(6)
     ]
     full_today = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 26, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 26, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3100.0 + offset,
         )
         for offset in range(61)
@@ -1513,8 +1654,12 @@ async def test_trading_fetch_backfills_sparse_1d_from_5d(monkeypatch: pytest.Mon
     async def fake_set_1d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
         stored_lengths.append(len(points))
 
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 2, 30, tzinfo=UTC))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 2, 30, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_candles, "_now_utc", lambda: datetime(2026, 5, 26, 2, 30, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 26, 2, 30, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles, "_yahoo_fetch", fake_yahoo)
     monkeypatch.setattr(market_candles, "_redis_set_1d", fake_set_1d)
 
@@ -1525,12 +1670,15 @@ async def test_trading_fetch_backfills_sparse_1d_from_5d(monkeypatch: pytest.Mon
     assert stored_count == 61
 
 
-def test_has_intraday_gap_checks_closed_market_full_session(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_has_intraday_gap_checks_closed_market_full_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Closed markets still trigger gap backfill when cached intraday data is partial."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 26, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 26, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             4150.0 + offset,
         )
         for offset in range(20)
@@ -1545,7 +1693,9 @@ def test_has_intraday_gap_checks_closed_market_full_session(monkeypatch: pytest.
 
 
 @pytest.mark.asyncio
-async def test_fetch_and_store_1d_returns_empty_when_yahoo_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_fetch_and_store_1d_returns_empty_when_yahoo_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Yahoo 1D failures leave Redis empty instead of using ETF proxy candles."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
@@ -1576,14 +1726,17 @@ async def test_fetch_and_store_1d_discards_suspicious_candles(
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             15000.0 + offset,
         )
         for offset in range(10)
     ]
     calls: list[str] = []
 
-    async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> list[market_indices.IntradayPoint]:
+    async def fake_yahoo(
+        _config: market_indices.IndexConfig, interval: str, range_: str
+    ) -> list[market_indices.IntradayPoint]:
         calls.append(f"yahoo:{interval}:{range_}")
         return points
 
@@ -1608,14 +1761,20 @@ async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
     """Cold start fills Redis 1D/5D before PostgreSQL 15m/60m intervals."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
-    point = market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 6000.0)
+    point = market_indices.IntradayPoint(
+        datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 6000.0
+    )
     state = {"has_1d": False, "has_5d": False, "has_15m": False, "has_60m": False}
 
-    async def fake_yahoo(_config: market_indices.IndexConfig, interval: str, range_: str) -> list[market_indices.IntradayPoint]:
+    async def fake_yahoo(
+        _config: market_indices.IndexConfig, interval: str, range_: str
+    ) -> list[market_indices.IntradayPoint]:
         calls.append(f"{interval}:{range_}")
         return [point]
 
-    async def fake_upsert(_symbol: str, interval: str, points: list[market_indices.IntradayPoint]) -> None:
+    async def fake_upsert(
+        _symbol: str, interval: str, points: list[market_indices.IntradayPoint]
+    ) -> None:
         calls.append(f"upsert:{interval}:{len(points)}")
 
     async def fake_set_5d(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
@@ -1634,7 +1793,9 @@ async def test_cold_start_pieces_fill_redis_before_postgres_intervals(
     async def fake_has_interval(_symbol: str, interval: str) -> bool:
         return bool(state[f"has_{interval}"])
 
-    async def fake_set_5d_with_state(_symbol: str, points: list[market_indices.IntradayPoint]) -> None:
+    async def fake_set_5d_with_state(
+        _symbol: str, points: list[market_indices.IntradayPoint]
+    ) -> None:
         await fake_set_5d(_symbol, points)
         state["has_5d"] = True
 
@@ -1682,7 +1843,9 @@ async def test_cold_start_resets_failed_steps_when_no_data_was_stored(
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     calls: list[str] = []
 
-    async def fake_fetch_1d(_config: market_indices.IndexConfig, backfill_intraday_gap: bool = False) -> int:
+    async def fake_fetch_1d(
+        _config: market_indices.IndexConfig, backfill_intraday_gap: bool = False
+    ) -> int:
         calls.append(f"1d:{backfill_intraday_gap}")
         return 0
 
@@ -1719,16 +1882,21 @@ async def test_cold_start_resets_failed_steps_when_no_data_was_stored(
 
 
 @pytest.mark.asyncio
-async def test_redis_freshness_checks_reject_stale_candle_sets(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_redis_freshness_checks_reject_stale_candle_sets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Cold start freshness checks reject previous-session Redis leftovers."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     current_points = [
         market_indices.IntradayPoint(timestamp=timestamp, value=3100.0 + offset)
-        for offset, timestamp in enumerate(market_indices._trading_minutes(sse, datetime(2026, 5, 26).date()))
+        for offset, timestamp in enumerate(
+            market_indices._trading_minutes(sse, datetime(2026, 5, 26).date())
+        )
     ]
     stale_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 25, 9, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 25, 9, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3050.0 + offset,
         )
         for offset in range(10)
@@ -1764,7 +1932,8 @@ async def test_redis_freshness_rejects_morning_only_closed_multi_session_data(
     n225 = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "N225")
     morning_points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 26, 8, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 26, 8, 0, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             39000.0 + offset,
         )
         for offset in range(151)
@@ -1789,7 +1958,9 @@ async def test_redis_freshness_accepts_complete_closed_multi_session_data(
     n225 = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "N225")
     complete_points = [
         market_indices.IntradayPoint(timestamp=timestamp, value=39000.0 + offset)
-        for offset, timestamp in enumerate(market_indices._trading_minutes(n225, datetime(2026, 5, 26).date()))
+        for offset, timestamp in enumerate(
+            market_indices._trading_minutes(n225, datetime(2026, 5, 26).date())
+        )
     ]
 
     async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
@@ -1811,7 +1982,8 @@ async def test_redis_freshness_rejects_incomplete_closed_single_session_data(
     kospi = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "KOSPI")
     points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 26, 8, 0, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 26, 8, 0, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             3900.0 + offset,
         )
         for offset in range(30)
@@ -1836,7 +2008,9 @@ async def test_redis_freshness_accepts_high_coverage_closed_single_session_data(
     kospi = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "KOSPI")
     points = [
         market_indices.IntradayPoint(timestamp=timestamp, value=3900.0 + offset)
-        for offset, timestamp in enumerate(market_indices._trading_minutes(kospi, datetime(2026, 5, 26).date())[:360])
+        for offset, timestamp in enumerate(
+            market_indices._trading_minutes(kospi, datetime(2026, 5, 26).date())[:360]
+        )
     ]
 
     async def fake_get_1d(_symbol: str) -> list[market_indices.IntradayPoint]:
@@ -1873,8 +2047,12 @@ async def test_candle_job_health_check_resets_done_symbol_without_fresh_data(
 
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 13, 0, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 13, 0, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 13, 0, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 13, 0, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles._time, "monotonic", lambda: 1000.0)
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_has_fresh_1d)
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch_1d)
@@ -1899,7 +2077,8 @@ async def test_end_of_day_downsamples_to_fifteen_and_sixty_minute_intervals(
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(minutes=offset),
+            datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(minutes=offset),
             6000.0 + offset,
         )
         for offset in range(60)
@@ -1913,7 +2092,9 @@ async def test_end_of_day_downsamples_to_fifteen_and_sixty_minute_intervals(
         calls.append(f"has:{interval}")
         return False
 
-    async def fake_upsert(_symbol: str, interval: str, stored: list[market_indices.IntradayPoint]) -> None:
+    async def fake_upsert(
+        _symbol: str, interval: str, stored: list[market_indices.IntradayPoint]
+    ) -> None:
         calls.append(f"upsert:{interval}:{len(stored)}")
 
     async def fake_get_5d(_symbol: str) -> list[market_indices.IntradayPoint]:
@@ -1958,8 +2139,12 @@ async def test_candle_job_rate_limits_trading_fetches(monkeypatch: pytest.Monkey
     market_candles._last_health_check = 0.0
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (spx,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (spx,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles, "_pg_has_full_year", fake_has_full_year)
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch_1d)
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_has_fresh_1d)
@@ -1992,8 +2177,12 @@ async def test_candle_job_warms_pre_market_once(monkeypatch: pytest.MonkeyPatch)
     market_candles._last_health_check = market_candles._time.monotonic()
     monkeypatch.setattr(market_indices, "INDEX_CONFIGS", (sse,))
     monkeypatch.setattr(market_candles, "INDEX_CONFIGS", (sse,))
-    monkeypatch.setattr(market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 0, 45, tzinfo=UTC))
-    monkeypatch.setattr(market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 0, 45, tzinfo=UTC))
+    monkeypatch.setattr(
+        market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 0, 45, tzinfo=UTC)
+    )
+    monkeypatch.setattr(
+        market_candles, "_now_utc", lambda: datetime(2026, 5, 18, 0, 45, tzinfo=UTC)
+    )
     monkeypatch.setattr(market_candles, "_fetch_and_store_1d_1min", fake_fetch_1d)
     monkeypatch.setattr(market_candles, "_redis_has_fresh_1d", fake_has_fresh_1d)
 
@@ -2006,7 +2195,9 @@ async def test_candle_job_warms_pre_market_once(monkeypatch: pytest.MonkeyPatch)
 
 
 @pytest.mark.asyncio
-async def test_candle_job_skips_closed_market_with_fresh_redis(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_candle_job_skips_closed_market_with_fresh_redis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Closed symbols with fresh 1D data do not spend Yahoo calls."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     calls: list[str] = []
@@ -2096,7 +2287,8 @@ def test_trim_to_trading_days_uses_exchange_timezone() -> None:
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
     points = [
         market_indices.IntradayPoint(
-            datetime(2026, 5, 11, 21, 30, tzinfo=market_indices.BEIJING_TZ) + timedelta(days=offset),
+            datetime(2026, 5, 11, 21, 30, tzinfo=market_indices.BEIJING_TZ)
+            + timedelta(days=offset),
             5000.0 + offset,
         )
         for offset in range(7)
@@ -2110,17 +2302,25 @@ def test_trim_to_trading_days_uses_exchange_timezone() -> None:
 
 
 @pytest.mark.asyncio
-async def test_sparse_intraday_series_logs_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_sparse_intraday_series_logs_warning(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     """Sparse intraday provider data is visible in logs before charts flatten out."""
     spx = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SPX")
 
     async def fake_quote(_config: market_indices.IndexConfig) -> market_indices.IndexQuote:
         return market_indices.IndexQuote(current=6000.0, change_pct=1.0, previous_close=5940.0)
 
-    async def fake_intraday(_config: market_indices.IndexConfig) -> list[market_indices.IntradayPoint]:
+    async def fake_intraday(
+        _config: market_indices.IndexConfig,
+    ) -> list[market_indices.IntradayPoint]:
         return [
-            market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 5990.0),
-            market_indices.IntradayPoint(datetime(2026, 5, 18, 21, 31, tzinfo=market_indices.BEIJING_TZ), 6000.0),
+            market_indices.IntradayPoint(
+                datetime(2026, 5, 18, 21, 30, tzinfo=market_indices.BEIJING_TZ), 5990.0
+            ),
+            market_indices.IntradayPoint(
+                datetime(2026, 5, 18, 21, 31, tzinfo=market_indices.BEIJING_TZ), 6000.0
+            ),
         ]
 
     async def fake_historical(
@@ -2160,7 +2360,9 @@ async def test_refresh_job_skips_when_all_markets_closed(monkeypatch: pytest.Mon
 
 
 @pytest.mark.asyncio
-async def test_refresh_job_respects_fresh_market_index_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_refresh_job_respects_fresh_market_index_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Scheduler refreshes use normal cache freshness checks instead of forced overwrites."""
     calls: list[bool] = []
 

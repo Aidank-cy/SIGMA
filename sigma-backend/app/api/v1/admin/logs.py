@@ -40,7 +40,9 @@ async def list_admin_logs(
 
     total = await db.scalar(select(func.count()).select_from(CollectorLog).where(*predicate))
     success_total = await db.scalar(
-        select(func.count()).select_from(CollectorLog).where(
+        select(func.count())
+        .select_from(CollectorLog)
+        .where(
             *predicate,
             CollectorLog.status == CollectorStatus.SUCCESS,
         )

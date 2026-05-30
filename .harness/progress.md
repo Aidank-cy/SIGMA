@@ -2118,3 +2118,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with full backend pytest, touched backend Ruff, frontend production build, and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
 - Notes: Cut the accumulated Unreleased work as v2.0.0 because the release includes Added, Changed, Removed, and Fixed entries; aligned package/app versions and corrected the stale Qwen provider URL test expectation before tagging.
 - Timestamp: 2026-05-30T02:24:52Z
+
+### [Maintenance] Sub-feature: Lint and format baseline
+- Status: COMPLETE
+- Files modified: backend Ruff config, backend formatted Python files, frontend lint config, Next config, and hook dependency cleanup in Analytics, Admin Users, Hero Chart, and Markets indices views.
+- Tests: PASS with backend Ruff check/format check, full backend pytest, frontend lint, frontend production build, and Docker Compose config validation for local and prod files.
+- Notes: Enabled the requested Ruff rule families with a FastAPI-specific B008 ignore and SQLAlchemy-model TC003 per-file ignore, removed hardcoded defaults from the report-pipeline smoke script, added non-interactive Next ESLint config, and resolved frontend hook dependency warnings.
+- Timestamp: 2026-05-30T02:50:51Z

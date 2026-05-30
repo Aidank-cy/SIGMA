@@ -4,19 +4,22 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, time, timezone
-from typing import Any
-from uuid import UUID
+from datetime import UTC, datetime, time
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.enums import LLMFunctionType
 from app.models.llm_usage_log import LLMUsageLog
 from app.models.system_config import SystemConfig
 from app.services.llm_settings import get_default_api_key
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +134,8 @@ class LLMClient:
         if self.provider is not None:
             return LLMRuntimeConfig(
                 provider=self.provider,
-                model=self.model or DEFAULT_PROVIDER_MODELS.get(self.provider, str(settings.default_llm_model)),
+                model=self.model
+                or DEFAULT_PROVIDER_MODELS.get(self.provider, str(settings.default_llm_model)),
                 daily_token_limit=int(daily_limit),
                 api_key=self.api_key,
             )
@@ -162,7 +166,7 @@ class LLMClient:
         return default
 
     async def _check_budget(self, daily_token_limit: int, max_tokens: int) -> None:
-        start = datetime.combine(datetime.now(timezone.utc).date(), time.min, tzinfo=timezone.utc)
+        start = datetime.combine(datetime.now(UTC).date(), time.min, tzinfo=UTC)
         predicate = [LLMUsageLog.created_at >= start]
         if self.user_id is not None:
             predicate.append(LLMUsageLog.user_id == self.user_id)

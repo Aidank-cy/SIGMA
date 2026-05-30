@@ -30,7 +30,9 @@ async def list_items(
     db: AsyncSession = Depends(get_db),
 ) -> ItemListResponse:
     """Return collected items with standard pagination metadata."""
-    cache_key = _cache_key(page, page_size, since, category, market, source_id, date_from, date_to, keyword, format)
+    cache_key = _cache_key(
+        page, page_size, since, category, market, source_id, date_from, date_to, keyword, format
+    )
     cached = await _cache_get(cache_key)
     if cached:
         return ItemListResponse.model_validate_json(cached)
@@ -118,7 +120,9 @@ def _item_predicate(
         predicate.append(CollectedItem.published_at <= date_to)
     if keyword:
         pattern = f"%{keyword}%"
-        predicate.append(or_(CollectedItem.title.ilike(pattern), CollectedItem.content_raw.ilike(pattern)))
+        predicate.append(
+            or_(CollectedItem.title.ilike(pattern), CollectedItem.content_raw.ilike(pattern))
+        )
     return predicate
 
 
@@ -159,7 +163,17 @@ def _sentiment_for_item(item: CollectedItem) -> str:
         return str(summary_sentiment)
 
     text = f"{item.title} {item.summary or ''}".lower()
-    positive_terms = ("bullish", "beat", "gain", "growth", "rally", "strong", "上涨", "利好", "增长")
+    positive_terms = (
+        "bullish",
+        "beat",
+        "gain",
+        "growth",
+        "rally",
+        "strong",
+        "上涨",
+        "利好",
+        "增长",
+    )
     negative_terms = ("bearish", "decline", "fall", "loss", "risk", "weak", "下跌", "利空", "风险")
     positive = sum(1 for term in positive_terms if term in text)
     negative = sum(1 for term in negative_terms if term in text)
@@ -206,7 +220,12 @@ def _keywords_for_item(item: CollectedItem) -> list[str]:
     keywords: list[str] = []
     for token in text.replace("/", " ").replace("-", " ").split():
         normalized = token.strip(".,:;!?()[]{}\"'").lower()
-        if len(normalized) < 4 or normalized in stop_words or normalized.isnumeric() or normalized in seen:
+        if (
+            len(normalized) < 4
+            or normalized in stop_words
+            or normalized.isnumeric()
+            or normalized in seen
+        ):
             continue
         seen.add(normalized)
         keywords.append(normalized)

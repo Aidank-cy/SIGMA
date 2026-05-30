@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -46,7 +46,7 @@ async def update_llm_config(
     if next_limit != current_limit:
         if not bypass_cooldown:
             _enforce_daily_token_limit_cooldown(changed_at)
-        changed_at = datetime.now(timezone.utc)
+        changed_at = datetime.now(UTC)
         await _upsert_config(db, f"{prefix}.daily_token_limit_changed_at", changed_at.isoformat())
     await _upsert_config(db, f"{prefix}.daily_token_limit", next_limit)
     await _upsert_config(db, f"{prefix}.cost_guard_enabled", payload.cost_guard_enabled)
@@ -136,7 +136,7 @@ async def _daily_token_limit_changed_at(db: AsyncSession, user_id: UUID | None) 
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
+        return parsed.replace(tzinfo=UTC)
     return parsed
 
 
@@ -156,7 +156,7 @@ def _cooldown_remaining_seconds(changed_at: datetime | None) -> int:
     if changed_at is None:
         return 0
     expires_at = changed_at + timedelta(hours=24)
-    return max(0, int((expires_at - datetime.now(timezone.utc)).total_seconds()))
+    return max(0, int((expires_at - datetime.now(UTC)).total_seconds()))
 
 
 async def _api_keys_value(db: AsyncSession, user_id: UUID | None) -> list[LLMApiKey]:

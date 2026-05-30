@@ -110,8 +110,14 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
     previousMarketRef.current = selectedMarket;
   }, [markets, selectedMarket]);
 
-  const currentData = markets.find((market) => market.symbol === selectedMarket) ?? markets[0];
-  const chartData = currentData?.dataByRange[activeRange] ?? currentData?.data ?? [];
+  const currentData = useMemo(
+    () => markets.find((market) => market.symbol === selectedMarket) ?? markets[0],
+    [markets, selectedMarket]
+  );
+  const chartData = useMemo(
+    () => currentData?.dataByRange[activeRange] ?? currentData?.data ?? [],
+    [activeRange, currentData]
+  );
   const { changePct, changeSign, isPositive, pointChange } = calculateActiveRangeChange({
     activeRange,
     chartData,
@@ -119,9 +125,13 @@ export function HeroChart({ activeMarket, onActiveMarketChange }: HeroChartProps
     fallbackChangePct: currentData?.change ?? 0,
     previousClose: currentData?.previousClose ?? 0
   });
-  const chartSessions = currentData?.tradingHours.beijing_sessions?.length
-    ? currentData.tradingHours.beijing_sessions
-    : currentData?.tradingHours.sessions ?? [];
+  const chartSessions = useMemo(
+    () =>
+      currentData?.tradingHours.beijing_sessions?.length
+        ? currentData.tradingHours.beijing_sessions
+        : currentData?.tradingHours.sessions ?? [],
+    [currentData]
+  );
   const chartTimeZone = "Asia/Shanghai";
   const chartTicks = useMemo(
     () => buildChartTicks(activeRange, chartSessions, chartTimeZone, now, chartData),

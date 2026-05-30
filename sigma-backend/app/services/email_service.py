@@ -70,16 +70,16 @@ def _verification_email_html(intro: str, code: str) -> str:
     safe_code = escape(code)
     safe_intro = escape(intro)
     return (
-        "<div style=\"font-family:Arial,sans-serif;line-height:1.6;color:#111827;"
-        "max-width:560px;margin:0 auto;padding:24px\">"
-        "<h1 style=\"font-size:24px;margin:0 0 16px;color:#111827\">SIGMA</h1>"
-        f"<p style=\"margin:0 0 16px\">{safe_intro}</p>"
-        f"<p style=\"font-size:32px;font-weight:700;letter-spacing:6px;"
-        f"margin:20px 0;color:#111827\">{safe_code}</p>"
-        "<p style=\"margin:0 0 12px\">This code will expire in 10 minutes.</p>"
-        "<p style=\"margin:0 0 12px;color:#4b5563\">Security note: SIGMA will never ask "
+        '<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;'
+        'max-width:560px;margin:0 auto;padding:24px">'
+        '<h1 style="font-size:24px;margin:0 0 16px;color:#111827">SIGMA</h1>'
+        f'<p style="margin:0 0 16px">{safe_intro}</p>'
+        f'<p style="font-size:32px;font-weight:700;letter-spacing:6px;'
+        f'margin:20px 0;color:#111827">{safe_code}</p>'
+        '<p style="margin:0 0 12px">This code will expire in 10 minutes.</p>'
+        '<p style="margin:0 0 12px;color:#4b5563">Security note: SIGMA will never ask '
         "for this code outside the verification flow.</p>"
-        "<p style=\"margin:0;color:#4b5563\">If you did not initiate this request, "
+        '<p style="margin:0;color:#4b5563">If you did not initiate this request, '
         "please ignore this email. This code will expire in 10 minutes.</p>"
         "</div>"
     )

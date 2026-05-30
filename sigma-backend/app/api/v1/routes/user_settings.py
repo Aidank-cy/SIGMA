@@ -4,9 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.middleware.auth import get_current_user
+from app.models.enums import ReportType
 from app.models.user import User
 from app.models.user_report_config import UserReportConfig
-from app.models.enums import ReportType
 from app.schemas.auth import UserResponse
 from app.schemas.llm import LLMConfigRead, LLMConfigUpdate, LLMUsageResponse
 from app.schemas.user_settings import (
@@ -21,7 +21,11 @@ from app.schemas.user_settings import (
 from app.services.auth_service import hash_password, verify_password
 from app.services.llm_settings import (
     get_llm_config as read_llm_config,
+)
+from app.services.llm_settings import (
     get_llm_usage as read_llm_usage,
+)
+from app.services.llm_settings import (
     update_llm_config as write_llm_config,
 )
 from app.services.report_settings import (

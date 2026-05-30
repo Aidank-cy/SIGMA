@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from uuid import UUID, uuid4
 
@@ -139,7 +139,9 @@ def test_source_test_returns_preview(client: TestClient, monkeypatch) -> None:
         async def validate_config(self) -> bool:
             return True
 
-    monkeypatch.setattr("app.api.v1.routes.sources.create_collector", lambda _source: FakeCollector())
+    monkeypatch.setattr(
+        "app.api.v1.routes.sources.create_collector", lambda _source: FakeCollector()
+    )
 
     response = client.post(f"/api/v1/sources/{source_id}/test", headers=_auth(token))
 
@@ -171,7 +173,9 @@ def test_source_collect_queues_background_collection(client: TestClient, monkeyp
         return object()
 
     monkeypatch.setattr("app.api.v1.routes.sources.collect_from_source", fake_collect_from_source)
-    monkeypatch.setattr("app.api.v1.routes.sources.asyncio", SimpleNamespace(create_task=fake_create_task))
+    monkeypatch.setattr(
+        "app.api.v1.routes.sources.asyncio", SimpleNamespace(create_task=fake_create_task)
+    )
 
     response = client.post(f"/api/v1/sources/{source_id}/collect", headers=_auth(token))
 
@@ -199,7 +203,9 @@ def test_source_logs_endpoint_scopes_logs_to_visible_sources(client: TestClient)
 
     response = client.get("/api/v1/sources/logs?page=1&page_size=10", headers=_auth(owner_token))
     success_response = client.get("/api/v1/sources/logs?status=success", headers=_auth(owner_token))
-    hidden_source_response = client.get(f"/api/v1/sources/logs?source_id={other_source}", headers=_auth(owner_token))
+    hidden_source_response = client.get(
+        f"/api/v1/sources/logs?source_id={other_source}", headers=_auth(owner_token)
+    )
     unauthenticated_response = client.get("/api/v1/sources/logs")
 
     assert response.status_code == 200
@@ -279,7 +285,7 @@ async def _seed_collector_log_async(client: TestClient, source_id: str) -> None:
                 items_count=4,
                 error_message=None,
                 duration_ms=250,
-                executed_at=datetime.now(timezone.utc),
+                executed_at=datetime.now(UTC),
             )
         )
         await db.commit()
@@ -287,7 +293,7 @@ async def _seed_collector_log_async(client: TestClient, source_id: str) -> None:
 
 async def _seed_collected_item_and_log(client: TestClient, source_id: str) -> None:
     session_factory = client.app.state.session_factory
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with session_factory() as db:
         db.add_all(
             [
@@ -318,13 +324,19 @@ async def _seed_collected_item_and_log(client: TestClient, source_id: str) -> No
 async def _assert_source_dependencies_removed(client: TestClient, source_id: str) -> None:
     session_factory = client.app.state.session_factory
     async with session_factory() as db:
-        assert await db.scalar(select(CollectedItem).where(CollectedItem.source_id == UUID(source_id))) is None
-        assert await db.scalar(select(CollectorLog).where(CollectorLog.source_id == UUID(source_id))) is None
+        assert (
+            await db.scalar(select(CollectedItem).where(CollectedItem.source_id == UUID(source_id)))
+            is None
+        )
+        assert (
+            await db.scalar(select(CollectorLog).where(CollectorLog.source_id == UUID(source_id)))
+            is None
+        )
 
 
 async def _seed_collector_logs(client: TestClient, owner_source: str, other_source: str) -> None:
     session_factory = client.app.state.session_factory
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with session_factory() as db:
         db.add_all(
             [

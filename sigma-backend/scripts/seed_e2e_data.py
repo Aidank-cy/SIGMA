@@ -8,10 +8,9 @@ Run from the repository root via the frontend Playwright global setup, or manual
 from __future__ import annotations
 
 # ruff: noqa: E402
-
 import asyncio
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -41,9 +40,21 @@ from app.models.system_config import SystemConfig
 from app.models.user import User
 from app.models.user_report_config import UserReportConfig
 from app.models.watchlist import Watchlist
-from app.schemas.market import MarketIndex, MarketIndicesResponse, MarketSparkline, TradingHours, TradingSession
+from app.schemas.market import (
+    MarketIndex,
+    MarketIndicesResponse,
+    MarketSparkline,
+    TradingHours,
+    TradingSession,
+)
 from app.services.auth_service import hash_password
-from app.services.market_indices import CACHE_KEY, INDEX_CONFIGS, _is_trading, _now_utc, _sessions_to_beijing
+from app.services.market_indices import (
+    CACHE_KEY,
+    INDEX_CONFIGS,
+    _is_trading,
+    _now_utc,
+    _sessions_to_beijing,
+)
 from app.utils.redis_lock import create_redis_client
 
 PASSWORD = "StrongPass1"
@@ -74,7 +85,14 @@ async def main() -> None:
         db.add_all(_watchlists([admin.id, settings_admin.id, user.id], source.id))
         db.add_all(_logs(source.id))
         db.add_all(_llm_usage())
-        db.add(UserReportConfig(user_id=user.id, report_frequency=ReportType.DAILY, markets=["us"], categories=["finance"]))
+        db.add(
+            UserReportConfig(
+                user_id=user.id,
+                report_frequency=ReportType.DAILY,
+                markets=["us"],
+                categories=["finance"],
+            )
+        )
         await _upsert_config(db, "sigma.llm.provider", "openai")
         await _upsert_config(db, "sigma.llm.model", "gpt-4.1-mini")
         await _upsert_config(db, "sigma.llm.daily_token_limit", 100000)
@@ -91,7 +109,9 @@ async def _cleanup(db) -> None:
     )
     e2e_user_ids = list(
         await db.scalars(
-            select(User.id).where(User.email.in_([ADMIN_EMAIL, SETTINGS_ADMIN_EMAIL, USER_EMAIL, *LEGACY_EMAILS]))
+            select(User.id).where(
+                User.email.in_([ADMIN_EMAIL, SETTINGS_ADMIN_EMAIL, USER_EMAIL, *LEGACY_EMAILS])
+            )
         )
     )
     if e2e_source_ids:
@@ -101,7 +121,11 @@ async def _cleanup(db) -> None:
     if e2e_user_ids:
         await db.execute(delete(Watchlist).where(Watchlist.user_id.in_(e2e_user_ids)))
         await db.execute(delete(UserReportConfig).where(UserReportConfig.user_id.in_(e2e_user_ids)))
-        await db.execute(update(DataSource).where(DataSource.created_by.in_(e2e_user_ids)).values(created_by=None))
+        await db.execute(
+            update(DataSource)
+            .where(DataSource.created_by.in_(e2e_user_ids))
+            .values(created_by=None)
+        )
         await db.execute(delete(User).where(User.id.in_(e2e_user_ids)))
     await db.execute(delete(Report).where(Report.title.like(f"{PREFIX}%")))
     await db.execute(delete(LLMUsageLog).where(LLMUsageLog.model.in_(["gpt-e2e", "gpt-4.1-mini"])))
@@ -109,7 +133,9 @@ async def _cleanup(db) -> None:
     await db.commit()
 
 
-async def _create_user(db, email: str, display_name: str, role: UserRole, locale: UserLocale) -> User:
+async def _create_user(
+    db, email: str, display_name: str, role: UserRole, locale: UserLocale
+) -> User:
     user = User(
         email=email,
         hashed_password=hash_password(PASSWORD),
@@ -144,7 +170,7 @@ def _source(user_id: UUID) -> DataSource:
 
 
 def _items(source_id: UUID) -> list[CollectedItem]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     items: list[CollectedItem] = []
     blueprints: list[tuple[IntelligenceCategory, Market, str]] = [
         (IntelligenceCategory.FINANCE, Market.US, "E2E AI stock rally"),
@@ -162,7 +188,8 @@ def _items(source_id: UUID) -> list[CollectedItem]:
                 source_id=source_id,
                 title=title,
                 content_raw=(
-                    f"{title}. Full E2E article content with AI, stock, finance, policy, and market context. "
+                    f"{title}. Full E2E article content with AI, stock, finance, policy, "
+                    "and market context. "
                     "This paragraph gives the detail page enough body content to render."
                 ),
                 content_url=f"https://e2e.sigma.test/items/{index + 1}",
@@ -179,7 +206,7 @@ def _items(source_id: UUID) -> list[CollectedItem]:
 
 
 def _reports() -> list[Report]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     content = (
         "# E2E Market Intelligence\n\n"
         "## Executive Summary\n\n"
@@ -244,9 +271,15 @@ def _watchlists(user_ids: list[UUID], source_id: UUID) -> list[Watchlist]:
 
 
 def _logs(source_id: UUID) -> list[CollectorLog]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
-        CollectorLog(source_id=source_id, status=CollectorStatus.SUCCESS, items_count=12, duration_ms=210, executed_at=now),
+        CollectorLog(
+            source_id=source_id,
+            status=CollectorStatus.SUCCESS,
+            items_count=12,
+            duration_ms=210,
+            executed_at=now,
+        ),
         CollectorLog(
             source_id=source_id,
             status=CollectorStatus.FAIL,
@@ -267,7 +300,7 @@ def _logs(source_id: UUID) -> list[CollectorLog]:
 
 
 def _llm_usage() -> list[LLMUsageLog]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
         LLMUsageLog(
             provider="openai",
@@ -316,7 +349,10 @@ async def _seed_market_indices_cache() -> None:
                     close=config.close_time.strftime("%H:%M"),
                     timezone=config.timezone,
                     sessions=[
-                        TradingSession(open=session_open.strftime("%H:%M"), close=session_close.strftime("%H:%M"))
+                        TradingSession(
+                            open=session_open.strftime("%H:%M"),
+                            close=session_close.strftime("%H:%M"),
+                        )
                         for session_open, session_close in config.sessions
                     ],
                     beijing_sessions=_sessions_to_beijing(config),
@@ -336,7 +372,9 @@ async def _seed_market_indices_cache() -> None:
     try:
         await client.set(
             CACHE_KEY,
-            MarketIndicesResponse(indices=indices, updated_at=now + timedelta(minutes=30)).model_dump_json(),
+            MarketIndicesResponse(
+                indices=indices, updated_at=now + timedelta(minutes=30)
+            ).model_dump_json(),
             ex=3600,
         )
     finally:

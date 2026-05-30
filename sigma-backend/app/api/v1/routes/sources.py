@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -9,8 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.collectors.factory import create_collector
 from app.database import get_db
 from app.middleware.auth import get_current_user
-from app.models.collector_log import CollectorLog
 from app.models.collected_item import CollectedItem
+from app.models.collector_log import CollectorLog
 from app.models.data_source import DataSource
 from app.models.enums import CollectorStatus, UserRole
 from app.models.user import User
@@ -27,6 +27,7 @@ from app.schemas.source import (
 )
 
 router = APIRouter()
+BACKGROUND_TASKS: set[asyncio.Task[None]] = set()
 
 
 @router.get("", response_model=SourceListResponse)
@@ -154,7 +155,9 @@ async def update_source(
     """Update a source owned by the user or any source as admin."""
     source = await _get_owned_source(db, source_id, current_user)
     if source.is_system and current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="System source is protected")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="System source is protected"
+        )
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(source, key, value)
     await _validate_source(source)
@@ -176,7 +179,9 @@ async def delete_source(
     """Delete a non-system source."""
     source = await _get_owned_source(db, source_id, current_user)
     if source.is_system:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="System source is protected")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="System source is protected"
+        )
     await db.execute(delete(CollectorLog).where(CollectorLog.source_id == source_id))
     await db.execute(delete(CollectedItem).where(CollectedItem.source_id == source_id))
     await db.delete(source)
@@ -207,7 +212,10 @@ async def collect_source(
     source = await _get_owned_source(db, source_id, current_user)
     if not source.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Source is not active")
-    asyncio.create_task(collect_from_source(source_id))
+    task = asyncio.create_task(collect_from_source(source_id))
+    if hasattr(task, "add_done_callback"):
+        BACKGROUND_TASKS.add(task)
+        task.add_done_callback(BACKGROUND_TASKS.discard)
     return {"status": "queued", "source_id": str(source_id)}
 
 
@@ -225,7 +233,7 @@ async def get_source_status(
         .order_by(CollectorLog.executed_at.desc())
         .limit(1)
     )
-    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    since = datetime.now(UTC) - timedelta(hours=24)
     recent_logs = list(
         await db.scalars(
             select(CollectorLog).where(

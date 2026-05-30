@@ -1,5 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
-from typing import TypeVar
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, TypeAdapter
@@ -23,7 +22,6 @@ from app.schemas.admin import (
 from app.utils.redis_lock import create_redis_client
 
 router = APIRouter()
-TModel = TypeVar("TModel", bound=BaseModel)
 
 
 @router.get("", response_model=AdminStatsResponse)
@@ -37,8 +35,8 @@ async def get_admin_stats(
     if cached is not None:
         return cached
 
-    today = datetime.now(timezone.utc).date()
-    start = datetime.combine(today, datetime.min.time(), timezone.utc)
+    today = datetime.now(UTC).date()
+    start = datetime.combine(today, datetime.min.time(), UTC)
     end = start + timedelta(days=1)
     users = await db.scalar(select(func.count()).select_from(User))
     sources = await db.scalar(select(func.count()).select_from(DataSource))
@@ -74,17 +72,19 @@ async def get_collection_trend(
     if cached is not None:
         return cached
 
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     start = today - timedelta(days=6)
     rows = await db.execute(
         select(func.date(CollectedItem.published_at).label("day"), func.count().label("items"))
-        .where(CollectedItem.published_at >= datetime.combine(start, datetime.min.time(), timezone.utc))
+        .where(CollectedItem.published_at >= datetime.combine(start, datetime.min.time(), UTC))
         .group_by(func.date(CollectedItem.published_at))
         .order_by(func.date(CollectedItem.published_at))
     )
     counts = {date.fromisoformat(str(row.day)): int(row.items) for row in rows}
     response = [
-        CollectionTrendPoint(day=start + timedelta(days=offset), items=counts.get(start + timedelta(days=offset), 0))
+        CollectionTrendPoint(
+            day=start + timedelta(days=offset), items=counts.get(start + timedelta(days=offset), 0)
+        )
         for offset in range(7)
     ]
     await _cache_set("trend", TypeAdapter(list[CollectionTrendPoint]).dump_json(response).decode())
@@ -131,7 +131,7 @@ async def get_source_health(
 
 
 async def _source_health(db: AsyncSession, source: DataSource) -> SourceHealthItem:
-    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    since = datetime.now(UTC) - timedelta(hours=24)
     logs = list(
         await db.scalars(
             select(CollectorLog)
@@ -163,7 +163,7 @@ async def _source_health(db: AsyncSession, source: DataSource) -> SourceHealthIt
 
 
 def _health_status(is_active: bool, latest: CollectorLog | None, rate: float) -> str:
-    if not is_active or latest is not None and latest.status != CollectorStatus.SUCCESS:
+    if not is_active or (latest is not None and latest.status != CollectorStatus.SUCCESS):
         return "red"
     if latest is None or rate < 0.8:
         return "yellow"
@@ -183,14 +183,14 @@ def _activity_item(log: CollectorLog, source_name: str) -> RecentActivityItem:
     )
 
 
-async def _cache_model(key: str, model: type[TModel]) -> TModel | None:
+async def _cache_model[TModel: BaseModel](key: str, model: type[TModel]) -> TModel | None:
     value = await _cache_get(key)
     if value is None:
         return None
     return model.model_validate_json(value)
 
 
-async def _cache_list(key: str, model: type[TModel]) -> list[TModel] | None:
+async def _cache_list[TModel: BaseModel](key: str, model: type[TModel]) -> list[TModel] | None:
     value = await _cache_get(key)
     if value is None:
         return None

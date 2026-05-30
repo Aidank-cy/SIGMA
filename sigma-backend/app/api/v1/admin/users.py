@@ -139,7 +139,11 @@ async def get_admin_user_llm_usage(
     return await get_llm_usage(db, user_id)
 
 
-@router.get("/{user_id}/report-config", response_model=UserReportConfigRead, response_model_exclude_none=True)
+@router.get(
+    "/{user_id}/report-config",
+    response_model=UserReportConfigRead,
+    response_model_exclude_none=True,
+)
 async def get_admin_user_report_config(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -151,7 +155,11 @@ async def get_admin_user_report_config(
     return await _report_config_response(db, config)
 
 
-@router.put("/{user_id}/report-config", response_model=UserReportConfigRead, response_model_exclude_none=True)
+@router.put(
+    "/{user_id}/report-config",
+    response_model=UserReportConfigRead,
+    response_model_exclude_none=True,
+)
 async def update_admin_user_report_config(
     user_id: UUID,
     payload: AdminUserReportConfigUpdate,
@@ -162,7 +170,9 @@ async def update_admin_user_report_config(
     await _get_user(db, user_id)
     config = await _get_or_create_report_config(db, user_id)
     if payload.report_frequencies is not None:
-        frequencies = payload.report_frequencies or [payload.report_frequency or config.report_frequency]
+        frequencies = payload.report_frequencies or [
+            payload.report_frequency or config.report_frequency
+        ]
         config.report_frequency = frequencies[0]
         config.report_frequencies = [frequency.value for frequency in frequencies]
     elif payload.report_frequency is not None:

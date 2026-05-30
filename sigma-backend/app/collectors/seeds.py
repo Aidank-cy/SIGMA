@@ -35,7 +35,10 @@ async def _sync_existing_seed_sources(db: AsyncSession) -> None:
             await db.delete(source)
             continue
         seed_name = OBSOLETE_SEED_SOURCE_NAMES.get(source.name, source.name)
-        if source.name not in OBSOLETE_SEED_SOURCE_NAMES and seed_name not in SYNC_SEED_SOURCE_NAMES:
+        if (
+            source.name not in OBSOLETE_SEED_SOURCE_NAMES
+            and seed_name not in SYNC_SEED_SOURCE_NAMES
+        ):
             continue
         replacement = seed_sources.get(seed_name)
         if replacement is None:

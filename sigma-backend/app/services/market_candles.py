@@ -6,7 +6,8 @@ import time as _time
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, func as sa_func, select
+from sqlalchemy import delete, select
+from sqlalchemy import func as sa_func
 
 from app.database import AsyncSessionLocal
 from app.models.market_candle import MarketCandle
@@ -60,7 +61,9 @@ async def candle_refresh_job() -> None:
         try:
             await _check_pg_candle_integrity()
         except Exception as exc:
-            LOGGER.warning("PostgreSQL candle integrity check failed: %s: %s", type(exc).__name__, exc)
+            LOGGER.warning(
+                "PostgreSQL candle integrity check failed: %s: %s", type(exc).__name__, exc
+            )
         else:
             _pg_integrity_checked = True
 
@@ -81,6 +84,7 @@ async def candle_refresh_job() -> None:
             )
         )
     else:
+
         async def _process_market(config: IndexConfig) -> None:
             status = _market_status_beijing(config, now_beijing)
 
@@ -103,9 +107,13 @@ async def candle_refresh_job() -> None:
             if status == "closed":
                 if _post_close_refetch_due(config, now_beijing):
                     await _fetch_and_store_1d_1min(config, backfill_intraday_gap=True)
-                    _post_close_refetch_done[config.symbol] = _post_close_refetch_date(config, now_beijing)
+                    _post_close_refetch_done[config.symbol] = _post_close_refetch_date(
+                        config, now_beijing
+                    )
                     _last_fetch_time[config.symbol] = _now_utc()
-                elif not await _redis_has_fresh_1d(config) or _post_close_retry_due(config, now_beijing):
+                elif not await _redis_has_fresh_1d(config) or _post_close_retry_due(
+                    config, now_beijing
+                ):
                     await _fetch_and_store_1d_1min(config)
                     _last_fetch_time[config.symbol] = _now_utc()
                 await _end_of_day_downsample_if_needed(config)
@@ -114,8 +122,10 @@ async def candle_refresh_job() -> None:
         sorted_configs = sorted(
             INDEX_CONFIGS,
             key=lambda config: (
-                0 if _market_status_beijing(config, now_beijing) == "trading"
-                else 1 if _is_pre_market(config, now_beijing)
+                0
+                if _market_status_beijing(config, now_beijing) == "trading"
+                else 1
+                if _is_pre_market(config, now_beijing)
                 else 2
             ),
         )
@@ -152,12 +162,17 @@ def _is_pre_market(config: IndexConfig, now_beijing: datetime) -> bool:
 def _post_close_retry_due(config: IndexConfig, now_beijing: datetime) -> bool:
     local_now = now_beijing.astimezone(ZoneInfo(config.timezone))
     session_date = _latest_session_date(config, now_beijing)
-    close_local = datetime.combine(session_date, config.close_time, tzinfo=ZoneInfo(config.timezone))
+    close_local = datetime.combine(
+        session_date, config.close_time, tzinfo=ZoneInfo(config.timezone)
+    )
     if config.close_time <= config.open_time:
         close_local += timedelta(days=1)
 
     minutes_after_close = int((local_now - close_local).total_seconds() // 60)
-    if minutes_after_close < POST_CLOSE_RETRY_MINUTES[0] or minutes_after_close > POST_CLOSE_RETRY_WINDOW_MINUTES:
+    if (
+        minutes_after_close < POST_CLOSE_RETRY_MINUTES[0]
+        or minutes_after_close > POST_CLOSE_RETRY_WINDOW_MINUTES
+    ):
         return False
 
     stored_date, completed_slots = _post_close_retry_slots.get(config.symbol, (session_date, set()))
@@ -239,10 +254,14 @@ async def _cold_start_next_piece(config: IndexConfig, backfill_intraday_gap: boo
             )
         else:
             _cold_start_step_attempt(symbol, "1D")
-            stored_count = await _fetch_and_store_1d_1min(config, backfill_intraday_gap=backfill_intraday_gap)
+            stored_count = await _fetch_and_store_1d_1min(
+                config, backfill_intraday_gap=backfill_intraday_gap
+            )
             if stored_count:
                 _cold_start_step_reset(symbol, "1D")
-                LOGGER.info("Cold start piece: %s 1D 1min to Redis (%d points)", symbol, stored_count)
+                LOGGER.info(
+                    "Cold start piece: %s 1D 1min to Redis (%d points)", symbol, stored_count
+                )
             return
 
     if not await _redis_has_fresh_5d(config):
@@ -324,7 +343,10 @@ def _cold_start_step_attempt(symbol: str, step: str) -> int:
 
 
 def _cold_start_step_exceeded(symbol: str, step: str) -> bool:
-    return _cold_start_attempts.get(_cold_start_step_key(symbol, step), 0) >= _MAX_COLD_START_ATTEMPTS_PER_STEP
+    return (
+        _cold_start_attempts.get(_cold_start_step_key(symbol, step), 0)
+        >= _MAX_COLD_START_ATTEMPTS_PER_STEP
+    )
 
 
 def _cold_start_step_reset(symbol: str, step: str) -> None:
@@ -352,7 +374,8 @@ async def _fetch_and_store_1d_1min(config: IndexConfig, backfill_intraday_gap: b
             if len(today_points) > len(points):
                 stored_points = today_points
                 LOGGER.info(
-                    "Backfilled %s 1D candles from Yahoo 5D data after sparse 1D fetch: %d -> %d points",
+                    "Backfilled %s 1D candles from Yahoo 5D data after sparse 1D fetch: "
+                    "%d -> %d points",
                     config.symbol,
                     len(points),
                     len(today_points),
@@ -399,8 +422,7 @@ def _has_intraday_gap(
     session_date = _latest_session_date(config, now)
     zone = ZoneInfo(config.timezone)
     todays_points = [
-        point for point in points
-        if point.timestamp.astimezone(zone).date() == session_date
+        point for point in points if point.timestamp.astimezone(zone).date() == session_date
     ]
 
     if _is_trading(config, now):
@@ -442,7 +464,9 @@ async def _end_of_day_downsample_if_needed(config: IndexConfig) -> None:
     )
 
 
-async def _yahoo_fetch(config: IndexConfig, interval: str, range_: str) -> list[IntradayPoint] | None:
+async def _yahoo_fetch(
+    config: IndexConfig, interval: str, range_: str
+) -> list[IntradayPoint] | None:
     result = await _fetch_yahoo_chart_result(
         config,
         params={"includePrePost": "false", "interval": interval, "range": range_},
@@ -514,7 +538,9 @@ async def _pg_upsert_candles(symbol: str, interval: str, points: list[IntradayPo
 async def _pg_has_full_year(symbol: str) -> bool:
     async with AsyncSessionLocal() as db:
         count = await db.scalar(
-            select(sa_func.count()).where(MarketCandle.symbol == symbol, MarketCandle.interval == "60m")
+            select(sa_func.count()).where(
+                MarketCandle.symbol == symbol, MarketCandle.interval == "60m"
+            )
         )
         return (count or 0) >= 1200
 
@@ -539,7 +565,10 @@ async def _check_pg_candle_integrity() -> None:
                 count, min_value, max_value = result.one()
                 if count == 0 or min_value is None or max_value is None:
                     continue
-                if max_value > config.fallback_value * 1.8 or min_value < config.fallback_value * 0.2:
+                if (
+                    max_value > config.fallback_value * 1.8
+                    or min_value < config.fallback_value * 0.2
+                ):
                     await db.execute(
                         delete(MarketCandle).where(
                             MarketCandle.symbol == config.symbol,
@@ -547,7 +576,8 @@ async def _check_pg_candle_integrity() -> None:
                         )
                     )
                     LOGGER.warning(
-                        "Deleted %d corrupted %s candles for %s (range [%.2f, %.2f] vs expected ~%.2f)",
+                        "Deleted %d corrupted %s candles for %s "
+                        "(range [%.2f, %.2f] vs expected ~%.2f)",
                         count,
                         interval,
                         config.symbol,
@@ -561,7 +591,9 @@ async def _check_pg_candle_integrity() -> None:
 async def _pg_has_interval(symbol: str, interval: str) -> bool:
     async with AsyncSessionLocal() as db:
         count = await db.scalar(
-            select(sa_func.count()).where(MarketCandle.symbol == symbol, MarketCandle.interval == interval)
+            select(sa_func.count()).where(
+                MarketCandle.symbol == symbol, MarketCandle.interval == interval
+            )
         )
         return (count or 0) > 0
 
@@ -584,7 +616,11 @@ async def _pg_has_date(symbol: str, interval: str, target_date: date) -> bool:
 async def _pg_delete_older_than_1y(symbol: str) -> None:
     cutoff = _now_utc().astimezone(BEIJING_TZ) - timedelta(days=365)
     async with AsyncSessionLocal() as db:
-        await db.execute(delete(MarketCandle).where(MarketCandle.symbol == symbol, MarketCandle.timestamp < cutoff))
+        await db.execute(
+            delete(MarketCandle).where(
+                MarketCandle.symbol == symbol, MarketCandle.timestamp < cutoff
+            )
+        )
         await db.commit()
 
 
@@ -600,7 +636,9 @@ async def _pg_get_candles(symbol: str, interval: str, limit: int) -> list[Intrad
         candles.reverse()
         return [
             IntradayPoint(
-                timestamp=candle.timestamp if candle.timestamp.tzinfo else candle.timestamp.replace(tzinfo=BEIJING_TZ),
+                timestamp=candle.timestamp
+                if candle.timestamp.tzinfo
+                else candle.timestamp.replace(tzinfo=BEIJING_TZ),
                 value=candle.close,
             )
             for candle in candles
@@ -629,7 +667,9 @@ async def _redis_has_fresh_1d(config: IndexConfig) -> bool:
         return False
     session_date = _latest_session_date(config)
     zone = ZoneInfo(config.timezone)
-    session_points = [point for point in points if point.timestamp.astimezone(zone).date() == session_date]
+    session_points = [
+        point for point in points if point.timestamp.astimezone(zone).date() == session_date
+    ]
     if len(session_points) < 10:
         return False
 
@@ -637,7 +677,8 @@ async def _redis_has_fresh_1d(config: IndexConfig) -> bool:
         expected = len(_elapsed_trading_minutes(config, session_date))
         if expected > 0 and len(session_points) < expected * 0.90:
             LOGGER.debug(
-                "%s 1D data covers only %d/%d expected trading minutes (%.0f%%). Treating as stale.",
+                "%s 1D data covers only %d/%d expected trading minutes (%.0f%%). "
+                "Treating as stale.",
                 config.symbol,
                 len(session_points),
                 expected,
@@ -718,7 +759,9 @@ def _filter_today(config: IndexConfig, points: list[IntradayPoint]) -> list[Intr
     return [point for point in points if point.timestamp.astimezone(zone).date() == session_date]
 
 
-def _trim_to_n_trading_days(config: IndexConfig, points: list[IntradayPoint], n: int) -> list[IntradayPoint]:
+def _trim_to_n_trading_days(
+    config: IndexConfig, points: list[IntradayPoint], n: int
+) -> list[IntradayPoint]:
     zone = ZoneInfo(config.timezone)
     grouped_dates = sorted({point.timestamp.astimezone(zone).date() for point in points})
     keep_dates = set(grouped_dates[-n:])

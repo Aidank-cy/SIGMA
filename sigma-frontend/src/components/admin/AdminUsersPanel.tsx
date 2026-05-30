@@ -2,7 +2,7 @@
 
 import { Database, KeyRound, Save, Shield, Trash2, UserCheck, UserX } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AdminUserLLMDetail } from "@/components/admin/AdminUserLLMDetail";
 import type { AdminDetailSaveHandle, AdminDetailSaveState } from "@/components/admin/AdminUserLLMDetail";
@@ -34,7 +34,7 @@ export function AdminUsersPanel() {
   const syncT = useTranslations("sync");
   const toast = useToast();
   const { list, remove, update } = useAdminUsers(query);
-  const users = list.data?.items ?? [];
+  const users = useMemo(() => list.data?.items ?? [], [list.data?.items]);
   const selectedUser = users.find((user) => user.id === selectedUserId) ?? null;
 
   useEffect(() => {

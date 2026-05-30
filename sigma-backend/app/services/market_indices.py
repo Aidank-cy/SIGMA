@@ -14,7 +14,13 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from app.schemas.market import MarketIndex, MarketIndicesResponse, MarketSparkline, TradingHours, TradingSession
+from app.schemas.market import (
+    MarketIndex,
+    MarketIndicesResponse,
+    MarketSparkline,
+    TradingHours,
+    TradingSession,
+)
 from app.utils.redis_lock import create_redis_client
 
 CACHE_KEY = "sigma:market-indices"
@@ -79,16 +85,126 @@ class IndexQuote:
 
 
 INDEX_CONFIGS: tuple[IndexConfig, ...] = (
-    IndexConfig("SPX", "S&P 500", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^GSPC", "^spx", 7500.00, 0.40, "USD"),
-    IndexConfig("IXIC", "Nasdaq Composite", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^IXIC", "^ndq", 26500.00, 0.50, "USD"),
-    IndexConfig("DJI", "Dow Jones Industrial Average", "us", "America/New_York", ((time(9, 30), time(16, 0)),), "^DJI", "^dji", 50500.00, 0.25, "USD"),
-    IndexConfig("SSE", "SSE Composite", "cn", "Asia/Shanghai", ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))), "000001.SS", "^shc", 4150.00, 0.20, "CNY"),
-    IndexConfig("HSI", "Hang Seng Index", "hk", "Asia/Hong_Kong", ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))), "^HSI", "^hsi", 25600.00, 0.30, "HKD"),
-    IndexConfig("N225", "Nikkei 225", "jp", "Asia/Tokyo", ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))), "^N225", "^nkx", 64900.00, 0.20, "JPY"),
-    IndexConfig("FTSE", "FTSE 100", "eu", "Europe/London", ((time(8, 0), time(16, 30)),), "^FTSE", "^ukx", 10450.00, 0.20, "GBP"),
-    IndexConfig("DAX", "DAX", "eu", "Europe/Berlin", ((time(9, 0), time(17, 30)),), "^GDAXI", "^dax", 25400.00, 0.35, "EUR"),
-    IndexConfig("KOSPI", "KOSPI", "kr", "Asia/Seoul", ((time(9, 0), time(15, 30)),), "^KS11", "^kospi", 8050.00, 0.45, "KRW"),
-    IndexConfig("TAIEX", "TAIEX", "tw", "Asia/Taipei", ((time(9, 0), time(13, 30)),), "^TWII", "^twse", 43500.00, 0.30, "TWD"),
+    IndexConfig(
+        "SPX",
+        "S&P 500",
+        "us",
+        "America/New_York",
+        ((time(9, 30), time(16, 0)),),
+        "^GSPC",
+        "^spx",
+        7500.00,
+        0.40,
+        "USD",
+    ),
+    IndexConfig(
+        "IXIC",
+        "Nasdaq Composite",
+        "us",
+        "America/New_York",
+        ((time(9, 30), time(16, 0)),),
+        "^IXIC",
+        "^ndq",
+        26500.00,
+        0.50,
+        "USD",
+    ),
+    IndexConfig(
+        "DJI",
+        "Dow Jones Industrial Average",
+        "us",
+        "America/New_York",
+        ((time(9, 30), time(16, 0)),),
+        "^DJI",
+        "^dji",
+        50500.00,
+        0.25,
+        "USD",
+    ),
+    IndexConfig(
+        "SSE",
+        "SSE Composite",
+        "cn",
+        "Asia/Shanghai",
+        ((time(9, 30), time(11, 30)), (time(13, 0), time(15, 0))),
+        "000001.SS",
+        "^shc",
+        4150.00,
+        0.20,
+        "CNY",
+    ),
+    IndexConfig(
+        "HSI",
+        "Hang Seng Index",
+        "hk",
+        "Asia/Hong_Kong",
+        ((time(9, 30), time(12, 0)), (time(13, 0), time(16, 0))),
+        "^HSI",
+        "^hsi",
+        25600.00,
+        0.30,
+        "HKD",
+    ),
+    IndexConfig(
+        "N225",
+        "Nikkei 225",
+        "jp",
+        "Asia/Tokyo",
+        ((time(9, 0), time(11, 30)), (time(12, 30), time(15, 30))),
+        "^N225",
+        "^nkx",
+        64900.00,
+        0.20,
+        "JPY",
+    ),
+    IndexConfig(
+        "FTSE",
+        "FTSE 100",
+        "eu",
+        "Europe/London",
+        ((time(8, 0), time(16, 30)),),
+        "^FTSE",
+        "^ukx",
+        10450.00,
+        0.20,
+        "GBP",
+    ),
+    IndexConfig(
+        "DAX",
+        "DAX",
+        "eu",
+        "Europe/Berlin",
+        ((time(9, 0), time(17, 30)),),
+        "^GDAXI",
+        "^dax",
+        25400.00,
+        0.35,
+        "EUR",
+    ),
+    IndexConfig(
+        "KOSPI",
+        "KOSPI",
+        "kr",
+        "Asia/Seoul",
+        ((time(9, 0), time(15, 30)),),
+        "^KS11",
+        "^kospi",
+        8050.00,
+        0.45,
+        "KRW",
+    ),
+    IndexConfig(
+        "TAIEX",
+        "TAIEX",
+        "tw",
+        "Asia/Taipei",
+        ((time(9, 0), time(13, 30)),),
+        "^TWII",
+        "^twse",
+        43500.00,
+        0.30,
+        "TWD",
+    ),
 )
 
 
@@ -103,7 +219,9 @@ async def get_market_indices() -> MarketIndicesResponse:
         else:
             if _cached_payload_is_fresh(cached):
                 return response
-            LOGGER.warning("Returning stale market-index cache while the scheduler refreshes provider data.")
+            LOGGER.warning(
+                "Returning stale market-index cache while the scheduler refreshes provider data."
+            )
             return response
     return await refresh_market_indices(force=True)
 
@@ -133,7 +251,11 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
     quote = await _fetch_index_quote(config)
     if quote is None:
         quote = await _quote_from_redis_candle(config)
-    if quote is not None and config.fallback_value > 0 and quote.current < config.fallback_value * 0.5:
+    if (
+        quote is not None
+        and config.fallback_value > 0
+        and quote.current < config.fallback_value * 0.5
+    ):
         LOGGER.warning(
             "Discarding suspicious quote for %s: got %.2f but expected ~%.2f",
             config.symbol,
@@ -143,23 +265,31 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
         quote = None
     if quote is None:
         LOGGER.warning(
-            "Using last-resort fallback quote for %s because live market data providers returned no quote.",
+            "Using last-resort fallback quote for %s because live market data providers "
+            "returned no quote.",
             config.symbol,
         )
     value = quote.current if quote is not None else config.fallback_value
     change_pct = quote.change_pct if quote is not None else config.fallback_change_pct
-    previous_close = quote.previous_close if quote is not None else _previous_close_from_change(value, change_pct)
+    previous_close = (
+        quote.previous_close
+        if quote is not None
+        else _previous_close_from_change(value, change_pct)
+    )
     intraday = await _read_intraday_from_redis(config)
     is_fallback_data = intraday is None
     if intraday is None:
         LOGGER.warning(
-            "No usable intraday candle series is available for %s after Redis and PostgreSQL fallback checks.",
+            "No usable intraday candle series is available for %s after Redis and "
+            "PostgreSQL fallback checks.",
             config.symbol,
         )
         intraday = []
     elif intraday:
         intraday_last = intraday[-1]
-        use_intraday_value = quote is None or quote.timestamp is None or intraday_last.timestamp >= quote.timestamp
+        use_intraday_value = (
+            quote is None or quote.timestamp is None or intraday_last.timestamp >= quote.timestamp
+        )
         if use_intraday_value:
             value = intraday_last.value
         if quote is None:
@@ -168,7 +298,9 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
             change_pct = ((value - previous_close) / previous_close) * 100
         elif use_intraday_value:
             first_value = intraday[0].value
-            change_pct = ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
+            change_pct = (
+                ((value - first_value) / first_value) * 100 if first_value > 0 else change_pct
+            )
     if previous_close > 0 and value > 0 and abs(value - previous_close) / previous_close > 0.5:
         LOGGER.warning(
             "Suspicious previous_close for %s: value=%.2f, previous_close=%.2f. "
@@ -201,7 +333,9 @@ async def _build_index(config: IndexConfig) -> MarketIndex:
             close=config.close_time.strftime("%H:%M"),
             timezone=config.timezone,
             sessions=[
-                TradingSession(open=session_open.strftime("%H:%M"), close=session_close.strftime("%H:%M"))
+                TradingSession(
+                    open=session_open.strftime("%H:%M"), close=session_close.strftime("%H:%M")
+                )
                 for session_open, session_close in config.sessions
             ],
             beijing_sessions=_sessions_to_beijing(config),
@@ -240,13 +374,17 @@ async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> IndexQuote | N
             response.raise_for_status()
             payload = response.json()
     except httpx.HTTPStatusError as exc:
-        LOGGER.warning("Finnhub quote request for %s failed with status %s.", symbol, exc.response.status_code)
+        LOGGER.warning(
+            "Finnhub quote request for %s failed with status %s.", symbol, exc.response.status_code
+        )
         return None
     except httpx.HTTPError as exc:
         LOGGER.warning("Finnhub quote request for %s failed: %s.", symbol, type(exc).__name__)
         return None
     except Exception as exc:
-        LOGGER.warning("Finnhub quote request for %s failed: %s: %s.", symbol, type(exc).__name__, exc)
+        LOGGER.warning(
+            "Finnhub quote request for %s failed: %s: %s.", symbol, type(exc).__name__, exc
+        )
         return None
 
     current = _as_float(payload.get("c"))
@@ -272,13 +410,21 @@ async def _fetch_stooq_quote(config: IndexConfig) -> IndexQuote | None:
             )
             response.raise_for_status()
     except httpx.HTTPStatusError as exc:
-        LOGGER.warning("Stooq quote request for %s failed with status %s.", config.symbol, exc.response.status_code)
+        LOGGER.warning(
+            "Stooq quote request for %s failed with status %s.",
+            config.symbol,
+            exc.response.status_code,
+        )
         return None
     except httpx.HTTPError as exc:
-        LOGGER.warning("Stooq quote request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc)
+        LOGGER.warning(
+            "Stooq quote request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc
+        )
         return None
     except Exception as exc:
-        LOGGER.warning("Stooq quote request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc)
+        LOGGER.warning(
+            "Stooq quote request for %s failed: %s: %s.", config.symbol, type(exc).__name__, exc
+        )
         return None
 
     rows = list(csv.DictReader(response.text.splitlines()))
@@ -316,7 +462,7 @@ async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
 
 
 async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] | None:
-    """Read the latest session's 1-minute candle data from Redis, falling back to 5D Redis then PG."""
+    """Read latest 1-minute Redis candles, falling back to 5D Redis then PostgreSQL."""
     from app.services.market_candles import _pg_get_candles, _redis_get_1d, _redis_get_5d
 
     points = await _redis_get_1d(config.symbol)
@@ -327,14 +473,18 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
             session_date = _latest_session_date(config)
             zone = ZoneInfo(config.timezone)
             session_points = [
-                point for point in five_day if point.timestamp.astimezone(zone).date() == session_date
+                point
+                for point in five_day
+                if point.timestamp.astimezone(zone).date() == session_date
             ]
             if len(session_points) >= 10:
                 points = session_points
             else:
                 latest_date = five_day[-1].timestamp.astimezone(zone).date()
                 latest_points = [
-                    point for point in five_day if point.timestamp.astimezone(zone).date() == latest_date
+                    point
+                    for point in five_day
+                    if point.timestamp.astimezone(zone).date() == latest_date
                 ]
                 if len(latest_points) >= 10:
                     points = latest_points
@@ -344,13 +494,17 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
             session_date = _latest_session_date(config)
             zone = ZoneInfo(config.timezone)
             session_points = [
-                point for point in pg_points if point.timestamp.astimezone(zone).date() == session_date
+                point
+                for point in pg_points
+                if point.timestamp.astimezone(zone).date() == session_date
             ]
             if len(session_points) >= 5:
                 return session_points
             latest_date = pg_points[-1].timestamp.astimezone(zone).date()
             latest_points = [
-                point for point in pg_points if point.timestamp.astimezone(zone).date() == latest_date
+                point
+                for point in pg_points
+                if point.timestamp.astimezone(zone).date() == latest_date
             ]
             if len(latest_points) >= 5:
                 return latest_points
@@ -363,14 +517,18 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
             session_date = _latest_session_date(config)
             zone = ZoneInfo(config.timezone)
             session_points = [
-                point for point in five_day if point.timestamp.astimezone(zone).date() == session_date
+                point
+                for point in five_day
+                if point.timestamp.astimezone(zone).date() == session_date
             ]
             if len(session_points) >= 30:
                 points = session_points
             else:
                 latest_date = five_day[-1].timestamp.astimezone(zone).date()
                 latest_points = [
-                    point for point in five_day if point.timestamp.astimezone(zone).date() == latest_date
+                    point
+                    for point in five_day
+                    if point.timestamp.astimezone(zone).date() == latest_date
                 ]
                 if len(latest_points) >= 30:
                     points = latest_points
@@ -387,6 +545,7 @@ async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] 
     ]
     return current_session_points if len(current_session_points) >= 10 else None
 
+
 async def _yahoo_rate_limit_wait() -> bool:
     """Wait for Yahoo rate-limit clearance, returning False while in backoff."""
     global _yahoo_consecutive_429s, _yahoo_last_request_time
@@ -394,7 +553,10 @@ async def _yahoo_rate_limit_wait() -> bool:
     await _ensure_yahoo_crumb()
     now = _time.monotonic()
     if now < _yahoo_backoff_until:
-        LOGGER.warning("Yahoo backoff active, %.0fs remaining — candle fetch skipped.", _yahoo_backoff_until - now)
+        LOGGER.warning(
+            "Yahoo backoff active, %.0fs remaining — candle fetch skipped.",
+            _yahoo_backoff_until - now,
+        )
         return False
     if _yahoo_consecutive_429s > 0 and now >= _yahoo_backoff_until:
         _yahoo_consecutive_429s = 0
@@ -492,7 +654,9 @@ async def _fetch_yahoo_chart_result(
             query_string = "&".join(f"{k}={v}" for k, v in params.items())
             url = f"https://{host}/v8/finance/chart/{symbol_path}?{query_string}"
             try:
-                result = await asyncio.to_thread(_yahoo_urllib_fetch, url, purpose, config.finnhub_symbol, host)
+                result = await asyncio.to_thread(
+                    _yahoo_urllib_fetch, url, purpose, config.finnhub_symbol, host
+                )
                 if result == "_429":
                     _yahoo_on_429()
                     return None
@@ -512,13 +676,19 @@ async def _fetch_yahoo_chart_result(
             except Exception as exc:
                 LOGGER.warning(
                     "Yahoo %s chart request for %s via %s failed: %s: %s",
-                    purpose, config.finnhub_symbol, host, type(exc).__name__, exc,
+                    purpose,
+                    config.finnhub_symbol,
+                    host,
+                    type(exc).__name__,
+                    exc,
                 )
                 continue
     return None
 
 
-def _yahoo_urllib_fetch(url: str, purpose: str, symbol: str, host: str) -> dict[str, object] | str | None:
+def _yahoo_urllib_fetch(
+    url: str, purpose: str, symbol: str, host: str
+) -> dict[str, object] | str | None:
     """Synchronous Yahoo fetch using urllib to avoid httpx TLS fingerprint blocking."""
     global _yahoo_crumb
 
@@ -541,34 +711,52 @@ def _yahoo_urllib_fetch(url: str, purpose: str, symbol: str, host: str) -> dict[
             return "_429"
         LOGGER.warning(
             "Yahoo %s chart request for %s via %s failed: HTTP %s",
-            purpose, symbol, host, exc.code,
+            purpose,
+            symbol,
+            host,
+            exc.code,
         )
         return None
     except Exception as exc:
         LOGGER.warning(
             "Yahoo %s chart request for %s via %s failed: %s: %s",
-            purpose, symbol, host, type(exc).__name__, exc,
+            purpose,
+            symbol,
+            host,
+            type(exc).__name__,
+            exc,
         )
         return None
 
     try:
         payload = json.loads(resp.read())
     except Exception:
-        LOGGER.warning("Yahoo %s chart response for %s via %s was not valid JSON.", purpose, symbol, host)
+        LOGGER.warning(
+            "Yahoo %s chart response for %s via %s was not valid JSON.", purpose, symbol, host
+        )
         return None
 
     chart = payload.get("chart")
     if not isinstance(chart, dict):
-        LOGGER.warning("Yahoo %s chart response for %s via %s did not include chart data.", purpose, symbol, host)
+        LOGGER.warning(
+            "Yahoo %s chart response for %s via %s did not include chart data.",
+            purpose,
+            symbol,
+            host,
+        )
         return None
     error = chart.get("error")
     if error:
-        LOGGER.warning("Yahoo %s chart response for %s via %s returned error: %s", purpose, symbol, host, error)
+        LOGGER.warning(
+            "Yahoo %s chart response for %s via %s returned error: %s", purpose, symbol, host, error
+        )
         return None
     result = chart.get("result")
     if isinstance(result, list) and result and isinstance(result[0], dict):
         return result[0]
-    LOGGER.warning("Yahoo %s chart response for %s via %s did not include result data.", purpose, symbol, host)
+    LOGGER.warning(
+        "Yahoo %s chart response for %s via %s did not include result data.", purpose, symbol, host
+    )
     return None
 
 
@@ -615,7 +803,10 @@ def _market_status_beijing(config: IndexConfig, now_beijing: datetime) -> str:
         return "closed"
 
     current = local_now.time().replace(tzinfo=None)
-    if any(_time_in_session(current, session_open, session_close) for session_open, session_close in config.sessions):
+    if any(
+        _time_in_session(current, session_open, session_close)
+        for session_open, session_close in config.sessions
+    ):
         return "trading"
     if any(current < session_open for session_open, _session_close in config.sessions):
         return "not_opened"
@@ -627,7 +818,10 @@ def _is_trading(config: IndexConfig, now: datetime | None = None) -> bool:
     if active_now.weekday() >= 5:
         return False
     current = active_now.time().replace(tzinfo=None)
-    return any(_time_in_session(current, session_open, session_close) for session_open, session_close in config.sessions)
+    return any(
+        _time_in_session(current, session_open, session_close)
+        for session_open, session_close in config.sessions
+    )
 
 
 def _is_within_session(timestamp: datetime, config: IndexConfig) -> bool:
@@ -635,7 +829,10 @@ def _is_within_session(timestamp: datetime, config: IndexConfig) -> bool:
     if local.weekday() >= 5:
         return False
     current = local.time().replace(tzinfo=None)
-    return any(_time_in_session(current, session_open, session_close) for session_open, session_close in config.sessions)
+    return any(
+        _time_in_session(current, session_open, session_close)
+        for session_open, session_close in config.sessions
+    )
 
 
 def _time_in_session(current: time, session_open: time, session_close: time) -> bool:
@@ -690,10 +887,15 @@ def _latest_session_date(config: IndexConfig, now: datetime | None = None) -> da
     return session_date
 
 
-def _elapsed_trading_minutes(config: IndexConfig, session_date: date, now: datetime | None = None) -> list[datetime]:
+def _elapsed_trading_minutes(
+    config: IndexConfig, session_date: date, now: datetime | None = None
+) -> list[datetime]:
     timestamps = _trading_minutes(config, session_date)
     local_now = (now or _now_utc()).astimezone(ZoneInfo(config.timezone))
-    if local_now.date() != session_date or local_now.time().replace(tzinfo=None) >= config.close_time:
+    if (
+        local_now.date() != session_date
+        or local_now.time().replace(tzinfo=None) >= config.close_time
+    ):
         return timestamps
     cutoff = local_now.astimezone(BEIJING_TZ).replace(second=0, microsecond=0)
     elapsed = [timestamp for timestamp in timestamps if timestamp <= cutoff]
@@ -743,7 +945,9 @@ def _timestamp_from_epoch(value: object) -> datetime | None:
     return datetime.fromtimestamp(epoch, tz=UTC)
 
 
-def _timestamp_from_exchange_fields(config: IndexConfig, date_value: object, time_value: object) -> datetime | None:
+def _timestamp_from_exchange_fields(
+    config: IndexConfig, date_value: object, time_value: object
+) -> datetime | None:
     date_text = str(date_value or "").strip()
     time_text = str(time_value or "").strip()
     if not date_text or not time_text or date_text.upper() == "N/D" or time_text.upper() == "N/D":

@@ -6,6 +6,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ## [Unreleased]
 
+### Changed
+- Standardize backend Ruff configuration, formatting, and frontend lint setup for non-interactive clean checks.
+
 ## [2.0.0] - 2026-05-30
 
 ### Added

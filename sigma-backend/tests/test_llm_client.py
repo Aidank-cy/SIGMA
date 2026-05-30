@@ -82,13 +82,15 @@ async def test_llm_client_openai_complete_json(db_session: AsyncSession) -> None
         return httpx.Response(
             200,
             json={
-                "choices": [{"message": {"content": "{\"ok\": true}"}}],
+                "choices": [{"message": {"content": '{"ok": true}'}}],
                 "usage": {"prompt_tokens": 5, "completion_tokens": 2},
             },
         )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
-        client = LLMClient(db_session, LLMFunctionType.REPORT, http_client=http_client, user_id=user_id)
+        client = LLMClient(
+            db_session, LLMFunctionType.REPORT, http_client=http_client, user_id=user_id
+        )
         result = await client.complete_json("system", "user", max_tokens=20)
 
     usage = await db_session.scalar(select(LLMUsageLog))
@@ -98,7 +100,9 @@ async def test_llm_client_openai_complete_json(db_session: AsyncSession) -> None
 
 
 @pytest.mark.asyncio
-async def test_llm_client_budget_exceeded(db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_llm_client_budget_exceeded(
+    db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Daily budget guard prevents calls that would exceed the token limit."""
     monkeypatch.setattr(settings, "daily_token_limit", 10)
     db_session.add(

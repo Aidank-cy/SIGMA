@@ -5,7 +5,8 @@ from app.models.collected_item import CollectedItem
 SUMMARY_SYSTEM = (
     "You are a financial news analyst. Analyze the item for investors and write in {locale}. "
     "Return only valid JSON with this exact shape: "
-    '{{"sentiment":"bullish|bearish|neutral","summary":"1-2 concise factual sentences","keywords":["keyword"]}}. '
+    '{{"sentiment":"bullish|bearish|neutral",'
+    '"summary":"1-2 concise factual sentences","keywords":["keyword"]}}. '
     "Do not wrap the JSON in markdown."
 )
 

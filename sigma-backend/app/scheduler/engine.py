@@ -1,5 +1,5 @@
-from collections.abc import Callable
 import random
+from collections.abc import Callable
 from uuid import UUID
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler

@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -29,7 +29,9 @@ async def test_batch_summarize_writes_and_skips_existing(
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             pass
 
-        async def complete_json(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> dict[str, object]:
+        async def complete_json(
+            self, _system_prompt: str, user_prompt: str, **_kwargs: object
+        ) -> dict[str, object]:
             return {
                 "sentiment": "bullish",
                 "summary": f"Summary for {user_prompt.splitlines()[0]}",
@@ -43,7 +45,7 @@ async def test_batch_summarize_writes_and_skips_existing(
 
     refreshed = list(await db_session.scalars(select(CollectedItem).order_by(CollectedItem.title)))
     assert refreshed[0].summary == "Existing summary"
-    assert all(item.summary and "\"sentiment\":\"bullish\"" in item.summary for item in refreshed[1:])
+    assert all(item.summary and '"sentiment":"bullish"' in item.summary for item in refreshed[1:])
 
 
 @pytest.mark.asyncio
@@ -64,7 +66,9 @@ async def test_batch_summarize_failure_does_not_crash(
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             pass
 
-        async def complete_json(self, _system_prompt: str, user_prompt: str, **_kwargs: object) -> dict[str, object]:
+        async def complete_json(
+            self, _system_prompt: str, user_prompt: str, **_kwargs: object
+        ) -> dict[str, object]:
             if "Title: Fail" in user_prompt:
                 raise RuntimeError("boom")
             return {"sentiment": "neutral", "summary": "Ok summary", "keywords": ["ok"]}
@@ -122,6 +126,6 @@ def _item(source: DataSource, title: str) -> CollectedItem:
         content_url=f"https://summary.test/{uuid4()}",
         category=IntelligenceCategory.FINANCE,
         market=Market.US,
-        published_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        published_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
     )
