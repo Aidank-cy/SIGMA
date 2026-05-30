@@ -2153,3 +2153,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused auth/items/sources/e2e/watchlist tests, full backend pytest, backend Ruff check, backend Ruff format check, and API route line-count scan.
 - Notes: Moved auth flow, item query/detail, and source lifecycle/log/status logic into service modules while preserving route-level dependency seams used by tests.
 - Timestamp: 2026-05-30T03:37:27Z
+
+### [Maintenance] Sub-feature: Remaining backend route thinning
+- Status: COMPLETE
+- Files modified: report, stats, user settings, watchlist, admin dashboard, and admin log routes plus corresponding backend service modules, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused admin/security/watchlist/report/stats/settings tests, full backend pytest, backend Ruff check, backend Ruff format check, and route handler length scan.
+- Notes: Moved query-heavy route logic into service modules so every backend API route handler is a thin controller and every `app/api` file stays below 250 lines.
+- Timestamp: 2026-05-30T03:44:54Z
