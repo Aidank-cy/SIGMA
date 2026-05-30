@@ -9,7 +9,7 @@ from app.api.v1.routes.market_indices import list_market_indices
 from app.scheduler.engine import add_market_indices_job, scheduler
 from app.scheduler.jobs import refresh_market_indices_job
 from app.schemas.market import MarketIndex, MarketIndicesResponse, TradingHours, TradingSession
-from app.services import market_candles
+from app.services.market import candles as market_candles
 from app.services.market import indices as market_indices
 from app.services.market import yahoo_client
 

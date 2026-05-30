@@ -2132,3 +2132,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with full backend pytest, backend Ruff check, backend Ruff format check, and focused market-index tests.
 - Notes: Extracted index configuration, shared market dataclasses, and Yahoo Finance crumb/rate-limit/chart fetching into `app.services.market` while preserving the market-index API and cache behavior.
 - Timestamp: 2026-05-30T03:21:36Z
+
+### [Maintenance] Sub-feature: Market candle service move
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market/candles.py, sigma-backend/app/services/market/__init__.py, sigma-backend/app/services/market/indices.py, sigma-backend/app/scheduler/engine.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with full backend pytest, backend Ruff check, backend Ruff format check, focused market-index tests, and stale candle import search.
+- Notes: Moved the candle refresh job and candle cache/database helpers under `app.services.market.candles`, re-exported the scheduler entry point from the market package, and removed the old `app.services.market_candles` path.
+- Timestamp: 2026-05-30T03:24:09Z

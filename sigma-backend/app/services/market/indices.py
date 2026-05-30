@@ -268,7 +268,7 @@ async def _fetch_stooq_quote(config: IndexConfig) -> IndexQuote | None:
 
 async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
     """Derive a quote from the latest Redis 1D candle point."""
-    from app.services.market_candles import _redis_get_1d
+    from app.services.market.candles import _redis_get_1d
 
     points = await _redis_get_1d(config.symbol)
     if not points or len(points) < 2:
@@ -287,7 +287,7 @@ async def _quote_from_redis_candle(config: IndexConfig) -> IndexQuote | None:
 
 async def _read_intraday_from_redis(config: IndexConfig) -> list[IntradayPoint] | None:
     """Read latest 1-minute Redis candles, falling back to 5D Redis then PostgreSQL."""
-    from app.services.market_candles import _pg_get_candles, _redis_get_1d, _redis_get_5d
+    from app.services.market.candles import _pg_get_candles, _redis_get_1d, _redis_get_5d
 
     points = await _redis_get_1d(config.symbol)
     if not points:
@@ -376,7 +376,7 @@ async def _read_candle_ranges(
     change_pct: float,
 ) -> dict[str, MarketSparkline]:
     """Read chart range candles from Redis and PostgreSQL without fetching Yahoo."""
-    from app.services.market_candles import _pg_get_candles, _redis_get_5d
+    from app.services.market.candles import _pg_get_candles, _redis_get_5d
 
     ranges: dict[str, MarketSparkline] = {}
 

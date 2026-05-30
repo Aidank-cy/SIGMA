@@ -24,8 +24,8 @@ from app.models.enums import CollectorStatus, IntelligenceCategory, Market, Repo
 from app.models.report import Report
 from app.models.user_report_config import UserReportConfig
 from app.schemas.item import CollectedItemCreate
+from app.services.market import candle_refresh_job
 from app.services.market.indices import any_market_trading_now, refresh_market_indices
-from app.services.market_candles import candle_refresh_job
 from app.utils.event_hooks import notify_new_items
 from app.utils.redis_lock import acquire_lock, release_lock
 

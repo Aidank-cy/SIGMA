@@ -17,7 +17,7 @@ from app.scheduler.jobs import (
     generate_scheduled_reports,
     refresh_market_indices_job,
 )
-from app.services.market_candles import candle_refresh_job
+from app.services.market import candle_refresh_job
 
 scheduler = AsyncIOScheduler(timezone="UTC")
 
