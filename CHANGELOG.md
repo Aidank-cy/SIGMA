@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Changed
+- Align E2E TypeScript setup imports with the current compiler configuration.
 - Add service-level coverage for admin and source management branches.
 - Move collector HTTP client lifecycle into the shared collector base class.
 - Add a reusable backend admin dependency for admin-only route handlers.

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import path from "node:path";
+import * as path from "node:path";
 import type { FullConfig } from "@playwright/test";
 
 const FRONTEND_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";

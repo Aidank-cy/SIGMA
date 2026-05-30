@@ -2263,3 +2263,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused service coverage tests, backend Ruff check, and backend coverage run.
 - Notes: Added direct service tests for admin user/report management, admin source CRUD, and source lifecycle/error branches; backend coverage is now 87% overall with all service files at or above 60%.
 - Timestamp: 2026-05-30T04:41:07Z
+
+### [Phase 8] Sub-feature 8.2: E2E TypeScript compile alignment
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-frontend/e2e/global-setup.ts, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with `npx tsc --noEmit e2e/*.ts --skipLibCheck`.
+- Notes: Switched the Playwright global setup path import to namespace import syntax so it compiles under the current TypeScript settings.
+- Timestamp: 2026-05-30T04:42:10Z
