@@ -43,6 +43,7 @@ def install_openapi_schema(app: FastAPI) -> None:
             route.summary = route.summary or _route_summary(route)
 
     def custom_openapi() -> dict[str, Any]:
+        """Return the cached OpenAPI schema or build a polished schema."""
         if app.openapi_schema:
             return app.openapi_schema
         schema = get_openapi(

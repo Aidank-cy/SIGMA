@@ -2279,3 +2279,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with frontend production build, frontend lint, backend Ruff check, and full backend pytest.
 - Notes: Reduced every `src/app/[locale]/(main)/**/page.tsx` file below 150 lines by keeping route files as thin wrappers around co-located client content components.
 - Timestamp: 2026-05-30T06:13:57Z
+
+### [Phase 8] Sub-feature 8.3: Final market service size and coverage audit
+- Status: COMPLETE
+- Files created: market clock/cache/quote/series and candle cache/store/fetch/bootstrap helper modules, plus focused market helper tests
+- Files modified: market index/candle service facades, final public helper docstrings, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused market/scheduler/collector tests, backend Ruff check, and backend coverage run.
+- Notes: Preserved the existing market service facade imports while reducing every `app/services/` file below 300 lines and lifting all service coverage above 60%.
+- Timestamp: 2026-05-30T06:35:53Z

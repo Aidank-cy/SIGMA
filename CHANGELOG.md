@@ -7,6 +7,9 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Changed
+- Split market index and candle helper logic into smaller service modules under the file-size cap.
+- Add focused coverage for extracted market cache, quote, and candle storage helpers.
+- Add final missing public helper docstrings found by the backend interface audit.
 - Move remaining oversized frontend route content into co-located page content components.
 - Align E2E TypeScript setup imports with the current compiler configuration.
 - Add service-level coverage for admin and source management branches.
