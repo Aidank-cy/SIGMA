@@ -206,6 +206,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix Sync collection logs to show duration and error summaries inline without expand controls.
 - Fix Sync collection logs so failed and timed-out entries show error details instead of success text.
 - Fix scheduled report generation so one user's failure or existing report does not block other users.
 - Fix scheduled report generation to pass the requesting user's saved default LLM API key into report LLM calls.

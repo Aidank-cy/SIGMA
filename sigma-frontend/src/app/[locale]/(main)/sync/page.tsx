@@ -4,8 +4,6 @@ import { motion } from "framer-motion"
 import {
   Activity,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Code,
   Database,
   FileClock,
@@ -111,7 +109,6 @@ export default function SyncPage() {
   const [logPage, setLogPage] = useState(1)
   const [logRefreshTick, setLogRefreshTick] = useState(0)
   const [logs, setLogs] = useState<AdminLogResponse | null>(null)
-  const [collapsedLogs, setCollapsedLogs] = useState<Set<string>>(new Set())
   const logsSectionRef = useRef<HTMLElement>(null)
 
   const nextRun = useMemo(() => new Date(Date.now() + 60 * 60 * 1000).toLocaleString(), [])
@@ -307,18 +304,6 @@ export default function SyncPage() {
     }, 100)
   }
 
-  function toggleLog(id: string) {
-    setCollapsedLogs((current) => {
-      const next = new Set(current)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }
-
   return (
     <div className="space-y-8 p-6 lg:p-8">
       <motion.div animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" initial={{ opacity: 0, y: 20 }}>
@@ -448,7 +433,6 @@ export default function SyncPage() {
 
       <section className="scroll-mt-6" ref={logsSectionRef}>
         <UserLogsPanel
-          collapsedLogs={collapsedLogs}
           dateFrom={dateFrom}
           dateTo={dateTo}
           logs={logs}
@@ -469,7 +453,6 @@ export default function SyncPage() {
             setLogStatus(value)
             setLogPage(1)
           }}
-          onToggleLog={toggleLog}
           page={logPage}
           sourceId={logSourceId}
           sources={sources}
@@ -621,7 +604,6 @@ function SourceRow({
 }
 
 function UserLogsPanel({
-  collapsedLogs,
   dateFrom,
   dateTo,
   logs,
@@ -630,13 +612,11 @@ function UserLogsPanel({
   onPageChange,
   onSourceChange,
   onStatusChange,
-  onToggleLog,
   page,
   sourceId,
   sources,
   status
 }: {
-  collapsedLogs: Set<string>
   dateFrom: string
   dateTo: string
   logs: AdminLogResponse | null
@@ -645,7 +625,6 @@ function UserLogsPanel({
   onPageChange: (value: number | ((current: number) => number)) => void
   onSourceChange: (value: string) => void
   onStatusChange: (value: LogFilter) => void
-  onToggleLog: (id: string) => void
   page: number
   sourceId: string
   sources: DataSource[]
@@ -692,59 +671,32 @@ function UserLogsPanel({
       </div>
 
       <div className="space-y-3">
-        {(logs?.items ?? []).map((log) => {
-          const expanded = log.status !== "success" && !collapsedLogs.has(log.id)
-          return (
-            <div
-              className={cn(
-                "rounded-xl border border-border border-l-4 bg-card p-4",
-                log.status === "success" ? "border-l-chart-1" : "",
-                log.status === "fail" ? "border-l-chart-2" : "",
-                log.status === "timeout" ? "border-l-chart-4" : ""
-              )}
-              key={log.id}
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-bold text-foreground">{log.source_name}</p>
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
-                      {statusT(log.status)}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {log.items_count} {t("items")} · {new Date(log.executed_at).toLocaleString()}
-                  </p>
-                  {log.status !== "success" && log.error_message ? (
-                    <p className="mt-1 truncate text-sm text-destructive">{log.error_message}</p>
-                  ) : null}
-                </div>
-                <button
-                  aria-label={expanded ? t("collapse") : t("expand")}
-                  className="flex h-11 w-11 items-center justify-center self-start rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                  onClick={() => onToggleLog(log.id)}
-                  type="button"
-                >
-                  {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
-              </div>
-              {expanded ? (
-                <div
-                  className={cn(
-                    "mt-4 rounded-xl p-3 text-sm",
-                    log.status === "success"
-                      ? "bg-muted text-muted-foreground"
-                      : "bg-destructive/10 text-destructive"
-                  )}
-                >
-                  {log.status === "success"
-                    ? t("successDetail", { duration: log.duration_ms })
-                    : log.error_message || t("unknownError")}
-                </div>
-              ) : null}
+        {(logs?.items ?? []).map((log) => (
+          <div
+            className={cn(
+              "rounded-xl border border-border border-l-4 bg-card p-4",
+              log.status === "success" ? "border-l-chart-1" : "",
+              log.status === "fail" ? "border-l-chart-2" : "",
+              log.status === "timeout" ? "border-l-chart-4" : ""
+            )}
+            key={log.id}
+          >
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-foreground">{log.source_name}</p>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
+                {statusT(log.status)}
+              </span>
             </div>
-          )
-        })}
+            <p className="mt-1 text-sm text-muted-foreground">
+              {log.items_count} {t("items")} · {new Date(log.executed_at).toLocaleString()} · {log.duration_ms} ms
+            </p>
+            {log.status !== "success" ? (
+              <p className="mt-1 truncate text-sm text-destructive">
+                {log.error_message || t("unknownError")}
+              </p>
+            ) : null}
+          </div>
+        ))}
         {logs !== null && (logs.items ?? []).length === 0 ? (
           <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">{t("empty")}</div>
         ) : null}
