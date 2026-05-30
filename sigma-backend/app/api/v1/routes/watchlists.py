@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.routes.stats import _sentiment_for_item
 from app.database import get_db
 from app.middleware.auth import get_current_user
 from app.models.collected_item import CollectedItem
@@ -22,6 +21,7 @@ from app.schemas.watchlist import (
     WatchlistTrendResponse,
     WatchlistUpdate,
 )
+from app.services.item_service import _sentiment_for_item, _summary
 
 router = APIRouter()
 
@@ -113,8 +113,6 @@ async def list_watchlist_items(
             .limit(page_size)
         )
     ).all()
-
-    from app.api.v1.routes.items import _summary
 
     return ItemListResponse(
         page=page,

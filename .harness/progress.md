@@ -2146,3 +2146,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused admin API tests, full backend pytest, backend Ruff check, and backend Ruff format check.
 - Notes: Moved admin user listing, mutation, report/LLM detail reads, user deletion cleanup, and managed custom-source lifecycle logic out of the route layer into service modules while preserving endpoint contracts.
 - Timestamp: 2026-05-30T03:30:13Z
+
+### [Maintenance] Sub-feature: Auth items sources route thinning
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/routes/auth.py, sigma-backend/app/api/v1/routes/items.py, sigma-backend/app/api/v1/routes/sources.py, sigma-backend/app/api/v1/routes/watchlists.py, sigma-backend/app/services/auth_flow_service.py, sigma-backend/app/services/item_service.py, sigma-backend/app/services/source_service.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused auth/items/sources/e2e/watchlist tests, full backend pytest, backend Ruff check, backend Ruff format check, and API route line-count scan.
+- Notes: Moved auth flow, item query/detail, and source lifecycle/log/status logic into service modules while preserving route-level dependency seams used by tests.
+- Timestamp: 2026-05-30T03:37:27Z
