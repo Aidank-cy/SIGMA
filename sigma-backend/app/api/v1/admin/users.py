@@ -4,8 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.middleware.auth import require_role
-from app.models.enums import UserRole
+from app.middleware.auth import get_current_admin
 from app.models.user import User
 from app.schemas.admin import (
     AdminUserListResponse,
@@ -32,7 +31,7 @@ async def list_admin_users(
     page_size: int = Query(default=20, ge=1, le=100),
     q: str | None = Query(default=None, max_length=120),
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(get_current_admin),
 ) -> AdminUserListResponse:
     """List users for admin management."""
     return await admin_service.list_admin_users(db, page, page_size, q)
@@ -43,7 +42,7 @@ async def update_admin_user(
     user_id: UUID,
     payload: AdminUserUpdate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    current_admin: User = Depends(get_current_admin),
 ) -> AdminUserRead:
     """Update another user's role or active status."""
     return await admin_service.update_admin_user(db, user_id, payload, current_admin.id)
@@ -53,7 +52,7 @@ async def update_admin_user(
 async def get_admin_user_llm_config(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(get_current_admin),
 ) -> LLMConfigRead:
     """Return a user's LLM settings for admin management."""
     return await admin_service.get_admin_user_llm_config(db, user_id)
@@ -64,7 +63,7 @@ async def update_admin_user_llm_config(
     user_id: UUID,
     payload: LLMConfigUpdate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(get_current_admin),
 ) -> LLMConfigRead:
     """Update a user's LLM settings for admin management."""
     return await admin_service.update_admin_user_llm_config(db, user_id, payload)
@@ -74,7 +73,7 @@ async def update_admin_user_llm_config(
 async def get_admin_user_llm_usage(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(get_current_admin),
 ) -> LLMUsageResponse:
     """Return a user's LLM usage totals for admin detail panels."""
     return await admin_service.get_admin_user_llm_usage(db, user_id)
@@ -88,7 +87,7 @@ async def get_admin_user_llm_usage(
 async def get_admin_user_report_config(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(get_current_admin),
 ) -> UserReportConfigRead:
     """Return a user's scheduled report configuration for admin management."""
     return await admin_service.get_admin_user_report_config(db, user_id)
@@ -103,7 +102,7 @@ async def update_admin_user_report_config(
     user_id: UUID,
     payload: AdminUserReportConfigUpdate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(get_current_admin),
 ) -> UserReportConfigRead:
     """Update a user's scheduled report configuration."""
     return await admin_service.update_admin_user_report_config(db, user_id, payload)
@@ -115,7 +114,7 @@ async def list_admin_user_sources(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    current_admin: User = Depends(get_current_admin),
 ) -> SourceListResponse:
     """List custom data sources owned by another user."""
     return await admin_source_service.list_admin_user_sources(
@@ -130,7 +129,7 @@ async def create_admin_user_source(
     user_id: UUID,
     payload: DataSourceCreate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    current_admin: User = Depends(get_current_admin),
 ) -> DataSourceRead:
     """Create a custom data source owned by another user."""
     return await admin_source_service.create_admin_user_source(
@@ -144,7 +143,7 @@ async def update_admin_user_source(
     source_id: UUID,
     payload: DataSourceUpdate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    current_admin: User = Depends(get_current_admin),
 ) -> DataSourceRead:
     """Update a custom data source owned by another user."""
     return await admin_source_service.update_admin_user_source(
@@ -157,7 +156,7 @@ async def delete_admin_user_source(
     user_id: UUID,
     source_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    current_admin: User = Depends(get_current_admin),
 ) -> None:
     """Delete a custom data source and its collected rows for another user."""
     await admin_source_service.delete_admin_user_source(db, user_id, source_id, current_admin.id)
@@ -167,7 +166,7 @@ async def delete_admin_user_source(
 async def delete_admin_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(require_role(UserRole.ADMIN)),
+    current_admin: User = Depends(get_current_admin),
 ) -> None:
     """Delete another user and user-owned records."""
     await admin_service.delete_admin_user(db, user_id, current_admin.id)

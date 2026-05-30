@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.middleware.auth import require_role
-from app.models.enums import CollectorStatus, UserRole
+from app.middleware.auth import get_current_admin
+from app.models.enums import CollectorStatus
 from app.models.user import User
 from app.schemas.admin import AdminLogListResponse
 from app.services import admin_log_service
@@ -23,7 +23,7 @@ async def list_admin_logs(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(require_role(UserRole.ADMIN)),
+    _admin: User = Depends(get_current_admin),
 ) -> AdminLogListResponse:
     """List collector logs with admin filters."""
     return await admin_log_service.list_admin_logs(

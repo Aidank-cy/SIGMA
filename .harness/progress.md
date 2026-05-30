@@ -2239,3 +2239,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused pagination endpoint tests, full backend pytest, backend Ruff check, and backend Ruff format check.
 - Notes: Centralized count/offset/limit pagination into service helpers while preserving endpoint response metadata and explicit count statements.
 - Timestamp: 2026-05-30T04:32:39Z
+
+### [Phase 7] Sub-feature 7.2: Admin dependency consolidation
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend auth dependency and admin/report route modules plus CHANGELOG.md and .harness/progress.md
+- Tests: PASS with focused admin/report API tests, backend Ruff check, and full backend pytest.
+- Notes: Added `get_current_admin` as the single admin-only dependency and replaced repeated inline `require_role(UserRole.ADMIN)` route dependencies.
+- Timestamp: 2026-05-30T04:34:45Z

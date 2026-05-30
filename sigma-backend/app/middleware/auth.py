@@ -58,3 +58,8 @@ def require_role(role: UserRole) -> Callable[[User], User]:
         return current_user
 
     return dependency
+
+
+async def get_current_admin(current_user: User = Depends(require_role(UserRole.ADMIN))) -> User:
+    """Return the current active admin user."""
+    return current_user

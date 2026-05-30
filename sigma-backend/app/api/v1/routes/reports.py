@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.middleware.auth import get_current_user, require_role
-from app.models.enums import ReportType, UserRole
+from app.middleware.auth import get_current_admin, get_current_user
+from app.models.enums import ReportType
 from app.models.user import User
 from app.schemas.report import (
     LatestReportsResponse,
@@ -61,7 +61,7 @@ async def get_report(
 @router.post("/generate", status_code=status.HTTP_202_ACCEPTED)
 async def generate_report_endpoint(
     payload: ManualReportGenerateRequest,
-    admin: User = Depends(require_role(UserRole.ADMIN)),
+    admin: User = Depends(get_current_admin),
 ) -> dict[str, str]:
     """Queue manual report generation."""
     _queue_report_generation(payload, admin.id)
