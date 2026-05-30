@@ -172,7 +172,7 @@ async def test_runtime_config_accepts_explicit_provider_model_and_api_key(
         ("anthropic", "https://api.anthropic.com/v1/messages"),
         ("openai", "https://api.openai.com/v1/chat/completions"),
         ("deepseek", "https://api.deepseek.com/chat/completions"),
-        ("qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"),
+        ("qwen", "https://api.zhizengzeng.com/v1/chat/completions"),
     ],
 )
 def test_provider_urls(db_session: AsyncSession, provider: str, expected: str) -> None:
