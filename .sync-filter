@@ -10,7 +10,6 @@
 
 # ── Sync infrastructure (public repo doesn't need these) ──
 .github/workflows/sync-public.yml
-.github/workflows/sync-to-public.yml
 .sync-filter
 
 # ── Dev artifacts & debug logs ────────────────────────
