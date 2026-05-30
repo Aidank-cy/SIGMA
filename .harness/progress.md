@@ -2139,3 +2139,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with full backend pytest, backend Ruff check, backend Ruff format check, focused market-index tests, and stale candle import search.
 - Notes: Moved the candle refresh job and candle cache/database helpers under `app.services.market.candles`, re-exported the scheduler entry point from the market package, and removed the old `app.services.market_candles` path.
 - Timestamp: 2026-05-30T03:24:09Z
+
+### [Maintenance] Sub-feature: Admin user service extraction
+- Status: COMPLETE
+- Files modified: sigma-backend/app/api/v1/admin/users.py, sigma-backend/app/services/admin_service.py, sigma-backend/app/services/admin_source_service.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused admin API tests, full backend pytest, backend Ruff check, and backend Ruff format check.
+- Notes: Moved admin user listing, mutation, report/LLM detail reads, user deletion cleanup, and managed custom-source lifecycle logic out of the route layer into service modules while preserving endpoint contracts.
+- Timestamp: 2026-05-30T03:30:13Z
