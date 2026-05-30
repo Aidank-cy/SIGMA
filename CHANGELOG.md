@@ -206,6 +206,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Remove root Playwright verification screenshot PNG artifacts.
 
 ### Fixed
+- Fix scheduled report generation so one user's failure or existing report does not block other users.
 - Fix scheduled report generation to pass the requesting user's saved default LLM API key into report LLM calls.
 - Fix post-close candle refreshes so delayed Yahoo 1-minute data is refetched once after the 15-minute delay window for all configured markets.
 - Fix KOSPI Finnhub tail backfill so high-coverage Yahoo data still backfills when the last candle is more than five minutes before the local close.

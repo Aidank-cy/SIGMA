@@ -2083,3 +2083,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PENDING
 - Notes: Applied Geist font setup, 16px outer radii, unified token replacements, dark chart tooltips, ease-out motion, and cleanup checks for removed `sigma-*`, Apple shadow, blur, `font-semibold`, `rounded-lg`, and TSX `oklch()` references.
 - Timestamp: 2026-05-29T11:40:58Z
+
+### [Maintenance] Sub-feature: Scheduled report generation resilience
+- Status: COMPLETE
+- Files modified: sigma-backend/app/scheduler/jobs.py, sigma-backend/app/analyzers/report_generator.py, sigma-backend/tests/test_scheduler.py, sigma-backend/tests/test_report_generator.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused scheduler/report-generator tests, touched-path Ruff, and `git diff --check`. Full backend pytest remains blocked by the unrelated `tests/test_llm.py::test_provider_urls` Qwen URL expectation mismatch; full backend Ruff and `./hooks/post-file-edit.sh` remain blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` issues.
+- Notes: Scheduled report generation now isolates per-user failures, scopes duplicate checks by report owner, snapshots config values across transaction rollbacks, and skips user report LLM calls when neither user nor system API keys are configured.
+- Timestamp: 2026-05-30T01:44:37Z

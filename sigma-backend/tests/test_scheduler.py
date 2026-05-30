@@ -436,6 +436,7 @@ async def test_generate_scheduled_reports_skips_existing_overlapping_report(
                 category_scope=["finance"],
                 period_start=period_start,
                 period_end=period_end,
+                user_id=user.id,
                 item_count=0,
                 sentiment_score=0.5,
             )
@@ -453,6 +454,199 @@ async def test_generate_scheduled_reports_skips_existing_overlapping_report(
 
     try:
         await generate_scheduled_reports(ReportType.DAILY_MORNING, session_factory)
+    finally:
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_generate_scheduled_reports_allows_other_users_overlapping_report(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One user's overlapping report does not block another user's scheduled report."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+    existing_user = User(
+        id=uuid4(),
+        email="existing-scheduled@example.com",
+        hashed_password="hash",
+        display_name="Existing Scheduled",
+    )
+    target_user = User(
+        id=uuid4(),
+        email="target-scheduled@example.com",
+        hashed_password="hash",
+        display_name="Target Scheduled",
+    )
+    period_start, period_end = _period_for(
+        ReportType.DAILY_MORNING,
+        datetime(2026, 5, 27, 2, 0, tzinfo=timezone.utc),
+    )
+    async with session_factory() as db:
+        db.add_all([existing_user, target_user])
+        db.add(
+            UserReportConfig(
+                user_id=target_user.id,
+                report_frequency=ReportType.DAILY_MORNING,
+                report_frequencies=["daily_morning"],
+                markets=["us"],
+                categories=["finance"],
+                is_active=True,
+            )
+        )
+        db.add(
+            Report(
+                report_type=ReportType.DAILY_MORNING,
+                title="Other User Existing",
+                content="# Existing",
+                market_scope=["us"],
+                category_scope=["finance"],
+                period_start=period_start,
+                period_end=period_end,
+                user_id=existing_user.id,
+                item_count=0,
+                sentiment_score=0.5,
+            )
+        )
+        await db.commit()
+
+    async def fake_generate(
+        db,
+        report_type,
+        market_scope,
+        category_scope,
+        generated_start,
+        generated_end,
+        **kwargs,
+    ) -> Report:
+        report = Report(
+            report_type=report_type,
+            title="Generated",
+            content="# Generated",
+            market_scope=market_scope,
+            category_scope=category_scope,
+            period_start=generated_start,
+            period_end=generated_end,
+            user_id=kwargs["user_id"],
+            item_count=0,
+            sentiment_score=0.5,
+        )
+        db.add(report)
+        await db.flush()
+        return report
+
+    monkeypatch.setattr("app.scheduler.jobs.datetime", _FixedDateTime)
+    monkeypatch.setattr("app.scheduler.jobs.generate_report", fake_generate)
+
+    try:
+        await generate_scheduled_reports(ReportType.DAILY_MORNING, session_factory)
+
+        async with session_factory() as db:
+            target_report = await db.scalar(
+                select(Report).where(
+                    Report.user_id == target_user.id,
+                    Report.title == "Generated",
+                )
+            )
+        assert target_report is not None
+    finally:
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_generate_scheduled_reports_continues_after_user_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A failing user's scheduled report does not abort or erase other users."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+    users = [
+        User(
+            id=uuid4(),
+            email=f"scheduled-{index}@example.com",
+            hashed_password="hash",
+            display_name=f"Scheduled {index}",
+        )
+        for index in range(3)
+    ]
+    async with session_factory() as db:
+        db.add_all(users)
+        db.add_all(
+            [
+                UserReportConfig(
+                    user_id=user.id,
+                    report_frequency=ReportType.DAILY_MORNING,
+                    report_frequencies=["daily_morning"],
+                    markets=["us"],
+                    categories=["finance"],
+                    is_active=True,
+                )
+                for user in users
+            ]
+        )
+        await db.commit()
+
+    calls = []
+
+    async def fake_generate(
+        db,
+        report_type,
+        market_scope,
+        category_scope,
+        generated_start,
+        generated_end,
+        **kwargs,
+    ) -> Report:
+        user_id = kwargs["user_id"]
+        calls.append(user_id)
+        if len(calls) == 2:
+            raise RuntimeError("simulated LLM failure")
+        report = Report(
+            report_type=report_type,
+            title=f"Generated {user_id}",
+            content="# Generated",
+            market_scope=market_scope,
+            category_scope=category_scope,
+            period_start=generated_start,
+            period_end=generated_end,
+            user_id=user_id,
+            item_count=0,
+            sentiment_score=0.5,
+        )
+        db.add(report)
+        await db.flush()
+        return report
+
+    monkeypatch.setattr("app.scheduler.jobs.datetime", _FixedDateTime)
+    monkeypatch.setattr("app.scheduler.jobs.generate_report", fake_generate)
+    caplog.set_level("ERROR", logger="app.scheduler.jobs")
+
+    try:
+        await generate_scheduled_reports(ReportType.DAILY_MORNING, session_factory)
+
+        async with session_factory() as db:
+            stored_user_ids = set(await db.scalars(select(Report.user_id)))
+        assert calls == [user.id for user in users]
+        assert stored_user_ids == {calls[0], calls[2]}
+        assert "Report generation failed for user=" in caplog.text
     finally:
         async with engine.begin() as connection:
             await connection.run_sync(Base.metadata.drop_all)
