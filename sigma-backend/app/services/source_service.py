@@ -1,11 +1,14 @@
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
+from app.collectors.base import BaseCollector
 from app.collectors.factory import create_collector
 from app.models.collected_item import CollectedItem
 from app.models.collector_log import CollectorLog
@@ -153,7 +156,7 @@ async def test_source(
     db: AsyncSession,
     source_id: UUID,
     current_user: User,
-    collector_factory: Callable[[DataSource], object] = create_collector,
+    collector_factory: Callable[[DataSource], BaseCollector] = create_collector,
 ) -> SourcePreviewResponse:
     """Run a source collector without writing to the database."""
     source = await _get_owned_source(db, source_id, current_user)
@@ -167,8 +170,8 @@ async def collect_source(
     source_id: UUID,
     current_user: User,
     collect_job: Callable[[UUID], Awaitable[None]],
-    create_task: Callable[[Awaitable[None]], object],
-    background_tasks: set[object],
+    create_task: Callable[[Awaitable[None]], Any],
+    background_tasks: set[Any],
 ) -> dict[str, str]:
     """Trigger a real collection for the given source in the background."""
     source = await _get_owned_source(db, source_id, current_user)
@@ -219,7 +222,7 @@ async def _get_owned_source(db: AsyncSession, source_id: UUID, user: User) -> Da
     return source
 
 
-def _visible_source_predicate(user: User):
+def _visible_source_predicate(user: User) -> ColumnElement[bool] | bool:
     if user.role == UserRole.ADMIN:
         return True
     return or_(DataSource.is_system.is_(True), DataSource.created_by == user.id)

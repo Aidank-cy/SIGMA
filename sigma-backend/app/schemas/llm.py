@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -19,7 +19,7 @@ class LLMApiKey(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def default_legacy_fields(cls, data: object) -> object:
+    def default_legacy_fields(cls, data: Any) -> Any:
         """Accept pre-provider key records saved before per-key limits existed."""
         if not isinstance(data, dict):
             return data

@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
@@ -23,7 +24,7 @@ from app.schemas.source import (
 from app.services import source_service
 
 router = APIRouter()
-BACKGROUND_TASKS: set[object] = set()
+BACKGROUND_TASKS: set[Any] = set()
 
 
 @router.get("", response_model=SourceListResponse)

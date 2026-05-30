@@ -4,6 +4,7 @@ import logging
 import statistics
 import time as _time
 from datetime import UTC, date, datetime, time, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import delete, select
@@ -725,7 +726,7 @@ def _serialize_points(points: list[IntradayPoint]) -> str:
     )
 
 
-def _deserialize_points(value: object) -> list[IntradayPoint] | None:
+def _deserialize_points(value: Any) -> list[IntradayPoint] | None:
     try:
         raw = value.decode() if isinstance(value, bytes) else str(value)
         payload = json.loads(raw)

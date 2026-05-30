@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -110,14 +111,14 @@ async def get_llm_usage(db: AsyncSession, user_id: UUID | None = None) -> LLMUsa
     return LLMUsageResponse(items=items)
 
 
-async def _config_value(db: AsyncSession, key: str, default: object) -> object:
+async def _config_value(db: AsyncSession, key: str, default: Any) -> Any:
     config = await db.scalar(select(SystemConfig).where(SystemConfig.key == key))
     if config is None:
         return default
     return config.value.get("value", default)
 
 
-async def _upsert_config(db: AsyncSession, key: str, value: object) -> None:
+async def _upsert_config(db: AsyncSession, key: str, value: Any) -> None:
     config = await db.scalar(select(SystemConfig).where(SystemConfig.key == key))
     if config is None:
         db.add(SystemConfig(key=key, value={"value": value}))

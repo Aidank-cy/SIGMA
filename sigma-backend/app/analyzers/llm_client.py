@@ -157,7 +157,7 @@ class LLMClient:
             api_key=self.api_key,
         )
 
-    async def _config_value(self, key: str, default: object) -> object:
+    async def _config_value(self, key: str, default: Any) -> Any:
         config = await self.db.scalar(select(SystemConfig).where(SystemConfig.key == key))
         if config is None:
             return default

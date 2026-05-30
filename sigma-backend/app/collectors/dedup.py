@@ -1,8 +1,18 @@
-from sqlalchemy import Select, select, tuple_
-from sqlalchemy.ext.asyncio import AsyncSession
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from sqlalchemy import select, tuple_
 
 from app.models.collected_item import CollectedItem
-from app.schemas.item import CollectedItemCreate
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from sqlalchemy import Select
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.schemas.item import CollectedItemCreate
 
 
 async def filter_new_items(
@@ -26,9 +36,9 @@ async def filter_new_items(
         for item in items
         if not item.content_url or item.content_url not in existing_urls
     ]
-    existing_composites: set[tuple[object, str]] = set()
+    existing_composites: set[tuple[UUID, str]] = set()
     if composite_keys:
-        statement: Select[tuple[object, str]] = select(
+        statement: Select[tuple[UUID, str]] = select(
             CollectedItem.source_id,
             CollectedItem.title,
         ).where(
@@ -41,7 +51,7 @@ async def filter_new_items(
         existing_composites = set(rows.all())
 
     seen_urls: set[str] = set()
-    seen_composites: set[tuple[object, str]] = set()
+    seen_composites: set[tuple[UUID, str]] = set()
     new_items: list[CollectedItemCreate] = []
     for item in items:
         composite = (item.source_id, item.title)

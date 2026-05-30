@@ -7,7 +7,7 @@ import logging
 import time as _time
 import urllib.error
 import urllib.request
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote as quote_path
 
 from app.services.market.types import IndexQuote
@@ -135,7 +135,7 @@ async def _fetch_yahoo_chart_result(
     config: IndexConfig,
     params: dict[str, str],
     purpose: str,
-) -> dict[str, object] | None:
+) -> dict[str, Any] | None:
     """Fetch one Yahoo chart response with shared throttling and backoff."""
     async with _yahoo_semaphore:
         if not await _yahoo_rate_limit_wait():
@@ -181,7 +181,7 @@ async def _fetch_yahoo_chart_result(
 
 def _yahoo_urllib_fetch(
     url: str, purpose: str, symbol: str, host: str
-) -> dict[str, object] | str | None:
+) -> dict[str, Any] | str | None:
     """Synchronously fetch Yahoo data with urllib to avoid TLS fingerprint blocking."""
     global _yahoo_crumb
 
@@ -253,7 +253,7 @@ def _yahoo_urllib_fetch(
     return None
 
 
-def _as_float(value: object) -> float | None:
+def _as_float(value: Any) -> float | None:
     """Convert provider payload values to floats when possible."""
     try:
         return float(value)

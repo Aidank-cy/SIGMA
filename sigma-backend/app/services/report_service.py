@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, date, datetime, time
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -102,8 +103,8 @@ def _report_predicate(
     date_from: date | None,
     date_to: date | None,
     user_id: UUID,
-) -> list[object]:
-    predicate: list[object] = [Report.user_id == user_id]
+) -> list[Any]:
+    predicate: list[Any] = [Report.user_id == user_id]
     if report_type is not None:
         predicate.append(Report.report_type == report_type)
     if market:

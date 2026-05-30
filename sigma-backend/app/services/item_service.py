@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -98,8 +99,8 @@ def _item_predicate(
     date_from: datetime | None,
     date_to: datetime | None,
     keyword: str | None,
-) -> list[object]:
-    predicate: list[object] = []
+) -> list[Any]:
+    predicate: list[Any] = []
     if since:
         predicate.append(CollectedItem.published_at >= since)
     if category:
@@ -235,7 +236,7 @@ def _summary_text(summary: str | None) -> str | None:
     return summary
 
 
-def _summary_payload(summary: str | None) -> dict[str, object]:
+def _summary_payload(summary: str | None) -> dict[str, Any]:
     if not summary:
         return {}
     try:
@@ -245,7 +246,7 @@ def _summary_payload(summary: str | None) -> dict[str, object]:
     return parsed if isinstance(parsed, dict) else {}
 
 
-def _cache_key(*parts: object) -> str:
+def _cache_key(*parts: Any) -> str:
     joined = ":".join(str(part) for part in parts)
     return f"sigma:items:{joined}"
 

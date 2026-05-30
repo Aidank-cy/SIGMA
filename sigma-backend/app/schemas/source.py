@@ -15,14 +15,14 @@ class DataSourceBase(BaseModel):
     source_type: SourceType
     category: IntelligenceCategory
     market: Market
-    config: dict[str, object] = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
     schedule_cron: str = Field(min_length=9, max_length=120)
     max_execution_seconds: int = Field(default=300, ge=1, le=3600)
     is_active: bool = True
 
     @field_validator("config")
     @classmethod
-    def sanitize_config(cls, value: dict[str, object]) -> dict[str, object]:
+    def sanitize_config(cls, value: dict[str, Any]) -> dict[str, Any]:
         """Strip script tags from source configuration values."""
         return _sanitize_config(value)
 
@@ -37,14 +37,14 @@ class DataSourceUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=160)
     category: IntelligenceCategory | None = None
     market: Market | None = None
-    config: dict[str, object] | None = None
+    config: dict[str, Any] | None = None
     schedule_cron: str | None = Field(default=None, min_length=9, max_length=120)
     max_execution_seconds: int | None = Field(default=None, ge=1, le=3600)
     is_active: bool | None = None
 
     @field_validator("config")
     @classmethod
-    def sanitize_config(cls, value: dict[str, object] | None) -> dict[str, object] | None:
+    def sanitize_config(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
         """Strip script tags from source configuration values."""
         return _sanitize_config(value) if value is not None else None
 
@@ -74,7 +74,7 @@ class SourceListResponse(BaseModel):
 class SourcePreviewResponse(BaseModel):
     """Source test collection preview response."""
 
-    items: list[dict[str, object]]
+    items: list[dict[str, Any]]
 
 
 class SourceStatusResponse(BaseModel):
@@ -92,11 +92,11 @@ SCRIPT_PATTERN = re.compile(
 )
 
 
-def _sanitize_config(value: dict[str, object]) -> dict[str, object]:
+def _sanitize_config(value: dict[str, Any]) -> dict[str, Any]:
     return {str(key): _sanitize_value(item) for key, item in value.items()}
 
 
-def _sanitize_value(value: Any) -> object:
+def _sanitize_value(value: Any) -> Any:
     if isinstance(value, str):
         return SCRIPT_PATTERN.sub("", value)
     if isinstance(value, dict):

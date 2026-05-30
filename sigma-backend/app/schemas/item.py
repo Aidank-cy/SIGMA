@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,7 +19,7 @@ class CollectedItemCreate(BaseModel):
     market: str
     published_at: datetime
     expires_at: datetime
-    metadata_extra: dict[str, object] | None = None
+    metadata_extra: dict[str, Any] | None = None
 
 
 class MinimalItem(BaseModel):
@@ -48,7 +49,7 @@ class ItemDetail(ItemSummary):
     """Collected item detail payload."""
 
     content_raw: str
-    metadata_extra: dict[str, object] | None = None
+    metadata_extra: dict[str, Any] | None = None
     sentiment: str = "neutral"
     keywords: list[str] = Field(default_factory=list)
     related: list[MinimalItem] = Field(default_factory=list)

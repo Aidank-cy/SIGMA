@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -192,7 +193,7 @@ def _report_frequencies(config: UserReportConfig) -> list[ReportType]:
     return [ReportType(value) for value in values]
 
 
-def _dump_time_ranges(payload: dict[str, object]) -> dict[str, object]:
+def _dump_time_ranges(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         key: value.model_dump(exclude_none=True) if hasattr(value, "model_dump") else value
         for key, value in payload.items()

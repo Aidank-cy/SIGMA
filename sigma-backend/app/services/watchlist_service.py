@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -154,7 +155,7 @@ async def _owned_watchlist(db: AsyncSession, current_user: User, watchlist_id: U
     return watchlist
 
 
-def _payload(payload: WatchlistCreate | WatchlistUpdate) -> dict[str, object]:
+def _payload(payload: WatchlistCreate | WatchlistUpdate) -> dict[str, Any]:
     values = payload.model_dump()
     values["keywords"] = [keyword.strip() for keyword in values["keywords"] if keyword.strip()]
     values["sources"] = [str(source_id) for source_id in values["sources"]]
@@ -162,8 +163,8 @@ def _payload(payload: WatchlistCreate | WatchlistUpdate) -> dict[str, object]:
     return values
 
 
-def _item_predicate(watchlist: Watchlist) -> list[object]:
-    predicate: list[object] = []
+def _item_predicate(watchlist: Watchlist) -> list[Any]:
+    predicate: list[Any] = []
     if watchlist.sources:
         predicate.append(
             CollectedItem.source_id.in_([UUID(str(source)) for source in watchlist.sources])

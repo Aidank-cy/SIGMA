@@ -67,6 +67,8 @@ REPORT_USER = (
     "Items:\n{items}"
 )
 
+type PeriodValue = date | datetime | str
+
 
 def summary_system_prompt(locale: str) -> str:
     """Render the per-item summary system prompt."""
@@ -92,8 +94,8 @@ def report_system_prompt(locale: str, max_tokens: int, report_type: str) -> str:
 def report_user_prompt(
     report_type: str,
     report_label: str,
-    period_start: object,
-    period_end: object,
+    period_start: PeriodValue,
+    period_end: PeriodValue,
     markets: list[str],
     categories: list[str],
     items: list[CollectedItem] | list[str],
@@ -127,13 +129,13 @@ def _render_item(item: CollectedItem | str) -> str:
     )
 
 
-def _format_period_date(value: object) -> str:
+def _format_period_date(value: PeriodValue) -> str:
     if isinstance(value, datetime | date):
         return value.strftime("%Y-%m-%d")
     return str(value)
 
 
-def _format_period_time(value: object, fallback: str) -> str:
+def _format_period_time(value: PeriodValue, fallback: str) -> str:
     if isinstance(value, datetime):
         return value.strftime("%H:%M")
     return fallback

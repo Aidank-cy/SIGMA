@@ -274,7 +274,7 @@ def _period_for(
     )
 
 
-def _int_or_none(value: object) -> int | None:
+def _int_or_none(value: Any) -> int | None:
     if isinstance(value, int):
         return value
     if isinstance(value, str) and value.isdigit():
@@ -282,7 +282,7 @@ def _int_or_none(value: object) -> int | None:
     return None
 
 
-def _parse_hhmm(value: object) -> time | None:
+def _parse_hhmm(value: Any) -> time | None:
     if not isinstance(value, str):
         return None
     parts = value.split(":")

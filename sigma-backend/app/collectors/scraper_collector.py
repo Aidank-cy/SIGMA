@@ -1,6 +1,7 @@
 import asyncio
 import re
 from itertools import cycle
+from typing import Any
 from urllib.parse import urljoin
 
 import httpx
@@ -115,14 +116,14 @@ class ScraperCollector(BaseCollector):
         return re.sub(r"\s+\d+\s*$", "", text).strip()
 
     @staticmethod
-    def _text(container: BeautifulSoup, selector: object) -> str:
+    def _text(container: BeautifulSoup, selector: Any) -> str:
         if not selector:
             return ""
         element = container.select_one(str(selector))
         return element.get_text(" ", strip=True) if element else ""
 
     @staticmethod
-    def _richer_content(container: BeautifulSoup, selector: object, title: str) -> str:
+    def _richer_content(container: BeautifulSoup, selector: Any, title: str) -> str:
         content_parts: list[str] = []
         for element in container.select(str(selector or "p")):
             part = element.get_text(" ", strip=True)
@@ -141,7 +142,7 @@ class ScraperCollector(BaseCollector):
         return container.get_text(" ", strip=True)
 
     @staticmethod
-    def _href(container: BeautifulSoup, selector: object) -> str | None:
+    def _href(container: BeautifulSoup, selector: Any) -> str | None:
         if not selector:
             return None
         element = container.select_one(str(selector))

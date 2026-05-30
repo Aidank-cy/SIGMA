@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from app.collectors.base import RawCollectedItem
 from app.collectors.utils import clean_text, parse_datetime
@@ -45,7 +46,7 @@ def normalize_items(
     return normalized
 
 
-def _metadata(raw: RawCollectedItem) -> dict[str, object] | None:
+def _metadata(raw: RawCollectedItem) -> dict[str, Any] | None:
     metadata = raw.get("metadata")
     if isinstance(metadata, dict):
         return metadata

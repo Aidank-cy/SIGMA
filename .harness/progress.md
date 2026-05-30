@@ -2160,3 +2160,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused admin/security/watchlist/report/stats/settings tests, full backend pytest, backend Ruff check, backend Ruff format check, and route handler length scan.
 - Notes: Moved query-heavy route logic into service modules so every backend API route handler is a thin controller and every `app/api` file stays below 250 lines.
 - Timestamp: 2026-05-30T03:44:54Z
+
+### [Phase 3] Sub-feature 3.1: Backend type annotations
+- Status: COMPLETE
+- Files created: none
+- Files modified: sigma-backend/app/**/*.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with backend Ruff check and full backend pytest.
+- Notes: Completed backend function annotation sweep, replaced vague `object` hints with explicit dynamic or domain types, removed seed `type: ignore` comments with casts, and verified 248 backend tests.
+- Timestamp: 2026-05-30T03:59:05Z

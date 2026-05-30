@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Changed
+- Complete backend type annotations and replace vague dynamic hints with explicit types.
 - Move remaining report, stats, settings, watchlist, and admin dashboard route logic into services.
 - Thin auth, item, and source API routes by moving query and mutation logic into services.
 - Extract admin user management database and mutation logic into backend service modules.

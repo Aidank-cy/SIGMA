@@ -1,5 +1,6 @@
 from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 from pydantic import BaseModel, TypeAdapter
 from sqlalchemy import func, select
@@ -122,7 +123,7 @@ async def get_source_health(
     return response
 
 
-async def _count(db: AsyncSession, model: type[object]) -> int:
+async def _count(db: AsyncSession, model: type[Any]) -> int:
     return await db.scalar(select(func.count()).select_from(model)) or 0
 
 

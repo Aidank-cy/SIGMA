@@ -3,6 +3,7 @@ import json
 import logging
 import secrets
 from collections.abc import Awaitable, Callable
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, Response, status
@@ -41,7 +42,7 @@ PASSWORD_RESET_TTL_SECONDS = 10 * 60
 PASSWORD_RESET_TOKEN_SECONDS = 5 * 60
 REGISTRATION_TTL_SECONDS = 10 * 60
 
-RedisFactory = Callable[[], object]
+RedisFactory = Callable[[], Any]
 EmailSender = Callable[[str, str, str], Awaitable[str | None]]
 
 LOGGER = logging.getLogger(__name__)

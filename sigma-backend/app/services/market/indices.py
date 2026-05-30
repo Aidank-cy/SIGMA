@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from datetime import UTC, date, datetime, time, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -541,14 +542,14 @@ def _now_utc() -> datetime:
     return datetime.now(UTC)
 
 
-def _as_float(value: object) -> float | None:
+def _as_float(value: Any) -> float | None:
     try:
         return float(value)
     except (TypeError, ValueError):
         return None
 
 
-def _timestamp_from_epoch(value: object) -> datetime | None:
+def _timestamp_from_epoch(value: Any) -> datetime | None:
     epoch = _as_float(value)
     if epoch is None or epoch <= 0:
         return None
@@ -556,7 +557,7 @@ def _timestamp_from_epoch(value: object) -> datetime | None:
 
 
 def _timestamp_from_exchange_fields(
-    config: IndexConfig, date_value: object, time_value: object
+    config: IndexConfig, date_value: Any, time_value: Any
 ) -> datetime | None:
     date_text = str(date_value or "").strip()
     time_text = str(time_value or "").strip()
@@ -596,6 +597,6 @@ async def _cache_set(value: str) -> None:
         await client.aclose()
 
 
-def decode_cached_payload(value: str) -> dict[str, object]:
+def decode_cached_payload(value: str) -> dict[str, Any]:
     """Decode a cached payload for focused unit tests."""
     return json.loads(value)

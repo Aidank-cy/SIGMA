@@ -89,7 +89,7 @@ def _enrich_schema_components(schema: dict[str, Any]) -> None:
             property_schema.setdefault("example", _example_for(property_name, property_schema))
 
 
-def _example_for(property_name: str, property_schema: dict[str, Any]) -> object:
+def _example_for(property_name: str, property_schema: dict[str, Any]) -> Any:
     if property_name.endswith("_at") or property_name in {"period_start", "period_end"}:
         return "2026-05-16T00:00:00Z"
     if property_name.endswith("_id") or property_name == "id":

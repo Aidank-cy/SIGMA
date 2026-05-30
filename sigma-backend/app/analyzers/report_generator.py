@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
+from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -243,7 +244,7 @@ async def _resolve_report_llm_runtime(
 @dataclass(frozen=True)
 class _ConfigValue:
     found: bool
-    value: object = None
+    value: Any = None
 
 
 async def _raw_config_value(db: AsyncSession, key: str) -> _ConfigValue:
@@ -254,11 +255,11 @@ async def _raw_config_value(db: AsyncSession, key: str) -> _ConfigValue:
     return _ConfigValue(found=True, value=value)
 
 
-async def _config_value(db: AsyncSession, key: str) -> object | None:
+async def _config_value(db: AsyncSession, key: str) -> Any | None:
     return (await _raw_config_value(db, key)).value
 
 
-def _select_report_api_key(api_keys: list[object]) -> dict[str, str] | None:
+def _select_report_api_key(api_keys: list[Any]) -> dict[str, str] | None:
     valid_keys = [
         {
             "key": str(item["key"]),
@@ -276,7 +277,7 @@ def _select_report_api_key(api_keys: list[object]) -> dict[str, str] | None:
     return valid_keys[0]
 
 
-def _normalize_provider(provider: object) -> str | None:
+def _normalize_provider(provider: Any) -> str | None:
     if not isinstance(provider, str) or not provider.strip():
         return None
     return provider.strip().lower()
