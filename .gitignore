@@ -15,3 +15,19 @@ dist/
 coverage/
 *.tsbuildinfo
 sigma-data/
+
+# Dev artifacts
+.playwright-mcp/
+playwright-report/
+test-results/
+blob-report/
+*.bak
+*.log
+coverage-report.txt
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
