@@ -2287,3 +2287,12 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused market/scheduler/collector tests, backend Ruff check, and backend coverage run.
 - Notes: Preserved the existing market service facade imports while reducing every `app/services/` file below 300 lines and lifting all service coverage above 60%.
 - Timestamp: 2026-05-30T06:35:53Z
+
+### [Maintenance] Sub-feature: Harness sync exposure and dev artifact cleanup
+- Status: COMPLETE
+- Files created: none
+- Files modified: .gitignore, .sync-filter, CHANGELOG.md, .harness/progress.md
+- Files removed: committed .playwright-mcp debug logs and report .bak files
+- Tests: PASS with backend pytest, frontend production build, artifact checks, and sync-filter grep verification.
+- Notes: Temporarily reclassified harness engineering artifacts as public in `.sync-filter` for cross-session workflow review while retaining sync workflow and dev artifact exclusions.
+- Timestamp: 2026-05-30T08:15:48Z

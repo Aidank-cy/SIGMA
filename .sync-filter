@@ -1,100 +1,61 @@
-# Dev-to-public sync exclusions for Aidank-cy/SIGMA-dev -> Aidank-cy/SIGMA.
-#
-# Keep this list in sync with private governance, local data, generated caches,
-# and private-only CI. Patterns are consumed by .github/workflows/sync-public.yml.
+# ── .sync-filter ──────────────────────────────────────
+# Lines = patterns to REMOVE before syncing to public repo.
+# !pattern = negate (keep even if a broader pattern matched).
+# Blank lines and #comments are ignored.
 
-# Environment and secrets
+# ── Secrets & env ─────────────────────────────────────
 .env
-**/.env
 .env.*
-**/.env.*
 !.env.example
-*.pem
-**/*.pem
-*.key
-**/*.key
-*.p12
-**/*.p12
-*.pfx
-**/*.pfx
-*secret*
-**/*secret*
-*credential*
-**/*credential*
 
-# AI agent config and internal process docs
-AGENTS.md
-CLAUDE.md
-copilot-instructions.md
-.cursor
-.cursor/
-.github/copilot-instructions.md
-.project-rules
-.project-rules/
-.harness
-.harness/
-hooks
-hooks/
-skills
-skills/
-agents
-agents/
-CHANGELOG.md
-DEVLOG.md
-TODO.md
-EDITING.md
-
-# Private-only CI and sync implementation
-.github/workflows/ai-quality-gate.yml
+# ── Sync infrastructure (public repo doesn't need these) ──
 .github/workflows/sync-public.yml
 .github/workflows/sync-to-public.yml
 .sync-filter
 
-# Local data and generated artifacts
-.DS_Store
-sigma-data
-sigma-data/
-node_modules
-node_modules/
-**/node_modules
-**/node_modules/
-.next
-.next/
-**/.next
-**/.next/
-out
-out/
-**/out
-**/out/
-dist
-dist/
-**/dist
-**/dist/
-coverage
-coverage/
-**/coverage
-**/coverage/
-*.tsbuildinfo
-**/*.tsbuildinfo
-*.egg-info
-*.egg-info/
-**/*.egg-info
-**/*.egg-info/
-__pycache__
-__pycache__/
-**/__pycache__
-**/__pycache__/
-*.pyc
-**/*.pyc
-.pytest_cache
-.pytest_cache/
-**/.pytest_cache
-**/.pytest_cache/
-.ruff_cache
-.ruff_cache/
-**/.ruff_cache
-**/.ruff_cache/
-.venv
-.venv/
-**/.venv
-**/.venv/
+# ── Dev artifacts & debug logs ────────────────────────
+.playwright-mcp/
+playwright-report/
+test-results/
+blob-report/
+*.bak
+*.log
+coverage-report.txt
+
+# ── Design prototype (not part of the running app) ────
+v0-reference/
+
+# ── Backend dev-only scripts ──────────────────────────
+sigma-backend/scripts/test_report_pipeline.py
+sigma-backend/scripts/seed_e2e_data.py
+sigma-backend/scripts/clean_database.py
+
+# ── Codex task prompts (one-time refactoring prompts) ─
+CODEX-*.md
+
+# ══════════════════════════════════════════════════════
+# INTENTIONALLY PUBLIC — harness engineering artifacts
+# ══════════════════════════════════════════════════════
+# The following files are normally classified as PRIVATE
+# per the sync-filter skill's decision tree. They are
+# kept PUBLIC here to enable full workflow review and
+# cross-session discussion with Claude.
+#
+# Files kept public:
+#   AGENTS.md          — cross-tool agent rules
+#   CLAUDE.md          — Claude Code specific config
+#   CHANGELOG.md       — keep-a-changelog history
+#   .harness/          — progress tracker, planning
+#   .cursor/           — Cursor rules (if present)
+#   .github/workflows/ — CI quality gates (except sync)
+#   hooks/             — deterministic quality hooks
+#   skills/            — project-specific domain skills
+#
+# To re-privatize after the review, uncomment this block:
+# AGENTS.md
+# CLAUDE.md
+# CHANGELOG.md
+# .harness/
+# .cursor/
+# hooks/
+# skills/

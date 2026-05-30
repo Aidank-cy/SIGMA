@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Changed
+- Temporarily expose harness engineering artifacts in the public sync filter for cross-session workflow review.
 - Split market index and candle helper logic into smaller service modules under the file-size cap.
 - Add focused coverage for extracted market cache, quote, and candle storage helpers.
 - Add final missing public helper docstrings found by the backend interface audit.
