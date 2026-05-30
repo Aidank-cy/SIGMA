@@ -61,6 +61,23 @@ function formatTokenTick(value: number): string {
   return `${Number.isInteger(thousands) ? thousands.toFixed(0) : thousands.toFixed(1)}k`;
 }
 
+function TrendXAxisTick({ x = 0, y = 0, payload = { value: "" }, index = 0, visibleTicksCount = 0 }: {
+  x?: number;
+  y?: number;
+  payload?: { value: string };
+  index?: number;
+  visibleTicksCount?: number;
+}) {
+  let anchor: "start" | "middle" | "end" = "middle";
+  if (index === 0) anchor = "start";
+  if (index === visibleTicksCount - 1) anchor = "end";
+  return (
+    <text x={x} y={y + 12} fill="var(--muted-foreground)" fontSize={11} textAnchor={anchor}>
+      {payload.value}
+    </text>
+  );
+}
+
 export function TokenTrendChart({
   data,
   legendLabel,
@@ -75,7 +92,7 @@ export function TokenTrendChart({
     <ChartFrame>
       <LineChart data={data} margin={{ bottom: 5, left: 5, right: 5, top: 8 }}>
         <CartesianGrid stroke="var(--border)" vertical={false} />
-        <XAxis dataKey="day" interval={0} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+        <XAxis dataKey="day" interval={0} tick={<TrendXAxisTick />} />
         <YAxis
           domain={paddedDomain}
           tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
