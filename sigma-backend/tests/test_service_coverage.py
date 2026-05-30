@@ -112,9 +112,7 @@ async def test_admin_source_service_crud_for_managed_user(
         DataSourceUpdate(is_active=False, name="Managed coverage RSS inactive"),
         admin.id,
     )
-    await admin_source_service.delete_admin_user_source(
-        db_session, target.id, created.id, admin.id
-    )
+    await admin_source_service.delete_admin_user_source(db_session, target.id, created.id, admin.id)
 
     assert listed.total == 1
     assert updated.is_active is False
