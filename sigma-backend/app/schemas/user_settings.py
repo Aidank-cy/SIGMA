@@ -61,6 +61,7 @@ class UserReportConfigUpdate(BaseModel):
 
     @model_validator(mode="after")
     def normalize_frequency(self) -> "UserReportConfigUpdate":
+        """Keep the legacy primary frequency synchronized with the list value."""
         if not self.report_frequencies:
             self.report_frequencies = [self.report_frequency]
         else:
@@ -123,6 +124,7 @@ class UserSettingsUpdate(BaseModel):
 
     @model_validator(mode="after")
     def normalize_frequency(self) -> "UserSettingsUpdate":
+        """Keep the legacy primary frequency synchronized with the list value."""
         if not self.report_frequencies:
             self.report_frequencies = [self.report_frequency]
         else:
@@ -182,6 +184,7 @@ class UserPasswordUpdate(BaseModel):
 
 
 def validate_report_time_ranges(value: dict[str, ReportTimeRange]) -> None:
+    """Validate report time-range keys and per-frequency constraints."""
     allowed = {report_type.value for report_type in REPORT_MAX_TOKEN_TYPES}
     for key, time_range in value.items():
         if key not in allowed:

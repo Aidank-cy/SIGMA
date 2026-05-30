@@ -26,6 +26,8 @@ LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class ReportLLMRuntime:
+    """Carry the resolved LLM provider, model, and optional API key."""
+
     provider: str
     model: str
     api_key: str | None

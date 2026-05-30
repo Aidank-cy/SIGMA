@@ -26,6 +26,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Attach baseline browser security headers to every response."""
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        """Apply security headers after downstream request handling."""
         response = await call_next(request)
         return apply_security_headers(response)
 
@@ -34,6 +35,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     """Apply lightweight per-minute API throttles."""
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        """Reject invalid or over-limit API requests before routing."""
         if request.url.path.startswith("/api/v1/"):
             if request.method == "OPTIONS":
                 return await call_next(request)
@@ -62,6 +64,7 @@ class _LimiterStore:
 
     @classmethod
     def for_request(cls, state: Any) -> "_LimiterStore":
+        """Return the app-scoped limiter store for one request."""
         store = getattr(state, "rate_limiter", None)
         if store is None:
             store = cls()
@@ -69,6 +72,7 @@ class _LimiterStore:
         return store
 
     def allow(self, key: str, limit: int) -> bool:
+        """Return whether a rate-limit key is still within its window."""
         now = monotonic()
         start, count = self._windows.get(key, (now, 0))
         if now - start >= 60:
@@ -127,6 +131,7 @@ def _invalid_token() -> JSONResponse:
 
 
 def apply_security_headers(response: Response) -> Response:
+    """Attach standard browser security headers to a response."""
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("X-XSS-Protection", "1; mode=block")
