@@ -199,6 +199,19 @@ async def _resolve_report_llm_runtime(
                 return None
             selected_api_key = selected_key["key"]
             selected_key_provider = selected_key.get("provider")
+        else:
+            has_system_key = bool(
+                settings.anthropic_api_key
+                or settings.deepseek_api_key
+                or settings.openai_api_key
+                or settings.qwen_api_key
+            )
+            if not has_system_key:
+                LOGGER.warning(
+                    "Skipping report generation for user %s: no user API keys and no system API keys configured.",
+                    user_id,
+                )
+                return None
 
     user_prefix = f"sigma.user.{user_id}.llm" if user_id is not None else None
     user_provider = await _config_value(db, f"{user_prefix}.provider") if user_prefix else None

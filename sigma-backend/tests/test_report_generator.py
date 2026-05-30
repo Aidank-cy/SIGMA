@@ -188,6 +188,7 @@ async def test_report_generator_scopes_items_to_user_and_system_sources(
             return "# Overview\n\nScoped report body."
 
     monkeypatch.setattr("app.analyzers.report_generator.LLMClient", FakeLLMClient)
+    monkeypatch.setattr("app.analyzers.report_generator.settings.anthropic_api_key", "sk-system")
 
     report = await generate_report(
         db_session,
@@ -308,11 +309,51 @@ async def test_report_generator_skips_user_with_empty_llm_api_keys(
 
 
 @pytest.mark.asyncio
-async def test_report_generator_keeps_env_key_fallback_without_user_key_config(
+async def test_report_generator_skips_user_without_llm_keys_when_system_keys_missing(
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Missing user key config skips generation when no system key can backfill it."""
+    user_id = uuid4()
+    source = _source_with_owner(created_by=user_id)
+    db_session.add(source)
+    db_session.add(_item(source, "No configured key report item"))
+    await db_session.commit()
+
+    class FakeLLMClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            raise AssertionError("LLM client should not be constructed without any usable key")
+
+    monkeypatch.setattr("app.analyzers.report_generator.LLMClient", FakeLLMClient)
+    monkeypatch.setattr("app.analyzers.report_generator.settings.anthropic_api_key", "")
+    monkeypatch.setattr("app.analyzers.report_generator.settings.deepseek_api_key", "")
+    monkeypatch.setattr("app.analyzers.report_generator.settings.openai_api_key", "")
+    monkeypatch.setattr("app.analyzers.report_generator.settings.qwen_api_key", "")
+    caplog.set_level("WARNING", logger="app.analyzers.report_generator")
+
+    report = await generate_report(
+        db_session,
+        ReportType.DAILY,
+        ["us"],
+        ["finance"],
+        date.today(),
+        date.today(),
+        user_id=user_id,
+    )
+
+    stored_reports = list(await db_session.scalars(select(Report)))
+    assert report is None
+    assert stored_reports == []
+    assert "no user API keys and no system API keys configured" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_report_generator_keeps_system_key_fallback_without_user_key_config(
     db_session: AsyncSession,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Missing user key config leaves API key unset so LLMClient can use env fallback."""
+    """Missing user key config leaves API key unset when a system key can backfill it."""
     user_id = uuid4()
     source = _source_with_owner(created_by=user_id)
     captured: dict[str, object] = {}
@@ -335,6 +376,7 @@ async def test_report_generator_keeps_env_key_fallback_without_user_key_config(
             return "# Overview\n\nEnv fallback report body."
 
     monkeypatch.setattr("app.analyzers.report_generator.LLMClient", FakeLLMClient)
+    monkeypatch.setattr("app.analyzers.report_generator.settings.anthropic_api_key", "sk-system")
 
     report = await generate_report(
         db_session,

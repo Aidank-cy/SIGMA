@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, time, timedelta, timezone
+import logging
 from time import perf_counter
 from typing import Any
 from uuid import UUID
@@ -31,6 +32,7 @@ from app.utils.redis_lock import acquire_lock, release_lock
 __all__ = ["candle_refresh_job"]
 
 BEIJING_TZ = ZoneInfo("Asia/Shanghai")
+LOGGER = logging.getLogger(__name__)
 
 
 async def collect_from_source(
@@ -115,27 +117,50 @@ async def generate_scheduled_reports(
         active_configs = list(
             await db.scalars(select(UserReportConfig).where(UserReportConfig.is_active.is_(True)))
         )
-        configs = [
-            config
-            for config in active_configs
-            if _config_matches_report_type(config, resolved_type)
-        ]
-        for config in configs:
+        configs: list[tuple[UUID, list[Any], list[Any], dict[str, Any]]] = []
+        for config in active_configs:
+            if not _config_matches_report_type(config, resolved_type):
+                continue
+            time_ranges = config.time_ranges if isinstance(config.time_ranges, dict) else {}
+            configs.append(
+                (
+                    config.user_id,
+                    list(config.markets),
+                    list(config.categories),
+                    time_ranges,
+                )
+            )
+        for user_id, markets, categories, time_ranges in configs:
             period_start, period_end = _period_for(
                 resolved_type,
-                time_ranges=config.time_ranges or {},
+                time_ranges=time_ranges,
             )
-            if await _report_exists_for_period(db, resolved_type, period_start, period_end):
-                continue
-            await generate_report(
+            if await _report_exists_for_period(
                 db,
                 resolved_type,
-                list(config.markets),
-                list(config.categories),
                 period_start,
                 period_end,
-                user_id=config.user_id,
-            )
+                user_id=user_id,
+            ):
+                continue
+            try:
+                await generate_report(
+                    db,
+                    resolved_type,
+                    markets,
+                    categories,
+                    period_start,
+                    period_end,
+                    user_id=user_id,
+                )
+                await db.commit()
+            except Exception:
+                LOGGER.exception(
+                    "Report generation failed for user=%s type=%s",
+                    user_id,
+                    resolved_type.value,
+                )
+                await db.rollback()
         await db.commit()
 
 
@@ -156,16 +181,18 @@ async def _report_exists_for_period(
     report_type: ReportType,
     period_start: datetime,
     period_end: datetime,
+    user_id: UUID | None = None,
 ) -> bool:
-    existing = await db.scalar(
-        select(Report)
-        .where(
-            Report.report_type == report_type,
-            Report.period_start <= period_end,
-            Report.period_end >= period_start,
-        )
-        .limit(1)
-    )
+    predicates = [
+        Report.report_type == report_type,
+        Report.period_start <= period_end,
+        Report.period_end >= period_start,
+    ]
+    if user_id is not None:
+        predicates.append(Report.user_id == user_id)
+    else:
+        predicates.append(Report.user_id.is_(None))
+    existing = await db.scalar(select(Report).where(*predicates).limit(1))
     return existing is not None
 
 
