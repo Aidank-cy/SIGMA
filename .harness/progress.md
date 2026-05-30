@@ -2255,3 +2255,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused collector tests, full backend pytest, backend Ruff check, and backend Ruff format check.
 - Notes: Centralized collector config validation and HTTP client management in `BaseCollector.collect`, with subclass-specific fetch logic isolated in `_do_collect`.
 - Timestamp: 2026-05-30T04:36:47Z
+
+### [Phase 8] Sub-feature 8.1: Service coverage tests
+- Status: COMPLETE
+- Files created: sigma-backend/tests/test_service_coverage.py
+- Files modified: CHANGELOG.md, .harness/progress.md
+- Tests: PASS with focused service coverage tests, backend Ruff check, and backend coverage run.
+- Notes: Added direct service tests for admin user/report management, admin source CRUD, and source lifecycle/error branches; backend coverage is now 87% overall with all service files at or above 60%.
+- Timestamp: 2026-05-30T04:41:07Z
