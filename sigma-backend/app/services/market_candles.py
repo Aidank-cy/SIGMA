@@ -11,20 +11,18 @@ from sqlalchemy import func as sa_func
 
 from app.database import AsyncSessionLocal
 from app.models.market_candle import MarketCandle
-from app.services.market_indices import (
-    BEIJING_TZ,
-    INDEX_CONFIGS,
-    IndexConfig,
-    IntradayPoint,
+from app.services.market.config import BEIJING_TZ, INDEX_CONFIGS, IndexConfig
+from app.services.market.indices import (
     _as_float,
     _elapsed_trading_minutes,
-    _fetch_yahoo_chart_result,
     _is_trading,
     _is_within_session,
     _latest_session_date,
     _market_status_beijing,
     _now_utc,
 )
+from app.services.market.types import IntradayPoint
+from app.services.market.yahoo_client import _fetch_yahoo_chart_result
 from app.utils.redis_lock import create_redis_client
 
 LOGGER = logging.getLogger(__name__)

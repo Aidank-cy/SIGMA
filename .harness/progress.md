@@ -2125,3 +2125,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with backend Ruff check/format check, full backend pytest, frontend lint, frontend production build, and Docker Compose config validation for local and prod files.
 - Notes: Enabled the requested Ruff rule families with a FastAPI-specific B008 ignore and SQLAlchemy-model TC003 per-file ignore, removed hardcoded defaults from the report-pipeline smoke script, added non-interactive Next ESLint config, and resolved frontend hook dependency warnings.
 - Timestamp: 2026-05-30T02:50:51Z
+
+### [Maintenance] Sub-feature: Market index service extraction
+- Status: COMPLETE
+- Files modified: sigma-backend/app/services/market/ package, sigma-backend/app/api/v1/routes/market_indices.py, sigma-backend/app/scheduler/jobs.py, sigma-backend/app/services/market_candles.py, sigma-backend/scripts/seed_e2e_data.py, sigma-backend/tests/test_market_indices.py, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with full backend pytest, backend Ruff check, backend Ruff format check, and focused market-index tests.
+- Notes: Extracted index configuration, shared market dataclasses, and Yahoo Finance crumb/rate-limit/chart fetching into `app.services.market` while preserving the market-index API and cache behavior.
+- Timestamp: 2026-05-30T03:21:36Z

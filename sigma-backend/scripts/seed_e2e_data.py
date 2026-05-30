@@ -48,13 +48,8 @@ from app.schemas.market import (
     TradingSession,
 )
 from app.services.auth_service import hash_password
-from app.services.market_indices import (
-    CACHE_KEY,
-    INDEX_CONFIGS,
-    _is_trading,
-    _now_utc,
-    _sessions_to_beijing,
-)
+from app.services.market.config import CACHE_KEY, INDEX_CONFIGS
+from app.services.market.indices import _is_trading, _now_utc, _sessions_to_beijing
 from app.utils.redis_lock import create_redis_client
 
 PASSWORD = "StrongPass1"

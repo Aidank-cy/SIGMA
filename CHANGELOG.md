@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 ## [Unreleased]
 
 ### Changed
+- Extract market index configuration, shared types, and Yahoo Finance client logic into the market service package.
 - Standardize backend Ruff configuration, formatting, and frontend lint setup for non-interactive clean checks.
 
 ## [2.0.0] - 2026-05-30

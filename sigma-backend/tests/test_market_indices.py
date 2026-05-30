@@ -9,14 +9,16 @@ from app.api.v1.routes.market_indices import list_market_indices
 from app.scheduler.engine import add_market_indices_job, scheduler
 from app.scheduler.jobs import refresh_market_indices_job
 from app.schemas.market import MarketIndex, MarketIndicesResponse, TradingHours, TradingSession
-from app.services import market_candles, market_indices
+from app.services import market_candles
+from app.services.market import indices as market_indices
+from app.services.market import yahoo_client
 
 
 @pytest.fixture(autouse=True)
 def skip_pg_integrity_check(monkeypatch: pytest.MonkeyPatch) -> None:
     """Most scheduler tests focus on candle flow, not startup database cleanup."""
     monkeypatch.setattr(market_candles, "_pg_integrity_checked", True)
-    market_indices._yahoo_meta_cache.clear()
+    yahoo_client._yahoo_meta_cache.clear()
 
 
 def test_market_indices_http_response_shape(
@@ -235,7 +237,7 @@ async def test_index_quote_uses_yahoo_meta_cache_before_network_providers(
     """Quote resolution is Yahoo-first when the chart fetch cached meta data."""
     sse = next(config for config in market_indices.INDEX_CONFIGS if config.symbol == "SSE")
     calls: list[str] = []
-    market_indices._yahoo_meta_cache[sse.symbol] = market_indices.IndexQuote(
+    yahoo_client._yahoo_meta_cache[sse.symbol] = market_indices.IndexQuote(
         current=3200.0,
         change_pct=1.0,
         previous_close=3168.32,
@@ -254,7 +256,7 @@ async def test_index_quote_uses_yahoo_meta_cache_before_network_providers(
 
     quote = await market_indices._fetch_index_quote(sse)
 
-    assert quote is market_indices._yahoo_meta_cache[sse.symbol]
+    assert quote is yahoo_client._yahoo_meta_cache[sse.symbol]
     assert calls == []
 
 
@@ -314,7 +316,7 @@ async def test_build_index_discards_suspiciously_small_quote(
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
     monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
     monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
-    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+    caplog.set_level("WARNING", logger=yahoo_client.LOGGER.name)
 
     index = await market_indices._build_index(dax)
 
@@ -350,7 +352,7 @@ async def test_build_index_discards_us_etf_level_quote(
     monkeypatch.setattr(
         market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
     )
-    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+    caplog.set_level("WARNING", logger=yahoo_client.LOGGER.name)
 
     index = await market_indices._build_index(spx)
 
@@ -390,7 +392,7 @@ async def test_build_index_sanitizes_etf_level_previous_close(
     monkeypatch.setattr(
         market_indices, "_now_utc", lambda: datetime(2026, 5, 18, 14, 0, tzinfo=UTC)
     )
-    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+    caplog.set_level("WARNING", logger=yahoo_client.LOGGER.name)
 
     index = await market_indices._build_index(spx)
 
@@ -823,7 +825,7 @@ async def test_build_index_is_yahoo_free(monkeypatch: pytest.MonkeyPatch) -> Non
         }
 
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
-    monkeypatch.setattr(market_indices, "_fetch_yahoo_chart_result", fail_yahoo)
+    monkeypatch.setattr(yahoo_client, "_fetch_yahoo_chart_result", fail_yahoo)
     monkeypatch.setattr(market_candles, "_redis_get_1d", fake_get_1d)
     monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
 
@@ -960,27 +962,25 @@ async def test_yahoo_chart_result_uses_user_agent_and_query2_retry(
             return None
         return {"meta": {"chartPreviousClose": 5900.0, "regularMarketPrice": 6000.0}}
 
-    monkeypatch.setattr(market_indices.asyncio, "to_thread", fake_to_thread)
-    monkeypatch.setattr(market_indices, "_yahoo_last_request_time", 0.0)
-    monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 0.0)
-    monkeypatch.setattr(market_indices, "_yahoo_consecutive_429s", 0)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb", "crumb")
-    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 999999.0)
+    monkeypatch.setattr(yahoo_client.asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(yahoo_client, "_yahoo_last_request_time", 0.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_backoff_until", 0.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_consecutive_429s", 0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb", "crumb")
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb_expires", 999999.0)
 
-    result = await market_indices._fetch_yahoo_chart_result(spx, params={}, purpose="test")
+    result = await yahoo_client._fetch_yahoo_chart_result(spx, params={}, purpose="test")
 
     assert isinstance(result, dict)
     assert result["meta"]["regularMarketPrice"] == pytest.approx(6000.0)
-    assert market_indices._yahoo_meta_cache[spx.symbol].current == pytest.approx(6000.0)
-    assert market_indices._yahoo_meta_cache[spx.symbol].previous_close == pytest.approx(5900.0)
-    assert market_indices._yahoo_meta_cache[spx.symbol].change_pct == pytest.approx(
-        100 / 5900 * 100
-    )
+    assert yahoo_client._yahoo_meta_cache[spx.symbol].current == pytest.approx(6000.0)
+    assert yahoo_client._yahoo_meta_cache[spx.symbol].previous_close == pytest.approx(5900.0)
+    assert yahoo_client._yahoo_meta_cache[spx.symbol].change_pct == pytest.approx(100 / 5900 * 100)
     assert [url.split("/")[2] for url in calls] == [
         "query1.finance.yahoo.com",
         "query2.finance.yahoo.com",
     ]
-    assert market_indices.YAHOO_HEADERS["User-Agent"] == "Mozilla/5.0"
+    assert yahoo_client.YAHOO_HEADERS["User-Agent"] == "Mozilla/5.0"
 
 
 @pytest.mark.asyncio
@@ -999,19 +999,19 @@ async def test_yahoo_chart_result_backs_off_on_429(monkeypatch: pytest.MonkeyPat
         calls.append(url)
         return "_429"
 
-    monkeypatch.setattr(market_indices.asyncio, "to_thread", fake_to_thread)
-    monkeypatch.setattr(market_indices, "_yahoo_last_request_time", 0.0)
-    monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 0.0)
-    monkeypatch.setattr(market_indices, "_yahoo_consecutive_429s", 0)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb", "crumb")
-    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 999999.0)
+    monkeypatch.setattr(yahoo_client.asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(yahoo_client, "_yahoo_last_request_time", 0.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_backoff_until", 0.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_consecutive_429s", 0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb", "crumb")
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb_expires", 999999.0)
 
-    result = await market_indices._fetch_yahoo_chart_result(spx, params={}, purpose="test")
+    result = await yahoo_client._fetch_yahoo_chart_result(spx, params={}, purpose="test")
 
     assert result is None
     assert len(calls) == 1
-    assert market_indices._yahoo_consecutive_429s == 1
-    assert market_indices._yahoo_backoff_until > 0
+    assert yahoo_client._yahoo_consecutive_429s == 1
+    assert yahoo_client._yahoo_backoff_until > 0
 
 
 @pytest.mark.asyncio
@@ -1019,16 +1019,16 @@ async def test_yahoo_backoff_logs_warning(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Yahoo backoff skips are visible in warning logs."""
-    monkeypatch.setattr(market_indices._time, "monotonic", lambda: 10.0)
-    monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 70.0)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb", "crumb")
-    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 999999.0)
-    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+    monkeypatch.setattr(yahoo_client._time, "monotonic", lambda: 10.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_backoff_until", 70.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb", "crumb")
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb_expires", 999999.0)
+    caplog.set_level("WARNING", logger=yahoo_client.LOGGER.name)
 
-    can_fetch = await market_indices._yahoo_rate_limit_wait()
+    can_fetch = await yahoo_client._yahoo_rate_limit_wait()
 
     assert can_fetch is False
-    assert "Yahoo backoff active, 60s remaining — candle fetch skipped." in caplog.text
+    assert "Yahoo backoff active, 60s remaining - candle fetch skipped." in caplog.text
 
 
 @pytest.mark.asyncio
@@ -1039,20 +1039,20 @@ async def test_yahoo_backoff_counter_resets_after_window(monkeypatch: pytest.Mon
     async def fake_sleep(seconds: float) -> None:
         slept.append(seconds)
 
-    monkeypatch.setattr(market_indices._time, "monotonic", lambda: 200.0)
-    monkeypatch.setattr(market_indices.asyncio, "sleep", fake_sleep)
-    monkeypatch.setattr(market_indices, "_yahoo_backoff_until", 120.0)
-    monkeypatch.setattr(market_indices, "_yahoo_consecutive_429s", 3)
-    monkeypatch.setattr(market_indices, "_yahoo_last_request_time", 198.0)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb", "crumb")
-    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 999999.0)
+    monkeypatch.setattr(yahoo_client._time, "monotonic", lambda: 200.0)
+    monkeypatch.setattr(yahoo_client.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(yahoo_client, "_yahoo_backoff_until", 120.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_consecutive_429s", 3)
+    monkeypatch.setattr(yahoo_client, "_yahoo_last_request_time", 198.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb", "crumb")
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb_expires", 999999.0)
 
-    can_fetch = await market_indices._yahoo_rate_limit_wait()
+    can_fetch = await yahoo_client._yahoo_rate_limit_wait()
 
     assert can_fetch is True
-    assert market_indices._yahoo_consecutive_429s == 0
+    assert yahoo_client._yahoo_consecutive_429s == 0
     assert slept == []
-    assert market_indices.YAHOO_MAX_BACKOFF_SECONDS == 120
+    assert yahoo_client.YAHOO_MAX_BACKOFF_SECONDS == 120
 
 
 @pytest.mark.asyncio
@@ -1065,12 +1065,12 @@ async def test_yahoo_crumb_cancelled_error_is_suppressed(
     async def fake_to_thread(_func: object) -> None:
         raise asyncio.CancelledError
 
-    monkeypatch.setattr(market_indices.asyncio, "to_thread", fake_to_thread)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb", None)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 0.0)
-    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+    monkeypatch.setattr(yahoo_client.asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb", None)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb_expires", 0.0)
+    caplog.set_level("WARNING", logger=yahoo_client.LOGGER.name)
 
-    await market_indices._ensure_yahoo_crumb()
+    await yahoo_client._ensure_yahoo_crumb()
 
     assert "Yahoo crumb fetch was cancelled; continuing without crumb." in caplog.text
 
@@ -1105,23 +1105,23 @@ def test_yahoo_crumb_sync_fetches_cookie_and_crumb(
                 return FakeResponse(b"crumb-value")
             return FakeResponse()
 
-    monkeypatch.setattr(market_indices.urllib.request, "build_opener", lambda *_args: FakeOpener())
-    monkeypatch.setattr(market_indices._time, "monotonic", lambda: 100.0)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb", None)
-    monkeypatch.setattr(market_indices, "_yahoo_cookie_jar", None)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 0.0)
-    caplog.set_level("INFO", logger=market_indices.LOGGER.name)
+    monkeypatch.setattr(yahoo_client.urllib.request, "build_opener", lambda *_args: FakeOpener())
+    monkeypatch.setattr(yahoo_client._time, "monotonic", lambda: 100.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb", None)
+    monkeypatch.setattr(yahoo_client, "_yahoo_cookie_jar", None)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb_expires", 0.0)
+    caplog.set_level("INFO", logger=yahoo_client.LOGGER.name)
 
-    market_indices._ensure_yahoo_crumb_sync()
+    yahoo_client._ensure_yahoo_crumb_sync()
 
     assert opened_urls == [
         "https://fc.yahoo.com/",
         "https://query2.finance.yahoo.com/v1/test/getcrumb",
     ]
     assert timeouts == [5, 5]
-    assert market_indices._yahoo_crumb == "crumb-value"
-    assert market_indices._yahoo_cookie_jar is not None
-    assert market_indices._yahoo_crumb_expires == pytest.approx(3700.0)
+    assert yahoo_client._yahoo_crumb == "crumb-value"
+    assert yahoo_client._yahoo_cookie_jar is not None
+    assert yahoo_client._yahoo_crumb_expires == pytest.approx(3700.0)
     assert "Yahoo crumb obtained successfully" in caplog.text
 
 
@@ -1148,19 +1148,19 @@ def test_yahoo_crumb_sync_ignores_fc_errors(monkeypatch: pytest.MonkeyPatch) -> 
                 raise OSError("fc unavailable")
             return FakeResponse()
 
-    monkeypatch.setattr(market_indices.urllib.request, "build_opener", lambda *_args: FakeOpener())
-    monkeypatch.setattr(market_indices._time, "monotonic", lambda: 100.0)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb", None)
-    monkeypatch.setattr(market_indices, "_yahoo_cookie_jar", None)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 0.0)
+    monkeypatch.setattr(yahoo_client.urllib.request, "build_opener", lambda *_args: FakeOpener())
+    monkeypatch.setattr(yahoo_client._time, "monotonic", lambda: 100.0)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb", None)
+    monkeypatch.setattr(yahoo_client, "_yahoo_cookie_jar", None)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb_expires", 0.0)
 
-    market_indices._ensure_yahoo_crumb_sync()
+    yahoo_client._ensure_yahoo_crumb_sync()
 
     assert opened_urls == [
         "https://fc.yahoo.com/",
         "https://query2.finance.yahoo.com/v1/test/getcrumb",
     ]
-    assert market_indices._yahoo_crumb == "crumb-after-fc-error"
+    assert yahoo_client._yahoo_crumb == "crumb-after-fc-error"
 
 
 def test_yahoo_crumb_sync_logs_and_suppresses_crumb_errors(
@@ -1174,15 +1174,15 @@ def test_yahoo_crumb_sync_logs_and_suppresses_crumb_errors(
         def open(self, _request: urllib.request.Request, timeout: int) -> object:
             raise OSError("network down")
 
-    monkeypatch.setattr(market_indices.urllib.request, "build_opener", lambda *_args: FakeOpener())
-    monkeypatch.setattr(market_indices, "_yahoo_crumb", None)
-    monkeypatch.setattr(market_indices, "_yahoo_cookie_jar", None)
-    monkeypatch.setattr(market_indices, "_yahoo_crumb_expires", 0.0)
-    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+    monkeypatch.setattr(yahoo_client.urllib.request, "build_opener", lambda *_args: FakeOpener())
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb", None)
+    monkeypatch.setattr(yahoo_client, "_yahoo_cookie_jar", None)
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb_expires", 0.0)
+    caplog.set_level("WARNING", logger=yahoo_client.LOGGER.name)
 
-    market_indices._ensure_yahoo_crumb_sync()
+    yahoo_client._ensure_yahoo_crumb_sync()
 
-    assert market_indices._yahoo_crumb is None
+    assert yahoo_client._yahoo_crumb is None
     assert "Yahoo crumb fetch failed: OSError: network down" in caplog.text
 
 
@@ -1201,12 +1201,12 @@ def test_yahoo_urllib_fetch_uses_cookie_jar_and_crumb(monkeypatch: pytest.Monkey
             requested_urls.append(request.full_url)
             return FakeResponse()
 
-    cookie_jar = market_indices.http.cookiejar.MozillaCookieJar()
-    monkeypatch.setattr(market_indices, "_yahoo_crumb", "crumb value")
-    monkeypatch.setattr(market_indices, "_yahoo_cookie_jar", cookie_jar)
-    monkeypatch.setattr(market_indices.urllib.request, "build_opener", lambda *_args: FakeOpener())
+    cookie_jar = yahoo_client.http.cookiejar.MozillaCookieJar()
+    monkeypatch.setattr(yahoo_client, "_yahoo_crumb", "crumb value")
+    monkeypatch.setattr(yahoo_client, "_yahoo_cookie_jar", cookie_jar)
+    monkeypatch.setattr(yahoo_client.urllib.request, "build_opener", lambda *_args: FakeOpener())
 
-    result = market_indices._yahoo_urllib_fetch(
+    result = yahoo_client._yahoo_urllib_fetch(
         "https://query2.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1m",
         "test",
         "^GSPC",
@@ -2333,7 +2333,7 @@ async def test_sparse_intraday_series_logs_warning(
     monkeypatch.setattr(market_indices, "_fetch_index_quote", fake_quote)
     monkeypatch.setattr(market_indices, "_read_intraday_from_redis", fake_intraday)
     monkeypatch.setattr(market_indices, "_read_candle_ranges", fake_historical)
-    caplog.set_level("WARNING", logger=market_indices.LOGGER.name)
+    caplog.set_level("WARNING", logger=yahoo_client.LOGGER.name)
 
     index = await market_indices._build_index(spx)
 
