@@ -6,6 +6,7 @@ import httpx
 from app.models.data_source import DataSource
 
 DEFAULT_USER_AGENT = "SIGMACollector/1.0"
+DEFAULT_HTTP_TIMEOUT_SECONDS = 30
 
 
 class RawCollectedItem(TypedDict, total=False):
@@ -40,4 +41,4 @@ class BaseCollector(ABC):
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is not None:
             return self._client
-        return httpx.AsyncClient(timeout=30)
+        return httpx.AsyncClient(timeout=DEFAULT_HTTP_TIMEOUT_SECONDS)

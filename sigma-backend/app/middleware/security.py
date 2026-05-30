@@ -20,6 +20,10 @@ CONTENT_SECURITY_POLICY = (
     "base-uri 'self'; "
     "form-action 'self'"
 )
+AUTH_SCHEME_PREFIX = "Bearer "
+RATE_LIMIT_WINDOW_SECONDS = 60
+RETRY_AFTER_HEADER_SECONDS = "60"
+WWW_AUTHENTICATE_BEARER = "Bearer"
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -41,7 +45,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 return await call_next(request)
             limiter = _LimiterStore.for_request(request.app.state)
             authorization = request.headers.get("Authorization", "")
-            if authorization.startswith("Bearer ") and not _has_valid_bearer_token(authorization):
+            if authorization.startswith(AUTH_SCHEME_PREFIX) and not _has_valid_bearer_token(
+                authorization
+            ):
                 return _invalid_token()
             login_key = _client_ip(request)
             general_key = _rate_identity(request)
@@ -75,7 +81,7 @@ class _LimiterStore:
         """Return whether a rate-limit key is still within its window."""
         now = monotonic()
         start, count = self._windows.get(key, (now, 0))
-        if now - start >= 60:
+        if now - start >= RATE_LIMIT_WINDOW_SECONDS:
             start, count = now, 0
         count += 1
         self._windows[key] = (start, count)
@@ -84,9 +90,9 @@ class _LimiterStore:
 
 def _rate_identity(request: Request) -> str:
     authorization = request.headers.get("Authorization", "")
-    if authorization.startswith("Bearer "):
+    if authorization.startswith(AUTH_SCHEME_PREFIX):
         try:
-            payload = decode_token(authorization.removeprefix("Bearer ").strip())
+            payload = decode_token(authorization.removeprefix(AUTH_SCHEME_PREFIX).strip())
             subject = payload.get("sub")
             if subject:
                 return f"user:{subject}"
@@ -97,7 +103,7 @@ def _rate_identity(request: Request) -> str:
 
 def _has_valid_bearer_token(authorization: str) -> bool:
     try:
-        decode_token(authorization.removeprefix("Bearer ").strip())
+        decode_token(authorization.removeprefix(AUTH_SCHEME_PREFIX).strip())
     except JWTError:
         return False
     return True
@@ -116,7 +122,7 @@ def _too_many_requests() -> JSONResponse:
     response = JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={"detail": "Rate limit exceeded"},
-        headers={"Retry-After": "60"},
+        headers={"Retry-After": RETRY_AFTER_HEADER_SECONDS},
     )
     return apply_security_headers(response)
 
@@ -125,7 +131,7 @@ def _invalid_token() -> JSONResponse:
     response = JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
         content={"detail": "Invalid token"},
-        headers={"WWW-Authenticate": "Bearer"},
+        headers={"WWW-Authenticate": WWW_AUTHENTICATE_BEARER},
     )
     return apply_security_headers(response)
 

@@ -5,8 +5,16 @@ from urllib.parse import urljoin
 
 import httpx
 
-from app.collectors.base import DEFAULT_USER_AGENT, BaseCollector, RawCollectedItem
+from app.collectors.base import (
+    DEFAULT_HTTP_TIMEOUT_SECONDS,
+    DEFAULT_USER_AGENT,
+    BaseCollector,
+    RawCollectedItem,
+)
 from app.collectors.utils import clean_text, parse_datetime
+
+DEFAULT_RETRY_AFTER_SECONDS = 60
+RATE_LIMIT_MAX_BACKOFF_SECONDS = 120
 
 
 class APICollector(BaseCollector):
@@ -25,7 +33,9 @@ class APICollector(BaseCollector):
         if self._client is not None:
             return await self._collect_with_client(self._client)
 
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=DEFAULT_HTTP_TIMEOUT_SECONDS, follow_redirects=True
+        ) as client:
             return await self._collect_with_client(client)
 
     async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:
@@ -214,18 +224,18 @@ class APICollector(BaseCollector):
             if response.status_code != 429:
                 return response
             retry_after = APICollector._retry_after_seconds(response.headers.get("Retry-After"))
-            await asyncio.sleep(min(retry_after * (2**attempt), 120))
+            await asyncio.sleep(min(retry_after * (2**attempt), RATE_LIMIT_MAX_BACKOFF_SECONDS))
             response = await client.request(method, url, **request_kwargs)
         return response
 
     @staticmethod
     def _retry_after_seconds(value: str | None) -> int:
         if value is None:
-            return 60
+            return DEFAULT_RETRY_AFTER_SECONDS
         try:
             return max(0, int(value))
         except ValueError:
-            return 60
+            return DEFAULT_RETRY_AFTER_SECONDS
 
     @staticmethod
     def _resolve_env_values(values: dict[str, Any]) -> dict[str, Any]:

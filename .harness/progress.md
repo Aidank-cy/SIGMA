@@ -2200,3 +2200,11 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with backend Ruff check, backend Ruff format check, metadata audit script, and full backend pytest.
 - Notes: Added missing foreign-key indexes, mapped the LLM usage log user relationship with matching `back_populates`, verified model exports, and confirmed enum columns use `enum_values`.
 - Timestamp: 2026-05-30T04:11:51Z
+
+### [Phase 4] Sub-feature 4.3: Backend constants extraction
+- Status: COMPLETE
+- Files created: none
+- Files modified: backend LLM client, collectors, middleware, auth flow, email, cache, and market Yahoo/quote modules, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with backend Ruff check, backend Ruff format check, full backend pytest, and `git diff --check`.
+- Notes: Extracted repeated timeout, cache TTL, retry backoff, token lifetime, and auth header literals into named module constants while preserving behavior.
+- Timestamp: 2026-05-30T04:14:55Z

@@ -41,6 +41,8 @@ from app.utils.redis_lock import create_redis_client
 PASSWORD_RESET_TTL_SECONDS = 10 * 60
 PASSWORD_RESET_TOKEN_SECONDS = 5 * 60
 REGISTRATION_TTL_SECONDS = 10 * 60
+ACCESS_TOKEN_EXPIRES_SECONDS = 60 * 15
+REFRESH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 
 RedisFactory = Callable[[], Any]
 EmailSender = Callable[[str, str, str], Awaitable[str | None]]
@@ -165,7 +167,7 @@ async def refresh_token(refresh_token_cookie: str | None, db: AsyncSession) -> T
         )
     return TokenResponse(
         access_token=create_access_token(user.id, user.role, user.email),
-        expires_in=60 * 15,
+        expires_in=ACCESS_TOKEN_EXPIRES_SECONDS,
     )
 
 
@@ -286,10 +288,10 @@ def _issue_tokens(user: User, response: Response) -> TokenResponse:
         secure=False,
         samesite="lax",
         path="/",
-        max_age=60 * 60 * 24 * 7,
+        max_age=REFRESH_COOKIE_MAX_AGE_SECONDS,
     )
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        expires_in=60 * 15,
+        expires_in=ACCESS_TOKEN_EXPIRES_SECONDS,
     )

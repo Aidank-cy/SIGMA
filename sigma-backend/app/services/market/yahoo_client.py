@@ -22,6 +22,9 @@ YAHOO_HEADERS = {
 }
 YAHOO_MAX_BACKOFF_SECONDS = 120
 YAHOO_CRUMB_TTL_SECONDS = 3600
+YAHOO_INITIAL_BACKOFF_SECONDS = 30
+YAHOO_CRUMB_HTTP_TIMEOUT_SECONDS = 5
+YAHOO_CHART_HTTP_TIMEOUT_SECONDS = 10
 
 _yahoo_semaphore = asyncio.Semaphore(2)
 _yahoo_min_interval = 0.5
@@ -61,7 +64,10 @@ def _yahoo_on_429() -> None:
     global _yahoo_backoff_until, _yahoo_consecutive_429s
 
     _yahoo_consecutive_429s += 1
-    backoff = min(30 * (2 ** (_yahoo_consecutive_429s - 1)), YAHOO_MAX_BACKOFF_SECONDS)
+    backoff = min(
+        YAHOO_INITIAL_BACKOFF_SECONDS * (2 ** (_yahoo_consecutive_429s - 1)),
+        YAHOO_MAX_BACKOFF_SECONDS,
+    )
     _yahoo_backoff_until = _time.monotonic() + backoff
     LOGGER.warning("Yahoo 429 (#%d). Backing off %ds.", _yahoo_consecutive_429s, backoff)
 
@@ -106,7 +112,7 @@ def _ensure_yahoo_crumb_sync() -> None:
         opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
         fc_request = urllib.request.Request("https://fc.yahoo.com/", headers=YAHOO_HEADERS)
         try:
-            opener.open(fc_request, timeout=5)
+            opener.open(fc_request, timeout=YAHOO_CRUMB_HTTP_TIMEOUT_SECONDS)
         except urllib.error.HTTPError:
             pass
         except Exception:
@@ -115,7 +121,7 @@ def _ensure_yahoo_crumb_sync() -> None:
             "https://query2.finance.yahoo.com/v1/test/getcrumb",
             headers=YAHOO_HEADERS,
         )
-        with opener.open(crumb_request, timeout=5) as response:
+        with opener.open(crumb_request, timeout=YAHOO_CRUMB_HTTP_TIMEOUT_SECONDS) as response:
             crumb = response.read().decode("utf-8").strip()
     except Exception as exc:
         LOGGER.warning("Yahoo crumb fetch failed: %s: %s", type(exc).__name__, exc)
@@ -196,7 +202,7 @@ def _yahoo_urllib_fetch(
         else urllib.request.build_opener()
     )
     try:
-        resp = opener.open(req, timeout=10)
+        resp = opener.open(req, timeout=YAHOO_CHART_HTTP_TIMEOUT_SECONDS)
     except urllib.error.HTTPError as exc:
         if exc.code == 401:
             _yahoo_crumb = None

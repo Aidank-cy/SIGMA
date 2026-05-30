@@ -9,6 +9,7 @@ import resend
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+SMTP_TIMEOUT_SECONDS = 30
 
 
 async def send_verification_email(to: str, code: str, purpose: str) -> str | None:
@@ -58,7 +59,7 @@ def _send_smtp_email(to: str, subject: str, intro: str, html: str) -> None:
     )
     message.add_alternative(html, subtype="html")
 
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=SMTP_TIMEOUT_SECONDS) as smtp:
         if settings.smtp_use_tls:
             smtp.starttls()
         if settings.smtp_user:

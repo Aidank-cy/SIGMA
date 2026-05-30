@@ -31,6 +31,7 @@ from app.services.market.yahoo_client import _yahoo_meta_cache
 from app.utils.redis_lock import create_redis_client
 
 LOGGER = logging.getLogger(__name__)
+MARKET_QUOTE_HTTP_TIMEOUT_SECONDS = 8
 
 
 async def get_market_indices() -> MarketIndicesResponse:
@@ -191,7 +192,7 @@ async def _fetch_finnhub_quote(config: IndexConfig) -> IndexQuote | None:
 
 async def _fetch_finnhub_symbol_quote(symbol: str, token: str) -> IndexQuote | None:
     try:
-        async with httpx.AsyncClient(timeout=8) as client:
+        async with httpx.AsyncClient(timeout=MARKET_QUOTE_HTTP_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 "https://finnhub.io/api/v1/quote",
                 params={"symbol": symbol, "token": token},
@@ -228,7 +229,7 @@ async def _fetch_stooq_quote(config: IndexConfig) -> IndexQuote | None:
     if config.stooq_symbol is None:
         return None
     try:
-        async with httpx.AsyncClient(timeout=8) as client:
+        async with httpx.AsyncClient(timeout=MARKET_QUOTE_HTTP_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 "https://stooq.com/q/l/",
                 params={"e": "csv", "f": "sd2t2ohlcvp", "h": "", "s": config.stooq_symbol},

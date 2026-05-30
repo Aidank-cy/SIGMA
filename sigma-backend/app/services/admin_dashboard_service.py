@@ -22,6 +22,7 @@ from app.utils.redis_lock import create_redis_client
 
 CacheGet = Callable[[str], Awaitable[str | None]]
 CacheSet = Callable[[str, str], Awaitable[None]]
+ADMIN_DASHBOARD_CACHE_TTL_SECONDS = 60
 
 
 async def get_admin_stats(
@@ -217,7 +218,9 @@ async def _cache_get(key: str) -> str | None:
 async def _cache_set(key: str, value: str) -> None:
     client = create_redis_client()
     try:
-        await client.set(f"sigma:admin:dashboard:{key}", value, ex=60)
+        await client.set(
+            f"sigma:admin:dashboard:{key}", value, ex=ADMIN_DASHBOARD_CACHE_TTL_SECONDS
+        )
     except Exception:
         return
     finally:

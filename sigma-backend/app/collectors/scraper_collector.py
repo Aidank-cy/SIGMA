@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup
 
-from app.collectors.base import BaseCollector, RawCollectedItem
+from app.collectors.base import DEFAULT_HTTP_TIMEOUT_SECONDS, BaseCollector, RawCollectedItem
 from app.collectors.utils import parse_datetime
 
 USER_AGENTS = (
@@ -39,7 +39,9 @@ class ScraperCollector(BaseCollector):
         if self._client is not None:
             return await self._collect_with_client(self._client)
 
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=DEFAULT_HTTP_TIMEOUT_SECONDS, follow_redirects=True
+        ) as client:
             return await self._collect_with_client(client)
 
     async def _collect_with_client(self, client: httpx.AsyncClient) -> list[RawCollectedItem]:

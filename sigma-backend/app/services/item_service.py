@@ -12,6 +12,8 @@ from app.models.data_source import DataSource
 from app.schemas.item import ItemDetail, ItemListResponse, ItemSummary, MinimalItem
 from app.utils.redis_lock import create_redis_client
 
+ITEM_LIST_CACHE_TTL_SECONDS = 60
+
 
 async def list_items(
     db: AsyncSession,
@@ -265,7 +267,7 @@ async def _cache_get(key: str) -> str | None:
 async def _cache_set(key: str, value: str) -> None:
     client = create_redis_client()
     try:
-        await client.set(key, value, ex=60)
+        await client.set(key, value, ex=ITEM_LIST_CACHE_TTL_SECONDS)
     except Exception:
         return
     finally:

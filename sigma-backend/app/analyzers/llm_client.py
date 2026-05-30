@@ -52,6 +52,9 @@ DEFAULT_PROVIDER_MODELS = {
 }
 
 LLM_API_MAX_TOKENS = 16_384
+LLM_HTTP_TIMEOUT_SECONDS = 300
+LLM_RETRY_DELAYS_SECONDS = (1, 2, 4)
+LLM_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 class LLMClient:
@@ -247,22 +250,26 @@ class LLMClient:
         headers: dict[str, str],
         payload: dict[str, Any],
     ) -> dict[str, Any]:
-        delays = (1, 2, 4)
         owns_client = self.http_client is None
-        client = self.http_client or httpx.AsyncClient(timeout=300)
+        client = self.http_client or httpx.AsyncClient(timeout=LLM_HTTP_TIMEOUT_SECONDS)
         try:
-            for attempt in range(3):
+            for attempt in range(len(LLM_RETRY_DELAYS_SECONDS)):
                 try:
-                    response = await client.post(url, headers=headers, json=payload, timeout=300)
-                    if response.status_code not in {429, 500, 502, 503, 504}:
+                    response = await client.post(
+                        url,
+                        headers=headers,
+                        json=payload,
+                        timeout=LLM_HTTP_TIMEOUT_SECONDS,
+                    )
+                    if response.status_code not in LLM_RETRYABLE_STATUS_CODES:
                         response.raise_for_status()
                         return response.json()
                 except httpx.HTTPError as exc:
-                    if attempt == 2:
+                    if attempt == len(LLM_RETRY_DELAYS_SECONDS) - 1:
                         logger.warning("LLM request failed after retries: %s", exc)
                         raise
-                if attempt < 2:
-                    await asyncio.sleep(delays[attempt])
+                if attempt < len(LLM_RETRY_DELAYS_SECONDS) - 1:
+                    await asyncio.sleep(LLM_RETRY_DELAYS_SECONDS[attempt])
             logger.warning("LLM request failed after retries with status %s", response.status_code)
             response.raise_for_status()
             return response.json()
