@@ -1,8 +1,0 @@
-[    2677ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:38559
-[    2763ms] [ERROR] Access to fetch at 'http://localhost:8000/api/v1/auth/me' from origin 'http://localhost:3001' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:3001/zh/login:0
-[    2763ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8000/api/v1/auth/me:0
-[    2768ms] [ERROR] Access to fetch at 'http://localhost:8000/api/v1/auth/me' from origin 'http://localhost:3001' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:3001/zh/login:0
-[    2768ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8000/api/v1/auth/me:0
-[    3779ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:186
-[    5596ms] [LOG] [Fast Refresh] done in 1818ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:43
-[    5977ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
