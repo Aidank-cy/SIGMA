@@ -2111,3 +2111,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with frontend production build, `git diff --check`, and `docker compose up -d --build sigma-frontend`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
 - Notes: Collection log failures now map raw backend exception strings to concise hardcoded English guidance for auth, access, URL, rate-limit, server, timeout, DNS, connection, SSL, JSON, RSS, and lock-conflict failures.
 - Timestamp: 2026-05-30T02:17:46Z
+
+### [Release] v2.0.0
+- Status: COMPLETE
+- Files modified: CHANGELOG.md, sigma-backend/pyproject.toml, sigma-backend/app/core/config.py, sigma-backend/tests/test_llm.py, sigma-frontend/package.json, sigma-frontend/package-lock.json, .harness/progress.md, .harness/session-log.md
+- Tests: PASS with full backend pytest, touched backend Ruff, frontend production build, and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
+- Notes: Cut the accumulated Unreleased work as v2.0.0 because the release includes Added, Changed, Removed, and Fixed entries; aligned package/app versions and corrected the stale Qwen provider URL test expectation before tagging.
+- Timestamp: 2026-05-30T02:24:52Z

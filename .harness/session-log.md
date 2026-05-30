@@ -327,3 +327,14 @@
 **Completion:** SUB-FEATURE COMPLETE
 **Next session should:** Continue with user-requested maintenance or run Docker/browser validation against a persistent local database if UI confirmation is needed.
 **Uncommitted work:** YES — changes are complete and verified on `codex/feat/sigma-report-config-fixes`; not committed because the user did not request a commit.
+
+---
+## Session 28 — 2026-05-30T02:24:52Z
+**Phase:** Release
+**Resuming from:** Clean `main` with Unreleased work accumulated after v1.1.0.
+**Prior status from progress.md:** Latest Sync collection log fixes were complete and merged; backend full pytest had one stale Qwen URL expectation noted before release.
+
+**Ending at:** SIGMA v2.0.0 release preparation
+**Completion:** RELEASE COMPLETE
+**Next session should:** Push `main` and tag `v2.0.0` to the remote, or continue with post-release maintenance.
+**Uncommitted work:** NO — release commit and tag are created in this session after verification.

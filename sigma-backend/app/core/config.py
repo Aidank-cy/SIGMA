@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
 
     app_name: str = "SIGMA"
-    app_version: str = "1.0.0"
+    app_version: str = "2.0.0"
     database_url: str = "postgresql+asyncpg://sigma:sigma@sigma-postgres:5432/sigma"
     redis_url: str = "redis://sigma-redis:6379/0"
     frontend_url: str = "http://localhost:3000"

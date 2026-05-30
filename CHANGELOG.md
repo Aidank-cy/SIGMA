@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-05-30
+
 ### Added
 - Add user ownership and source-ownership filtering for intelligence reports.
 - Add Yahoo Finance crumb/cookie authentication for chart API requests.
@@ -364,7 +366,6 @@ The format is based on Keep a Changelog, and this project uses Semantic Versioni
 - Reduce 1-day market chart X-axis label density to avoid overlapping timestamps.
 - Improve market chart range dropdown layout by showing four range options per row.
 - Fix production frontend Docker builds by excluding host build artifacts and macOS `node_modules` from the Docker context.
-
 ## [1.1.0] - 2026-05-19
 
 ### Added
