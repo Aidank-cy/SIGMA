@@ -2017,7 +2017,7 @@ _This file is read at the start of each agent session and updated after each sub
 ### [Maintenance] Sub-feature: Markets range-aware chart changes
 - Status: COMPLETE
 - Files modified: sigma-frontend/src/components/markets/indices-tab.tsx, CHANGELOG.md, .harness/progress.md
-- Tests: PASS with frontend production build and `git diff --check`.
+- Tests: PASS with frontend production build and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
 - Notes: Markets index card point change, percent change, line color, and Y-axis reference now use the selected range's starting value while preserving the latest displayed index price.
 - Timestamp: 2026-05-28T04:27:02Z
 
@@ -2090,3 +2090,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with focused scheduler/report-generator tests, touched-path Ruff, and `git diff --check`. Full backend pytest remains blocked by the unrelated `tests/test_llm.py::test_provider_urls` Qwen URL expectation mismatch; full backend Ruff and `./hooks/post-file-edit.sh` remain blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` issues.
 - Notes: Scheduled report generation now isolates per-user failures, scopes duplicate checks by report owner, snapshots config values across transaction rollbacks, and skips user report LLM calls when neither user nor system API keys are configured.
 - Timestamp: 2026-05-30T01:44:37Z
+
+### [Maintenance] Sub-feature: Sync collection log error display
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, sigma-frontend/messages/en.json, sigma-frontend/messages/zh.json, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
+- Notes: Failed and timed-out Sync collection logs now show inline error summaries, use destructive styling in expanded details, and fall back to localized unknown-error text when the backend has no message.
+- Timestamp: 2026-05-30T01:50:42Z

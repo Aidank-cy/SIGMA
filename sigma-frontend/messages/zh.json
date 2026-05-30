@@ -478,6 +478,7 @@
       "collapse": "收起条目",
       "expand": "展开条目",
       "successDetail": "耗时 {duration} ms 完成。",
+      "unknownError": "发生未知错误，请检查数据源配置",
       "empty": "没有匹配的日志。",
       "footer": "{total} 条日志，成功率 {rate}%",
       "previous": "上一页",

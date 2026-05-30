@@ -478,6 +478,7 @@
       "collapse": "Collapse entry",
       "expand": "Expand entry",
       "successDetail": "Completed in {duration} ms.",
+      "unknownError": "An unknown error occurred. Please check the data source configuration.",
       "empty": "No logs match these filters.",
       "footer": "{rate}% success rate across {total} logs",
       "previous": "Previous",
