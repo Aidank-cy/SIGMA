@@ -1,12 +1,75 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { UseMutationResult, UseQueryResult } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 import type { Locale, UserReportConfig } from "@/lib/types";
 import type { User } from "@/lib/auth";
 
-export function useReportConfig() {
+interface ReportConfigHookResult {
+  data: UserReportConfig | undefined;
+  error: Error | null;
+  isLoading: boolean;
+  mutate: UseQueryResult<UserReportConfig, Error>["refetch"];
+}
+
+interface PasswordResetRequestPayload {
+  email: string;
+}
+
+interface PasswordResetVerifyPayload {
+  code: string;
+  email: string;
+}
+
+interface PasswordResetConfirmPayload {
+  new_password: string;
+  reset_token: string;
+}
+
+interface ProfileUpdatePayload {
+  display_name: string;
+  locale: Locale;
+}
+
+interface RetentionUpdatePayload {
+  data_retention_days: number;
+}
+
+interface MessageResponse {
+  message: string;
+}
+
+interface PasswordResetRequestResponse extends MessageResponse {
+  dev_code?: string;
+}
+
+interface PasswordResetVerifyResponse {
+  expires_in: number;
+  reset_token: string;
+  token_type: string;
+}
+
+interface SettingsMutationsHookResult {
+  requestPasswordReset: UseMutationResult<
+    PasswordResetRequestResponse,
+    Error,
+    PasswordResetRequestPayload
+  >;
+  resetPassword: UseMutationResult<MessageResponse, Error, PasswordResetConfirmPayload>;
+  updateProfile: UseMutationResult<User, Error, ProfileUpdatePayload>;
+  updateReportConfig: UseMutationResult<UserReportConfig, Error, UserReportConfig>;
+  updateRetention: UseMutationResult<User, Error, RetentionUpdatePayload>;
+  verifyResetCode: UseMutationResult<
+    PasswordResetVerifyResponse,
+    Error,
+    PasswordResetVerifyPayload
+  >;
+}
+
+/** Return the current user's report configuration. */
+export function useReportConfig(): ReportConfigHookResult {
   const query = useQuery({
     queryKey: ["report-config"],
     queryFn: () => apiFetch<UserReportConfig>("/me/report-config"),
@@ -23,7 +86,8 @@ export function useReportConfig() {
   };
 }
 
-export function useSettingsMutations() {
+/** Return user settings mutation handles. */
+export function useSettingsMutations(): SettingsMutationsHookResult {
   const queryClient = useQueryClient();
 
   return {
