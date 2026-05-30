@@ -2104,3 +2104,10 @@ _This file is read at the start of each agent session and updated after each sub
 - Tests: PASS with frontend production build and `git diff --check`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
 - Notes: Collection logs now always show source/status, item count, timestamp, and duration inline, with failed and timed-out entries showing a one-line destructive error summary and no expand/collapse controls.
 - Timestamp: 2026-05-30T02:04:11Z
+
+### [Maintenance] Sub-feature: Sync collection log friendly errors
+- Status: COMPLETE
+- Files modified: sigma-frontend/src/app/[locale]/(main)/sync/page.tsx, CHANGELOG.md, .harness/progress.md
+- Tests: PASS with frontend production build, `git diff --check`, and `docker compose up -d --build sigma-frontend`. `./hooks/post-file-edit.sh` remains blocked by pre-existing `sigma-backend/scripts/test_report_pipeline.py` Ruff issues.
+- Notes: Collection log failures now map raw backend exception strings to concise hardcoded English guidance for auth, access, URL, rate-limit, server, timeout, DNS, connection, SSL, JSON, RSS, and lock-conflict failures.
+- Timestamp: 2026-05-30T02:17:46Z

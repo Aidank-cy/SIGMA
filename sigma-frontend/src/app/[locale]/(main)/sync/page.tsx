@@ -603,6 +603,24 @@ function SourceRow({
   )
 }
 
+function friendlyError(raw: string | null): string {
+  if (!raw) return "Unknown error - check data source configuration"
+  const s = raw.toLowerCase()
+  if (s.includes("401") || s.includes("unauthorized")) return "Authentication failed (401) - check API key or token"
+  if (s.includes("403") || s.includes("forbidden")) return "Access denied (403) - source is blocking requests"
+  if (s.includes("404") || s.includes("not found")) return "URL not found (404) - feed or endpoint may have moved"
+  if (s.includes("429") || s.includes("too many")) return "Rate limited (429) - increase collection interval"
+  if (s.includes("500") || s.includes("502") || s.includes("503") || s.includes("504")) return "Source server error (5xx) - try again later"
+  if (s.includes("timed out") || s.includes("timeout") || s.includes("connecttimeout")) return "Connection timed out - source is too slow, try increasing timeout"
+  if (s.includes("name or service not known") || s.includes("nodename nor servname") || s.includes("getaddrinfo")) return "DNS lookup failed - check URL for typos"
+  if (s.includes("connection refused")) return "Connection refused - source server is not reachable"
+  if (s.includes("ssl") || s.includes("certificate")) return "SSL certificate error - source has an invalid certificate"
+  if (s.includes("jsondecodeerror") || s.includes("expecting value")) return "Invalid JSON response - check endpoint URL and items path"
+  if (s.includes("not well-formed") || s.includes("xml")) return "Invalid RSS feed - URL may not point to a valid feed"
+  if (s.includes("lock already held")) return "Collection conflict - previous run still in progress"
+  return raw.length > 80 ? `${raw.slice(0, 80)}...` : raw
+}
+
 function UserLogsPanel({
   dateFrom,
   dateTo,
@@ -691,9 +709,7 @@ function UserLogsPanel({
               {log.items_count} {t("items")} · {new Date(log.executed_at).toLocaleString()} · {log.duration_ms} ms
             </p>
             {log.status !== "success" ? (
-              <p className="mt-1 truncate text-sm text-destructive">
-                {log.error_message || t("unknownError")}
-              </p>
+              <p className="mt-1 text-sm text-destructive">{friendlyError(log.error_message)}</p>
             ) : null}
           </div>
         ))}
