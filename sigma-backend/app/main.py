@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.INFO)
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 

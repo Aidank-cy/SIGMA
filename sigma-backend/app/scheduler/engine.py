@@ -1,3 +1,4 @@
+import logging
 import random
 from collections.abc import Callable
 from typing import Any
@@ -20,6 +21,7 @@ from app.scheduler.jobs import (
 )
 from app.services.market import candle_refresh_job
 
+LOGGER = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler(timezone="UTC")
 
 
@@ -29,10 +31,12 @@ async def start_scheduler(
     """Start the scheduler and register active source jobs."""
     if not scheduler.running:
         scheduler.start()
+        LOGGER.info("Scheduler started")
     await load_source_jobs(session_factory)
     add_cleanup_job(session_factory)
     add_report_jobs(session_factory)
     add_market_indices_job()
+    LOGGER.info("Scheduler registered %s jobs", len(scheduler.get_jobs()))
 
 
 async def stop_scheduler() -> None:
@@ -99,22 +103,24 @@ def add_report_jobs(
     """Register periodic report generation jobs."""
     scheduler.add_job(
         job_func,
-        trigger=CronTrigger(day_of_week="mon-fri", hour=1, minute=21, timezone="UTC"),
+        trigger=CronTrigger(hour=1, minute=21, timezone="UTC"),
         id="reports:daily_morning",
         args=[ReportType.DAILY_MORNING, session_factory],
         replace_existing=True,
         max_instances=1,
         coalesce=True,
     )
+    LOGGER.info("Registered report job %s", "reports:daily_morning")
     scheduler.add_job(
         job_func,
-        trigger=CronTrigger(day_of_week="mon-fri", hour=9, minute=31, timezone="UTC"),
+        trigger=CronTrigger(hour=9, minute=31, timezone="UTC"),
         id="reports:daily_afternoon",
         args=[ReportType.DAILY_AFTERNOON, session_factory],
         replace_existing=True,
         max_instances=1,
         coalesce=True,
     )
+    LOGGER.info("Registered report job %s", "reports:daily_afternoon")
     scheduler.add_job(
         job_func,
         trigger=CronTrigger(day_of_week="fri", hour=9, minute=45, timezone="UTC"),
@@ -124,6 +130,7 @@ def add_report_jobs(
         max_instances=1,
         coalesce=True,
     )
+    LOGGER.info("Registered report job %s", "reports:weekly")
     scheduler.add_job(
         job_func,
         trigger=CronTrigger(day=1, hour=4, minute=0, timezone="UTC"),
@@ -133,6 +140,7 @@ def add_report_jobs(
         max_instances=1,
         coalesce=True,
     )
+    LOGGER.info("Registered report job %s", "reports:monthly")
 
 
 def add_market_indices_job(job_func: Callable[..., Any] = refresh_market_indices_job) -> None:

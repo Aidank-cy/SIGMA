@@ -188,16 +188,19 @@ class LLMClient:
 
     def _headers(self, provider: str, api_key: str | None = None) -> dict[str, str]:
         if provider == "anthropic":
+            key = api_key or settings.anthropic_api_key
+            if not key or not key.strip():
+                raise ValueError(f"No API key configured for LLM provider: {provider}")
             return {
-                "x-api-key": api_key or settings.anthropic_api_key,
+                "x-api-key": key,
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json",
             }
         if provider in OPENAI_COMPATIBLE_BASE_URLS:
-            return {
-                "authorization": f"Bearer {api_key or self._api_key(provider)}",
-                "content-type": "application/json",
-            }
+            key = api_key or self._api_key(provider)
+            if not key or not key.strip():
+                raise ValueError(f"No API key configured for LLM provider: {provider}")
+            return {"authorization": f"Bearer {key}", "content-type": "application/json"}
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
     def _url(self, provider: str) -> str:
@@ -208,13 +211,17 @@ class LLMClient:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
     def _api_key(self, provider: str) -> str:
-        if provider == "openai":
-            return settings.openai_api_key
-        if provider == "deepseek":
-            return settings.deepseek_api_key
-        if provider == "qwen":
-            return settings.qwen_api_key
-        raise ValueError(f"Unsupported LLM provider: {provider}")
+        keys = {
+            "openai": settings.openai_api_key,
+            "deepseek": settings.deepseek_api_key,
+            "qwen": settings.qwen_api_key,
+        }
+        if provider not in keys:
+            raise ValueError(f"Unsupported LLM provider: {provider}")
+        key = keys[provider]
+        if not key or not key.strip():
+            raise ValueError(f"No API key configured for provider: {provider}")
+        return key
 
     def _payload(
         self,
