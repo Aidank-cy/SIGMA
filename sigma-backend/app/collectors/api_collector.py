@@ -73,6 +73,16 @@ class APICollector(BaseCollector):
         mapping = dict(self.config.get("field_mapping") or {})
         if not mapping:
             mapping = self._default_field_mapping(entry)
+        item = self._mapped_item(entry, mapping)
+        self._enrich_entry_content(entry, item)
+        metadata = self._entry_metadata(entry)
+        if metadata:
+            item["metadata"] = metadata
+        if not self._passes_length_filters(item):
+            return None
+        return item
+
+    def _mapped_item(self, entry: dict[str, Any], mapping: dict[str, Any]) -> RawCollectedItem:
         item: RawCollectedItem = {}
         for target, source_path in mapping.items():
             if source_path in (None, ""):
@@ -87,6 +97,9 @@ class APICollector(BaseCollector):
                 item[target] = clean_text(value)
             else:
                 item[target] = str(value)
+        return item
+
+    def _enrich_entry_content(self, entry: dict[str, Any], item: RawCollectedItem) -> None:
         if not item.get("content") and not item.get("content_raw"):
             title = item.get("title")
             if title:
@@ -117,23 +130,23 @@ class APICollector(BaseCollector):
             item["content"] = enriched
             if "content_raw" in item:
                 item["content_raw"] = enriched
+
+    def _entry_metadata(self, entry: dict[str, Any]) -> dict[str, Any]:
         metadata_fields = self.config.get("metadata_fields") or []
-        metadata = {
+        return {
             str(field): self._extract_path(entry, field)
             for field in metadata_fields
             if self._extract_path(entry, field) is not None
         }
-        if metadata:
-            item["metadata"] = metadata
+
+    def _passes_length_filters(self, item: RawCollectedItem) -> bool:
         min_title_length = int(self.config.get("min_title_length") or 0)
         title = item.get("title") or ""
         if min_title_length > 0 and len(str(title).strip()) < min_title_length:
-            return None
+            return False
         min_content_length = int(self.config.get("min_content_length") or 0)
         content = item.get("content") or item.get("content_raw") or item.get("summary") or ""
-        if min_content_length > 0 and len(str(content).strip()) < min_content_length:
-            return None
-        return item
+        return not (min_content_length > 0 and len(str(content).strip()) < min_content_length)
 
     @staticmethod
     def _default_field_mapping(entry: dict[str, Any]) -> dict[str, Any]:

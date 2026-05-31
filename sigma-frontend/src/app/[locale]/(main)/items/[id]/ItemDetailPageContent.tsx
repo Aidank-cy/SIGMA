@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useItem } from "@/hooks/useItems";
-import type { MinimalItem } from "@/lib/types";
+import type { ItemDetail, MinimalItem } from "@/lib/types";
 
 export function ItemDetailPageContent() {
   const params = useParams<{ id: string }>();
@@ -58,75 +58,97 @@ export function ItemDetailPageContent() {
         </header>
 
         <div className="mt-8 flex flex-col gap-8">
-          <Card className="p-6">
-            <div className="mb-3 flex items-center justify-between gap-4">
-              <h2 className="text-base font-bold text-foreground">{t("summaryTitle")}</h2>
-              {item.content_url ? (
-                <Link
-                  className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-primary"
-                  href={item.content_url}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {t("original")}
-                  <ExternalLink className="h-4 w-4" aria-hidden />
-                </Link>
-              ) : null}
-            </div>
-            <p className="text-base leading-7 text-muted-foreground">{item.summary ?? t("summaryFallback")}</p>
-          </Card>
-
-          <section className="border-t border-border pt-5">
-            <button
-              className="flex min-h-11 w-full items-center justify-between gap-4 text-left"
-              onClick={() => setIsRawOpen((current) => !current)}
-              type="button"
-            >
-              <span className="text-lg font-bold text-foreground">{t("rawTitle")}</span>
-              <ChevronDown className={isRawOpen ? "h-5 w-5 rotate-180 text-muted-foreground" : "h-5 w-5 text-muted-foreground"} />
-            </button>
-            {isRawOpen ? (
-              <div className="mt-5 rounded-2xl border border-border bg-card p-6">
-                {isMetadataOnly ? (
-                  <div className="flex flex-col gap-4">
-                    <p className="text-sm leading-6 text-muted-foreground">{t("metadataOnly")}</p>
-                    {item.content_url ? (
-                      <Link
-                        className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-2xl bg-foreground px-4 text-sm font-bold text-background shadow-sm transition-all duration-200 hover:brightness-110"
-                        href={item.content_url}
-                        rel="noreferrer"
-                        target="_blank"
-                      >
-                        {t("originalSource")}
-                        <ExternalLink className="h-4 w-4" aria-hidden />
-                      </Link>
-                    ) : null}
-                  </div>
-                ) : (
-                  <RawContent content={item.content_raw} />
-                )}
-              </div>
-            ) : null}
-          </section>
-
-          <section className="border-t border-border pt-5">
-            <h2 className="mb-3 text-lg font-bold text-foreground">{t("relatedTitle")}</h2>
-            {item.related.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("relatedEmpty")}</p>
-            ) : (
-              <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
-                {item.related.map((related, index) => (
-                  <div className="min-w-[260px] max-w-[300px] snap-start" key={related.id}>
-                    <RelatedItemCard index={index} item={related} locale={locale} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          <SummaryCard item={item} />
+          <RawSection isMetadataOnly={isMetadataOnly} isRawOpen={isRawOpen} item={item} setIsRawOpen={setIsRawOpen} />
+          <RelatedSection item={item} locale={locale} />
         </div>
       </div>
       <ItemSidebar item={item} />
     </article>
+  );
+}
+
+function SummaryCard({ item }: { item: ItemDetail }) {
+  const t = useTranslations("itemDetail");
+
+  return (
+    <Card className="p-6">
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <h2 className="text-base font-bold text-foreground">{t("summaryTitle")}</h2>
+        {item.content_url ? (
+          <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-primary" href={item.content_url} rel="noreferrer" target="_blank">
+            {t("original")}
+            <ExternalLink className="h-4 w-4" aria-hidden />
+          </Link>
+        ) : null}
+      </div>
+      <p className="text-base leading-7 text-muted-foreground">{item.summary ?? t("summaryFallback")}</p>
+    </Card>
+  );
+}
+
+function RawSection({
+  isMetadataOnly,
+  isRawOpen,
+  item,
+  setIsRawOpen
+}: {
+  isMetadataOnly: boolean;
+  isRawOpen: boolean;
+  item: ItemDetail;
+  setIsRawOpen: (value: (current: boolean) => boolean) => void;
+}) {
+  const t = useTranslations("itemDetail");
+
+  return (
+    <section className="border-t border-border pt-5">
+      <button className="flex min-h-11 w-full items-center justify-between gap-4 text-left" onClick={() => setIsRawOpen((current) => !current)} type="button">
+        <span className="text-lg font-bold text-foreground">{t("rawTitle")}</span>
+        <ChevronDown className={isRawOpen ? "h-5 w-5 rotate-180 text-muted-foreground" : "h-5 w-5 text-muted-foreground"} />
+      </button>
+      {isRawOpen ? (
+        <div className="mt-5 rounded-2xl border border-border bg-card p-6">
+          {isMetadataOnly ? <MetadataOnlyContent item={item} /> : <RawContent content={item.content_raw} />}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function MetadataOnlyContent({ item }: { item: ItemDetail }) {
+  const t = useTranslations("itemDetail");
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm leading-6 text-muted-foreground">{t("metadataOnly")}</p>
+      {item.content_url ? (
+        <Link className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-2xl bg-foreground px-4 text-sm font-bold text-background shadow-sm transition-all duration-200 hover:brightness-110" href={item.content_url} rel="noreferrer" target="_blank">
+          {t("originalSource")}
+          <ExternalLink className="h-4 w-4" aria-hidden />
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
+function RelatedSection({ item, locale }: { item: ItemDetail; locale: string }) {
+  const t = useTranslations("itemDetail");
+
+  return (
+    <section className="border-t border-border pt-5">
+      <h2 className="mb-3 text-lg font-bold text-foreground">{t("relatedTitle")}</h2>
+      {item.related.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("relatedEmpty")}</p>
+      ) : (
+        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
+          {item.related.map((related, index) => (
+            <div className="min-w-[260px] max-w-[300px] snap-start" key={related.id}>
+              <RelatedItemCard index={index} item={related} locale={locale} />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

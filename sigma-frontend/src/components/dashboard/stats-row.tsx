@@ -19,6 +19,20 @@ const statStyles = [
   { bgColor: "bg-chart-4/10", color: "text-chart-4", icon: FileText }
 ];
 
+interface StatItem {
+  change: string;
+  label: string;
+  target: string;
+  value: string;
+}
+
+interface StatCardProps {
+  index: number;
+  isNew: boolean;
+  onNavigate: (target: string) => void;
+  stat: StatItem;
+}
+
 function relativeTime(value: string, locale: string): string {
   const date = new Date(value);
   const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000);
@@ -82,49 +96,59 @@ export function StatsRow() {
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat, index) => {
-        const style = statStyles[index];
-        const Icon = style.icon;
-        return (
-          <motion.div
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="group cursor-pointer rounded-2xl border border-border bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            key={stat.label}
-            onClick={() => router.push(stat.target)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                router.push(stat.target);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            transition={{ delay: index * 0.08, duration: 0.35 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          >
-            <div className="flex items-center gap-4">
-              <div className={cn("shrink-0 rounded-2xl p-3 transition-transform duration-200 group-hover:scale-110", style.bgColor)}>
-                <Icon className={cn("h-6 w-6", style.color)} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] text-muted-foreground">{stat.label}</p>
-                <p className="text-[28px] font-bold leading-tight text-foreground transition-colors group-hover:text-primary">
-                  {stat.value}
-                </p>
-              </div>
-              <span
-                className={cn(
-                  "shrink-0 rounded-2xl px-2.5 py-1 text-xs font-bold",
-                  stat.change === t("new") ? "bg-primary/10 text-primary" : "bg-chart-1/10 text-chart-1"
-                )}
-              >
-                {stat.change}
-              </span>
-            </div>
-          </motion.div>
-        );
-      })}
+      {stats.map((stat, index) => (
+        <StatCard
+          index={index}
+          isNew={stat.change === t("new")}
+          key={stat.label}
+          onNavigate={(target) => router.push(target)}
+          stat={stat}
+        />
+      ))}
     </div>
+  );
+}
+
+function StatCard({ index, isNew, onNavigate, stat }: StatCardProps) {
+  const style = statStyles[index];
+  const Icon = style.icon;
+
+  return (
+    <motion.div
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      className="group cursor-pointer rounded-2xl border border-border bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
+      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+      onClick={() => onNavigate(stat.target)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onNavigate(stat.target);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      transition={{ delay: index * 0.08, duration: 0.35 }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+    >
+      <div className="flex items-center gap-4">
+        <div className={cn("shrink-0 rounded-2xl p-3 transition-transform duration-200 group-hover:scale-110", style.bgColor)}>
+          <Icon className={cn("h-6 w-6", style.color)} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] text-muted-foreground">{stat.label}</p>
+          <p className="text-[28px] font-bold leading-tight text-foreground transition-colors group-hover:text-primary">
+            {stat.value}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "shrink-0 rounded-2xl px-2.5 py-1 text-xs font-bold",
+            isNew ? "bg-primary/10 text-primary" : "bg-chart-1/10 text-chart-1"
+          )}
+        >
+          {stat.change}
+        </span>
+      </div>
+    </motion.div>
   );
 }

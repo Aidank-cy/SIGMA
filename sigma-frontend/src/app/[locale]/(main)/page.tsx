@@ -13,6 +13,13 @@ import { useMarketIndices } from "@/hooks/useMarketIndices";
 import type { ItemFilters } from "@/lib/types";
 import { formatUpdatedAt, getGreetingKey, type GreetingKey } from "@/lib/utils";
 
+interface DashboardHeaderProps {
+  greetingKey: GreetingKey;
+  hasMarketData: boolean;
+  name: string;
+  updatedAt: string;
+}
+
 const HeroChart = dynamic(() => import("@/components/dashboard/hero-chart").then((mod) => mod.HeroChart), {
   loading: () => <ChartSkeleton />,
   ssr: false
@@ -57,32 +64,12 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen">
       <div className="min-w-0 flex-1 space-y-8 p-6 lg:p-8">
-        <motion.div
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
-          initial={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          <div>
-            <h1 className="text-balance text-[32px] font-bold text-foreground">
-              {t(greetingKey, { name: user?.display_name ?? "SIGMA" })}
-            </h1>
-            <p className="mt-1 text-foreground/60">{t("subtitle")}</p>
-          </div>
-          {hasMarketData ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-foreground/55">
-                {t("lastUpdated")}: <span className="font-bold text-foreground">{updatedAt}</span>
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-chart-1" />
-                <span className="text-xs font-bold text-chart-1">{t("live")}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="h-5 w-40 animate-pulse rounded-full bg-muted" />
-          )}
-        </motion.div>
+        <DashboardHeader
+          greetingKey={greetingKey}
+          hasMarketData={hasMarketData}
+          name={user?.display_name ?? "SIGMA"}
+          updatedAt={updatedAt}
+        />
 
         <motion.section
           animate={{ opacity: 1, y: 0 }}
@@ -115,5 +102,38 @@ export default function DashboardPage() {
         </div>
       </aside>
     </div>
+  );
+}
+
+function DashboardHeader({ greetingKey, hasMarketData, name, updatedAt }: DashboardHeaderProps) {
+  const t = useTranslations("dashboard");
+
+  return (
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+      initial={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
+      <div>
+        <h1 className="text-balance text-[32px] font-bold text-foreground">
+          {t(greetingKey, { name })}
+        </h1>
+        <p className="mt-1 text-foreground/60">{t("subtitle")}</p>
+      </div>
+      {hasMarketData ? (
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-foreground/55">
+            {t("lastUpdated")}: <span className="font-bold text-foreground">{updatedAt}</span>
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-chart-1" />
+            <span className="text-xs font-bold text-chart-1">{t("live")}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="h-5 w-40 animate-pulse rounded-full bg-muted" />
+      )}
+    </motion.div>
   );
 }

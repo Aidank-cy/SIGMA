@@ -21,6 +21,31 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
 
+type NavItem = { href: string; icon: typeof LayoutDashboard; id: string; label: string };
+
+interface DesktopNavProps { activeId: string; hoveredId: string | null; navItems: NavItem[]; onHover: (id: string | null) => void; }
+
+interface AccountMenuProps { accountMenuOpen: boolean; avatarLabel: string; isDark: boolean; logout: () => void; nextTheme: string; onSettingsClick: () => void; onMenuOpenChange: (value: (open: boolean) => boolean) => void; onThemeChange: (theme: string) => void; settingsHref: string; }
+
+interface MobileNavProps { activeId: string; navItems: NavItem[]; }
+
+function navItemsFor(locale: string, t: ReturnType<typeof useTranslations>): NavItem[] {
+  return [
+    { icon: LayoutDashboard, label: t("dashboard"), id: "dashboard", href: `/${locale}` },
+    { icon: LineChart, label: t("markets"), id: "markets", href: `/${locale}/markets` },
+    { icon: Newspaper, label: t("news"), id: "news", href: `/${locale}/news` },
+    { icon: BarChart3, label: t("analytics"), id: "analytics", href: `/${locale}/analytics` },
+    { icon: RefreshCw, label: t("sync"), id: "sync", href: `/${locale}/sync` }
+  ];
+}
+
+function activeIdFor(pathname: string, navItems: NavItem[]) {
+  const pathWithoutLocale = pathname.replace(/^\/(zh|en)/, "") || "/";
+  if (pathWithoutLocale === "/") return "dashboard";
+  const match = navItems.find((item) => pathWithoutLocale.startsWith(`/${item.id}`));
+  return match?.id || "dashboard";
+}
+
 export function Sidebar() {
   const { resolvedTheme, setTheme } = useTheme();
   const pathname = usePathname();
@@ -61,22 +86,8 @@ export function Sidebar() {
     };
   }, [accountMenuOpen]);
 
-  const navItems = [
-    { icon: LayoutDashboard, label: t("dashboard"), id: "dashboard", href: `/${locale}` },
-    { icon: LineChart, label: t("markets"), id: "markets", href: `/${locale}/markets` },
-    { icon: Newspaper, label: t("news"), id: "news", href: `/${locale}/news` },
-    { icon: BarChart3, label: t("analytics"), id: "analytics", href: `/${locale}/analytics` },
-    { icon: RefreshCw, label: t("sync"), id: "sync", href: `/${locale}/sync` }
-  ];
-
-  const getActiveId = () => {
-    const pathWithoutLocale = pathname.replace(/^\/(zh|en)/, "") || "/";
-    if (pathWithoutLocale === "/") return "dashboard";
-    const match = navItems.find((item) => pathWithoutLocale.startsWith(`/${item.id}`));
-    return match?.id || "dashboard";
-  };
-
-  const activeId = getActiveId();
+  const navItems = navItemsFor(locale, t);
+  const activeId = activeIdFor(pathname, navItems);
   const avatarLabel = user?.display_name?.charAt(0)?.toUpperCase() || "S";
   const isDark = mounted && resolvedTheme === "dark";
   const nextTheme = isDark ? "light" : "dark";
@@ -102,120 +113,156 @@ export function Sidebar() {
         {t("menu")}
       </span>
 
-      <nav className="flex flex-1 flex-col items-center gap-1">
-        {navItems.map((item) => {
-          const isActive = activeId === item.id;
-          const isHovered = hoveredId === item.id;
-          const Icon = item.icon;
-
-          return (
-            <div className="relative flex h-12 w-12 items-center justify-center" key={item.id}>
-              <Link
-                aria-label={item.label}
-                className={cn(
-                  "relative flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-300",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                )}
-                href={item.href}
-                onMouseEnter={() => setHoveredId(item.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                prefetch
-              >
-                <motion.span
-                  className="flex h-full w-full items-center justify-center"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Icon className="h-5 w-5" />
-                </motion.span>
-
-                {isActive ? (
-                  <motion.div
-                    className="absolute -left-6 h-6 w-1 rounded-r-full bg-sidebar-primary"
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                  />
-                ) : null}
-              </Link>
-
-              <AnimatePresence>
-                {isHovered && !isActive ? (
-                  <motion.div
-                    animate={{ opacity: 1, x: 0 }}
-                    className="absolute left-full top-1/2 z-50 ml-3 -translate-y-[60%] whitespace-nowrap rounded-xl border border-border bg-popover px-3 py-1.5 text-sm font-bold text-popover-foreground shadow-sm"
-                    exit={{ opacity: 0, x: -10 }}
-                    initial={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    {item.label}
-                    <div className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-[60%] rotate-45 border-b border-l border-border bg-popover" />
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </div>
-          );
-        })}
-      </nav>
+      <DesktopNav activeId={activeId} hoveredId={hoveredId} navItems={navItems} onHover={setHoveredId} />
 
       <div className="relative mt-auto flex flex-col items-center gap-3" ref={accountMenuRef}>
-        <motion.button
-          aria-expanded={accountMenuOpen}
-          aria-haspopup="menu"
-          aria-label={t("accountMenu")}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-sm font-bold text-background ring-2 ring-sidebar-border transition-all duration-200 hover:ring-sidebar-primary/50"
-          onClick={() => setAccountMenuOpen((open) => !open)}
-          type="button"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {avatarLabel}
-        </motion.button>
-
-        <AnimatePresence>
-          {accountMenuOpen ? (
-            <motion.div
-              animate={{ opacity: 1, x: 0, y: 0 }}
-              className="absolute bottom-0 left-full z-50 ml-3 w-44 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-sm"
-              exit={{ opacity: 0, x: -8, y: 6 }}
-              initial={{ opacity: 0, x: -8, y: 6 }}
-              role="menu"
-              transition={{ duration: 0.16, ease: "easeOut" }}
-            >
-              <Link
-                className="flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-bold text-popover-foreground transition-colors hover:bg-muted"
-                href={settingsHref}
-                onClick={() => setAccountMenuOpen(false)}
-                prefetch
-                role="menuitem"
-              >
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                <span>{t("settings")}</span>
-              </Link>
-              <button
-                className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-bold text-popover-foreground transition-colors hover:bg-muted"
-                onClick={() => setTheme(nextTheme)}
-                role="menuitem"
-                type="button"
-              >
-                {isDark ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
-                <span>{isDark ? t("themeDarkMode") : t("themeLightMode")}</span>
-              </button>
-              <button
-                className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-bold text-popover-foreground transition-colors hover:bg-muted"
-                onClick={logout}
-                role="menuitem"
-                type="button"
-              >
-                <LogOut className="h-4 w-4 text-muted-foreground" />
-                <span>{t("logout")}</span>
-              </button>
-              <div className="absolute -left-1 bottom-4 h-2 w-2 rotate-45 border-b border-l border-border bg-popover" />
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
+        <AccountMenu
+          accountMenuOpen={accountMenuOpen}
+          avatarLabel={avatarLabel}
+          isDark={isDark}
+          logout={logout}
+          nextTheme={nextTheme}
+          onMenuOpenChange={setAccountMenuOpen}
+          onSettingsClick={() => setAccountMenuOpen(false)}
+          onThemeChange={setTheme}
+          settingsHref={settingsHref}
+        />
       </div>
     </motion.aside>
+    <MobileNav activeId={activeId} navItems={navItems} />
+    </>
+  );
+}
+
+function DesktopNav({ activeId, hoveredId, navItems, onHover }: DesktopNavProps) {
+  return (
+    <nav className="flex flex-1 flex-col items-center gap-1">
+      {navItems.map((item) => (
+        <DesktopNavItem
+          isActive={activeId === item.id}
+          isHovered={hoveredId === item.id}
+          item={item}
+          key={item.id}
+          onHover={onHover}
+        />
+      ))}
+    </nav>
+  );
+}
+
+function DesktopNavItem({
+  isActive,
+  isHovered,
+  item,
+  onHover
+}: {
+  isActive: boolean;
+  isHovered: boolean;
+  item: NavItem;
+  onHover: (id: string | null) => void;
+}) {
+  const Icon = item.icon;
+
+  return (
+    <div className="relative flex h-12 w-12 items-center justify-center">
+      <Link
+        aria-label={item.label}
+        className={cn(
+          "relative flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-300",
+          isActive
+            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/30"
+            : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        )}
+        href={item.href}
+        onMouseEnter={() => onHover(item.id)}
+        onMouseLeave={() => onHover(null)}
+        prefetch
+      >
+        <motion.span className="flex h-full w-full items-center justify-center" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Icon className="h-5 w-5" />
+        </motion.span>
+
+        {isActive ? <motion.div className="absolute -left-6 h-6 w-1 rounded-r-full bg-sidebar-primary" transition={{ duration: 0.2, ease: "easeOut" }} /> : null}
+      </Link>
+
+      <AnimatePresence>
+        {isHovered && !isActive ? (
+          <motion.div
+            animate={{ opacity: 1, x: 0 }}
+            className="absolute left-full top-1/2 z-50 ml-3 -translate-y-[60%] whitespace-nowrap rounded-xl border border-border bg-popover px-3 py-1.5 text-sm font-bold text-popover-foreground shadow-sm"
+            exit={{ opacity: 0, x: -10 }}
+            initial={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.15 }}
+          >
+            {item.label}
+            <div className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-[60%] rotate-45 border-b border-l border-border bg-popover" />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function AccountMenu({ accountMenuOpen, avatarLabel, isDark, logout, nextTheme, onMenuOpenChange, onSettingsClick, onThemeChange, settingsHref }: AccountMenuProps) {
+  const t = useTranslations("nav");
+
+  return (
+    <>
+      <motion.button
+        aria-expanded={accountMenuOpen}
+        aria-haspopup="menu"
+        aria-label={t("accountMenu")}
+        className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-sm font-bold text-background ring-2 ring-sidebar-border transition-all duration-200 hover:ring-sidebar-primary/50"
+        onClick={() => onMenuOpenChange((open) => !open)}
+        type="button"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        {avatarLabel}
+      </motion.button>
+
+      <AnimatePresence>
+        {accountMenuOpen ? (
+          <motion.div
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            className="absolute bottom-0 left-full z-50 ml-3 w-44 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-sm"
+            exit={{ opacity: 0, x: -8, y: 6 }}
+            initial={{ opacity: 0, x: -8, y: 6 }}
+            role="menu"
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            <AccountMenuItems isDark={isDark} logout={logout} nextTheme={nextTheme} onSettingsClick={onSettingsClick} onThemeChange={onThemeChange} settingsHref={settingsHref} />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function AccountMenuItems({ isDark, logout, nextTheme, onSettingsClick, onThemeChange, settingsHref }: Omit<AccountMenuProps, "accountMenuOpen" | "avatarLabel" | "onMenuOpenChange">) {
+  const t = useTranslations("nav");
+
+  return (
+    <>
+      <Link className="flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-bold text-popover-foreground transition-colors hover:bg-muted" href={settingsHref} onClick={onSettingsClick} prefetch role="menuitem">
+        <Settings className="h-4 w-4 text-muted-foreground" />
+        <span>{t("settings")}</span>
+      </Link>
+      <button className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-bold text-popover-foreground transition-colors hover:bg-muted" onClick={() => onThemeChange(nextTheme)} role="menuitem" type="button">
+        {isDark ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
+        <span>{isDark ? t("themeDarkMode") : t("themeLightMode")}</span>
+      </button>
+      <button className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-bold text-popover-foreground transition-colors hover:bg-muted" onClick={logout} role="menuitem" type="button">
+        <LogOut className="h-4 w-4 text-muted-foreground" />
+        <span>{t("logout")}</span>
+      </button>
+      <div className="absolute -left-1 bottom-4 h-2 w-2 rotate-45 border-b border-l border-border bg-popover" />
+    </>
+  );
+}
+
+function MobileNav({ activeId, navItems }: MobileNavProps) {
+  return (
     <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 gap-1 rounded-2xl border border-border bg-card p-1 shadow-sm md:hidden">
       {navItems.map((item) => {
         const isActive = activeId === item.id;
@@ -238,6 +285,5 @@ export function Sidebar() {
         );
       })}
     </nav>
-    </>
   );
 }

@@ -13,16 +13,33 @@ import { cn } from "@/lib/utils";
 
 type MarketState = "trading" | "closed" | "unopened";
 
+interface TickerItem {
+  change: number;
+  currency: string;
+  hasMovementData: boolean;
+  marketState: MarketState;
+  name: string;
+  price: number;
+  sparkline: Array<{ value: number }>;
+  symbol: string;
+}
+
 interface TickerCarouselProps {
   activeMarket?: string;
   onSelectMarket?: (symbol: string) => void;
+}
+
+interface TickerButtonProps {
+  activeMarket?: string;
+  index: number;
+  onSelectMarket?: (symbol: string) => void;
+  ticker: TickerItem;
 }
 
 export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselProps) {
   const t = useTranslations("dashboard");
   const { data } = useMarketIndices();
   const now = useMarketClock();
-  const flatLineColor = "var(--muted-foreground)";
   const tickers = useMemo(
     () =>
       (data?.indices ?? []).map((index) => {
@@ -58,54 +75,63 @@ export function TickerCarousel({ activeMarket, onSelectMarket }: TickerCarouselP
         </div>
       ) : (
         <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
-          {tickers.map((ticker, index) => {
-            const isPositive = ticker.change >= 0;
-            const lineColor = !ticker.hasMovementData
-              ? flatLineColor
-              : isPositive
-                ? "var(--chart-1)"
-                : "var(--chart-2)";
-            const isActive = activeMarket === ticker.symbol;
-
-            return (
-              <motion.button
-                aria-pressed={isActive}
-                animate={{ opacity: 1, x: 0 }}
-                className={cn(
-                  "grid w-full grid-cols-[minmax(120px,140px)_56px_minmax(70px,1fr)] items-center gap-3 rounded-2xl border px-2 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive ? "border-primary/40 bg-primary/10 shadow-sm" : "border-transparent"
-                )}
-                initial={{ opacity: 0, x: 12 }}
-                key={ticker.symbol}
-                onClick={() => onSelectMarket?.(ticker.symbol)}
-                transition={{ delay: index * 0.04, duration: 0.25 }}
-                type="button"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-foreground">{ticker.name}</p>
-                  <p className="truncate text-xs text-foreground/55">{ticker.symbol}</p>
-                </div>
-
-                <div className="flex h-8 w-14 items-center justify-center">
-                  <Sparkline color={lineColor} data={ticker.sparkline} height={20} width={48} />
-                </div>
-
-                <div className="text-right">
-                  <p className="text-base font-bold tabular-nums text-foreground">
-                    {ticker.price.toLocaleString("en-US", {
-                      maximumFractionDigits: 2,
-                      minimumFractionDigits: 2
-                    })}
-                  </p>
-                  <p className="text-xs text-foreground/55">
-                    {ticker.currency}
-                  </p>
-                </div>
-              </motion.button>
-            );
-          })}
+          {tickers.map((ticker, index) => (
+            <TickerButton
+              activeMarket={activeMarket}
+              index={index}
+              key={ticker.symbol}
+              onSelectMarket={onSelectMarket}
+              ticker={ticker}
+            />
+          ))}
         </div>
       )}
     </section>
+  );
+}
+
+function TickerButton({ activeMarket, index, onSelectMarket, ticker }: TickerButtonProps) {
+  const isPositive = ticker.change >= 0;
+  const lineColor = !ticker.hasMovementData
+    ? "var(--muted-foreground)"
+    : isPositive
+      ? "var(--chart-1)"
+      : "var(--chart-2)";
+  const isActive = activeMarket === ticker.symbol;
+
+  return (
+    <motion.button
+      aria-pressed={isActive}
+      animate={{ opacity: 1, x: 0 }}
+      className={cn(
+        "grid w-full grid-cols-[minmax(120px,140px)_56px_minmax(70px,1fr)] items-center gap-3 rounded-2xl border px-2 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        isActive ? "border-primary/40 bg-primary/10 shadow-sm" : "border-transparent"
+      )}
+      initial={{ opacity: 0, x: 12 }}
+      onClick={() => onSelectMarket?.(ticker.symbol)}
+      transition={{ delay: index * 0.04, duration: 0.25 }}
+      type="button"
+    >
+      <div className="min-w-0">
+        <p className="truncate text-sm font-bold text-foreground">{ticker.name}</p>
+        <p className="truncate text-xs text-foreground/55">{ticker.symbol}</p>
+      </div>
+
+      <div className="flex h-8 w-14 items-center justify-center">
+        <Sparkline color={lineColor} data={ticker.sparkline} height={20} width={48} />
+      </div>
+
+      <div className="text-right">
+        <p className="text-base font-bold tabular-nums text-foreground">
+          {ticker.price.toLocaleString("en-US", {
+            maximumFractionDigits: 2,
+            minimumFractionDigits: 2
+          })}
+        </p>
+        <p className="text-xs text-foreground/55">
+          {ticker.currency}
+        </p>
+      </div>
+    </motion.button>
   );
 }

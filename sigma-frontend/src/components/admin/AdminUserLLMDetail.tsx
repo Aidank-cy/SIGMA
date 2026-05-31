@@ -1,5 +1,6 @@
 "use client";
 
+import type { ForwardedRef } from "react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { RotateCcw } from "lucide-react";
@@ -40,16 +41,15 @@ export const AdminUserLLMDetail = forwardRef<AdminDetailSaveHandle, AdminUserLLM
   { onSaveStateChange, userId },
   ref
 ) {
+  const state = useAdminUserLLMDetailState(userId, onSaveStateChange, ref);
+  return <AdminUserLLMDetailContent {...state} />;
+});
+
+function useAdminUserLLMDetailState(userId: string, onSaveStateChange: AdminUserLLMDetailProps["onSaveStateChange"], ref: ForwardedRef<AdminDetailSaveHandle>) {
   const t = useTranslations("admin.llm");
-  const userT = useTranslations("admin.users");
   const llm = useAdminUserLLMConfig(userId);
   const report = useAdminUserReportConfig(userId);
-  const [reportPayload, setReportPayload] = useState<UserReportConfig>(() => {
-    if (report.config.data) {
-      return normalizeReportConfig(report.config.data);
-    }
-    return defaultReportConfig;
-  });
+  const [reportPayload, setReportPayload] = useState<UserReportConfig>(() => report.config.data ? normalizeReportConfig(report.config.data) : defaultReportConfig);
   const reportBaselineRef = useRef<UserReportConfig>(reportPayload);
   const reportPayloadRef = useRef<UserReportConfig>(reportPayload);
   const llmBaselineRef = useRef<LLMConfig | null>(null);
@@ -124,24 +124,24 @@ export const AdminUserLLMDetail = forwardRef<AdminDetailSaveHandle, AdminUserLLM
     [isValid, llm, llmDraft, llmIsDirty, report, reportIsDirty, t]
   );
 
+  return { llm, report, reportPayload, setLlmDraft, setLlmDraftHasInvalidApiKeys, setSyncedReportPayload };
+}
+
+function AdminUserLLMDetailContent({
+  llm,
+  report,
+  reportPayload,
+  setLlmDraft,
+  setLlmDraftHasInvalidApiKeys,
+  setSyncedReportPayload
+}: ReturnType<typeof useAdminUserLLMDetailState>) {
+  const t = useTranslations("admin.llm");
+  const userT = useTranslations("admin.users");
   return (
     <div className="min-h-0 space-y-4">
-      <ReportConfigEditor
-        compact
-        className="max-h-[34rem] overflow-auto"
-        isSaving={report.update.isPending}
-        hideSaveButton
-        payload={reportPayload}
-        setPayload={setSyncedReportPayload}
-        title={userT("reportConfig")}
-      />
+      <ReportConfigEditor compact className="max-h-[34rem] overflow-auto" isSaving={report.update.isPending} hideSaveButton payload={reportPayload} setPayload={setSyncedReportPayload} title={userT("reportConfig")} />
       {llm.config.isError ? (
-        <ErrorCard
-          isRetrying={llm.config.isFetching}
-          message={t("error")}
-          onRetry={() => llm.config.refetch()}
-          retryLabel={userT("retry")}
-        />
+        <ErrorCard isRetrying={llm.config.isFetching} message={t("error")} onRetry={() => llm.config.refetch()} retryLabel={userT("retry")} />
       ) : llm.config.isLoading ? (
         <Skeleton className="h-[32rem] rounded-xl" />
       ) : (
@@ -163,7 +163,7 @@ export const AdminUserLLMDetail = forwardRef<AdminDetailSaveHandle, AdminUserLLM
       )}
     </div>
   );
-});
+}
 
 function ErrorCard({
   isRetrying,

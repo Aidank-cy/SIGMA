@@ -20,6 +20,16 @@ interface LoginErrors {
   password?: string;
 }
 
+interface LoginFormProps {
+  email: string;
+  errors: LoginErrors;
+  isSubmitting: boolean;
+  onEmailChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  password: string;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -81,27 +91,15 @@ export default function LoginPage() {
           <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("login.subtitle")}</p>
         </div>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <Input
-            autoComplete="email"
-            error={errors.email}
-            label={t("email")}
-            onChange={(event) => setEmail(event.target.value)}
-            type="email"
-            value={email}
-          />
-          <Input
-            autoComplete="current-password"
-            error={errors.password}
-            label={t("password")}
-            onChange={(event) => setPassword(event.target.value)}
-            type="password"
-            value={password}
-          />
-          <Button className="w-full" isLoading={isSubmitting} size="lg" type="submit">
-            {t("login.submit")}
-          </Button>
-        </form>
+        <LoginForm
+          email={email}
+          errors={errors}
+          isSubmitting={isSubmitting}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+          onSubmit={handleSubmit}
+          password={password}
+        />
 
         <div className="mt-6 text-center">
           <Link
@@ -113,5 +111,41 @@ export default function LoginPage() {
         </div>
       </Card>
     </main>
+  );
+}
+
+function LoginForm({
+  email,
+  errors,
+  isSubmitting,
+  onEmailChange,
+  onPasswordChange,
+  onSubmit,
+  password
+}: LoginFormProps) {
+  const t = useTranslations("auth");
+
+  return (
+    <form className="space-y-4" onSubmit={onSubmit}>
+      <Input
+        autoComplete="email"
+        error={errors.email}
+        label={t("email")}
+        onChange={(event) => onEmailChange(event.target.value)}
+        type="email"
+        value={email}
+      />
+      <Input
+        autoComplete="current-password"
+        error={errors.password}
+        label={t("password")}
+        onChange={(event) => onPasswordChange(event.target.value)}
+        type="password"
+        value={password}
+      />
+      <Button className="w-full" isLoading={isSubmitting} size="lg" type="submit">
+        {t("login.submit")}
+      </Button>
+    </form>
   );
 }
