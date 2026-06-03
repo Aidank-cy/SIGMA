@@ -1,3 +1,13 @@
+---
+name: versioning-and-changelog
+description: >
+  Project-local changelog and versioning contract for SIGMA.
+  Use after every completed phase or sub-feature to update
+  CHANGELOG.md under [Unreleased]. Also use when the user asks
+  to release, bump version, or tag. This project-level skill
+  takes precedence over the user-level versioning-and-changelog.
+---
+
 # Versioning and Changelog
 
 Use this project skill as the local contract for changelog compliance.
