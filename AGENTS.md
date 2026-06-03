@@ -15,6 +15,21 @@ next-intl, Tailwind CSS, TanStack Query, framer-motion, and recharts.
 - Frontend lint: `cd sigma-frontend && npm run lint`
 - Full stack: `docker compose up --build`
 
+## Skills
+
+Project-level skills are in `skills/`. Read the relevant skill's
+SKILL.md before starting a task to determine if it applies.
+
+Available skills:
+- `skills/prompt-gateway/SKILL.md` — task pipeline for code modifications (add feature, fix bug, refactor)
+- `skills/harness-init/SKILL.md` — harness scaffold generator for new projects
+- `skills/harness-engineering-transform/SKILL.md` — add harness engineering to existing projects
+- `skills/sync-filter/SKILL.md` — dev-to-public repo sync boundary management
+- `skills/versioning-and-changelog/SKILL.md` — project-local changelog and versioning contract
+
+Load only the relevant skill for the current task. Do not read
+all skills at once.
+
 ## Always
 - Read `.harness/progress.md` "Current state" section before choosing a resume point.
 - Update `CHANGELOG.md` under `[Unreleased]` and `.harness/progress.md` after each
@@ -46,7 +61,10 @@ next-intl, Tailwind CSS, TanStack Query, framer-motion, and recharts.
   schemas, services, scheduler, and tests.
 - `sigma-frontend/src/app/` contains Next.js routes and locale segments.
 - `docker-compose.yml` owns local Postgres, Redis, backend, and frontend service wiring.
-- `skills/`, `hooks/`, and `.harness/` are private agent governance files.
+- `skills/` contains project-pipeline skills (symlinked from
+  ~/my-skills/project-pipeline/) and a local versioning-and-changelog
+  override. Symlinks are machine-local and gitignored via .gitignore.
+- `hooks/` and `.harness/` are private agent governance files.
 
 ---
 _This is a living document. Add new rules only when a real failure occurs. Remove or
